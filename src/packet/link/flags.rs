@@ -1,0 +1,236 @@
+use libc;
+
+/// Link is up (administratively)
+const UP: u32 = libc::IFF_UP as u32;
+/// Link is up and carrier is OK (RFC2863 OPER_UP)
+const RUNNING: u32 = libc::IFF_RUNNING as u32;
+/// Link layer is operational
+const LOWER_UP: u32 = libc::IFF_LOWER_UP as u32;
+/// Driver signals dormant
+const DORMANT: u32 = libc::IFF_DORMANT as u32;
+/// Link supports broadcasting
+const BROADCAST: u32 = libc::IFF_BROADCAST as u32;
+/// Link supports multicasting
+const MULTICAST: u32 = libc::IFF_MULTICAST as u32;
+/// Link supports multicast routing
+const ALLMULTI: u32 = libc::IFF_ALLMULTI as u32;
+/// Tell driver to do debugging (currently unused)
+const DEBUG: u32 = libc::IFF_DEBUG as u32;
+/// Link loopback network
+const LOOPBACK: u32 = libc::IFF_LOOPBACK as u32;
+/// u32erface is point-to-point link
+const POINTOPOINT: u32 = libc::IFF_POINTOPOINT as u32;
+/// ARP is not supported
+const NOARP: u32 = libc::IFF_NOARP as u32;
+/// Receive all packets.
+const PROMISC: u32 = libc::IFF_PROMISC as u32;
+/// Master of a load balancer (bonding)
+const MASTER: u32 = libc::IFF_MASTER as u32;
+/// Slave of a load balancer
+const SLAVE: u32 = libc::IFF_SLAVE as u32;
+/// Link selects port automatically (only used by ARM ethernet)
+const PORTSEL: u32 = libc::IFF_PORTSEL as u32;
+/// Driver supports setting media type (only used by ARM ethernet)
+const AUTOMEDIA: u32 = libc::IFF_AUTOMEDIA as u32;
+/// Echo sent packets (testing feature, CAN only)
+const ECHO: u32 = libc::IFF_ECHO as u32;
+/// Dialup device with changing addresses (unused, BSD compatibility)
+const DYNAMIC: u32 = libc::IFF_DYNAMIC as u32;
+/// Avoid use of trailers (unused, BSD compatibility)
+const NOTRAILERS: u32 = libc::IFF_NOTRAILERS as u32;
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+pub struct Flags(u32);
+
+impl From<u32> for Flags {
+    fn from(flags: u32) -> Self {
+        Flags(flags)
+    }
+}
+
+impl From<libc::c_int> for Flags {
+    fn from(flags: libc::c_int) -> Self {
+        Flags(flags as u32)
+    }
+}
+
+impl<'a> Into<u32> for &'a Flags {
+    fn into(self) -> u32 {
+        self.0
+    }
+}
+
+impl Into<u32> for Flags {
+    fn into(self) -> u32 {
+        self.0
+    }
+}
+
+impl Flags {
+    pub fn new() -> Self {
+        Flags(0)
+    }
+
+    /// Set the `IFF_UP` flag
+    pub fn set_up(&mut self) {
+        self.0 |= UP
+    }
+
+    /// Check if the `IFF_UP` flag is set
+    pub fn has_up(&self) -> bool {
+        self.0 & UP == UP
+    }
+
+    /// Set the `IFF_RUNNING` flag
+    pub fn set_running(&mut self) {
+        self.0 |= RUNNING
+    }
+
+    /// Check if the `IFF_RUNNING` flag is set
+    pub fn has_running(&self) -> bool {
+        self.0 & RUNNING == RUNNING
+    }
+
+    /// Set the `IFF_LOWER_UP` flag
+    pub fn set_lower_up(&mut self) {
+        self.0 |= LOWER_UP
+    }
+
+    /// Check if the `IFF_LOWER_UP` flag is set
+    pub fn has_lower_up(&self) -> bool {
+        self.0 & LOWER_UP == LOWER_UP
+    }
+
+    /// Set the `IFF_DORMANT` flag
+    pub fn set_dormant(&mut self) {
+        self.0 |= DORMANT
+    }
+
+    /// Check if the `IFF_DORMANT` flag is set
+    pub fn has_dormant(&self) -> bool {
+        self.0 & DORMANT == DORMANT
+    }
+
+    /// Set the `IFF_BROADCAST` flag
+    pub fn set_broadcast(&mut self) {
+        self.0 |= BROADCAST
+    }
+
+    /// Check if the `IFF_BROADCAST` flag is set
+    pub fn has_broadcast(&self) -> bool {
+        self.0 & BROADCAST == BROADCAST
+    }
+
+    /// Set the `IFF_MULTICAST` flag
+    pub fn set_multicast(&mut self) {
+        self.0 |= MULTICAST
+    }
+
+    /// Check if the `IFF_MULTICAST` flag is set
+    pub fn has_multicast(&self) -> bool {
+        self.0 & MULTICAST == MULTICAST
+    }
+
+    /// Set the `IFF_ALLMULTI` flag
+    pub fn set_allmulti(&mut self) {
+        self.0 |= ALLMULTI
+    }
+
+    /// Check if the `IFF_ALLMULTI` flag is set
+    pub fn has_allmulti(&self) -> bool {
+        self.0 & ALLMULTI == ALLMULTI
+    }
+
+    /// Set the `IFF_DEBUG` flag
+    pub fn set_debug(&mut self) {
+        self.0 |= DEBUG
+    }
+
+    /// Check if the `IFF_DEBUG` flag is set
+    pub fn has_debug(&self) -> bool {
+        self.0 & DEBUG == DEBUG
+    }
+
+    /// Set the `IFF_LOOPBACK` flag
+    pub fn set_loopback(&mut self) {
+        self.0 |= LOOPBACK
+    }
+
+    /// Check if the `IFF_LOOPBACK` flag is set
+    pub fn has_loopback(&self) -> bool {
+        self.0 & LOOPBACK == LOOPBACK
+    }
+
+    /// Set the `IFF_POINTOPOINT` flag
+    pub fn set_point_to_point(&mut self) {
+        self.0 |= POINTOPOINT
+    }
+
+    /// Check if the `IFF_POINTOPOINT` flag is set
+    pub fn has_point_to_point(&self) -> bool {
+        self.0 & POINTOPOINT == POINTOPOINT
+    }
+
+    /// Set the `IFF_NOARP` flag
+    pub fn set_no_arp(&mut self) {
+        self.0 |= NOARP
+    }
+
+    /// Check if the `IFF_NOARP` flag is set
+    pub fn has_no_arp(&self) -> bool {
+        self.0 & NOARP == NOARP
+    }
+
+    /// Set the `IFF_PROMISC` flag
+    pub fn set_promiscuous(&mut self) {
+        self.0 |= PROMISC
+    }
+
+    /// Check if the `IFF_PROMISC` flag is set
+    pub fn has_promiscuous(&self) -> bool {
+        self.0 & PROMISC == PROMISC
+    }
+
+    /// Set the `IFF_MASTER` flag
+    pub fn set_master(&mut self) {
+        self.0 |= MASTER
+    }
+
+    /// Check if the `IFF_MASTER` flag is set
+    pub fn has_master(&self) -> bool {
+        self.0 & MASTER == MASTER
+    }
+
+    /// Set the `IFF_SLAVE` flag
+    pub fn set_slave(&mut self) {
+        self.0 |= SLAVE
+    }
+
+    /// Check if the `IFF_SLAVE` flag is set
+    pub fn has_slave(&self) -> bool {
+        self.0 & SLAVE == SLAVE
+    }
+
+    /// Set the `IFF_PORTSEL` flag
+    pub fn set_port_select(&mut self) {
+        self.0 |= PORTSEL
+    }
+
+    /// Check if the `IFF_PORTSEL` flag is set
+    pub fn has_port_select(&self) -> bool {
+        self.0 & PORTSEL == PORTSEL
+    }
+
+    /// Set the `IFF_AUTOMEDIA` flag
+    pub fn set_auto_media_type(&mut self) {
+        self.0 |= AUTOMEDIA
+    }
+
+    /// Check if the `IFF_AUTOMEDIA` flag is set
+    pub fn has_auto_media_type(&self) -> bool {
+        self.0 & AUTOMEDIA == AUTOMEDIA
+    }
+
+    // TODO: ECHO, DYNAMIC, NOTRAILERS
+    // they are for BSD compat anyway
+}
