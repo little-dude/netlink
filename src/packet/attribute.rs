@@ -1,8 +1,14 @@
 use super::{field, Error, Repr, Result};
 use byteorder::{ByteOrder, NativeEndian};
+use constants;
+
+const TYPE_MASK: u16 = (constants::NLA_TYPE_MASK & 0xFFFF) as u16;
+const NESTED_MASK: u16 = (constants::NLA_F_NESTED & 0xFFFF) as u16;
+const NET_BYTEORDER_MASK: u16 = (constants::NLA_F_NET_BYTEORDER & 0xFFFF) as u16;
 
 const LENGTH: field::Field = 0..2;
 const TYPE: field::Field = 2..4;
+
 #[allow(non_snake_case)]
 fn VALUE(length: usize) -> field::Field {
     field::dynamic_field(TYPE.end, length)
@@ -41,7 +47,17 @@ impl<T: AsRef<[u8]>> Packet<T> {
     /// Return the `type` field
     pub fn kind(&self) -> u16 {
         let data = self.buffer.as_ref();
-        NativeEndian::read_u16(&data[TYPE])
+        NativeEndian::read_u16(&data[TYPE]) & TYPE_MASK
+    }
+
+    pub fn nested_flag(&self) -> bool {
+        let data = self.buffer.as_ref();
+        (NativeEndian::read_u16(&data[TYPE]) & NESTED_MASK) != 0
+    }
+
+    pub fn network_byte_order_flag(&self) -> bool {
+        let data = self.buffer.as_ref();
+        (NativeEndian::read_u16(&data[TYPE]) & NET_BYTEORDER_MASK) != 0
     }
 
     /// Return the `length` field. The `length` field corresponds to the length of the attribute
@@ -67,7 +83,19 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> Packet<T> {
     /// Set the `type` field
     pub fn set_kind(&mut self, kind: u16) {
         let data = self.buffer.as_mut();
-        NativeEndian::write_u16(&mut data[TYPE], kind)
+        NativeEndian::write_u16(&mut data[TYPE], kind & TYPE_MASK)
+    }
+
+    pub fn set_nested_flag(&mut self) {
+        let kind = self.kind();
+        let data = self.buffer.as_mut();
+        NativeEndian::write_u16(&mut data[TYPE], kind | NESTED_MASK)
+    }
+
+    pub fn set_network_byte_order_flag(&mut self) {
+        let kind = self.kind();
+        let data = self.buffer.as_mut();
+        NativeEndian::write_u16(&mut data[TYPE], kind | NET_BYTEORDER_MASK)
     }
 
     /// Set the `length` field
