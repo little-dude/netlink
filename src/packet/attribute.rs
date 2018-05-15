@@ -14,7 +14,9 @@ fn VALUE(length: usize) -> field::Field {
     field::dynamic_field(TYPE.end, length)
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+// with Copy, Packet<&'a T> can be copied, which turns out to be pretty conveninent. And since it's
+// boils down to copying a reference it's pretty cheap
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Packet<T: AsRef<[u8]>> {
     buffer: T,
 }
@@ -121,6 +123,7 @@ impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> Packet<&'a mut T> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct DefaultAttribute {
     kind: u16,
     value: Vec<u8>,
@@ -133,8 +136,8 @@ impl Attribute for DefaultAttribute {
     fn kind(&self) -> u16 {
         self.kind
     }
-    fn value(&self) -> &[u8] {
-        self.value.as_slice()
+    fn emit_value(&self, buffer: &mut [u8]) {
+        buffer.copy_from_slice(self.value.as_slice());
     }
     fn from_packet<'a, T: AsRef<[u8]> + ?Sized>(packet: Packet<&'a T>) -> Result<Self> {
         packet.check_buffer_length()?;
@@ -148,7 +151,7 @@ impl Attribute for DefaultAttribute {
 pub trait Attribute: Sized {
     fn length(&self) -> usize;
     fn kind(&self) -> u16;
-    fn value(&self) -> &[u8];
+    fn emit_value(&self, buffer: &mut [u8]);
     fn from_packet<'a, T: AsRef<[u8]> + ?Sized>(packet: Packet<&'a T>) -> Result<Self>;
 }
 
@@ -169,7 +172,7 @@ where
         let mut packet = Packet::new(buffer);
         packet.set_kind(self.kind());
         packet.set_length(self.length() as u16 + 4);
-        packet.value_mut().copy_from_slice(self.value());
+        self.emit_value(packet.value_mut());
         Ok(())
     }
 }

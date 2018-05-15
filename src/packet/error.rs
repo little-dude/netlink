@@ -15,6 +15,8 @@ pub enum Error {
     /// An incoming packet was recognized but was self-contradictory.
     /// E.g. a TCP packet with both SYN and FIN flags set.
     Malformed,
+    /// Parsing of a netlink attribute value failed.
+    MalformedAttributeValue,
     #[doc(hidden)]
     __Nonexhaustive,
 }
@@ -34,6 +36,7 @@ impl StdError for Error {
             Error::Truncated => "truncated packet",
             Error::Unrecognized => "unrecognized packet",
             Error::Malformed => "malformed packet",
+            Error::MalformedAttributeValue => "failed to parse a netlink attribute value",
             Error::__Nonexhaustive => unreachable!(),
         }
     }

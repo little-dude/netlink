@@ -1,9 +1,9 @@
-use constants;
-use packet::{field, Error, Repr, Result};
-
-mod flags;
+mod attribute;
+pub mod flags;
 mod header;
+mod link_layer_type;
 
+pub use self::attribute::LinkAttribute;
 pub use self::flags::Flags;
-pub use self::header::LinkLayerType;
-pub use self::header::Packet;
+pub use self::header::{Packet, PacketRepr};
+pub use self::link_layer_type::LinkLayerType;

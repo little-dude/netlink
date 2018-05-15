@@ -8,6 +8,6 @@ extern crate libc;
 extern crate mio;
 extern crate tokio_reactor;
 
-pub(crate) mod constants;
+pub mod constants;
 pub mod packet;
 pub mod socket;
