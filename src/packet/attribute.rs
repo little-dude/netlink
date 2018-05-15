@@ -195,11 +195,22 @@ where
     Ok(position)
 }
 
+// FIXME: should we make the buffer attribute a generic T: AsRef<[u8]> instead?
+
 /// An iterator that iteratates over attributes without decoding them. This is useful when looking
 /// for specific attributes.
 pub struct AttributesIterator<'a> {
     position: usize,
     buffer: &'a [u8],
+}
+
+impl<'a> AttributesIterator<'a> {
+    pub fn new(buffer: &'a [u8]) -> Self {
+        AttributesIterator {
+            position: 0,
+            buffer,
+        }
+    }
 }
 
 impl<'a> Iterator for AttributesIterator<'a> {
