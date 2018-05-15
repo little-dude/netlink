@@ -1,4 +1,4 @@
-pub mod field {
+pub(crate) mod field {
     use core::ops;
     pub type Field = ops::Range<usize>;
     pub type Rest = ops::RangeFrom<usize>;
