@@ -115,7 +115,6 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Packet<&'a T> {
     // header?
 
     /// Return a pointer to the payload.
-    #[inline]
     pub fn payload(&self) -> &'a [u8] {
         let range = PAYLOAD.start..self.length() as usize;
         let data = self.buffer.as_ref();
@@ -128,7 +127,6 @@ impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> Packet<&'a mut T> {
     // the header?
 
     /// Return a mutable pointer to the payload.
-    #[inline]
     pub fn payload_mut(&mut self) -> &mut [u8] {
         let range = PAYLOAD.start..self.length() as usize;
         let data = self.buffer.as_mut();
