@@ -174,12 +174,25 @@ where
     }
 }
 
-pub fn emit_attributes<T, U>(attributes: T)
+/// # Panic
+///
+/// If an attribute emits a malformed packet this method will panic.
+pub fn emit_attributes<T, U>(buffer: &mut [u8], attributes: T) -> Result<usize>
 where
     T: Iterator<Item = U>,
     U: Attribute,
 {
-    unimplemented!()
+    let buffer_len = buffer.len();
+    let mut position = 0;
+    for attribute in attributes {
+        let len = attribute.buffer_len();
+        if buffer_len < len {
+            return Err(Error::Exhausted);
+        }
+        attribute.emit(&mut buffer[position..len])?;
+        position += len;
+    }
+    Ok(position)
 }
 
 /// An iterator that iteratates over attributes without decoding them. This is useful when looking
