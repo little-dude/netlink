@@ -9,8 +9,6 @@ pub mod field {
     }
 }
 
-#[macro_use]
-mod macros;
 mod error;
 mod flags;
 mod repr;
@@ -19,8 +17,11 @@ pub use self::error::{Error, Result};
 pub use self::flags::Flags;
 pub use self::repr::Repr;
 
+mod message_type;
+pub use self::message_type::MessageType;
+
 mod header;
-pub use self::header::{MessageType, Packet};
+pub use self::header::Packet;
 
 pub mod attribute;
 pub mod link;

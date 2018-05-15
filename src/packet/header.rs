@@ -1,21 +1,5 @@
-use super::{field, Error, Flags, Repr, Result};
+use super::{field, Error, Flags, MessageType, Repr, Result};
 use byteorder::{ByteOrder, NativeEndian};
-
-enum_with_other! {
-    /// Field that describes the message content.
-    pub doc enum MessageType(u16) {
-        /// Message is ignored.
-        Noop = 1,
-        /// The message signals an error and the payload contains a nlmsgerr structure. This can be
-        /// looked at as a NACK and typically it is from FEC to CPC.
-        Error = 2,
-        /// Message terminates a multipart message.
-        Done = 3,
-        /// Data lost
-        Overrun = 4,
-    }
-
-}
 
 const LENGTH: field::Field = 0..4;
 const MESSAGE_TYPE: field::Field = 4..6;
