@@ -34,6 +34,8 @@ impl<T: AsRef<[u8]>> Packet<T> {
         let len = self.buffer.as_ref().len();
         if len < TYPE.end {
             Err(Error::Truncated)
+        } else if (self.length() as usize) < TYPE.end {
+            Err(Error::Malformed)
         } else {
             Ok(())
         }
@@ -69,13 +71,12 @@ impl<T: AsRef<[u8]>> Packet<T> {
     }
 
     /// Return the length of the `value` field
-    pub fn value_length(&self) -> Result<usize> {
-        let total_length = self.length() as usize;
-        let value_offset = TYPE.end;
-        if total_length < value_offset {
-            return Err(Error::Malformed);
-        }
-        Ok(total_length - value_offset)
+    ///
+    /// # Panic
+    ///
+    /// This panics if the length field value is less than the attribut header size.
+    pub fn value_length(&self) -> usize {
+        self.length() as usize - TYPE.end
     }
 }
 
@@ -107,16 +108,16 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> Packet<T> {
 
 impl<'a, T: AsRef<[u8]> + ?Sized> Packet<&'a T> {
     /// Return the `value` field
-    pub fn value(&self) -> Result<&[u8]> {
-        Ok(&self.buffer.as_ref()[VALUE(self.value_length()?)])
+    pub fn value(&self) -> &[u8] {
+        &self.buffer.as_ref()[VALUE(self.value_length())]
     }
 }
 
 impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> Packet<&'a mut T> {
     /// Return the `value` field
-    pub fn value_mut(&mut self) -> Result<&mut [u8]> {
-        let length = VALUE(self.value_length()?);
-        Ok(&mut self.buffer.as_mut()[length])
+    pub fn value_mut(&mut self) -> &mut [u8] {
+        let length = VALUE(self.value_length());
+        &mut self.buffer.as_mut()[length]
     }
 }
 
@@ -136,9 +137,10 @@ impl Attribute for DefaultAttribute {
         self.value.as_slice()
     }
     fn from_packet<'a, T: AsRef<[u8]> + ?Sized>(packet: Packet<&'a T>) -> Result<Self> {
+        packet.check_buffer_length()?;
         Ok(DefaultAttribute {
             kind: packet.kind(),
-            value: packet.value()?.to_vec(),
+            value: packet.value().to_vec(),
         })
     }
 }
@@ -164,13 +166,10 @@ where
     }
 
     fn emit(&self, buffer: &mut [u8]) -> Result<()> {
-        if buffer.len() < self.buffer_len() {
-            return Err(Error::Exhausted);
-        }
         let mut packet = Packet::new(buffer);
         packet.set_kind(self.kind());
         packet.set_length(self.length() as u16 + 4);
-        packet.value_mut()?.copy_from_slice(self.value());
+        packet.value_mut().copy_from_slice(self.value());
         Ok(())
     }
 }
