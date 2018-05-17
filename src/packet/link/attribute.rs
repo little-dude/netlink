@@ -174,9 +174,11 @@ impl Attribute for LinkAttribute {
     /// This panics on packets for which the "length" field value is is wrong. The
     /// `Packet` argument must be checked before being passed to this method.
     fn from_packet<'a, T: AsRef<[u8]> + ?Sized>(packet: Packet<&'a T>) -> Result<Self> {
-        LinkAttribute::parse_value(packet).or(Ok(LinkAttribute::Malformed(
-            DefaultAttribute::from_packet(packet)?,
-        )))
+        LinkAttribute::parse_value(packet).or_else(|_| {
+            Ok(LinkAttribute::Malformed(DefaultAttribute::from_packet(
+                packet,
+            )?))
+        })
     }
 }
 

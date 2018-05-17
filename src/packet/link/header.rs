@@ -104,7 +104,7 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> Packet<T> {
 
     pub fn set_link_index(&mut self, value: u32) {
         let data = self.buffer.as_mut();
-        NativeEndian::write_u32(&mut data[LINK_INDEX], value.into())
+        NativeEndian::write_u32(&mut data[LINK_INDEX], value)
     }
 
     pub fn set_flags(&mut self, value: Flags) {

@@ -234,13 +234,13 @@ impl<'a> Iterator for AttributesIterator<'a> {
         match Packet::new_checked(&self.buffer[self.position..]) {
             Ok(packet) => {
                 self.position += packet.length() as usize;
-                return Some(Ok(packet));
+                Some(Ok(packet))
             }
             Err(e) => {
                 // Make sure next time we call `next()`, we return None. We don't try to continue
                 // iterating after we failed to return a packet.
                 self.position = self.buffer.len();
-                return Some(Err(e));
+                Some(Err(e))
             }
         }
     }

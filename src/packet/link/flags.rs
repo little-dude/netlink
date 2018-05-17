@@ -66,6 +66,12 @@ impl Into<u32> for Flags {
     }
 }
 
+impl Default for Flags {
+    fn default() -> Self {
+        Flags::new()
+    }
+}
+
 impl Flags {
     pub fn new() -> Self {
         Flags(0)

@@ -98,7 +98,7 @@ impl Socket {
 
     pub fn get_address(&self, addr: &mut SocketAddr) -> Result<()> {
         let (addr_ptr, mut addr_len) = addr.as_raw_mut();
-        let addr_len_copy = *&addr_len;
+        let addr_len_copy = addr_len;
         let addr_len_ptr = &mut addr_len as *mut libc::socklen_t;
         let res = unsafe { libc::getsockname(self.0, addr_ptr, addr_len_ptr) };
         if res < 0 {

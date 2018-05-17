@@ -78,6 +78,12 @@ impl Into<u16> for Flags {
     }
 }
 
+impl Default for Flags {
+    fn default() -> Self {
+        Flags::new()
+    }
+}
+
 impl Flags {
     /// Create a new empty flags field (no flag is set)
     pub fn new() -> Self {
