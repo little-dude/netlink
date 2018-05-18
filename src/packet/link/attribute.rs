@@ -115,7 +115,6 @@ pub enum LinkAttribute {
     Other(DefaultAttribute),
     Stats(stats::Stats32),
     Stats64(stats::Stats64),
-    Malformed(DefaultAttribute),
 }
 
 impl Attribute for LinkAttribute {
@@ -179,7 +178,7 @@ impl Attribute for LinkAttribute {
             // Defaults
             Stats(_) => size_of::<stats::Stats32>(),
             Stats64(_) => size_of::<stats::Stats64>(),
-            Other(ref attr) | Malformed(ref attr) => attr.length(),
+            Other(ref attr)  => attr.length(),
         }
     }
 
@@ -247,7 +246,7 @@ impl Attribute for LinkAttribute {
             Stats(ref stats) => stats.write(buffer),
             Stats64(ref stats) => stats.write(buffer),
             // default attributes
-            Other(ref attr) | Malformed(ref attr) => attr.emit_value(buffer),
+            Other(ref attr) => attr.emit_value(buffer),
         }
     }
 
@@ -304,7 +303,7 @@ impl Attribute for LinkAttribute {
             // i32
             LinkNetnsId(_) => IFLA_LINK_NETNSID,
             // Default attributes
-            Other(ref attr) | Malformed(ref attr) => attr.kind(),
+            Other(ref attr) => attr.kind(),
             Stats(_) => IFLA_STATS,
             Stats64(_) => IFLA_STATS64,
         }
@@ -315,16 +314,6 @@ impl Attribute for LinkAttribute {
     /// This panics on packets for which the "length" field value is is wrong. The
     /// `Packet` argument must be checked before being passed to this method.
     fn from_packet<'a, T: AsRef<[u8]> + ?Sized>(packet: Packet<&'a T>) -> Result<Self> {
-        LinkAttribute::parse_value(packet).or_else(|_| {
-            Ok(LinkAttribute::Malformed(DefaultAttribute::from_packet(
-                packet,
-            )?))
-        })
-    }
-}
-
-impl LinkAttribute {
-    fn parse_value<'a, T: AsRef<[u8]> + ?Sized>(packet: Packet<&'a T>) -> Result<Self> {
         use self::LinkAttribute::*;
         let payload = packet.value();
         Ok(match packet.kind() {

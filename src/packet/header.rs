@@ -9,16 +9,16 @@ const PORT_NUMBER: field::Field = 12..16;
 const PAYLOAD: field::Rest = 16..;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Packet<T: AsRef<[u8]>> {
+pub struct Buffer<T: AsRef<[u8]>> {
     buffer: T,
 }
 
-impl<T: AsRef<[u8]>> Packet<T> {
-    pub fn new(buffer: T) -> Packet<T> {
-        Packet { buffer }
+impl<T: AsRef<[u8]>> Buffer<T> {
+    pub fn new(buffer: T) -> Buffer<T> {
+        Buffer { buffer }
     }
 
-    pub fn new_checked(buffer: T) -> Result<Packet<T>> {
+    pub fn new_checked(buffer: T) -> Result<Buffer<T>> {
         let packet = Self::new(buffer);
         packet.check_buffer_length()?;
         Ok(packet)
@@ -78,7 +78,7 @@ impl<T: AsRef<[u8]>> Packet<T> {
     }
 }
 
-impl<T: AsRef<[u8]> + AsMut<[u8]>> Packet<T> {
+impl<T: AsRef<[u8]> + AsMut<[u8]>> Buffer<T> {
     /// Set the `length` field
     pub fn set_length(&mut self, value: u32) {
         let data = self.buffer.as_mut();
@@ -110,7 +110,7 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> Packet<T> {
     }
 }
 
-impl<'a, T: AsRef<[u8]> + ?Sized> Packet<&'a T> {
+impl<'a, T: AsRef<[u8]> + ?Sized> Buffer<&'a T> {
     // FIXME: should we provide a `payload_checked` to avoid panic, if the length is wrong in the
     // header?
 
@@ -122,7 +122,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Packet<&'a T> {
     }
 }
 
-impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> Packet<&'a mut T> {
+impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> Buffer<&'a mut T> {
     // FIXME: should we provide a `payload_mut_checked` to avoid panic, if the length is wrong in
     // the header?
 
@@ -135,7 +135,7 @@ impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> Packet<&'a mut T> {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-pub struct HeaderRepr {
+pub struct Header {
     pub length: u32,
     pub message_type: MessageType,
     pub flags: Flags,
@@ -143,11 +143,11 @@ pub struct HeaderRepr {
     pub port_number: u32,
 }
 
-impl Repr for HeaderRepr {
+impl Repr for Header {
     /// Parse a packet and return a high-level representation.
     fn parse(buffer: &[u8]) -> Result<Self> {
-        let packet = Packet::new_checked(buffer)?;
-        Ok(HeaderRepr {
+        let packet = Buffer::new_checked(buffer)?;
+        Ok(Header {
             length: packet.length(),
             message_type: packet.message_type(),
             flags: packet.flags(),
@@ -166,7 +166,7 @@ impl Repr for HeaderRepr {
         if buffer.len() < self.buffer_len() {
             return Err(Error::Exhausted);
         }
-        let mut packet = Packet::new(buffer);
+        let mut packet = Buffer::new(buffer);
         packet.set_message_type(self.message_type);
         packet.set_length(self.length);
         packet.set_flags(self.flags);
@@ -197,7 +197,7 @@ mod tests {
 
     #[test]
     fn packet_read() {
-        let packet = Packet::new(&IP_LINK_SHOW_PKT[..]);
+        let packet = Buffer::new(&IP_LINK_SHOW_PKT[..]);
         assert_eq!(packet.length(), 40);
         assert_eq!(packet.message_type(), MessageType::GetLink);
         assert_eq!(packet.sequence_number(), 1526271540);
@@ -218,7 +218,7 @@ mod tests {
     fn packet_build() {
         let mut buf = vec![0; 40];
         {
-            let mut packet = Packet::new(&mut buf);
+            let mut packet = Buffer::new(&mut buf);
             packet.set_length(40);
             packet.set_message_type(MessageType::GetLink);
             packet.set_sequence_number(1526271540);
@@ -233,7 +233,7 @@ mod tests {
 
     #[test]
     fn repr_parse() {
-        let repr = HeaderRepr::parse(&IP_LINK_SHOW_PKT[..]).unwrap();
+        let repr = Header::parse(&IP_LINK_SHOW_PKT[..]).unwrap();
         assert_eq!(repr.length, 40);
         assert_eq!(repr.message_type, MessageType::GetLink);
         assert_eq!(repr.sequence_number, 1526271540);
@@ -249,7 +249,7 @@ mod tests {
 
     #[test]
     fn repr_emit() {
-        let repr = HeaderRepr {
+        let repr = Header {
             length: 40,
             message_type: MessageType::GetLink,
             sequence_number: 1526271540,

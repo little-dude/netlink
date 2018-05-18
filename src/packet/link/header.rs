@@ -14,13 +14,13 @@ const RESERVED_2: field::Field = 12..16;
 const ATTRIBUTES: field::Rest = 16..;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Packet<T: AsRef<[u8]>> {
+pub struct Buffer<T: AsRef<[u8]>> {
     buffer: T,
 }
 
-impl<T: AsRef<[u8]>> Packet<T> {
-    pub fn new(buffer: T) -> Packet<T> {
-        Packet { buffer }
+impl<T: AsRef<[u8]>> Buffer<T> {
+    pub fn new(buffer: T) -> Buffer<T> {
+        Buffer { buffer }
     }
 
     /// Consume the packet, returning the underlying buffer.
@@ -65,7 +65,7 @@ impl<T: AsRef<[u8]>> Packet<T> {
     }
 }
 
-impl<'a, T: AsRef<[u8]> + ?Sized> Packet<&'a T> {
+impl<'a, T: AsRef<[u8]> + ?Sized> Buffer<&'a T> {
     /// Return a pointer to the payload.
     pub fn payload(&self) -> &'a [u8] {
         let data = self.buffer.as_ref();
@@ -77,7 +77,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Packet<&'a T> {
     }
 }
 
-impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> Packet<&'a mut T> {
+impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> Buffer<&'a mut T> {
     /// Return a mutable pointer to the payload.
     pub fn payload_mut(&mut self) -> &mut [u8] {
         let data = self.buffer.as_mut();
@@ -85,7 +85,7 @@ impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> Packet<&'a mut T> {
     }
 }
 
-impl<T: AsRef<[u8]> + AsMut<[u8]>> Packet<T> {
+impl<T: AsRef<[u8]> + AsMut<[u8]>> Buffer<T> {
     /// set the address family field
     pub fn set_address_family(&mut self, value: u8) {
         let data = self.buffer.as_mut();
@@ -118,7 +118,7 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> Packet<T> {
     }
 }
 
-pub struct PacketRepr {
+pub struct Message {
     pub address_family: u8,
     pub link_layer_type: LinkLayerType,
     pub flags: Flags,
@@ -160,7 +160,7 @@ mod test {
 
     #[test]
     fn packet_header_read() {
-        let packet = Packet::new(&HEADER[0..16]);
+        let packet = Buffer::new(&HEADER[0..16]);
         assert_eq!(packet.address_family(), 0);
         assert_eq!(packet.reserved_1(), 0);
         assert_eq!(packet.link_layer_type(), LinkLayerType::Loopback);
@@ -179,7 +179,7 @@ mod test {
     fn packet_header_build() {
         let mut buf = vec![0xff; 16];
         {
-            let mut packet = Packet::new(&mut buf);
+            let mut packet = Buffer::new(&mut buf);
             packet.set_address_family(0);
             packet.set_reserved_1(0);
             packet.set_link_layer_type(LinkLayerType::Loopback);
@@ -198,7 +198,7 @@ mod test {
     fn packet_attributes_read() {
         use packet::attribute::Attribute;
 
-        let packet = Packet::new(&HEADER[..]);
+        let packet = Buffer::new(&HEADER[..]);
         assert_eq!(packet.attributes().count(), 10);
         let mut attributes = packet.attributes();
 

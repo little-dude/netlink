@@ -6,5 +6,5 @@ mod stats;
 
 pub use self::attribute::LinkAttribute;
 pub use self::flags::Flags;
-pub use self::header::{Packet, PacketRepr};
+pub use self::header::{Buffer, Message};
 pub use self::link_layer_type::LinkLayerType;

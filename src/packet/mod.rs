@@ -21,7 +21,7 @@ mod message_type;
 pub use self::message_type::MessageType;
 
 mod header;
-pub use self::header::Packet;
+pub use self::header::{Buffer, Header};
 
 pub mod attribute;
 pub mod link;
