@@ -1,3 +1,4 @@
+mod af_spec;
 mod attribute;
 pub mod flags;
 mod header;

@@ -1,8 +1,13 @@
 use byteorder::{ByteOrder, NativeEndian};
 use constants;
-use packet::attribute::{Attribute, DefaultAttribute, Packet};
+use packet::attribute::{
+    parse_i32, parse_mac, parse_string, parse_u32, parse_u8, Attribute, Buffer, DefaultAttribute,
+    NativeAttribute,
+};
+use packet::link::af_spec;
 use packet::link::stats;
-use packet::{Error, Result};
+use packet::Repr;
+use packet::Result;
 use std::mem::size_of;
 
 pub const IFLA_UNSPEC: u16 = constants::IFLA_UNSPEC as u16;
@@ -31,7 +36,7 @@ pub const IFLA_VFINFO_LIST: u16 = constants::IFLA_VFINFO_LIST as u16;
 pub const IFLA_STATS64: u16 = constants::IFLA_STATS64 as u16;
 pub const IFLA_VF_PORTS: u16 = constants::IFLA_VF_PORTS as u16;
 pub const IFLA_PORT_SELF: u16 = constants::IFLA_PORT_SELF as u16;
-// pub const IFLA_AF_SPEC: u16 = constants::IFLA_AF_SPEC as u16;
+pub const IFLA_AF_SPEC: u16 = constants::IFLA_AF_SPEC as u16;
 pub const IFLA_GROUP: u16 = constants::IFLA_GROUP as u16;
 pub const IFLA_NET_NS_FD: u16 = constants::IFLA_NET_NS_FD as u16;
 pub const IFLA_EXT_MASK: u16 = constants::IFLA_EXT_MASK as u16;
@@ -111,9 +116,11 @@ pub enum LinkAttribute {
     GsoMaxSize(u32),
     // i32
     LinkNetnsId(i32),
-    // todo
-    Other(DefaultAttribute),
+    // custom
     Stats(stats::Stats32),
+    // AF_SPEC
+    AfSpec(af_spec::AfSpec),
+    Other(DefaultAttribute),
     Stats64(stats::Stats64),
 }
 
@@ -178,6 +185,7 @@ impl Attribute for LinkAttribute {
             // Defaults
             Stats(_) => size_of::<stats::Stats32>(),
             Stats64(_) => size_of::<stats::Stats64>(),
+            AfSpec(ref af_spec) => af_spec.length(),
             Other(ref attr)  => attr.length(),
         }
     }
@@ -243,8 +251,13 @@ impl Attribute for LinkAttribute {
 
             LinkNetnsId(ref value) => NativeEndian::write_i32(buffer, *value),
 
-            Stats(ref stats) => stats.write(buffer),
-            Stats64(ref stats) => stats.write(buffer),
+            Stats(ref stats) => stats.to_bytes(buffer),
+            Stats64(ref stats) => stats.to_bytes(buffer),
+            // This is not supposed to fail, because the buffer length has normally been checked
+            // before cally this method. If that fails, there's a bug in out code that needs to be
+            // fixed.
+            AfSpec(ref af_spec) => af_spec.emit(buffer)
+                .expect("Failed to emit AF_SPEC attribute. That is a bug, please report it."),
             // default attributes
             Other(ref attr) => attr.emit_value(buffer),
         }
@@ -302,21 +315,22 @@ impl Attribute for LinkAttribute {
             GsoMaxSize(_) => IFLA_GSO_MAX_SIZE,
             // i32
             LinkNetnsId(_) => IFLA_LINK_NETNSID,
-            // Default attributes
-            Other(ref attr) => attr.kind(),
+            // custom
             Stats(_) => IFLA_STATS,
             Stats64(_) => IFLA_STATS64,
+            AfSpec(_) => IFLA_AF_SPEC,
+            Other(ref attr) => attr.kind(),
         }
     }
 
     /// # Panic
     ///
-    /// This panics on packets for which the "length" field value is is wrong. The
-    /// `Packet` argument must be checked before being passed to this method.
-    fn from_packet<'a, T: AsRef<[u8]> + ?Sized>(packet: Packet<&'a T>) -> Result<Self> {
+    /// This panics on buffers for which the "length" field value is is wrong. The
+    /// `Buffer` argument must be checked before being passed to this method.
+    fn parse<'a, T: AsRef<[u8]> + ?Sized>(buffer: Buffer<&'a T>) -> Result<Self> {
         use self::LinkAttribute::*;
-        let payload = packet.value();
-        Ok(match packet.kind() {
+        let payload = buffer.value();
+        Ok(match buffer.kind() {
             // Vec<u8>
             IFLA_UNSPEC => Unspec(payload.to_vec()),
             IFLA_COST => Cost(payload.to_vec()),
@@ -371,50 +385,12 @@ impl Attribute for LinkAttribute {
             IFLA_LINK_NETNSID => LinkNetnsId(parse_i32(payload)?),
 
             IFLA_STATS => Stats(stats::Stats32::from_bytes(payload)?),
-
+            IFLA_AF_SPEC => {
+                let buffer = Buffer::new_checked(payload)?;
+                AfSpec(<af_spec::AfSpec as Attribute>::parse(buffer)?)
+            }
             // default attributes
-            _ => Other(DefaultAttribute::from_packet(packet)?),
+            _ => Other(<DefaultAttribute as Attribute>::parse(buffer)?),
         })
     }
-}
-
-fn parse_mac(payload: &[u8]) -> Result<[u8; 6]> {
-    if payload.len() != 6 {
-        return Err(Error::MalformedAttributeValue);
-    }
-    let mut address: [u8; 6] = [0; 6];
-    for (i, byte) in payload.into_iter().enumerate() {
-        address[i] = *byte;
-    }
-    Ok(address)
-}
-
-fn parse_string(payload: &[u8]) -> Result<String> {
-    if payload.is_empty() {
-        return Ok(String::new());
-    }
-    let s = String::from_utf8(payload[..payload.len() - 1].to_vec())
-        .map_err(|_| Error::MalformedAttributeValue)?;
-    Ok(s)
-}
-
-fn parse_u8(payload: &[u8]) -> Result<u8> {
-    if payload.len() != 1 {
-        return Err(Error::MalformedAttributeValue);
-    }
-    Ok(payload[0])
-}
-
-fn parse_u32(payload: &[u8]) -> Result<u32> {
-    if payload.len() != 4 {
-        return Err(Error::MalformedAttributeValue);
-    }
-    Ok(NativeEndian::read_u32(payload))
-}
-
-fn parse_i32(payload: &[u8]) -> Result<i32> {
-    if payload.len() != 4 {
-        return Err(Error::MalformedAttributeValue);
-    }
-    Ok(NativeEndian::read_i32(payload))
 }

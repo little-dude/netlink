@@ -68,20 +68,20 @@ pub const IFLA_IF_NETNSID: int = 46;
 pub const IFLA_CARRIER_UP_COUNT: int = 47;
 pub const IFLA_CARRIER_DOWN_COUNT: int = 48;
 pub const IFLA_NEW_IFINDEX: int = 49;
-//
-// pub const IFLA_INET_UNSPEC: int = 0;
-// pub const IFLA_INET_CONF: int = 1;
-//
-// pub const IFLA_INET6_UNSPEC: int = 0;
-// pub const IFLA_INET6_FLAGS: int = 1;
-// pub const IFLA_INET6_CONF: int = 2;
-// pub const IFLA_INET6_STATS: int = 3;
-// pub const IFLA_INET6_MCAST: int = 4;
-// pub const IFLA_INET6_CACHEINFO: int = 5;
-// pub const IFLA_INET6_ICMP6STATS: int = 6;
-// pub const IFLA_INET6_TOKEN: int = 7;
-// pub const IFLA_INET6_ADDR_GEN_MODE: int = 8;
-//
+
+pub const IFLA_INET_UNSPEC: int = 0;
+pub const IFLA_INET_CONF: int = 1;
+
+pub const IFLA_INET6_UNSPEC: int = 0;
+pub const IFLA_INET6_FLAGS: int = 1;
+pub const IFLA_INET6_CONF: int = 2;
+pub const IFLA_INET6_STATS: int = 3;
+pub const IFLA_INET6_MCAST: int = 4;
+pub const IFLA_INET6_CACHEINFO: int = 5;
+pub const IFLA_INET6_ICMP6STATS: int = 6;
+pub const IFLA_INET6_TOKEN: int = 7;
+pub const IFLA_INET6_ADDR_GEN_MODE: int = 8;
+
 // pub const IN6_ADDR_GEN_MODE_EUI64: int = 0;
 // pub const IN6_ADDR_GEN_MODE_NONE: int = 1;
 // pub const IN6_ADDR_GEN_MODE_STABLE_PRIVACY: int = 2;

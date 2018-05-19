@@ -1,6 +1,4 @@
-use packet::{Error, Result};
-use std::mem::size_of;
-use std::ptr;
+use packet::attribute::NativeAttribute;
 
 // FIXME: should this be repr(packed) instead?
 #[repr(C)]
@@ -54,21 +52,8 @@ pub struct Stats<T> {
     rx_nohandler: T,
 }
 
-impl<T> Stats<T>
-where
-    T: Copy,
-{
-    pub fn from_bytes(buf: &[u8]) -> Result<Self> {
-        if buf.len() != size_of::<Self>() {
-            return Err(Error::MalformedAttributeValue);
-        }
-        Ok(unsafe { ptr::read(buf.as_ptr() as *const Self) })
-    }
-
-    pub fn write(&self, buf: &mut [u8]) {
-        unsafe { ptr::write(buf.as_mut_ptr() as *mut Self, *self) }
-    }
-}
+impl NativeAttribute for Stats<u32> {}
+impl NativeAttribute for Stats<u64> {}
 
 pub type Stats32 = Stats<u32>;
 pub type Stats64 = Stats<u64>;

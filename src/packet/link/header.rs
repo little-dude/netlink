@@ -208,7 +208,7 @@ mod test {
         assert_eq!(attr.length(), 7);
         assert_eq!(attr.kind(), 3);
         assert_eq!(attr.value(), &[0x6c, 0x6f, 0x00]);
-        let parsed = LinkAttribute::from_packet(attr).unwrap();
+        let parsed = LinkAttribute::parse(attr).unwrap();
         assert_eq!(parsed, LinkAttribute::Ifname(String::from("lo")));
 
         // TxQueue length L=8,T=13,V=1000
@@ -217,7 +217,7 @@ mod test {
         assert_eq!(attr.length(), 8);
         assert_eq!(attr.kind(), 13);
         assert_eq!(attr.value(), &[0xe8, 0x03, 0x00, 0x00]);
-        let parsed = LinkAttribute::from_packet(attr).unwrap();
+        let parsed = LinkAttribute::parse(attr).unwrap();
         assert_eq!(parsed, LinkAttribute::TxQueueLen(1000));
 
         // OperState L=5,T=16,V=0 (unknown)
@@ -226,7 +226,7 @@ mod test {
         assert_eq!(attr.length(), 5);
         assert_eq!(attr.kind(), 16);
         assert_eq!(attr.value(), &[0x00]);
-        let parsed = LinkAttribute::from_packet(attr).unwrap();
+        let parsed = LinkAttribute::parse(attr).unwrap();
         assert_eq!(parsed, LinkAttribute::OperState(0));
 
         // Link mode L=5,T=17,V=0
@@ -235,7 +235,7 @@ mod test {
         assert_eq!(attr.length(), 5);
         assert_eq!(attr.kind(), 17);
         assert_eq!(attr.value(), &[0x00]);
-        let parsed = LinkAttribute::from_packet(attr).unwrap();
+        let parsed = LinkAttribute::parse(attr).unwrap();
         assert_eq!(parsed, LinkAttribute::LinkMode(0));
 
         // MTU L=8,T=4,V=65536
@@ -244,7 +244,7 @@ mod test {
         assert_eq!(attr.length(), 8);
         assert_eq!(attr.kind(), 4);
         assert_eq!(attr.value(), &[0x00, 0x00, 0x01, 0x00]);
-        let parsed = LinkAttribute::from_packet(attr).unwrap();
+        let parsed = LinkAttribute::parse(attr).unwrap();
         assert_eq!(parsed, LinkAttribute::Mtu(65_536));
 
         // 0x00, 0x00, 0x00, 0x00,
@@ -254,7 +254,7 @@ mod test {
         assert_eq!(attr.length(), 8);
         assert_eq!(attr.kind(), 27);
         assert_eq!(attr.value(), &[0x00, 0x00, 0x00, 0x00]);
-        let parsed = LinkAttribute::from_packet(attr).unwrap();
+        let parsed = LinkAttribute::parse(attr).unwrap();
         assert_eq!(parsed, LinkAttribute::Group(0));
 
         // Promiscuity L=8,T=30,V=0
@@ -263,7 +263,7 @@ mod test {
         assert_eq!(attr.length(), 8);
         assert_eq!(attr.kind(), 30);
         assert_eq!(attr.value(), &[0x00, 0x00, 0x00, 0x00]);
-        let parsed = LinkAttribute::from_packet(attr).unwrap();
+        let parsed = LinkAttribute::parse(attr).unwrap();
         assert_eq!(parsed, LinkAttribute::Promiscuity(0));
 
         // Number of Tx Queues L=8,T=31,V=1
@@ -273,7 +273,7 @@ mod test {
         assert_eq!(attr.length(), 8);
         assert_eq!(attr.kind(), 31);
         assert_eq!(attr.value(), &[0x01, 0x00, 0x00, 0x00]);
-        let parsed = LinkAttribute::from_packet(attr).unwrap();
+        let parsed = LinkAttribute::parse(attr).unwrap();
         assert_eq!(parsed, LinkAttribute::NumTxQueues(1));
     }
 }

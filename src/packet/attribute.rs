@@ -1,6 +1,8 @@
 use super::{field, Error, Repr, Result};
 use byteorder::{ByteOrder, NativeEndian};
 use constants;
+use std::mem::size_of;
+use std::ptr;
 
 const TYPE_MASK: u16 = (constants::NLA_TYPE_MASK & 0xFFFF) as u16;
 const NESTED_MASK: u16 = (constants::NLA_F_NESTED & 0xFFFF) as u16;
@@ -14,22 +16,22 @@ fn VALUE(length: usize) -> field::Field {
     field::dynamic_field(TYPE.end, length)
 }
 
-// with Copy, Packet<&'a T> can be copied, which turns out to be pretty conveninent. And since it's
+// with Copy, Buffer<&'a T> can be copied, which turns out to be pretty conveninent. And since it's
 // boils down to copying a reference it's pretty cheap
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct Packet<T: AsRef<[u8]>> {
+pub struct Buffer<T: AsRef<[u8]>> {
     buffer: T,
 }
 
-impl<T: AsRef<[u8]>> Packet<T> {
-    pub fn new(buffer: T) -> Packet<T> {
-        Packet { buffer }
+impl<T: AsRef<[u8]>> Buffer<T> {
+    pub fn new(buffer: T) -> Buffer<T> {
+        Buffer { buffer }
     }
 
-    pub fn new_checked(buffer: T) -> Result<Packet<T>> {
-        let packet = Self::new(buffer);
-        packet.check_buffer_length()?;
-        Ok(packet)
+    pub fn new_checked(buffer: T) -> Result<Buffer<T>> {
+        let buffer = Self::new(buffer);
+        buffer.check_buffer_length()?;
+        Ok(buffer)
     }
 
     pub fn check_buffer_length(&self) -> Result<()> {
@@ -43,7 +45,7 @@ impl<T: AsRef<[u8]>> Packet<T> {
         }
     }
 
-    /// Consume the packet, returning the underlying buffer.
+    /// Consume the buffer, returning the underlying buffer.
     pub fn into_inner(self) -> T {
         self.buffer
     }
@@ -82,7 +84,7 @@ impl<T: AsRef<[u8]>> Packet<T> {
     }
 }
 
-impl<T: AsRef<[u8]> + AsMut<[u8]>> Packet<T> {
+impl<T: AsRef<[u8]> + AsMut<[u8]>> Buffer<T> {
     /// Set the `type` field
     pub fn set_kind(&mut self, kind: u16) {
         let data = self.buffer.as_mut();
@@ -108,14 +110,14 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> Packet<T> {
     }
 }
 
-impl<'a, T: AsRef<[u8]> + ?Sized> Packet<&'a T> {
+impl<'a, T: AsRef<[u8]> + ?Sized> Buffer<&'a T> {
     /// Return the `value` field
     pub fn value(&self) -> &[u8] {
         &self.buffer.as_ref()[VALUE(self.value_length())]
     }
 }
 
-impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> Packet<&'a mut T> {
+impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> Buffer<&'a mut T> {
     /// Return the `value` field
     pub fn value_mut(&mut self) -> &mut [u8] {
         let length = VALUE(self.value_length());
@@ -139,11 +141,11 @@ impl Attribute for DefaultAttribute {
     fn emit_value(&self, buffer: &mut [u8]) {
         buffer.copy_from_slice(self.value.as_slice());
     }
-    fn from_packet<'a, T: AsRef<[u8]> + ?Sized>(packet: Packet<&'a T>) -> Result<Self> {
-        packet.check_buffer_length()?;
+    fn parse<'a, T: AsRef<[u8]> + ?Sized>(buffer: Buffer<&'a T>) -> Result<Self> {
+        buffer.check_buffer_length()?;
         Ok(DefaultAttribute {
-            kind: packet.kind(),
-            value: packet.value().to_vec(),
+            kind: buffer.kind(),
+            value: buffer.value().to_vec(),
         })
     }
 }
@@ -152,7 +154,7 @@ pub trait Attribute: Sized {
     fn length(&self) -> usize;
     fn kind(&self) -> u16;
     fn emit_value(&self, buffer: &mut [u8]);
-    fn from_packet<'a, T: AsRef<[u8]> + ?Sized>(packet: Packet<&'a T>) -> Result<Self>;
+    fn parse<'a, T: AsRef<[u8]> + ?Sized>(buffer: Buffer<&'a T>) -> Result<Self>;
 }
 
 impl<T> Repr for T
@@ -160,8 +162,8 @@ where
     T: Attribute,
 {
     fn parse(buffer: &[u8]) -> Result<Self> {
-        let packet = Packet::new_checked(buffer)?;
-        T::from_packet(packet)
+        let buffer = Buffer::new_checked(buffer)?;
+        T::parse(buffer)
     }
 
     fn buffer_len(&self) -> usize {
@@ -169,21 +171,21 @@ where
     }
 
     fn emit(&self, buffer: &mut [u8]) -> Result<()> {
-        let mut packet = Packet::new(buffer);
-        packet.set_kind(self.kind());
-        packet.set_length(self.length() as u16 + 4);
-        self.emit_value(packet.value_mut());
+        let mut buffer = Buffer::new(buffer);
+        buffer.set_kind(self.kind());
+        buffer.set_length(self.length() as u16 + 4);
+        self.emit_value(buffer.value_mut());
         Ok(())
     }
 }
 
 /// # Panic
 ///
-/// If an attribute emits a malformed packet this method will panic.
-pub fn emit_attributes<T, U>(buffer: &mut [u8], attributes: T) -> Result<usize>
+/// If an attribute emits a malformed buffer this method will panic.
+pub fn emit_attributes<'a, T, U>(buffer: &mut [u8], attributes: T) -> Result<usize>
 where
-    T: Iterator<Item = U>,
-    U: Attribute,
+    T: Iterator<Item = &'a U>,
+    U: Attribute + 'a,
 {
     let buffer_len = buffer.len();
     let mut position = 0;
@@ -217,7 +219,7 @@ impl<'a> AttributesIterator<'a> {
 }
 
 impl<'a> Iterator for AttributesIterator<'a> {
-    type Item = Result<Packet<&'a [u8]>>;
+    type Item = Result<Buffer<&'a [u8]>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         // Attributes are aligned on 4 bytes boundaries, so we make sure we ignore any potential
@@ -231,17 +233,85 @@ impl<'a> Iterator for AttributesIterator<'a> {
             return None;
         }
 
-        match Packet::new_checked(&self.buffer[self.position..]) {
-            Ok(packet) => {
-                self.position += packet.length() as usize;
-                Some(Ok(packet))
+        match Buffer::new_checked(&self.buffer[self.position..]) {
+            Ok(buffer) => {
+                self.position += buffer.length() as usize;
+                Some(Ok(buffer))
             }
             Err(e) => {
                 // Make sure next time we call `next()`, we return None. We don't try to continue
-                // iterating after we failed to return a packet.
+                // iterating after we failed to return a buffer.
                 self.position = self.buffer.len();
                 Some(Err(e))
             }
         }
+    }
+}
+
+pub fn parse_mac(payload: &[u8]) -> Result<[u8; 6]> {
+    if payload.len() != 6 {
+        return Err(Error::MalformedAttributeValue);
+    }
+    let mut address: [u8; 6] = [0; 6];
+    for (i, byte) in payload.into_iter().enumerate() {
+        address[i] = *byte;
+    }
+    Ok(address)
+}
+
+pub fn parse_ipv6(payload: &[u8]) -> Result<[u8; 16]> {
+    if payload.len() != 16 {
+        return Err(Error::MalformedAttributeValue);
+    }
+    let mut address: [u8; 16] = [0; 16];
+    for (i, byte) in payload.into_iter().enumerate() {
+        address[i] = *byte;
+    }
+    Ok(address)
+}
+
+pub fn parse_string(payload: &[u8]) -> Result<String> {
+    if payload.is_empty() {
+        return Ok(String::new());
+    }
+    let s = String::from_utf8(payload[..payload.len() - 1].to_vec())
+        .map_err(|_| Error::MalformedAttributeValue)?;
+    Ok(s)
+}
+
+pub fn parse_u8(payload: &[u8]) -> Result<u8> {
+    if payload.len() != 1 {
+        return Err(Error::MalformedAttributeValue);
+    }
+    Ok(payload[0])
+}
+
+pub fn parse_u32(payload: &[u8]) -> Result<u32> {
+    if payload.len() != 4 {
+        return Err(Error::MalformedAttributeValue);
+    }
+    Ok(NativeEndian::read_u32(payload))
+}
+
+pub fn parse_i32(payload: &[u8]) -> Result<i32> {
+    if payload.len() != 4 {
+        return Err(Error::MalformedAttributeValue);
+    }
+    Ok(NativeEndian::read_i32(payload))
+}
+
+pub trait NativeAttribute
+where
+    Self: Sized + Copy,
+{
+    fn from_bytes(buf: &[u8]) -> Result<Self> {
+        if buf.len() != size_of::<Self>() {
+            return Err(Error::MalformedAttributeValue);
+        }
+        Ok(unsafe { ptr::read(buf.as_ptr() as *const Self) })
+    }
+
+    fn to_bytes(&self, buf: &mut [u8]) {
+        unsafe { ptr::write(buf.as_mut_ptr() as *mut Self, *self) }
     }
 }
