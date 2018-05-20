@@ -1,11 +1,18 @@
 mod af_spec;
 mod attribute;
-pub mod flags;
+mod flags;
 mod header;
 mod link_layer_type;
 mod stats;
 
-pub use self::attribute::LinkAttribute;
-pub use self::flags::Flags;
-pub use self::header::{Buffer, Message};
-pub use self::link_layer_type::LinkLayerType;
+// Hide the internal organization.
+//
+// The separation in submodule is only to keep the code a little organized, but it makes the API
+// too complex. Users who want to create rtnl packets should be able to do so with a single rtnl
+// module.
+pub use self::af_spec::*;
+pub use self::attribute::*;
+pub use self::flags::*;
+pub use self::header::*;
+pub use self::link_layer_type::*;
+pub use self::stats::*;
