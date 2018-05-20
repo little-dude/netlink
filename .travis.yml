@@ -1,0 +1,18 @@
+language: rust
+
+# For now we only build on nightly because we have this
+# #![feature(custom_attribute)] that we use to tell rustfmt to ignore some
+# piece of code... This needs to be sorted out though, we can't be a
+# "nightly-only" crate just because of that.
+#
+# rust: [stable, beta, nightly]
+rust: [nightly]
+cache: cargo
+before_script:
+  - bash -c 'if [[ "$TRAVIS_RUST_VERSION" == "nightly" ]] ; then cargo install rustfmt-nightly --force ; fi'
+  - bash -c 'if [[ "$TRAVIS_RUST_VERSION" == "nightly" ]] ; then cargo install clippy --force ; fi'
+script:
+  - bash -c 'if [[ "$TRAVIS_RUST_VERSION" == "nightly" ]] ; then cargo fmt ; fi'
+  - bash -c 'if [[ "$TRAVIS_RUST_VERSION" == "nightly" ]] ; then cargo clippy ; fi'
+  - cargo test --verbose --all
+
