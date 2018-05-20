@@ -11,8 +11,10 @@ tokio-io = "0.1.6"
 tokio-reactor = "0.1.1"
 futures = "0.1"
 
-[build-dependencies]
-bindgen = "0.36.1"
+# This was used to generate the constants the /usr/include/linux header files.
+# I keep it here in case I need to regenerate them.
+# [build-dependencies]
+# bindgen = "0.36.1"
 
 [dev-dependencies]
 lazy_static = "1.0"

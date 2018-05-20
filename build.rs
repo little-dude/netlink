@@ -1,4 +1,4 @@
-extern crate bindgen;
+// extern crate bindgen;
 
 fn main() {
     // This was used to generate the constants.rs file
