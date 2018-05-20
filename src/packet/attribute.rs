@@ -167,13 +167,13 @@ where
     }
 
     fn buffer_len(&self) -> usize {
-        self.length() as usize
+        self.length() as usize + 4
     }
 
     fn emit(&self, buffer: &mut [u8]) -> Result<()> {
         let mut buffer = Buffer::new(buffer);
         buffer.set_kind(self.kind());
-        buffer.set_length(self.length() as u16 + 4);
+        buffer.set_length(self.buffer_len() as u16);
         self.emit_value(buffer.value_mut());
         Ok(())
     }
@@ -187,20 +187,27 @@ where
     T: Iterator<Item = &'a U>,
     U: Attribute + 'a,
 {
-    let buffer_len = buffer.len();
-    let mut position = 0;
+    // FIXME: can this be optimized? The gymnastic with the start and end indices seems
+    // inefficient.
+    let mut start = 0;
+    let mut end: usize;
     for attribute in attributes {
-        let len = attribute.buffer_len();
-        if buffer_len < len {
+        let attr_len = attribute.buffer_len();
+        if (buffer.len() - start) < attr_len {
             return Err(Error::Exhausted);
         }
-        attribute.emit(&mut buffer[position..len])?;
-        position += len;
+        end = start + attr_len;
+        attribute.emit(&mut buffer[start..end])?;
+        start = end;
     }
-    Ok(position)
+    Ok(start)
 }
 
 // FIXME: should we make the buffer attribute a generic T: AsRef<[u8]> instead?
+//
+// FIXME (?): currently, each buffer we return has an underlying buffer that is longer than
+// necessary. This is not really a problem, but it might be confusing for users calling
+// `into_inner` on these buffers, because they'll get a slice that is longer than expected.
 
 /// An iterator that iteratates over attributes without decoding them. This is useful when looking
 /// for specific attributes.

@@ -85,7 +85,6 @@ impl Attribute for AfSpec {
             AfSpec::Inet6(ref attrs) => {
                 // This may panic if:
                 //     - attributes are malformed (mitigated by rust's type system guarantees)
-                //
                 //     - the buffer is not big enough. But normally, before emit_value is called,
                 //       the length is checked, so this should not be a problem.
                 let _ = emit_attributes(buffer, attrs.iter())

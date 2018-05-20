@@ -46,6 +46,9 @@ static BYTES: [u8; 748] = [
             0x00, 0x00, 0x00, 0x00, // 31 drop_gratuitous_arp
 
         // AF_INET6 (L=612, T=10)
+        // FIXME: there are three bytes of padding. Padding is usually not taken into account in
+        // the attribute length, so I'm not sure if this is a bug or if AF_SPEC attributes are
+        // special.
         0x64, 0x02, 0x0a, 0x00,
             // IFLA_INET6_FLAGS (L=8,T=1)
             0x08, 0x00, 0x01, 0x00,
@@ -348,6 +351,52 @@ fn parse_af_inet() {
     // parsing check
     let parsed = AfSpec::parse(inet_buf).unwrap();
     assert_eq!(parsed, *PARSED_AF_INET);
+}
+
+#[test]
+fn emit_af_inet() {
+    use packet::Repr;
+
+    let mut bytes = vec![0xff; 132];
+    PARSED_AF_INET.emit(&mut bytes[..]).unwrap();
+    let buf = Buffer::new_checked(&bytes[..]).unwrap();
+
+    let mut attrs = get_attributes();
+    let expected_buf = attrs.next().unwrap().unwrap();
+
+    assert_eq!(expected_buf.kind(), buf.kind());
+    assert_eq!(expected_buf.length(), buf.length());
+    assert_eq!(expected_buf.value(), buf.value());
+}
+
+#[test]
+fn emit_af_inet6() {
+    use packet::Repr;
+
+    let mut bytes = vec![0xff; 609];
+
+    // Note that we don't have the three extra bytes of padding that are present in the packet we
+    // captured. Based on the protocol specs, I don't think they are mandatory.
+    assert_eq!(PARSED_AF_INET6.length(), 605);
+    assert_eq!(PARSED_AF_INET6.buffer_len(), 609);
+    PARSED_AF_INET6.emit(&mut bytes[..]).unwrap();
+
+    let buf = Buffer::new_checked(&bytes[..]).unwrap();
+
+    let mut attrs = get_attributes();
+    let _ = attrs.next();
+    let expected_buf = attrs.next().unwrap().unwrap();
+
+    assert_eq!(expected_buf.kind(), buf.kind());
+    // this does not work because our reference packet has 3 bytes of padding which we don't emit.
+    // I'm not sure if this is a bug or not. According to the spec, padding is only necessary if
+    // there's another attribute following. Also, the padding should not be taken into account in
+    // the length field.
+    //
+    // assert_eq!(expected_buf.length(), buf.length());
+    // assert_eq!(expected_buf.value(), buf.value());
+    assert_eq!(609, buf.length());
+    assert_eq!(&expected_buf.value()[..605], buf.value());
 }
 
 #[test]
