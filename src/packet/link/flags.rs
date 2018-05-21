@@ -40,41 +40,41 @@ pub const IFF_DYNAMIC: u32 = libc::IFF_DYNAMIC as u32;
 pub const IFF_NOTRAILERS: u32 = libc::IFF_NOTRAILERS as u32;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-pub struct Flags(u32);
+pub struct LinkFlags(pub u32);
 
-impl From<u32> for Flags {
+impl From<u32> for LinkFlags {
     fn from(flags: u32) -> Self {
-        Flags(flags)
+        LinkFlags(flags)
     }
 }
 
-impl From<libc::c_int> for Flags {
+impl From<libc::c_int> for LinkFlags {
     fn from(flags: libc::c_int) -> Self {
-        Flags(flags as u32)
+        LinkFlags(flags as u32)
     }
 }
 
-impl<'a> Into<u32> for &'a Flags {
+impl<'a> Into<u32> for &'a LinkFlags {
     fn into(self) -> u32 {
         self.0
     }
 }
 
-impl Into<u32> for Flags {
+impl Into<u32> for LinkFlags {
     fn into(self) -> u32 {
         self.0
     }
 }
 
-impl Default for Flags {
+impl Default for LinkFlags {
     fn default() -> Self {
-        Flags::new()
+        LinkFlags::new()
     }
 }
 
-impl Flags {
+impl LinkFlags {
     pub fn new() -> Self {
-        Flags(0)
+        LinkFlags(0)
     }
 
     /// Set the `IFF_UP` flag

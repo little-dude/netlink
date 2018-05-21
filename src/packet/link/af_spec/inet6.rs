@@ -2,9 +2,7 @@ use std::mem::size_of;
 
 use byteorder::{ByteOrder, NativeEndian};
 
-use packet::attribute::{
-    parse_ipv6, parse_u32, parse_u8, Attribute, Buffer, DefaultAttribute, NativeAttribute,
-};
+use packet::nla::{parse_ipv6, parse_u32, parse_u8, DefaultNla, NativeNla, Nla, NlaBuffer};
 use packet::Result;
 
 use super::constants::*;
@@ -50,7 +48,7 @@ pub struct Inet6Stats {
     pub in_ce_pkts: i64,
 }
 
-impl NativeAttribute for Inet6Stats {}
+impl NativeNla for Inet6Stats {}
 
 #[repr(C)]
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
@@ -63,7 +61,7 @@ pub struct Icmp6Stats {
     pub csum_errors: i64,
 }
 
-impl NativeAttribute for Icmp6Stats {}
+impl NativeNla for Icmp6Stats {}
 
 #[repr(C)]
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
@@ -121,7 +119,7 @@ pub struct Inet6DevConf {
     pub ndisc_tclass: i32,
 }
 
-impl NativeAttribute for Inet6DevConf {}
+impl NativeNla for Inet6DevConf {}
 
 #[repr(C)]
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
@@ -132,7 +130,7 @@ pub struct Inet6CacheInfo {
     pub retrans_time: i32,
 }
 
-impl NativeAttribute for Inet6CacheInfo {}
+impl NativeNla for Inet6CacheInfo {}
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub enum AfInet6 {
@@ -147,11 +145,11 @@ pub enum AfInet6 {
     IcmpStats(Icmp6Stats),
     Token([u8; 16]),
     AddrGenMode(u8),
-    Other(DefaultAttribute),
+    Other(DefaultNla),
 }
 
-impl Attribute for AfInet6 {
-    fn length(&self) -> usize {
+impl Nla for AfInet6 {
+    fn value_len(&self) -> usize {
         use self::AfInet6::*;
         match *self {
             Unspec(ref bytes) => bytes.len(),
@@ -162,7 +160,7 @@ impl Attribute for AfInet6 {
             IcmpStats(_) => size_of::<Icmp6Stats>(),
             Token(_) => 16,
             AddrGenMode(_) => 1,
-            Other(ref attr) => attr.length(),
+            Other(ref nla) => nla.value_len(),
         }
     }
 
@@ -177,7 +175,7 @@ impl Attribute for AfInet6 {
             IcmpStats(ref icmp6_stats) => icmp6_stats.to_bytes(buffer),
             Token(ref ipv6) => buffer.copy_from_slice(&ipv6[..]),
             AddrGenMode(value) => buffer[0] = value,
-            Other(ref attr) => attr.emit_value(buffer),
+            Other(ref nla) => nla.emit_value(buffer),
         }
     }
 
@@ -192,11 +190,11 @@ impl Attribute for AfInet6 {
             IcmpStats(_) => IFLA_INET6_ICMP6STATS,
             Token(_) => IFLA_INET6_TOKEN,
             AddrGenMode(_) => IFLA_INET6_ADDR_GEN_MODE,
-            Other(ref attr) => attr.kind(),
+            Other(ref nla) => nla.kind(),
         }
     }
 
-    fn parse<'a, T: AsRef<[u8]> + ?Sized>(buffer: Buffer<&'a T>) -> Result<Self> {
+    fn parse<'a, T: AsRef<[u8]> + ?Sized>(buffer: &NlaBuffer<&'a T>) -> Result<Self> {
         use self::AfInet6::*;
         let payload = buffer.value();
         Ok(match buffer.kind() {
@@ -208,7 +206,7 @@ impl Attribute for AfInet6 {
             IFLA_INET6_ICMP6STATS => IcmpStats(Icmp6Stats::from_bytes(payload)?),
             IFLA_INET6_TOKEN => Token(parse_ipv6(payload)?),
             IFLA_INET6_ADDR_GEN_MODE => AddrGenMode(parse_u8(payload)?),
-            _ => Other(DefaultAttribute::parse(buffer)?),
+            _ => Other(DefaultNla::parse(buffer)?),
         })
     }
 }

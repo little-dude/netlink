@@ -1,7 +1,7 @@
 // IFLA_AF_SPEC
 //
-// Contains nested attributes for address family specific attributes. Each address family may
-// create a attribute with the address family number as type and create its own attribute structure
+// Contains nested nlas for address family specific nlas. Each address family may
+// create a nla with the address family number as type and create its own nla structure
 // in it.
 //
 // [IFLA_AF_SPEC] = {
@@ -28,7 +28,7 @@ pub use self::constants::*;
 pub use self::inet::*;
 pub use self::inet6::*;
 
-use packet::attribute::{emit_attributes, Attribute, AttributesIterator, Buffer, DefaultAttribute};
+use packet::nla::{emit_nlas, DefaultNla, Nla, NlaBuffer, NlasIterator};
 use packet::Result;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
@@ -44,13 +44,13 @@ pub enum AfSpec {
     X25(Vec<u8>),
     Inet6(Vec<AfInet6>),
     Inet(Vec<AfInet>),
-    Other(DefaultAttribute),
+    Other(DefaultNla),
 }
 
-impl Attribute for AfSpec {
+impl Nla for AfSpec {
     #[allow(unused_attributes)]
     #[rustfmt_skip]
-    fn length(&self) -> usize {
+    fn value_len(&self) -> usize {
         use self::AfSpec::*;
         match *self {
             Unspec(ref bytes)
@@ -62,9 +62,9 @@ impl Attribute for AfSpec {
                 | Bridge(ref bytes)
                 | AtmPvc(ref bytes)
                 | X25(ref bytes) => bytes.len(),
-            Inet6(ref af_inet6) => af_inet6.iter().fold(0, |sum, attr| sum + 4 + attr.length()),
-            Inet(ref af_inet) =>  af_inet.iter().fold(0, |sum, attr| sum + 4 + attr.length()),
-            Other(ref attr) => attr.length(),
+            Inet6(ref af_inet6) => af_inet6.iter().fold(0, |sum, nla| sum + 4 + nla.value_len()),
+            Inet(ref af_inet) =>  af_inet.iter().fold(0, |sum, nla| sum + 4 + nla.value_len()),
+            Other(ref nla) => nla.value_len(),
         }
     }
 
@@ -84,18 +84,18 @@ impl Attribute for AfSpec {
                 | X25(ref bytes) => buffer.copy_from_slice(bytes.as_slice()),
             AfSpec::Inet6(ref attrs) => {
                 // This may panic if:
-                //     - attributes are malformed (mitigated by rust's type system guarantees)
+                //     - nlas are malformed (mitigated by rust's type system guarantees)
                 //     - the buffer is not big enough. But normally, before emit_value is called,
                 //       the length is checked, so this should not be a problem.
-                let _ = emit_attributes(buffer, attrs.iter())
-                    .expect("failed to emit attributes");
+                let _ = emit_nlas(buffer, attrs.iter())
+                    .expect("failed to emit nlas");
             }
             AfSpec::Inet(ref attrs) => {
                 // See above for possible failures
-                let _ = emit_attributes(buffer, attrs.iter())
-                    .expect("failed to emit attributes");
+                let _ = emit_nlas(buffer, attrs.iter())
+                    .expect("failed to emit nlas");
             }
-            AfSpec::Other(ref attr)  => attr.emit_value(buffer),
+            AfSpec::Other(ref nla)  => nla.emit_value(buffer),
         }
     }
 
@@ -113,28 +113,28 @@ impl Attribute for AfSpec {
             AtmPvc(_) => AF_ATMPVC,
             X25(_) => AF_X25,
             Inet6(_) => AF_INET6,
-            Other(ref attr) => attr.kind(),
+            Other(ref nla) => nla.kind(),
         }
     }
 
-    fn parse<'a, T: AsRef<[u8]> + ?Sized>(buffer: Buffer<&'a T>) -> Result<Self> {
+    fn parse<'a, T: AsRef<[u8]> + ?Sized>(buffer: &NlaBuffer<&'a T>) -> Result<Self> {
         use self::AfSpec::*;
         let payload = buffer.value();
         Ok(match buffer.kind() {
             AF_UNSPEC => Unspec(payload.to_vec()),
             AF_INET => {
-                let mut attributes = vec![];
-                for attr in AttributesIterator::new(payload) {
-                    attributes.push(AfInet::parse(attr?)?)
+                let mut nlas = vec![];
+                for nla in NlasIterator::new(payload) {
+                    nlas.push(AfInet::parse(&nla?)?)
                 }
-                Inet(attributes)
+                Inet(nlas)
             }
             AF_INET6 => {
-                let mut attributes = vec![];
-                for attr in AttributesIterator::new(payload) {
-                    attributes.push(AfInet6::parse(attr?)?)
+                let mut nlas = vec![];
+                for nla in NlasIterator::new(payload) {
+                    nlas.push(AfInet6::parse(&nla?)?)
                 }
-                Inet6(attributes)
+                Inet6(nlas)
             }
             AF_UNIX => Unix(payload.to_vec()),
             AF_AX25 => Ax25(payload.to_vec()),
@@ -144,7 +144,7 @@ impl Attribute for AfSpec {
             AF_BRIDGE => Bridge(payload.to_vec()),
             AF_ATMPVC => AtmPvc(payload.to_vec()),
             AF_X25 => X25(payload.to_vec()),
-            _ => AfSpec::Other(DefaultAttribute::parse(buffer)?),
+            _ => AfSpec::Other(DefaultNla::parse(buffer)?),
         })
     }
 }

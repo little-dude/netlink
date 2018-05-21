@@ -30,6 +30,8 @@ pub const NLM_F_MATCH: u16 = libc::NLM_F_MATCH as u16;
 /// of 0.
 pub const NLM_F_ATOMIC: u16 = libc::NLM_F_ATOMIC as u16;
 
+pub const NLM_F_DUMP: u16 = libc::NLM_F_DUMP as u16;
+
 // Additional flag bits for NEW requests
 // =====================================
 
@@ -170,6 +172,15 @@ impl Flags {
     /// Check if the `NLM_F_ATOMIC` flag is set
     pub fn has_atomic(&self) -> bool {
         self.0 & NLM_F_ATOMIC == NLM_F_ATOMIC
+    }
+
+    /// Set the `NLM_F_DUMP` flag
+    pub fn set_dump(&mut self) {
+        self.0 |= NLM_F_DUMP
+    }
+    /// Check if the `NLM_F_DUMP` flag is set
+    pub fn has_dump(&self) -> bool {
+        self.0 & NLM_F_DUMP == NLM_F_DUMP
     }
 
     /// Set the `NLM_F_REPLACE` flag

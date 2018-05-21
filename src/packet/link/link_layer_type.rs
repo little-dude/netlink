@@ -152,7 +152,7 @@ pub enum LinkLayerType {
     /// Link type is `ARPHRD_IPDDP`
     Ipddp,
     /// Link type is `ARPHRD_IPGRE`
-    Ipgre,
+    IpGre,
     /// Link type is `ARPHRD_PIMREG`
     Pimreg,
     /// Link type is `ARPHRD_HIPPI`
@@ -190,7 +190,7 @@ pub enum LinkLayerType {
     /// Link type is `ARPHRD_CAIF`
     Caif,
     /// Link type is `ARPHRD_IP6GRE`
-    Ip6gre,
+    Ip6Gre,
     /// Link type is `ARPHRD_NETLINK`
     Netlink,
     /// Link type is `ARPHRD_6LOWPAN`
@@ -250,7 +250,7 @@ impl From<LinkLayerType> for u16 {
             Bif => ARPHRD_BIF,
             Sit => ARPHRD_SIT,
             Ipddp => ARPHRD_IPDDP,
-            Ipgre => ARPHRD_IPGRE,
+            IpGre => ARPHRD_IPGRE,
             Pimreg => ARPHRD_PIMREG,
             Hippi => ARPHRD_HIPPI,
             Ash => ARPHRD_ASH,
@@ -269,7 +269,7 @@ impl From<LinkLayerType> for u16 {
             Phonet => ARPHRD_PHONET,
             PhonetPipe => ARPHRD_PHONET_PIPE,
             Caif => ARPHRD_CAIF,
-            Ip6gre => ARPHRD_IP6GRE,
+            Ip6Gre => ARPHRD_IP6GRE,
             Netlink => ARPHRD_NETLINK,
             SixLowpan => ARPHRD_6LOWPAN,
             Vsockmon => ARPHRD_VSOCKMON,
@@ -324,7 +324,7 @@ impl From<u16> for LinkLayerType {
             ARPHRD_BIF => LinkLayerType::Bif,
             ARPHRD_SIT => LinkLayerType::Sit,
             ARPHRD_IPDDP => LinkLayerType::Ipddp,
-            ARPHRD_IPGRE => LinkLayerType::Ipgre,
+            ARPHRD_IPGRE => LinkLayerType::IpGre,
             ARPHRD_PIMREG => LinkLayerType::Pimreg,
             ARPHRD_HIPPI => LinkLayerType::Hippi,
             ARPHRD_ASH => LinkLayerType::Ash,
@@ -343,7 +343,7 @@ impl From<u16> for LinkLayerType {
             ARPHRD_PHONET => LinkLayerType::Phonet,
             ARPHRD_PHONET_PIPE => LinkLayerType::PhonetPipe,
             ARPHRD_CAIF => LinkLayerType::Caif,
-            ARPHRD_IP6GRE => LinkLayerType::Ip6gre,
+            ARPHRD_IP6GRE => LinkLayerType::Ip6Gre,
             ARPHRD_NETLINK => LinkLayerType::Netlink,
             ARPHRD_6LOWPAN => LinkLayerType::SixLowpan,
             ARPHRD_VSOCKMON => LinkLayerType::Vsockmon,

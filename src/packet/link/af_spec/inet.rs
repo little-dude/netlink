@@ -1,6 +1,6 @@
 use std::mem::size_of;
 
-use packet::attribute::{Attribute, Buffer, DefaultAttribute, NativeAttribute};
+use packet::nla::{DefaultNla, NativeNla, Nla, NlaBuffer};
 use packet::Result;
 
 use super::constants::*;
@@ -41,24 +41,24 @@ pub struct InetDevConf {
     pub drop_gratuitous_arp: i32,
 }
 
-impl NativeAttribute for InetDevConf {}
+impl NativeNla for InetDevConf {}
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub enum AfInet {
     DevConf(InetDevConf),
     Unspec(Vec<u8>),
-    Other(DefaultAttribute),
+    Other(DefaultNla),
 }
 
-impl Attribute for AfInet {
+impl Nla for AfInet {
     #[allow(unused_attributes)]
     #[rustfmt_skip]
-    fn length(&self) -> usize {
+    fn value_len(&self) -> usize {
         use self::AfInet::*;
         match *self {
             Unspec(ref bytes) => bytes.len(),
             DevConf(_) => size_of::<InetDevConf>(),
-            Other(ref attr) => attr.length(),
+            Other(ref nla) => nla.value_len(),
         }
     }
 
@@ -69,7 +69,7 @@ impl Attribute for AfInet {
         match *self {
             Unspec(ref bytes) => buffer.copy_from_slice(bytes.as_slice()),
             DevConf(ref dev_conf) => dev_conf.to_bytes(buffer),
-            Other(ref attr)  => attr.emit_value(buffer),
+            Other(ref nla)  => nla.emit_value(buffer),
         }
     }
 
@@ -78,17 +78,17 @@ impl Attribute for AfInet {
         match *self {
             Unspec(_) => IFLA_INET_UNSPEC,
             DevConf(_) => IFLA_INET_CONF,
-            Other(ref attr) => attr.kind(),
+            Other(ref nla) => nla.kind(),
         }
     }
 
-    fn parse<'a, T: AsRef<[u8]> + ?Sized>(buffer: Buffer<&'a T>) -> Result<Self> {
+    fn parse<'a, T: AsRef<[u8]> + ?Sized>(buffer: &NlaBuffer<&'a T>) -> Result<Self> {
         use self::AfInet::*;
         let payload = buffer.value();
         Ok(match buffer.kind() {
             IFLA_INET_UNSPEC => Unspec(payload.to_vec()),
             IFLA_INET_CONF => DevConf(InetDevConf::from_bytes(payload)?),
-            _ => Other(DefaultAttribute::parse(buffer)?),
+            _ => Other(DefaultNla::parse(buffer)?),
         })
     }
 }

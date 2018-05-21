@@ -1,4 +1,4 @@
-use packet::attribute::NativeAttribute;
+use packet::nla::NativeNla;
 
 // FIXME: should this be repr(packed) instead?
 #[repr(C)]
@@ -52,8 +52,8 @@ pub struct Stats<T> {
     pub rx_nohandler: T,
 }
 
-impl NativeAttribute for Stats<u32> {}
-impl NativeAttribute for Stats<u64> {}
+impl NativeNla for Stats<u32> {}
+impl NativeNla for Stats<u64> {}
 
 pub type Stats32 = Stats<u32>;
 pub type Stats64 = Stats<u64>;

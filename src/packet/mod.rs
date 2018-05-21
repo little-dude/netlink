@@ -11,17 +11,19 @@ pub(crate) mod field {
 
 mod error;
 mod flags;
-mod repr;
 
 pub use self::error::{Error, Result};
-pub use self::flags::Flags;
-pub use self::repr::Repr;
+pub use self::flags::*;
 
 mod message_type;
-pub use self::message_type::MessageType;
+pub use self::message_type::*;
 
 mod header;
-pub use self::header::{Buffer, Header};
+pub use self::header::*;
 
-pub mod attribute;
+mod nla;
+pub use self::nla::*;
 pub mod link;
+
+#[cfg(test)]
+mod tests;

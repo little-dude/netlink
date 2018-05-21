@@ -1,12 +1,11 @@
 use byteorder::{ByteOrder, NativeEndian};
 use constants;
-use packet::attribute::{
-    parse_i32, parse_mac, parse_string, parse_u32, parse_u8, Attribute, Buffer, DefaultAttribute,
-    NativeAttribute,
-};
 use packet::link::af_spec;
+use packet::link::map;
 use packet::link::stats;
-use packet::Repr;
+use packet::nla::{
+    parse_i32, parse_string, parse_u32, parse_u8, DefaultNla, NativeNla, Nla, NlaBuffer,
+};
 use packet::Result;
 use std::mem::size_of;
 
@@ -21,14 +20,17 @@ pub const IFLA_STATS: u16 = constants::IFLA_STATS as u16;
 pub const IFLA_COST: u16 = constants::IFLA_COST as u16;
 pub const IFLA_PRIORITY: u16 = constants::IFLA_PRIORITY as u16;
 pub const IFLA_MASTER: u16 = constants::IFLA_MASTER as u16;
-// pub const IFLA_WIRELESS: u16 = constants::IFLA_WIRELESS as u16;
-// pub const IFLA_PROTINFO: u16 = constants::IFLA_PROTINFO as u16;
+// TODO: implement custom parsing for this struct
+pub const IFLA_WIRELESS: u16 = constants::IFLA_WIRELESS as u16;
+// TODO: implement custom parsing for this struct
+pub const IFLA_PROTINFO: u16 = constants::IFLA_PROTINFO as u16;
 pub const IFLA_TXQLEN: u16 = constants::IFLA_TXQLEN as u16;
-// pub const IFLA_MAP: u16 = constants::IFLA_MAP as u16;
+pub const IFLA_MAP: u16 = constants::IFLA_MAP as u16;
 pub const IFLA_WEIGHT: u16 = constants::IFLA_WEIGHT as u16;
 pub const IFLA_OPERSTATE: u16 = constants::IFLA_OPERSTATE as u16;
 pub const IFLA_LINKMODE: u16 = constants::IFLA_LINKMODE as u16;
-// pub const IFLA_LINKINFO: u16 = constants::IFLA_LINKINFO as u16;
+// TODO: implement custom parsing for this struct
+pub const IFLA_LINKINFO: u16 = constants::IFLA_LINKINFO as u16;
 pub const IFLA_NET_NS_PID: u16 = constants::IFLA_NET_NS_PID as u16;
 pub const IFLA_IFALIAS: u16 = constants::IFLA_IFALIAS as u16;
 pub const IFLA_NUM_VF: u16 = constants::IFLA_NUM_VF as u16;
@@ -62,7 +64,7 @@ pub const IFLA_CARRIER_DOWN_COUNT: u16 = constants::IFLA_CARRIER_DOWN_COUNT as u
 pub const IFLA_NEW_IFINDEX: u16 = constants::IFLA_NEW_IFINDEX as u16;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum LinkAttribute {
+pub enum LinkNla {
     // Vec<u8>
     Unspec(Vec<u8>),
     Cost(Vec<u8>),
@@ -81,15 +83,19 @@ pub enum LinkAttribute {
     CarrierUpCount(Vec<u8>),
     CarrierDownCount(Vec<u8>),
     NewIfIndex(Vec<u8>),
-    // mac address
-    Address([u8; 6]),
-    Broadcast([u8; 6]),
+    LinkInfo(Vec<u8>),
+    Wireless(Vec<u8>),
+    ProtoInfo(Vec<u8>),
+    // mac address (use to be [u8; 6] but it turns out MAC != HW address, for instance for IP over
+    // GRE where it's an IPv4!)
+    Address(Vec<u8>),
+    Broadcast(Vec<u8>),
 
     // string
     // FIXME: for empty string, should we encode the NLA as \0 or should we not set a payload? It
     // seems that for certain attriutes, this matter:
     // https://elixir.bootlin.com/linux/v4.17-rc5/source/net/core/rtnetlink.c#L1660
-    Ifname(String),
+    IfName(String),
     Qdisc(String),
     IfAlias(String),
     PhysPortName(String),
@@ -118,17 +124,18 @@ pub enum LinkAttribute {
     LinkNetnsId(i32),
     // custom
     Stats(stats::Stats32),
+    Stats64(stats::Stats64),
+    Map(map::Map),
     // AF_SPEC
     AfSpec(af_spec::AfSpec),
-    Other(DefaultAttribute),
-    Stats64(stats::Stats64),
+    Other(DefaultNla),
 }
 
-impl Attribute for LinkAttribute {
+impl Nla for LinkNla {
     #[allow(unused_attributes)]
     #[rustfmt_skip]
-    fn length(&self) -> usize {
-        use self::LinkAttribute::*;
+    fn value_len(&self) -> usize {
+        use self::LinkNla::*;
         match *self {
             // Vec<u8>
             Unspec(ref bytes)
@@ -145,18 +152,22 @@ impl Attribute for LinkAttribute {
                 | Event(ref bytes)
                 | NewNetnsId(ref bytes)
                 | IfNetnsId(ref bytes)
+                | LinkInfo(ref bytes)
+                | Wireless(ref bytes)
+                | ProtoInfo(ref bytes)
                 | CarrierUpCount(ref bytes)
                 | CarrierDownCount(ref bytes)
-                | NewIfIndex(ref bytes) => bytes.len(),
+                | NewIfIndex(ref bytes)
+                | Address(ref bytes)
+                | Broadcast(ref bytes) => bytes.len(),
 
             // strings: +1 because we need to append a nul byte
-            Ifname(ref string)
+            IfName(ref string)
                 | Qdisc(ref string)
                 | IfAlias(ref string)
                 | PhysPortName(ref string) => string.as_bytes().len() + 1,
 
             // Mac addresses are arrays of 6 bytes
-            Address(_) | Broadcast(_) => 6,
 
             // u8
             OperState(_)
@@ -183,17 +194,18 @@ impl Attribute for LinkAttribute {
                 | LinkNetnsId(_) => size_of::<u32>(),
 
             // Defaults
+            Map(_) => size_of::<map::Map>(),
             Stats(_) => size_of::<stats::Stats32>(),
             Stats64(_) => size_of::<stats::Stats64>(),
-            AfSpec(ref af_spec) => af_spec.length(),
-            Other(ref attr)  => attr.length(),
+            AfSpec(ref af_spec) => af_spec.value_len(),
+            Other(ref attr)  => attr.value_len(),
         }
     }
 
     #[allow(unused_attributes)]
     #[rustfmt_skip]
     fn emit_value(&self, buffer: &mut [u8]) {
-        use self::LinkAttribute::*;
+        use self::LinkNla::*;
         match *self {
             // Vec<u8>
             Unspec(ref bytes)
@@ -205,6 +217,9 @@ impl Attribute for LinkAttribute {
                 | PortSelf(ref bytes)
                 | PhysPortId(ref bytes)
                 | PhysSwitchId(ref bytes)
+                | LinkInfo(ref bytes)
+                | Wireless(ref bytes)
+                | ProtoInfo(ref bytes)
                 | Pad(ref bytes)
                 | Xdp(ref bytes)
                 | Event(ref bytes)
@@ -212,10 +227,14 @@ impl Attribute for LinkAttribute {
                 | IfNetnsId(ref bytes)
                 | CarrierUpCount(ref bytes)
                 | CarrierDownCount(ref bytes)
-                | NewIfIndex(ref bytes) => buffer.copy_from_slice(bytes.as_slice()),
+                | NewIfIndex(ref bytes)
+                // mac address (could be [u8; 6] or [u8; 4] for example. Not sure if we should have
+                // a separate type for them
+                | Address(ref bytes)
+                | Broadcast(ref bytes) => buffer.copy_from_slice(bytes.as_slice()),
 
             // String
-            Ifname(ref string)
+            IfName(ref string)
                 | Qdisc(ref string)
                 | IfAlias(ref string)
                 | PhysPortName(ref string) => {
@@ -228,9 +247,6 @@ impl Attribute for LinkAttribute {
                 | LinkMode(ref val)
                 | Carrier(ref val)
                 | ProtoDown(ref val) => buffer[0] = *val,
-
-            // mac address
-            Address(ref eui) | Broadcast(ref eui) => buffer.copy_from_slice(&eui[..]),
 
             // u32
             Mtu(ref value)
@@ -251,20 +267,21 @@ impl Attribute for LinkAttribute {
 
             LinkNetnsId(ref value) => NativeEndian::write_i32(buffer, *value),
 
+            Map(ref map) => map.to_bytes(buffer),
             Stats(ref stats) => stats.to_bytes(buffer),
             Stats64(ref stats) => stats.to_bytes(buffer),
             // This is not supposed to fail, because the buffer length has normally been checked
             // before cally this method. If that fails, there's a bug in out code that needs to be
             // fixed.
             AfSpec(ref af_spec) => af_spec.emit(buffer)
-                .expect("Failed to emit AF_SPEC attribute. That is a bug, please report it."),
-            // default attributes
+                .expect("Failed to emit AF_SPEC nla. That is a bug, please report it."),
+            // default nlas
             Other(ref attr) => attr.emit_value(buffer),
         }
     }
 
     fn kind(&self) -> u16 {
-        use self::LinkAttribute::*;
+        use self::LinkNla::*;
         match *self {
             // Vec<u8>
             Unspec(_) => IFLA_UNSPEC,
@@ -276,6 +293,9 @@ impl Attribute for LinkAttribute {
             PortSelf(_) => IFLA_PORT_SELF,
             PhysPortId(_) => IFLA_PHYS_PORT_ID,
             PhysSwitchId(_) => IFLA_PHYS_SWITCH_ID,
+            LinkInfo(_) => IFLA_LINKINFO,
+            Wireless(_) => IFLA_WIRELESS,
+            ProtoInfo(_) => IFLA_PROTINFO,
             Pad(_) => IFLA_PAD,
             Xdp(_) => IFLA_XDP,
             Event(_) => IFLA_EVENT,
@@ -288,7 +308,7 @@ impl Attribute for LinkAttribute {
             Address(_) => IFLA_ADDRESS,
             Broadcast(_) => IFLA_BROADCAST,
             // String
-            Ifname(_) => IFLA_IFNAME,
+            IfName(_) => IFLA_IFNAME,
             Qdisc(_) => IFLA_QDISC,
             IfAlias(_) => IFLA_IFALIAS,
             PhysPortName(_) => IFLA_PHYS_PORT_NAME,
@@ -316,6 +336,7 @@ impl Attribute for LinkAttribute {
             // i32
             LinkNetnsId(_) => IFLA_LINK_NETNSID,
             // custom
+            Map(_) => IFLA_MAP,
             Stats(_) => IFLA_STATS,
             Stats64(_) => IFLA_STATS64,
             AfSpec(_) => IFLA_AF_SPEC,
@@ -326,9 +347,9 @@ impl Attribute for LinkAttribute {
     /// # Panic
     ///
     /// This panics on buffers for which the "length" field value is is wrong. The
-    /// `Buffer` argument must be checked before being passed to this method.
-    fn parse<'a, T: AsRef<[u8]> + ?Sized>(buffer: Buffer<&'a T>) -> Result<Self> {
-        use self::LinkAttribute::*;
+    /// `NlaBuffer` argument must be checked before being passed to this method.
+    fn parse<'a, T: AsRef<[u8]> + ?Sized>(buffer: &NlaBuffer<&'a T>) -> Result<Self> {
+        use self::LinkNla::*;
         let payload = buffer.value();
         Ok(match buffer.kind() {
             // Vec<u8>
@@ -341,6 +362,9 @@ impl Attribute for LinkAttribute {
             IFLA_PORT_SELF => PortSelf(payload.to_vec()),
             IFLA_PHYS_PORT_ID => PhysPortId(payload.to_vec()),
             IFLA_PHYS_SWITCH_ID => PhysSwitchId(payload.to_vec()),
+            IFLA_LINKINFO => LinkInfo(payload.to_vec()),
+            IFLA_WIRELESS => Wireless(payload.to_vec()),
+            IFLA_PROTINFO => ProtoInfo(payload.to_vec()),
             IFLA_PAD => Pad(payload.to_vec()),
             IFLA_XDP => Xdp(payload.to_vec()),
             IFLA_EVENT => Event(payload.to_vec()),
@@ -349,11 +373,12 @@ impl Attribute for LinkAttribute {
             IFLA_CARRIER_UP_COUNT => CarrierUpCount(payload.to_vec()),
             IFLA_CARRIER_DOWN_COUNT => CarrierDownCount(payload.to_vec()),
             IFLA_NEW_IFINDEX => NewIfIndex(payload.to_vec()),
-            // Mac address
-            IFLA_ADDRESS => Address(parse_mac(payload)?),
-            IFLA_BROADCAST => Broadcast(parse_mac(payload)?),
+            // HW address (we parse them as Vec for now, because for IP over GRE, the HW address is
+            // an IP instead of a MAC for example
+            IFLA_ADDRESS => Address(payload.to_vec()),
+            IFLA_BROADCAST => Broadcast(payload.to_vec()),
             // String
-            IFLA_IFNAME => Ifname(parse_string(payload)?),
+            IFLA_IFNAME => IfName(parse_string(payload)?),
             IFLA_QDISC => Qdisc(parse_string(payload)?),
             IFLA_IFALIAS => IfAlias(parse_string(payload)?),
             IFLA_PHYS_PORT_NAME => PhysPortName(parse_string(payload)?),
@@ -384,13 +409,14 @@ impl Attribute for LinkAttribute {
             // i32
             IFLA_LINK_NETNSID => LinkNetnsId(parse_i32(payload)?),
 
+            IFLA_MAP => Map(map::Map::from_bytes(payload)?),
             IFLA_STATS => Stats(stats::Stats32::from_bytes(payload)?),
             IFLA_AF_SPEC => {
-                let buffer = Buffer::new_checked(payload)?;
-                AfSpec(<af_spec::AfSpec as Attribute>::parse(buffer)?)
+                let buffer = NlaBuffer::new_checked(payload)?;
+                AfSpec(<af_spec::AfSpec as Nla>::parse(&buffer)?)
             }
-            // default attributes
-            _ => Other(<DefaultAttribute as Attribute>::parse(buffer)?),
+            // default nlas
+            _ => Other(<DefaultNla as Nla>::parse(buffer)?),
         })
     }
 }
