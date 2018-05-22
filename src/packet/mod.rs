@@ -24,6 +24,3 @@ pub use self::header::*;
 mod nla;
 pub use self::nla::*;
 pub mod link;
-
-#[cfg(test)]
-mod tests;
