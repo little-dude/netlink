@@ -605,7 +605,7 @@ pub const RTM_GETNSID: int = 90;
 pub const RTM_NEWSTATS: int = 92;
 pub const RTM_GETSTATS: int = 94;
 pub const RTM_NEWCACHEREPORT: int = 96;
-//
+
 // pub const RTN_UNSPEC: int = 0;
 // pub const RTN_UNICAST: int = 1;
 // pub const RTN_LOCAL: int = 2;
