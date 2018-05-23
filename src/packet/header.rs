@@ -1,12 +1,13 @@
-use super::{field, Error, Flags, MessageType, Result};
 use byteorder::{ByteOrder, NativeEndian};
+use packet::utils::field::{Field, Rest};
+use packet::{Error, Flags, MessageType, Result};
 
-const LENGTH: field::Field = 0..4;
-const MESSAGE_TYPE: field::Field = 4..6;
-const FLAGS: field::Field = 6..8;
-const SEQUENCE_NUMBER: field::Field = 8..12;
-const PORT_NUMBER: field::Field = 12..16;
-const PAYLOAD: field::Rest = 16..;
+const LENGTH: Field = 0..4;
+const MESSAGE_TYPE: Field = 4..6;
+const FLAGS: Field = 6..8;
+const SEQUENCE_NUMBER: Field = 8..12;
+const PORT_NUMBER: Field = 12..16;
+const PAYLOAD: Rest = 16..;
 
 pub const HEADER_LEN: usize = PAYLOAD.start;
 

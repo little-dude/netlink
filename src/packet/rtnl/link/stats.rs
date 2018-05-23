@@ -1,4 +1,4 @@
-use packet::nla::NativeNla;
+use packet::utils::nla::NativeNla;
 
 // FIXME: should this be repr(packed) instead?
 #[repr(C)]

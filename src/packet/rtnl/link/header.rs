@@ -1,8 +1,8 @@
 use byteorder::{ByteOrder, NativeEndian};
 use packet::field;
-use packet::link::LinkFlags;
-use packet::link::LinkLayerType;
-use packet::nla::NlasIterator;
+use packet::rtnl::link::LinkFlags;
+use packet::rtnl::link::LinkLayerType;
+use packet::NlasIterator;
 use packet::{Error, Result};
 
 const ADDRESS_FAMILY: field::Index = 0;
@@ -153,7 +153,7 @@ impl LinkMessage {
 #[cfg(test)]
 mod test {
     use super::*;
-    use packet::link::*;
+    use packet::rtnl::link::*;
     use packet::Nla;
     #[allow(unused_attributes)]
     #[rustfmt_skip]

@@ -28,8 +28,8 @@ pub use self::constants::*;
 pub use self::inet::*;
 pub use self::inet6::*;
 
-use packet::nla::{emit_nlas, DefaultNla, Nla, NlaBuffer, NlasIterator};
 use packet::Result;
+use packet::{emit_nlas, DefaultNla, Nla, NlaBuffer, NlasIterator};
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub enum AfSpec {

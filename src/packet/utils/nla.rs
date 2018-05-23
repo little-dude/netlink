@@ -1,6 +1,7 @@
-use super::{field, Error, Result};
 use byteorder::{ByteOrder, NativeEndian};
 use constants;
+use packet::utils::field;
+use packet::{Error, Result};
 use std::mem::size_of;
 use std::ptr;
 
@@ -242,17 +243,6 @@ impl<'a> Iterator for NlasIterator<'a> {
             }
         }
     }
-}
-
-pub fn parse_mac(payload: &[u8]) -> Result<[u8; 6]> {
-    if payload.len() != 6 {
-        return Err(Error::MalformedNlaValue);
-    }
-    let mut address: [u8; 6] = [0; 6];
-    for (i, byte) in payload.into_iter().enumerate() {
-        address[i] = *byte;
-    }
-    Ok(address)
 }
 
 pub fn parse_ipv6(payload: &[u8]) -> Result<[u8; 16]> {

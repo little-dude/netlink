@@ -3,7 +3,9 @@ extern crate netlink;
 use netlink::socket::sys::Socket;
 use netlink::socket::{Protocol, SocketAddr};
 
-use netlink::packet::link::{LinkFlags, LinkLayerType, LinkMessage, LinkMessageBuffer, LinkNla};
+use netlink::packet::rtnl::link::{
+    LinkFlags, LinkLayerType, LinkMessage, LinkMessageBuffer, LinkNla,
+};
 use netlink::packet::{
     Buffer, Flags, Header, MessageType, Nla, HEADER_LEN, NLM_F_DUMP, NLM_F_REQUEST,
 };

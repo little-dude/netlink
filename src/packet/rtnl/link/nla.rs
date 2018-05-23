@@ -1,12 +1,8 @@
 use byteorder::{ByteOrder, NativeEndian};
 use constants;
-use packet::link::af_spec;
-use packet::link::map;
-use packet::link::stats;
-use packet::nla::{
-    parse_i32, parse_string, parse_u32, parse_u8, DefaultNla, NativeNla, Nla, NlaBuffer,
-};
-use packet::Result;
+use packet::rtnl::link::{af_spec, map, stats};
+use packet::utils::nla::{parse_i32, parse_string, parse_u32, parse_u8, NativeNla};
+use packet::{DefaultNla, Nla, NlaBuffer, Result};
 use std::mem::size_of;
 
 pub const IFLA_UNSPEC: u16 = constants::IFLA_UNSPEC as u16;

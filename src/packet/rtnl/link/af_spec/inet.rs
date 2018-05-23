@@ -1,7 +1,8 @@
 use std::mem::size_of;
 
-use packet::nla::{DefaultNla, NativeNla, Nla, NlaBuffer};
+use packet::utils::nla::NativeNla;
 use packet::Result;
+use packet::{DefaultNla, Nla, NlaBuffer};
 
 use super::constants::*;
 

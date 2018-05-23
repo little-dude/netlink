@@ -2,8 +2,9 @@ use std::mem::size_of;
 
 use byteorder::{ByteOrder, NativeEndian};
 
-use packet::nla::{parse_ipv6, parse_u32, parse_u8, DefaultNla, NativeNla, Nla, NlaBuffer};
+use packet::utils::nla::{parse_ipv6, parse_u32, parse_u8, NativeNla};
 use packet::Result;
+use packet::{DefaultNla, Nla, NlaBuffer};
 
 use super::constants::*;
 
