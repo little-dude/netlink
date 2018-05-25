@@ -1,8 +1,10 @@
 use byteorder::{ByteOrder, NativeEndian};
 use constants;
+use packet::common::nla::{
+    parse_i32, parse_string, parse_u32, parse_u8, DefaultNla, NativeNla, Nla, NlaBuffer,
+};
+use packet::common::{Emitable, Parseable, Result};
 use packet::rtnl::link::{af_spec, map, stats};
-use packet::utils::nla::{parse_i32, parse_string, parse_u32, parse_u8, NativeNla};
-use packet::{DefaultNla, Nla, NlaBuffer, Result};
 use std::mem::size_of;
 
 pub const IFLA_UNSPEC: u16 = constants::IFLA_UNSPEC as u16;
@@ -129,7 +131,7 @@ pub enum LinkNla {
 
 impl Nla for LinkNla {
     #[allow(unused_attributes)]
-    #[rustfmt_skip]
+    #[rustfmt::skip]
     fn value_len(&self) -> usize {
         use self::LinkNla::*;
         match *self {
@@ -199,7 +201,7 @@ impl Nla for LinkNla {
     }
 
     #[allow(unused_attributes)]
-    #[rustfmt_skip]
+    #[rustfmt::skip]
     fn emit_value(&self, buffer: &mut [u8]) {
         use self::LinkNla::*;
         match *self {
@@ -269,8 +271,7 @@ impl Nla for LinkNla {
             // This is not supposed to fail, because the buffer length has normally been checked
             // before cally this method. If that fails, there's a bug in out code that needs to be
             // fixed.
-            AfSpec(ref af_spec) => af_spec.emit(buffer)
-                .expect("Failed to emit AF_SPEC nla. That is a bug, please report it."),
+            AfSpec(ref af_spec) => af_spec.emit(buffer),
             // default nlas
             Other(ref attr) => attr.emit_value(buffer),
         }
@@ -339,15 +340,17 @@ impl Nla for LinkNla {
             Other(ref attr) => attr.kind(),
         }
     }
+}
 
+impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkNla> for NlaBuffer<&'buffer T> {
     /// # Panic
     ///
     /// This panics on buffers for which the "length" field value is is wrong. The
     /// `NlaBuffer` argument must be checked before being passed to this method.
-    fn parse<'a, T: AsRef<[u8]> + ?Sized>(buffer: &NlaBuffer<&'a T>) -> Result<Self> {
+    fn parse(&self) -> Result<LinkNla> {
         use self::LinkNla::*;
-        let payload = buffer.value();
-        Ok(match buffer.kind() {
+        let payload = self.value();
+        Ok(match self.kind() {
             // Vec<u8>
             IFLA_UNSPEC => Unspec(payload.to_vec()),
             IFLA_COST => Cost(payload.to_vec()),
@@ -407,12 +410,9 @@ impl Nla for LinkNla {
 
             IFLA_MAP => Map(map::Map::from_bytes(payload)?),
             IFLA_STATS => Stats(stats::Stats32::from_bytes(payload)?),
-            IFLA_AF_SPEC => {
-                let buffer = NlaBuffer::new_checked(payload)?;
-                AfSpec(<af_spec::AfSpec as Nla>::parse(&buffer)?)
-            }
+            IFLA_AF_SPEC => AfSpec(<Self as Parseable<af_spec::AfSpec>>::parse(self)?),
             // default nlas
-            _ => Other(<DefaultNla as Nla>::parse(buffer)?),
+            _ => Other(<Self as Parseable<DefaultNla>>::parse(self)?),
         })
     }
 }

@@ -1,6 +1,7 @@
 use byteorder::{ByteOrder, NativeEndian};
-use packet::utils::field::{Field, Rest};
-use packet::{Error, Flags, MessageType, Result};
+
+use super::common::{Emitable, Error, Field, Parseable, Rest, Result};
+use super::NetlinkFlags;
 
 const LENGTH: Field = 0..4;
 const MESSAGE_TYPE: Field = 4..6;
@@ -12,16 +13,16 @@ const PAYLOAD: Rest = 16..;
 pub const HEADER_LEN: usize = PAYLOAD.start;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Buffer<T: AsRef<[u8]>> {
+pub struct NetlinkBuffer<T> {
     buffer: T,
 }
 
-impl<T: AsRef<[u8]>> Buffer<T> {
-    pub fn new(buffer: T) -> Buffer<T> {
-        Buffer { buffer }
+impl<T: AsRef<[u8]>> NetlinkBuffer<T> {
+    pub fn new(buffer: T) -> NetlinkBuffer<T> {
+        NetlinkBuffer { buffer }
     }
 
-    pub fn new_checked(buffer: T) -> Result<Buffer<T>> {
+    pub fn new_checked(buffer: T) -> Result<NetlinkBuffer<T>> {
         let packet = Self::new(buffer);
         packet.check_buffer_length()?;
         Ok(packet)
@@ -57,15 +58,15 @@ impl<T: AsRef<[u8]>> Buffer<T> {
     }
 
     /// Return the `type` field
-    pub fn message_type(&self) -> MessageType {
+    pub fn message_type(&self) -> u16 {
         let data = self.buffer.as_ref();
-        MessageType::from(NativeEndian::read_u16(&data[MESSAGE_TYPE]))
+        NativeEndian::read_u16(&data[MESSAGE_TYPE])
     }
 
     /// Return the `flags` field
-    pub fn flags(&self) -> Flags {
+    pub fn flags(&self) -> NetlinkFlags {
         let data = self.buffer.as_ref();
-        Flags::from(NativeEndian::read_u16(&data[FLAGS]))
+        NetlinkFlags::from(NativeEndian::read_u16(&data[FLAGS]))
     }
 
     /// Return the `sequence_number` field
@@ -81,7 +82,7 @@ impl<T: AsRef<[u8]>> Buffer<T> {
     }
 }
 
-impl<T: AsRef<[u8]> + AsMut<[u8]>> Buffer<T> {
+impl<T: AsRef<[u8]> + AsMut<[u8]>> NetlinkBuffer<T> {
     /// Set the `length` field
     pub fn set_length(&mut self, value: u32) {
         let data = self.buffer.as_mut();
@@ -89,13 +90,13 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> Buffer<T> {
     }
 
     /// Set the `message_type` field
-    pub fn set_message_type(&mut self, value: MessageType) {
+    pub fn set_message_type(&mut self, value: u16) {
         let data = self.buffer.as_mut();
-        NativeEndian::write_u16(&mut data[MESSAGE_TYPE], value.into())
+        NativeEndian::write_u16(&mut data[MESSAGE_TYPE], value)
     }
 
     /// Set the `flags` field
-    pub fn set_flags(&mut self, value: Flags) {
+    pub fn set_flags(&mut self, value: NetlinkFlags) {
         let data = self.buffer.as_mut();
         NativeEndian::write_u16(&mut data[FLAGS], value.into())
     }
@@ -113,7 +114,7 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> Buffer<T> {
     }
 }
 
-impl<'a, T: AsRef<[u8]> + ?Sized> Buffer<&'a T> {
+impl<'a, T: AsRef<[u8]> + ?Sized> NetlinkBuffer<&'a T> {
     // FIXME: should we provide a `payload_checked` to avoid panic, if the length is wrong in the
     // header?
 
@@ -125,7 +126,19 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Buffer<&'a T> {
     }
 }
 
-impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> Buffer<&'a mut T> {
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NetlinkHeader> for NetlinkBuffer<&'a T> {
+    fn parse(&self) -> Result<NetlinkHeader> {
+        Ok(NetlinkHeader {
+            length: self.length(),
+            message_type: self.message_type(),
+            flags: self.flags(),
+            sequence_number: self.sequence_number(),
+            port_number: self.port_number(),
+        })
+    }
+}
+
+impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> NetlinkBuffer<&'a mut T> {
     // FIXME: should we provide a `payload_mut_checked` to avoid panic, if the length is wrong in
     // the header?
 
@@ -137,55 +150,42 @@ impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> Buffer<&'a mut T> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-pub struct Header {
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Default)]
+pub struct NetlinkHeader {
     pub length: u32,
-    pub message_type: MessageType,
-    pub flags: Flags,
+    pub message_type: u16,
+    pub flags: NetlinkFlags,
     pub sequence_number: u32,
     pub port_number: u32,
 }
 
-impl Header {
-    /// Parse a packet and return a high-level representation.
-    pub fn parse<T: AsRef<[u8]> + ?Sized>(buffer: &Buffer<&T>) -> Result<Self> {
-        Ok(Header {
-            length: buffer.length(),
-            message_type: buffer.message_type(),
-            flags: buffer.flags(),
-            sequence_number: buffer.sequence_number(),
-            port_number: buffer.port_number(),
-        })
-    }
-
+impl Emitable for NetlinkHeader {
     /// Return the length of a packet that will be emitted from this high-level representation.
-    pub fn buffer_len(&self) -> usize {
+    fn buffer_len(&self) -> usize {
         PAYLOAD.start
     }
 
     /// Emit a high-level representation into a buffer
-    pub fn emit(&self, buffer: &mut [u8]) -> Result<()> {
-        if buffer.len() < self.buffer_len() {
-            return Err(Error::Exhausted);
-        }
-        let mut buffer = Buffer::new(buffer);
+    fn emit(&self, buffer: &mut [u8]) {
+        let mut buffer = NetlinkBuffer::new(buffer);
         buffer.set_message_type(self.message_type);
         buffer.set_length(self.length);
         buffer.set_flags(self.flags);
         buffer.set_sequence_number(self.sequence_number);
         buffer.set_port_number(self.port_number);
-        Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use packet::constants::flags::*;
+    use packet::constants::message_type::*;
     use packet::flags::*;
 
     // a packet captured with tcpdump that was sent when running `ip link show`
     #[allow(unused_attributes)]
-    #[rustfmt_skip]
+    #[rustfmt::skip]
     static IP_LINK_SHOW_PKT: [u8; 40] = [
         0x28, 0x00, 0x00, 0x00, // length = 40
         0x12, 0x00, // message type = 18 (RTM_GETLINK)
@@ -199,9 +199,9 @@ mod tests {
 
     #[test]
     fn packet_read() {
-        let packet = Buffer::new(&IP_LINK_SHOW_PKT[..]);
+        let packet = NetlinkBuffer::new(&IP_LINK_SHOW_PKT[..]);
         assert_eq!(packet.length(), 40);
-        assert_eq!(packet.message_type(), MessageType::GetLink);
+        assert_eq!(packet.message_type(), RTM_GETLINK);
         assert_eq!(packet.sequence_number(), 1526271540);
         assert_eq!(packet.port_number(), 0);
         let flags = packet.flags();
@@ -220,9 +220,9 @@ mod tests {
     fn packet_build() {
         let mut buf = vec![0; 40];
         {
-            let mut packet = Buffer::new(&mut buf);
+            let mut packet = NetlinkBuffer::new(&mut buf);
             packet.set_length(40);
-            packet.set_message_type(MessageType::GetLink);
+            packet.set_message_type(RTM_GETLINK);
             packet.set_sequence_number(1526271540);
             packet.set_port_number(0);
             packet.set_flags(From::from(NLM_F_ROOT | NLM_F_REQUEST | NLM_F_MATCH));
@@ -235,10 +235,13 @@ mod tests {
 
     #[test]
     fn repr_parse() {
-        let repr = Header::parse(&Buffer::new_checked(&IP_LINK_SHOW_PKT[..]).unwrap()).unwrap();
+        let repr: NetlinkHeader = NetlinkBuffer::new_checked(&IP_LINK_SHOW_PKT[..])
+            .unwrap()
+            .parse()
+            .unwrap();
         assert_eq!(repr.length, 40);
-        assert_eq!(repr.message_type, MessageType::GetLink);
-        assert_eq!(repr.sequence_number, 1526271540);
+        assert_eq!(repr.message_type, RTM_GETLINK);
+        assert_eq!(repr.sequence_number, 1_526_271_540);
         assert_eq!(repr.port_number, 0);
         assert!(repr.flags.has_root());
         assert!(repr.flags.has_request());
@@ -251,16 +254,16 @@ mod tests {
 
     #[test]
     fn repr_emit() {
-        let repr = Header {
+        let repr = NetlinkHeader {
             length: 40,
-            message_type: MessageType::GetLink,
-            sequence_number: 1526271540,
-            flags: Flags::from(NLM_F_ROOT | NLM_F_REQUEST | NLM_F_MATCH),
+            message_type: RTM_GETLINK,
+            sequence_number: 1_526_271_540,
+            flags: NetlinkFlags::from(NLM_F_ROOT | NLM_F_REQUEST | NLM_F_MATCH),
             port_number: 0,
         };
         assert_eq!(repr.buffer_len(), 16);
         let mut buf = vec![0; 16];
-        repr.emit(&mut buf[..]).unwrap();
+        repr.emit(&mut buf[..]);
         assert_eq!(&buf[..], &IP_LINK_SHOW_PKT[..16]);
     }
 }

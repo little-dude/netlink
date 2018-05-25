@@ -1,21 +1,25 @@
 use byteorder::{ByteOrder, NativeEndian};
 
-use packet::field;
+use packet::common::nla::{NlaBuffer, NlasIterator};
+use packet::common::{Field, Index, Rest, Result};
 
-const FAMILY: field::Index = 0;
-const PREFIX_LEN: field::Index = 1;
-const FLAGS: field::Index = 2;
-const SCOPE: field::Index = 3;
-const INDEX: field::Field = 4..8;
+const FAMILY: Index = 0;
+const PREFIX_LEN: Index = 1;
+const FLAGS: Index = 2;
+const SCOPE: Index = 3;
+const INDEX: Field = 4..8;
+const ATTRIBUTES: Rest = 8..;
+
+pub const HEADER_LEN: usize = ATTRIBUTES.start;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct AddressMessageBuffer<T: AsRef<[u8]>> {
+pub struct RtnlAddressBuffer<T> {
     buffer: T,
 }
 
-impl<T: AsRef<[u8]>> AddressMessageBuffer<T> {
-    pub fn new(buffer: T) -> AddressMessageBuffer<T> {
-        AddressMessageBuffer { buffer }
+impl<T: AsRef<[u8]>> RtnlAddressBuffer<T> {
+    pub fn new(buffer: T) -> RtnlAddressBuffer<T> {
+        RtnlAddressBuffer { buffer }
     }
 
     pub fn into_inner(self) -> T {
@@ -48,7 +52,27 @@ impl<T: AsRef<[u8]>> AddressMessageBuffer<T> {
     }
 }
 
-impl<T: AsRef<[u8]> + AsMut<[u8]>> AddressMessageBuffer<T> {
+impl<'a, T: AsRef<[u8]> + ?Sized> RtnlAddressBuffer<&'a T> {
+    /// Return a pointer to the payload.
+    pub fn payload(&self) -> &'a [u8] {
+        let data = self.buffer.as_ref();
+        &data[ATTRIBUTES]
+    }
+
+    pub fn nlas(&self) -> impl Iterator<Item = Result<NlaBuffer<&'a [u8]>>> {
+        NlasIterator::new(self.payload())
+    }
+}
+
+impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> RtnlAddressBuffer<&'a mut T> {
+    /// Return a mutable pointer to the payload.
+    pub fn payload_mut(&mut self) -> &mut [u8] {
+        let data = self.buffer.as_mut();
+        &mut data[ATTRIBUTES]
+    }
+}
+
+impl<T: AsRef<[u8]> + AsMut<[u8]>> RtnlAddressBuffer<T> {
     pub fn set_family(&mut self, value: u8) {
         let data = self.buffer.as_mut();
         data[FAMILY] = value

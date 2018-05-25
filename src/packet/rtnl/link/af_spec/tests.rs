@@ -1,11 +1,11 @@
 use constants::IFLA_AF_SPEC;
-use packet::NlasIterator;
+use packet::common::nla::NlasIterator;
 
 use super::*;
 // https://lists.infradead.org/pipermail/libnl/2015-November/002034.html
 // https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/if_link.h#L89
 #[allow(unused_attributes)]
-#[rustfmt_skip]
+#[rustfmt::skip]
 static BYTES: [u8; 748] = [
     // AF_SPEC (L=748, T=26)
     0xec, 0x02, 0x1a, 0x00,
@@ -349,14 +349,14 @@ fn parse_af_inet() {
     assert_eq!(inet_buf.value().len(), 128);
 
     // parsing check
-    let parsed = AfSpec::parse(&inet_buf).unwrap();
+    let parsed: AfSpec = inet_buf.parse().unwrap();
     assert_eq!(parsed, *PARSED_AF_INET);
 }
 
 #[test]
 fn emit_af_inet() {
     let mut bytes = vec![0xff; 132];
-    PARSED_AF_INET.emit(&mut bytes[..]).unwrap();
+    PARSED_AF_INET.emit(&mut bytes[..]);
     let buf = NlaBuffer::new_checked(&bytes[..]).unwrap();
 
     let mut nlas = get_nlas();
@@ -375,7 +375,7 @@ fn emit_af_inet6() {
     // captured. Based on the protocol specs, I don't think they are mandatory.
     assert_eq!(PARSED_AF_INET6.value_len(), 605);
     assert_eq!(PARSED_AF_INET6.buffer_len(), 609);
-    PARSED_AF_INET6.emit(&mut bytes[..]).unwrap();
+    PARSED_AF_INET6.emit(&mut bytes[..]);
 
     let buf = NlaBuffer::new_checked(&bytes[..]).unwrap();
 
@@ -405,7 +405,7 @@ fn parse_af_inet6() {
     assert_eq!(inet6_buf.length(), 612);
     assert_eq!(inet6_buf.kind(), AF_INET6);
     assert_eq!(inet6_buf.value().len(), 608);
-    let parsed = AfSpec::parse(&inet6_buf).unwrap();
+    let parsed: AfSpec = inet6_buf.parse().unwrap();
 
     assert_eq!(parsed, *PARSED_AF_INET6);
 

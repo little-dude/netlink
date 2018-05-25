@@ -3,9 +3,10 @@ use std::mem::size_of;
 
 use constants;
 
-use packet::rtnl::address::cacheinfo;
-use packet::utils::nla::{parse_string, parse_u32, NativeNla};
-use packet::{DefaultNla, Nla, NlaBuffer, Result};
+use packet::common::nla::{parse_string, parse_u32, DefaultNla, NativeNla, Nla, NlaBuffer};
+use packet::common::{Parseable, Result};
+
+use super::cacheinfo;
 
 pub const IFA_F_SECONDARY: u32 = constants::IFA_F_SECONDARY as u32;
 pub const IFA_F_TEMPORARY: u32 = constants::IFA_F_TEMPORARY as u32;
@@ -44,9 +45,10 @@ pub enum AddressNla {
     Flags(u32),
     Other(DefaultNla),
 }
+
 impl Nla for AddressNla {
     #[allow(unused_attributes)]
-    #[rustfmt_skip]
+    #[rustfmt::skip]
     fn value_len(&self) -> usize {
         use self::AddressNla::*;
         match *self {
@@ -73,7 +75,7 @@ impl Nla for AddressNla {
     }
 
     #[allow(unused_attributes)]
-    #[rustfmt_skip]
+    #[rustfmt::skip]
     fn emit_value(&self, buffer: &mut [u8]) {
         use self::AddressNla::*;
         match *self {
@@ -117,11 +119,13 @@ impl Nla for AddressNla {
             Other(ref nla) => nla.kind(),
         }
     }
+}
 
-    fn parse<'a, T: AsRef<[u8]> + ?Sized>(buffer: &NlaBuffer<&'a T>) -> Result<Self> {
+impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<AddressNla> for NlaBuffer<&'buffer T> {
+    fn parse(&self) -> Result<AddressNla> {
         use self::AddressNla::*;
-        let payload = buffer.value();
-        Ok(match buffer.kind() {
+        let payload = self.value();
+        Ok(match self.kind() {
             IFA_UNSPEC => Unspec(payload.to_vec()),
             IFA_ADDRESS => Address(payload.to_vec()),
             IFA_LOCAL => Local(payload.to_vec()),
@@ -131,8 +135,7 @@ impl Nla for AddressNla {
             IFA_CACHEINFO => CacheInfo(cacheinfo::CacheInfo::from_bytes(payload)?),
             IFA_MULTICAST => Multicast(payload.to_vec()),
             IFA_FLAGS => Flags(parse_u32(payload)?),
-            // default nlas
-            _ => Other(<DefaultNla as Nla>::parse(buffer)?),
+            _ => Other(<Self as Parseable<DefaultNla>>::parse(self)?),
         })
     }
 }

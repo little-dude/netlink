@@ -1,152 +1,74 @@
-use byteorder::{ByteOrder, NativeEndian};
-use packet::field;
-use packet::rtnl::link::LinkFlags;
-use packet::rtnl::link::LinkLayerType;
-use packet::NlasIterator;
-use packet::{Error, Result};
+use packet::common::{Emitable, Parseable, Result};
 
-const ADDRESS_FAMILY: field::Index = 0;
-const RESERVED_1: field::Index = 1;
-const LINK_LAYER_TYPE: field::Field = 2..4;
-const LINK_INDEX: field::Field = 4..8;
-const FLAGS: field::Field = 8..12;
-const RESERVED_2: field::Field = 12..16;
-const ATTRIBUTES: field::Rest = 16..;
+use super::{LinkFlags, LinkLayerType, LinkNla, RtnlLinkBuffer, HEADER_LEN};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct LinkMessageBuffer<T: AsRef<[u8]>> {
-    buffer: T,
-}
-
-impl<T: AsRef<[u8]>> LinkMessageBuffer<T> {
-    pub fn new(buffer: T) -> LinkMessageBuffer<T> {
-        LinkMessageBuffer { buffer }
-    }
-
-    /// Consume the packet, returning the underlying buffer.
-    pub fn into_inner(self) -> T {
-        self.buffer
-    }
-
-    /// Return the address family field
-    pub fn address_family(&self) -> u8 {
-        let data = self.buffer.as_ref();
-        data[ADDRESS_FAMILY]
-    }
-
-    /// Return the link layer type field
-    pub fn reserved_1(&self) -> u8 {
-        let data = self.buffer.as_ref();
-        data[RESERVED_1]
-    }
-
-    /// Return the link layer type field
-    pub fn link_layer_type(&self) -> LinkLayerType {
-        let data = self.buffer.as_ref();
-        LinkLayerType::from(NativeEndian::read_u16(&data[LINK_LAYER_TYPE]))
-    }
-
-    /// Return the link index field
-    pub fn link_index(&self) -> u32 {
-        let data = self.buffer.as_ref();
-        NativeEndian::read_u32(&data[LINK_INDEX])
-    }
-
-    /// Return the flags field
-    pub fn flags(&self) -> LinkFlags {
-        let data = self.buffer.as_ref();
-        LinkFlags::from(NativeEndian::read_u32(&data[FLAGS]))
-    }
-
-    /// Return the link index field
-    pub fn reserved_2(&self) -> u32 {
-        let data = self.buffer.as_ref();
-        NativeEndian::read_u32(&data[RESERVED_2])
-    }
-}
-
-impl<'a, T: AsRef<[u8]> + ?Sized> LinkMessageBuffer<&'a T> {
-    /// Return a pointer to the payload.
-    pub fn payload(&self) -> &'a [u8] {
-        let data = self.buffer.as_ref();
-        &data[ATTRIBUTES]
-    }
-
-    pub fn nlas(&self) -> NlasIterator<'a> {
-        NlasIterator::new(self.payload())
-    }
-}
-
-impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> LinkMessageBuffer<&'a mut T> {
-    /// Return a mutable pointer to the payload.
-    pub fn payload_mut(&mut self) -> &mut [u8] {
-        let data = self.buffer.as_mut();
-        &mut data[ATTRIBUTES]
-    }
-}
-
-impl<T: AsRef<[u8]> + AsMut<[u8]>> LinkMessageBuffer<T> {
-    /// set the address family field
-    pub fn set_address_family(&mut self, value: u8) {
-        let data = self.buffer.as_mut();
-        data[ADDRESS_FAMILY] = value
-    }
-
-    pub fn set_reserved_1(&mut self, value: u8) {
-        let data = self.buffer.as_mut();
-        data[RESERVED_1] = value
-    }
-
-    pub fn set_link_layer_type(&mut self, value: LinkLayerType) {
-        let data = self.buffer.as_mut();
-        NativeEndian::write_u16(&mut data[LINK_LAYER_TYPE], value.into())
-    }
-
-    pub fn set_link_index(&mut self, value: u32) {
-        let data = self.buffer.as_mut();
-        NativeEndian::write_u32(&mut data[LINK_INDEX], value)
-    }
-
-    pub fn set_flags(&mut self, value: LinkFlags) {
-        let data = self.buffer.as_mut();
-        NativeEndian::write_u32(&mut data[FLAGS], value.into())
-    }
-
-    pub fn set_reserved_2(&mut self, value: u32) {
-        let data = self.buffer.as_mut();
-        NativeEndian::write_u32(&mut data[RESERVED_2], value)
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct LinkMessage {
+pub struct RtnlLinkHeader {
     pub address_family: u8,
     pub link_layer_type: LinkLayerType,
     pub flags: LinkFlags,
 }
 
-impl LinkMessage {
-    pub fn parse<T: AsRef<[u8]> + ?Sized>(buffer: &LinkMessageBuffer<&T>) -> Result<Self> {
-        Ok(LinkMessage {
-            address_family: buffer.address_family(),
-            link_layer_type: buffer.link_layer_type(),
-            flags: buffer.flags(),
-        })
+impl Emitable for RtnlLinkHeader {
+    fn buffer_len(&self) -> usize {
+        HEADER_LEN
     }
 
-    pub fn buffer_len(&self) -> usize {
-        ATTRIBUTES.start
-    }
-
-    pub fn emit(&self, buffer: &mut [u8]) -> Result<()> {
-        if buffer.len() < self.buffer_len() {
-            return Err(Error::Exhausted);
-        }
-        let mut packet = LinkMessageBuffer::new(buffer);
+    fn emit(&self, buffer: &mut [u8]) {
+        let mut packet = RtnlLinkBuffer::new(buffer);
         packet.set_address_family(self.address_family);
         packet.set_link_layer_type(self.link_layer_type);
         packet.set_flags(self.flags);
-        Ok(())
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct RtnlLinkMessage {
+    pub header: RtnlLinkHeader,
+    pub nlas: Vec<LinkNla>,
+}
+
+impl Emitable for RtnlLinkMessage {
+    fn buffer_len(&self) -> usize {
+        self.header.buffer_len() + self.nlas.as_slice().buffer_len()
+    }
+
+    fn emit(&self, buffer: &mut [u8]) {
+        // in rust, we're guaranteed that when doing `a() + b(), a() is evaluated first
+        self.header.emit(buffer);
+        self.nlas.as_slice().emit(buffer);
+    }
+}
+
+impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<RtnlLinkMessage> for RtnlLinkBuffer<&'buffer T> {
+    fn parse(&self) -> Result<RtnlLinkMessage> {
+        Ok(RtnlLinkMessage {
+            header: self.parse()?,
+            nlas: self.parse()?,
+        })
+    }
+}
+
+// FIXME: we should make it possible to provide a "best effort" parsing method. Right now, if we
+// fail on a single nla, we return an error. Maybe we could have another impl that returns
+// Vec<Result<LinkNla>>.
+impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Vec<LinkNla>> for RtnlLinkBuffer<&'buffer T> {
+    fn parse(&self) -> Result<Vec<LinkNla>> {
+        let mut nlas = vec![];
+        for nla_buf in self.nlas() {
+            nlas.push(nla_buf?.parse()?);
+        }
+        Ok(nlas)
+    }
+}
+
+impl<T: AsRef<[u8]>> Parseable<RtnlLinkHeader> for RtnlLinkBuffer<T> {
+    fn parse(&self) -> Result<RtnlLinkHeader> {
+        Ok(RtnlLinkHeader {
+            address_family: self.address_family(),
+            link_layer_type: self.link_layer_type(),
+            flags: self.flags(),
+        })
     }
 }
 
@@ -154,9 +76,9 @@ impl LinkMessage {
 mod test {
     use super::*;
     use packet::rtnl::link::*;
-    use packet::Nla;
+
     #[allow(unused_attributes)]
-    #[rustfmt_skip]
+    #[rustfmt::skip]
     static HEADER: [u8; 96] = [
         0x00, // address family
         0x00, // reserved
@@ -185,7 +107,7 @@ mod test {
 
     #[test]
     fn packet_header_read() {
-        let packet = LinkMessageBuffer::new(&HEADER[0..16]);
+        let packet = RtnlLinkBuffer::new(&HEADER[0..16]);
         assert_eq!(packet.address_family(), 0);
         assert_eq!(packet.reserved_1(), 0);
         assert_eq!(packet.link_layer_type(), LinkLayerType::Loopback);
@@ -204,7 +126,7 @@ mod test {
     fn packet_header_build() {
         let mut buf = vec![0xff; 16];
         {
-            let mut packet = LinkMessageBuffer::new(&mut buf);
+            let mut packet = RtnlLinkBuffer::new(&mut buf);
             packet.set_address_family(0);
             packet.set_reserved_1(0);
             packet.set_link_layer_type(LinkLayerType::Loopback);
@@ -221,7 +143,7 @@ mod test {
 
     #[test]
     fn packet_nlas_read() {
-        let packet = LinkMessageBuffer::new(&HEADER[..]);
+        let packet = RtnlLinkBuffer::new(&HEADER[..]);
         assert_eq!(packet.nlas().count(), 10);
         let mut nlas = packet.nlas();
 
@@ -231,7 +153,7 @@ mod test {
         assert_eq!(nla.length(), 7);
         assert_eq!(nla.kind(), 3);
         assert_eq!(nla.value(), &[0x6c, 0x6f, 0x00]);
-        let parsed = LinkNla::parse(&nla).unwrap();
+        let parsed: LinkNla = nla.parse().unwrap();
         assert_eq!(parsed, LinkNla::IfName(String::from("lo")));
 
         // TxQueue length L=8,T=13,V=1000
@@ -240,7 +162,7 @@ mod test {
         assert_eq!(nla.length(), 8);
         assert_eq!(nla.kind(), 13);
         assert_eq!(nla.value(), &[0xe8, 0x03, 0x00, 0x00]);
-        let parsed = LinkNla::parse(&nla).unwrap();
+        let parsed: LinkNla = nla.parse().unwrap();
         assert_eq!(parsed, LinkNla::TxQueueLen(1000));
 
         // OperState L=5,T=16,V=0 (unknown)
@@ -249,7 +171,7 @@ mod test {
         assert_eq!(nla.length(), 5);
         assert_eq!(nla.kind(), 16);
         assert_eq!(nla.value(), &[0x00]);
-        let parsed = LinkNla::parse(&nla).unwrap();
+        let parsed: LinkNla = nla.parse().unwrap();
         assert_eq!(parsed, LinkNla::OperState(0));
 
         // Link mode L=5,T=17,V=0
@@ -258,7 +180,7 @@ mod test {
         assert_eq!(nla.length(), 5);
         assert_eq!(nla.kind(), 17);
         assert_eq!(nla.value(), &[0x00]);
-        let parsed = LinkNla::parse(&nla).unwrap();
+        let parsed: LinkNla = nla.parse().unwrap();
         assert_eq!(parsed, LinkNla::LinkMode(0));
 
         // MTU L=8,T=4,V=65536
@@ -267,7 +189,7 @@ mod test {
         assert_eq!(nla.length(), 8);
         assert_eq!(nla.kind(), 4);
         assert_eq!(nla.value(), &[0x00, 0x00, 0x01, 0x00]);
-        let parsed = LinkNla::parse(&nla).unwrap();
+        let parsed: LinkNla = nla.parse().unwrap();
         assert_eq!(parsed, LinkNla::Mtu(65_536));
 
         // 0x00, 0x00, 0x00, 0x00,
@@ -277,7 +199,7 @@ mod test {
         assert_eq!(nla.length(), 8);
         assert_eq!(nla.kind(), 27);
         assert_eq!(nla.value(), &[0x00, 0x00, 0x00, 0x00]);
-        let parsed = LinkNla::parse(&nla).unwrap();
+        let parsed: LinkNla = nla.parse().unwrap();
         assert_eq!(parsed, LinkNla::Group(0));
 
         // Promiscuity L=8,T=30,V=0
@@ -286,7 +208,7 @@ mod test {
         assert_eq!(nla.length(), 8);
         assert_eq!(nla.kind(), 30);
         assert_eq!(nla.value(), &[0x00, 0x00, 0x00, 0x00]);
-        let parsed = LinkNla::parse(&nla).unwrap();
+        let parsed: LinkNla = nla.parse().unwrap();
         assert_eq!(parsed, LinkNla::Promiscuity(0));
 
         // Number of Tx Queues L=8,T=31,V=1
@@ -296,7 +218,7 @@ mod test {
         assert_eq!(nla.length(), 8);
         assert_eq!(nla.kind(), 31);
         assert_eq!(nla.value(), &[0x01, 0x00, 0x00, 0x00]);
-        let parsed = LinkNla::parse(&nla).unwrap();
+        let parsed: LinkNla = nla.parse().unwrap();
         assert_eq!(parsed, LinkNla::NumTxQueues(1));
     }
 }

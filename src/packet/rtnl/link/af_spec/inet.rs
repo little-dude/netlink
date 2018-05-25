@@ -1,8 +1,7 @@
 use std::mem::size_of;
 
-use packet::utils::nla::NativeNla;
-use packet::Result;
-use packet::{DefaultNla, Nla, NlaBuffer};
+use packet::common::nla::{DefaultNla, NativeNla, Nla, NlaBuffer};
+use packet::common::{Parseable, Result};
 
 use super::constants::*;
 
@@ -53,7 +52,7 @@ pub enum AfInet {
 
 impl Nla for AfInet {
     #[allow(unused_attributes)]
-    #[rustfmt_skip]
+    #[rustfmt::skip]
     fn value_len(&self) -> usize {
         use self::AfInet::*;
         match *self {
@@ -64,7 +63,7 @@ impl Nla for AfInet {
     }
 
     #[allow(unused_attributes)]
-    #[rustfmt_skip]
+    #[rustfmt::skip]
     fn emit_value(&self, buffer: &mut [u8]) {
         use self::AfInet::*;
         match *self {
@@ -82,14 +81,16 @@ impl Nla for AfInet {
             Other(ref nla) => nla.kind(),
         }
     }
+}
 
-    fn parse<'a, T: AsRef<[u8]> + ?Sized>(buffer: &NlaBuffer<&'a T>) -> Result<Self> {
+impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<AfInet> for NlaBuffer<&'buffer T> {
+    fn parse(&self) -> Result<AfInet> {
         use self::AfInet::*;
-        let payload = buffer.value();
-        Ok(match buffer.kind() {
+        let payload = self.value();
+        Ok(match self.kind() {
             IFLA_INET_UNSPEC => Unspec(payload.to_vec()),
             IFLA_INET_CONF => DevConf(InetDevConf::from_bytes(payload)?),
-            _ => Other(DefaultNla::parse(buffer)?),
+            _ => Other(<Self as Parseable<DefaultNla>>::parse(self)?),
         })
     }
 }

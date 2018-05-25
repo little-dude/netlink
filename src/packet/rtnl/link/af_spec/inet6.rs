@@ -2,9 +2,8 @@ use std::mem::size_of;
 
 use byteorder::{ByteOrder, NativeEndian};
 
-use packet::utils::nla::{parse_ipv6, parse_u32, parse_u8, NativeNla};
-use packet::Result;
-use packet::{DefaultNla, Nla, NlaBuffer};
+use packet::common::nla::{parse_ipv6, parse_u32, parse_u8, DefaultNla, NativeNla, Nla, NlaBuffer};
+use packet::common::{Parseable, Result};
 
 use super::constants::*;
 
@@ -194,11 +193,13 @@ impl Nla for AfInet6 {
             Other(ref nla) => nla.kind(),
         }
     }
+}
 
-    fn parse<'a, T: AsRef<[u8]> + ?Sized>(buffer: &NlaBuffer<&'a T>) -> Result<Self> {
+impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<AfInet6> for NlaBuffer<&'buffer T> {
+    fn parse(&self) -> Result<AfInet6> {
         use self::AfInet6::*;
-        let payload = buffer.value();
-        Ok(match buffer.kind() {
+        let payload = self.value();
+        Ok(match self.kind() {
             IFLA_INET6_UNSPEC => Unspec(payload.to_vec()),
             IFLA_INET6_FLAGS => Flags(parse_u32(payload)?),
             IFLA_INET6_CACHEINFO => CacheInfo(Inet6CacheInfo::from_bytes(payload)?),
@@ -207,7 +208,7 @@ impl Nla for AfInet6 {
             IFLA_INET6_ICMP6STATS => IcmpStats(Icmp6Stats::from_bytes(payload)?),
             IFLA_INET6_TOKEN => Token(parse_ipv6(payload)?),
             IFLA_INET6_ADDR_GEN_MODE => AddrGenMode(parse_u8(payload)?),
-            _ => Other(DefaultNla::parse(buffer)?),
+            _ => Other(<Self as Parseable<DefaultNla>>::parse(self)?),
         })
     }
 }

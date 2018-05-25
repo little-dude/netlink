@@ -1,73 +1,8 @@
-use constants;
-
-// Generic message types
-
-/// The message is ignored.
-pub const NLMSG_NOOP: u16 = constants::NLMSG_NOOP as u16;
-/// The message signals an error and the payload contains a nlmsgerr structure. This can be looked
-/// at as a NACK and typically it is from FEC to CPC.
-pub const NLMSG_ERROR: u16 = constants::NLMSG_ERROR as u16;
-/// The message terminates a multipart message.
-pub const NLMSG_DONE: u16 = constants::NLMSG_DONE as u16;
-/// Data lost
-pub const NLMSG_OVERRUN: u16 = constants::NLMSG_OVERRUN as u16;
-
-pub const RTM_NEWLINK: u16 = constants::RTM_NEWLINK as u16;
-pub const RTM_DELLINK: u16 = constants::RTM_DELLINK as u16;
-pub const RTM_GETLINK: u16 = constants::RTM_GETLINK as u16;
-pub const RTM_SETLINK: u16 = constants::RTM_SETLINK as u16;
-pub const RTM_NEWADDR: u16 = constants::RTM_NEWADDR as u16;
-pub const RTM_DELADDR: u16 = constants::RTM_DELADDR as u16;
-pub const RTM_GETADDR: u16 = constants::RTM_GETADDR as u16;
-pub const RTM_NEWROUTE: u16 = constants::RTM_NEWROUTE as u16;
-pub const RTM_DELROUTE: u16 = constants::RTM_DELROUTE as u16;
-pub const RTM_GETROUTE: u16 = constants::RTM_GETROUTE as u16;
-pub const RTM_NEWNEIGH: u16 = constants::RTM_NEWNEIGH as u16;
-pub const RTM_DELNEIGH: u16 = constants::RTM_DELNEIGH as u16;
-pub const RTM_GETNEIGH: u16 = constants::RTM_GETNEIGH as u16;
-pub const RTM_NEWRULE: u16 = constants::RTM_NEWRULE as u16;
-pub const RTM_DELRULE: u16 = constants::RTM_DELRULE as u16;
-pub const RTM_GETRULE: u16 = constants::RTM_GETRULE as u16;
-pub const RTM_NEWQDISC: u16 = constants::RTM_NEWQDISC as u16;
-pub const RTM_DELQDISC: u16 = constants::RTM_DELQDISC as u16;
-pub const RTM_GETQDISC: u16 = constants::RTM_GETQDISC as u16;
-pub const RTM_NEWTCLASS: u16 = constants::RTM_NEWTCLASS as u16;
-pub const RTM_DELTCLASS: u16 = constants::RTM_DELTCLASS as u16;
-pub const RTM_GETTCLASS: u16 = constants::RTM_GETTCLASS as u16;
-pub const RTM_NEWTFILTER: u16 = constants::RTM_NEWTFILTER as u16;
-pub const RTM_DELTFILTER: u16 = constants::RTM_DELTFILTER as u16;
-pub const RTM_GETTFILTER: u16 = constants::RTM_GETTFILTER as u16;
-pub const RTM_NEWACTION: u16 = constants::RTM_NEWACTION as u16;
-pub const RTM_DELACTION: u16 = constants::RTM_DELACTION as u16;
-pub const RTM_GETACTION: u16 = constants::RTM_GETACTION as u16;
-pub const RTM_NEWPREFIX: u16 = constants::RTM_NEWPREFIX as u16;
-pub const RTM_GETMULTICAST: u16 = constants::RTM_GETMULTICAST as u16;
-pub const RTM_GETANYCAST: u16 = constants::RTM_GETANYCAST as u16;
-pub const RTM_NEWNEIGHTBL: u16 = constants::RTM_NEWNEIGHTBL as u16;
-pub const RTM_GETNEIGHTBL: u16 = constants::RTM_GETNEIGHTBL as u16;
-pub const RTM_SETNEIGHTBL: u16 = constants::RTM_SETNEIGHTBL as u16;
-pub const RTM_NEWNDUSEROPT: u16 = constants::RTM_NEWNDUSEROPT as u16;
-pub const RTM_NEWADDRLABEL: u16 = constants::RTM_NEWADDRLABEL as u16;
-pub const RTM_DELADDRLABEL: u16 = constants::RTM_DELADDRLABEL as u16;
-pub const RTM_GETADDRLABEL: u16 = constants::RTM_GETADDRLABEL as u16;
-pub const RTM_GETDCB: u16 = constants::RTM_GETDCB as u16;
-pub const RTM_SETDCB: u16 = constants::RTM_SETDCB as u16;
-pub const RTM_NEWNETCONF: u16 = constants::RTM_NEWNETCONF as u16;
-pub const RTM_DELNETCONF: u16 = constants::RTM_DELNETCONF as u16;
-pub const RTM_GETNETCONF: u16 = constants::RTM_GETNETCONF as u16;
-pub const RTM_NEWMDB: u16 = constants::RTM_NEWMDB as u16;
-pub const RTM_DELMDB: u16 = constants::RTM_DELMDB as u16;
-pub const RTM_GETMDB: u16 = constants::RTM_GETMDB as u16;
-pub const RTM_NEWNSID: u16 = constants::RTM_NEWNSID as u16;
-pub const RTM_DELNSID: u16 = constants::RTM_DELNSID as u16;
-pub const RTM_GETNSID: u16 = constants::RTM_GETNSID as u16;
-pub const RTM_NEWSTATS: u16 = constants::RTM_NEWSTATS as u16;
-pub const RTM_GETSTATS: u16 = constants::RTM_GETSTATS as u16;
-pub const RTM_NEWCACHEREPORT: u16 = constants::RTM_NEWCACHEREPORT as u16;
+use packet::constants::message_type::*;
 
 /// Represent the message type field in a netlink packet header
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-pub enum MessageType {
+pub enum NetlinkMessageType {
     /// The message type is `NLMSG_NOOP`: the message is ignored.
     Noop,
     /// The message type is `NLMSG_ERROR`. The message signals an error and the payload contains a
@@ -184,9 +119,9 @@ pub enum MessageType {
     Other(u16),
 }
 
-impl From<u16> for MessageType {
+impl From<u16> for NetlinkMessageType {
     fn from(value: u16) -> Self {
-        use self::MessageType::*;
+        use self::NetlinkMessageType::*;
         match value {
             NLMSG_NOOP => Noop,
             NLMSG_ERROR => Error,
@@ -249,9 +184,9 @@ impl From<u16> for MessageType {
     }
 }
 
-impl Into<u16> for MessageType {
+impl Into<u16> for NetlinkMessageType {
     fn into(self) -> u16 {
-        use self::MessageType::*;
+        use self::NetlinkMessageType::*;
         match self {
             Noop => NLMSG_NOOP,
             Error => NLMSG_ERROR,

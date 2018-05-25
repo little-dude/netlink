@@ -108,9 +108,9 @@ impl Socket {
         Ok(())
     }
 
-    pub fn set_nonblocking(&self, nonblocking: bool) -> Result<()> {
-        let mut nonblocking = nonblocking as libc::c_int;
-        let res = unsafe { libc::ioctl(self.0, libc::FIONBIO, &mut nonblocking) };
+    pub fn set_non_blocking(&self, non_blocking: bool) -> Result<()> {
+        let mut non_blocking = non_blocking as libc::c_int;
+        let res = unsafe { libc::ioctl(self.0, libc::FIONBIO, &mut non_blocking) };
         if res < 0 {
             return Err(Error::last_os_error());
         }
@@ -125,7 +125,7 @@ impl Socket {
         // TcpStream:
         //
         // > pub fn connect(stream: net::TcpStream, addr: &SocketAddr) -> io::Result<TcpStream> {
-        // >     set_nonblock(stream.as_raw_fd())?;
+        // >     set_non_block(stream.as_raw_fd())?;
         // >     match stream.connect(addr) {
         // >         Ok(..) => {}
         // >         Err(ref e) if e.raw_os_error() == Some(libc::EINPROGRESS) => {}
@@ -394,8 +394,8 @@ mod test {
     #[test]
     fn set_non_blocking() {
         let sock = Socket::new(Protocol::Route).unwrap();
-        sock.set_nonblocking(true).unwrap();
-        sock.set_nonblocking(false).unwrap();
+        sock.set_non_blocking(true).unwrap();
+        sock.set_non_blocking(false).unwrap();
     }
 
     // FIXME!

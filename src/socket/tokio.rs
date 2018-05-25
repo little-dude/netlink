@@ -5,6 +5,7 @@ use mio;
 use tokio_reactor::PollEvented;
 
 use super::sys;
+use super::Protocol;
 
 /// An I/O object representing a UDP socket.
 pub struct Socket(PollEvented<sys::Socket>);
@@ -16,7 +17,9 @@ impl Socket {
         self.0.get_mut().bind(addr)
     }
 
-    pub fn new(socket: sys::Socket) -> io::Result<Self> {
+    pub fn new(protocol: Protocol) -> io::Result<Self> {
+        let socket = sys::Socket::new(protocol)?;
+        socket.set_non_blocking(true)?;
         Ok(Socket(PollEvented::new(socket)))
     }
 

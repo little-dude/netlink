@@ -1,7 +1,6 @@
+use super::{dynamic_field, Emitable, Error, Field, Parseable, Result};
 use byteorder::{ByteOrder, NativeEndian};
 use constants;
-use packet::utils::field;
-use packet::{Error, Result};
 use std::mem::size_of;
 use std::ptr;
 
@@ -9,15 +8,15 @@ const TYPE_MASK: u16 = (constants::NLA_TYPE_MASK & 0xFFFF) as u16;
 const NESTED_MASK: u16 = (constants::NLA_F_NESTED & 0xFFFF) as u16;
 const NET_BYTEORDER_MASK: u16 = (constants::NLA_F_NET_BYTEORDER & 0xFFFF) as u16;
 
-const LENGTH: field::Field = 0..2;
-const TYPE: field::Field = 2..4;
+const LENGTH: Field = 0..2;
+const TYPE: Field = 2..4;
 
 #[allow(non_snake_case)]
-fn VALUE(length: usize) -> field::Field {
-    field::dynamic_field(TYPE.end, length)
+fn VALUE(length: usize) -> Field {
+    dynamic_field(TYPE.end, length)
 }
 
-// with Copy, NlaBuffer<&'a T> can be copied, which turns out to be pretty conveninent. And since it's
+// with Copy, NlaBuffer<&'buffer T> can be copied, which turns out to be pretty conveninent. And since it's
 // boils down to copying a reference it's pretty cheap
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct NlaBuffer<T: AsRef<[u8]>> {
@@ -111,14 +110,14 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> NlaBuffer<T> {
     }
 }
 
-impl<'a, T: AsRef<[u8]> + ?Sized> NlaBuffer<&'a T> {
+impl<'buffer, T: AsRef<[u8]> + ?Sized> NlaBuffer<&'buffer T> {
     /// Return the `value` field
     pub fn value(&self) -> &[u8] {
         &self.buffer.as_ref()[VALUE(self.value_length())]
     }
 }
 
-impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> NlaBuffer<&'a mut T> {
+impl<'buffer, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> NlaBuffer<&'buffer mut T> {
     /// Return the `value` field
     pub fn value_mut(&mut self) -> &mut [u8] {
         let length = VALUE(self.value_length());
@@ -142,72 +141,65 @@ impl Nla for DefaultNla {
     fn emit_value(&self, buffer: &mut [u8]) {
         buffer.copy_from_slice(self.value.as_slice());
     }
-    fn parse<'a, T: AsRef<[u8]> + ?Sized>(buffer: &NlaBuffer<&'a T>) -> Result<Self> {
+}
+
+impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<DefaultNla> for NlaBuffer<&'buffer T> {
+    fn parse(&self) -> Result<DefaultNla> {
         Ok(DefaultNla {
-            kind: buffer.kind(),
-            value: buffer.value().to_vec(),
+            kind: self.kind(),
+            value: self.value().to_vec(),
         })
     }
 }
 
-pub trait Nla: Sized {
+pub trait Nla {
     fn value_len(&self) -> usize;
-    fn kind(&self) -> u16;
-    fn emit_value(&self, buffer: &mut [u8]);
-    fn parse<'a, T: AsRef<[u8]> + ?Sized>(buffer: &NlaBuffer<&'a T>) -> Result<Self>;
 
+    fn kind(&self) -> u16;
+
+    fn emit_value(&self, buffer: &mut [u8]);
+}
+
+impl<T: Nla> Emitable for T {
     fn buffer_len(&self) -> usize {
         self.value_len() as usize + 4
     }
 
-    fn emit(&self, buffer: &mut [u8]) -> Result<()> {
+    fn emit(&self, buffer: &mut [u8]) {
         let mut buffer = NlaBuffer::new(buffer);
         buffer.set_kind(self.kind());
         buffer.set_length(self.buffer_len() as u16);
         self.emit_value(buffer.value_mut());
-        Ok(())
     }
 }
 
-/// # Panic
-///
-/// If an nla emits a malformed buffer this method will panic.
-pub fn emit_nlas<'a, T, U>(buffer: &mut [u8], nlas: T) -> Result<usize>
-where
-    T: Iterator<Item = &'a U>,
-    U: Nla + 'a,
-{
-    // FIXME: can this be optimized? The gymnastic with the start and end indices seems
-    // inefficient.
-    let mut start = 0;
-    let mut end: usize;
-    for nla in nlas {
-        let attr_len = nla.buffer_len();
-        if (buffer.len() - start) < attr_len {
-            return Err(Error::Exhausted);
+impl<'a, T: Nla> Emitable for &'a [T] {
+    fn buffer_len(&self) -> usize {
+        self.iter().fold(0, |acc, nla| acc + nla.buffer_len())
+    }
+
+    fn emit(&self, buffer: &mut [u8]) {
+        let mut start = 0;
+        let mut end: usize;
+        for nla in self.iter() {
+            let attr_len = nla.buffer_len();
+            end = start + attr_len;
+            nla.emit(&mut buffer[start..end]);
+            start = end;
         }
-        end = start + attr_len;
-        nla.emit(&mut buffer[start..end])?;
-        start = end;
     }
-    Ok(start)
 }
-
-// FIXME: should we make the buffer nla a generic T: AsRef<[u8]> instead?
-//
-// FIXME (?): currently, each buffer we return has an underlying buffer that is longer than
-// necessary. This is not really a problem, but it might be confusing for users calling
-// `into_inner` on these buffers, because they'll get a slice that is longer than expected.
 
 /// An iterator that iteratates over nlas without decoding them. This is useful when looking
 /// for specific nlas.
-pub struct NlasIterator<'a> {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct NlasIterator<T> {
     position: usize,
-    buffer: &'a [u8],
+    buffer: T,
 }
 
-impl<'a> NlasIterator<'a> {
-    pub fn new(buffer: &'a [u8]) -> Self {
+impl<T> NlasIterator<T> {
+    pub fn new(buffer: T) -> Self {
         NlasIterator {
             position: 0,
             buffer,
@@ -215,8 +207,8 @@ impl<'a> NlasIterator<'a> {
     }
 }
 
-impl<'a> Iterator for NlasIterator<'a> {
-    type Item = Result<NlaBuffer<&'a [u8]>>;
+impl<'buffer, T: AsRef<[u8]> + ?Sized + 'buffer> Iterator for NlasIterator<&'buffer T> {
+    type Item = Result<NlaBuffer<&'buffer [u8]>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         // Nlas are aligned on 4 bytes boundaries, so we make sure we ignore any potential
@@ -226,19 +218,19 @@ impl<'a> Iterator for NlasIterator<'a> {
             self.position += 4 - offset;
         }
 
-        if self.position >= self.buffer.len() {
+        if self.position >= self.buffer.as_ref().len() {
             return None;
         }
 
-        match NlaBuffer::new_checked(&self.buffer[self.position..]) {
-            Ok(buffer) => {
-                self.position += buffer.length() as usize;
-                Some(Ok(buffer))
+        match NlaBuffer::new_checked(&self.buffer.as_ref()[self.position..]) {
+            Ok(nla_buffer) => {
+                self.position += nla_buffer.length() as usize;
+                Some(Ok(nla_buffer))
             }
             Err(e) => {
                 // Make sure next time we call `next()`, we return None. We don't try to continue
                 // iterating after we failed to return a buffer.
-                self.position = self.buffer.len();
+                self.position = self.buffer.as_ref().len();
                 Some(Err(e))
             }
         }
@@ -288,7 +280,7 @@ pub fn parse_i32(payload: &[u8]) -> Result<i32> {
 
 pub trait NativeNla
 where
-    Self: Sized + Copy,
+    Self: Copy,
 {
     fn from_bytes(buf: &[u8]) -> Result<Self> {
         if buf.len() != size_of::<Self>() {

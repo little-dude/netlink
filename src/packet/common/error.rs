@@ -1,8 +1,9 @@
 use core::{self, fmt};
 use std::error::Error as StdError;
+use std::io;
 
 /// The error type for the netlink packet parser
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum Error {
     /// An operation cannot proceed because a buffer is empty or full.
     Exhausted,
@@ -17,6 +18,8 @@ pub enum Error {
     Malformed,
     /// Parsing of a netlink nla value failed.
     MalformedNlaValue,
+    /// Failed to read or write a packet due to an IO error
+    Io(io::Error),
     #[doc(hidden)]
     __Nonexhaustive,
 }
@@ -37,11 +40,18 @@ impl StdError for Error {
             Error::Unrecognized => "unrecognized packet",
             Error::Malformed => "malformed packet",
             Error::MalformedNlaValue => "failed to parse a netlink nla value",
+            Error::Io(_) => "failed to read or write a packet due to an IO error",
             Error::__Nonexhaustive => unreachable!(),
         }
     }
 
     fn cause(&self) -> Option<&StdError> {
         None
+    }
+}
+
+impl From<io::Error> for Error {
+    fn from(io_err: io::Error) -> Error {
+        Error::Io(io_err)
     }
 }

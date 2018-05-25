@@ -28,8 +28,8 @@ pub use self::constants::*;
 pub use self::inet::*;
 pub use self::inet6::*;
 
-use packet::Result;
-use packet::{emit_nlas, DefaultNla, Nla, NlaBuffer, NlasIterator};
+use packet::common::nla::{DefaultNla, Nla, NlaBuffer, NlasIterator};
+use packet::common::{Emitable, Parseable, Result};
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub enum AfSpec {
@@ -49,7 +49,7 @@ pub enum AfSpec {
 
 impl Nla for AfSpec {
     #[allow(unused_attributes)]
-    #[rustfmt_skip]
+    #[rustfmt::skip]
     fn value_len(&self) -> usize {
         use self::AfSpec::*;
         match *self {
@@ -69,7 +69,7 @@ impl Nla for AfSpec {
     }
 
     #[allow(unused_attributes)]
-    #[rustfmt_skip]
+    #[rustfmt::skip]
     fn emit_value(&self, buffer: &mut [u8]) {
         use self::AfSpec::*;
         match *self {
@@ -82,19 +82,8 @@ impl Nla for AfSpec {
                 | Bridge(ref bytes)
                 | AtmPvc(ref bytes)
                 | X25(ref bytes) => buffer.copy_from_slice(bytes.as_slice()),
-            AfSpec::Inet6(ref attrs) => {
-                // This may panic if:
-                //     - nlas are malformed (mitigated by rust's type system guarantees)
-                //     - the buffer is not big enough. But normally, before emit_value is called,
-                //       the length is checked, so this should not be a problem.
-                let _ = emit_nlas(buffer, attrs.iter())
-                    .expect("failed to emit nlas");
-            }
-            AfSpec::Inet(ref attrs) => {
-                // See above for possible failures
-                let _ = emit_nlas(buffer, attrs.iter())
-                    .expect("failed to emit nlas");
-            }
+            AfSpec::Inet6(ref attrs) => attrs.as_slice().emit(buffer),
+            AfSpec::Inet(ref attrs) => attrs.as_slice().emit(buffer),
             AfSpec::Other(ref nla)  => nla.emit_value(buffer),
         }
     }
@@ -116,23 +105,26 @@ impl Nla for AfSpec {
             Other(ref nla) => nla.kind(),
         }
     }
+}
 
-    fn parse<'a, T: AsRef<[u8]> + ?Sized>(buffer: &NlaBuffer<&'a T>) -> Result<Self> {
+impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<AfSpec> for NlaBuffer<&'buffer T> {
+    fn parse(&self) -> Result<AfSpec> {
         use self::AfSpec::*;
-        let payload = buffer.value();
-        Ok(match buffer.kind() {
+        let payload = self.value();
+        Ok(match self.kind() {
             AF_UNSPEC => Unspec(payload.to_vec()),
             AF_INET => {
                 let mut nlas = vec![];
                 for nla in NlasIterator::new(payload) {
-                    nlas.push(AfInet::parse(&nla?)?)
+                    nlas.push(<Parseable<AfInet>>::parse(&(nla?))?);
                 }
                 Inet(nlas)
             }
             AF_INET6 => {
                 let mut nlas = vec![];
                 for nla in NlasIterator::new(payload) {
-                    nlas.push(AfInet6::parse(&nla?)?)
+                    // nlas.push(AfInet6::parse(&nla?)?)
+                    nlas.push(<Parseable<AfInet6>>::parse(&(nla?))?);
                 }
                 Inet6(nlas)
             }
@@ -144,7 +136,7 @@ impl Nla for AfSpec {
             AF_BRIDGE => Bridge(payload.to_vec()),
             AF_ATMPVC => AtmPvc(payload.to_vec()),
             AF_X25 => X25(payload.to_vec()),
-            _ => AfSpec::Other(DefaultNla::parse(buffer)?),
+            _ => AfSpec::Other(<Self as Parseable<DefaultNla>>::parse(self)?),
         })
     }
 }

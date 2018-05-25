@@ -1,4 +1,4 @@
-use packet::utils::nla::NativeNla;
+use packet::common::nla::NativeNla;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
