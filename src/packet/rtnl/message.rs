@@ -135,26 +135,6 @@ impl NetlinkMessage {
         };
         self.finalized = true;
     }
-
-    // fn into_raw(self) -> (NetlinkHeader, RtnlMessage) {
-    //     (NetlinkHeader, RtnlLinkMessage)
-    // }
-
-    // pub fn len(&self) -> usize {
-    //     self.buffer_len()
-    // }
-
-    // pub fn to_bytes(&self, buffer: &mut [u8]) -> Result<usize> {
-    //     if self.buffer_len() > buffer.len() {
-    //         return Err(Error::Exhausted);
-    //     }
-    //     self.emit(buffer);
-    //     Ok(self.buffer_len())
-    // }
-
-    // pub fn from_bytes(buffer: &[u8]) -> Result<Self> {
-    //     NetlinkBuffer::new_checked(&buffer)?.parse()
-    // }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
