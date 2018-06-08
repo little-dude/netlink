@@ -12,6 +12,3 @@ mod header;
 pub use self::header::*;
 
 pub mod rtnl;
-
-pub mod tokio;
-pub use self::tokio::*;
