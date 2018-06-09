@@ -1,9 +1,9 @@
-pub mod address;
-pub mod link;
-pub mod route;
+mod address;
+mod link;
+mod route;
 
 pub use self::address::*;
 pub use self::link::*;
 
-pub mod message;
+mod message;
 pub use self::message::*;

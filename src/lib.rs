@@ -9,8 +9,11 @@ extern crate bytes;
 extern crate core;
 extern crate libc;
 
-pub mod constants;
+// We do not re-export all the constants. They are used internally and re-exported in submodules.
+mod constants;
+/// Types representing netlink packets, and providing message serialization and deserialization.
 pub mod packet;
+/// Netlink socket.
 pub mod socket;
 
 // Mio
