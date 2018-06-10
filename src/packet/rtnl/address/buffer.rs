@@ -9,8 +9,6 @@ const SCOPE: Index = 3;
 const INDEX: Field = 4..8;
 const ATTRIBUTES: Rest = 8..;
 
-pub const HEADER_LEN: usize = ATTRIBUTES.start;
-
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct RtnlAddressBuffer<T> {
     buffer: T,

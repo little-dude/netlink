@@ -19,8 +19,8 @@ pub const HEADER_LEN: usize = PAYLOAD.start;
 /// # Example: reading a packet
 ///
 /// ```rust
-/// use netlink::packet::NetlinkBuffer;
-/// use netlink::packet::{RTM_GETLINK, NLM_F_ROOT, NLM_F_REQUEST, NLM_F_MATCH};
+/// use netlink::NetlinkBuffer;
+/// use netlink::constants::{RTM_GETLINK, NLM_F_ROOT, NLM_F_REQUEST, NLM_F_MATCH};
 ///
 /// fn main() {
 ///     // Artificially create an array of bytes that represents a netlink packet.
@@ -55,9 +55,8 @@ pub const HEADER_LEN: usize = PAYLOAD.start;
 /// # Example: writing a packet
 ///
 /// ```rust
-/// use netlink::packet::NetlinkBuffer;
-/// use netlink::packet::constants::message_type::RTM_GETLINK;
-/// use netlink::packet::constants::flags::{NLM_F_ROOT, NLM_F_REQUEST, NLM_F_MATCH};
+/// use netlink::NetlinkBuffer;
+/// use netlink::constants::{RTM_GETLINK, NLM_F_ROOT, NLM_F_REQUEST, NLM_F_MATCH};
 ///
 /// fn main() {
 ///     // The packet we want to write.
@@ -119,7 +118,7 @@ impl<T: AsRef<[u8]>> NetlinkBuffer<T> {
     /// With a buffer that does not even contain a full header:
     ///
     /// ```rust
-    /// # use netlink::packet::NetlinkBuffer;
+    /// # use netlink::NetlinkBuffer;
     /// # fn main() {
     /// static BYTES: [u8; 4] = [0x28, 0x00, 0x00, 0x00];
     /// assert!(NetlinkBuffer::new_checked(&BYTES[..]).is_err());
@@ -132,7 +131,7 @@ impl<T: AsRef<[u8]>> NetlinkBuffer<T> {
     /// header:
     ///
     /// ```rust
-    /// # use netlink::packet::NetlinkBuffer;
+    /// # use netlink::NetlinkBuffer;
     /// # fn main() {
     /// // The buffer is 24 bytes long. It contains a valid header but a truncated payload
     /// static BYTES: [u8; 24] = [
@@ -316,9 +315,8 @@ impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> NetlinkBuffer<&'a mut T> {
 
 #[cfg(test)]
 mod tests {
+    use constants::*;
     use super::*;
-    use packet::constants::flags::*;
-    use packet::constants::message_type::*;
 
     // a packet captured with tcpdump that was sent when running `ip link show`
     #[allow(unused_attributes)]
