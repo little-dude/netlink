@@ -7,7 +7,6 @@ use constants::*;
 use utils::{parse_ipv6, parse_u32, parse_u8};
 use {DefaultNla, NativeNla, Nla, NlaBuffer, Parseable, Result};
 
-
 #[repr(C)]
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct Inet6Stats {

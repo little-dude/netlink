@@ -26,8 +26,8 @@ mod tests;
 pub use self::inet::*;
 pub use self::inet6::*;
 
-use {DefaultNla, Nla, NlaBuffer, NlasIterator,Emitable, Parseable, Result};
 use constants::*;
+use {DefaultNla, Emitable, Nla, NlaBuffer, NlasIterator, Parseable, Result};
 
 // FIXME: There are many of those that I don't know how to parse. Help welcome.
 #[derive(Clone, Eq, PartialEq, Debug)]

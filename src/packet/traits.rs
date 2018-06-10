@@ -25,4 +25,3 @@ pub trait Parseable<T> {
     /// Deserialize the current type.
     fn parse(&self) -> Result<T>;
 }
-

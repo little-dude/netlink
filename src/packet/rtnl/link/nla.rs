@@ -5,7 +5,7 @@ use byteorder::{ByteOrder, NativeEndian};
 use constants::*;
 use rtnl::link::af_spec;
 use utils::{parse_i32, parse_string, parse_u32, parse_u8};
-use {DefaultNla, NativeNla, Nla, NlaBuffer, Emitable, Parseable, Result};
+use {DefaultNla, Emitable, NativeNla, Nla, NlaBuffer, Parseable, Result};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum LinkNla {
@@ -364,7 +364,6 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkNla> for NlaBuffer<&'buffer
     }
 }
 
-
 mod structs {
     use super::*;
     #[repr(C)]
@@ -438,4 +437,4 @@ mod structs {
     pub type Stats64 = Stats<u64>;
 }
 
-pub use self::structs::{Stats32, Stats64, Map};
+pub use self::structs::{Map, Stats32, Stats64};

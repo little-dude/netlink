@@ -98,8 +98,8 @@ impl Nla for AddressNla {
 
 impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<AddressNla> for NlaBuffer<&'buffer T> {
     fn parse(&self) -> Result<AddressNla> {
-        use self::CacheInfo as CacheInfo_;
         use self::AddressNla::*;
+        use self::CacheInfo as CacheInfo_;
         let payload = self.value();
         Ok(match self.kind() {
             IFA_UNSPEC => Unspec(payload.to_vec()),

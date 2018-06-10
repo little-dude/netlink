@@ -1,8 +1,7 @@
 use std::mem::size_of;
 
 use constants::*;
-use {Parseable, Result, DefaultNla, NativeNla, Nla, NlaBuffer};
-
+use {DefaultNla, NativeNla, Nla, NlaBuffer, Parseable, Result};
 
 #[repr(C)]
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]

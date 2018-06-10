@@ -1,6 +1,6 @@
 use byteorder::{ByteOrder, NativeEndian};
 
-use {NlaBuffer, NlasIterator, Field, Index, Rest, Result};
+use {Field, Index, NlaBuffer, NlasIterator, Rest, Result};
 
 const FAMILY: Index = 0;
 const PREFIX_LEN: Index = 1;

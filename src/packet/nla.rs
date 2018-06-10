@@ -1,9 +1,9 @@
+use byteorder::{ByteOrder, NativeEndian};
 use std::mem::size_of;
 use std::ptr;
-use byteorder::{ByteOrder, NativeEndian};
 
-use packet::{Emitable, Error, Field, Parseable, Result};
 use constants::{NLA_F_NESTED, NLA_F_NET_BYTEORDER, NLA_TYPE_MASK};
+use packet::{Emitable, Error, Field, Parseable, Result};
 
 const LENGTH: Field = 0..2;
 const TYPE: Field = 2..4;

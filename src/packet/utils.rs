@@ -1,5 +1,5 @@
 use byteorder::{ByteOrder, NativeEndian};
-use {Result, Error};
+use {Error, Result};
 
 pub fn parse_ipv6(payload: &[u8]) -> Result<[u8; 16]> {
     if payload.len() != 16 {

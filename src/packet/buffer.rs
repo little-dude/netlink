@@ -1,6 +1,6 @@
 use byteorder::{ByteOrder, NativeEndian};
 
-use {Error, Field, Rest, Result, NetlinkFlags};
+use {Error, Field, NetlinkFlags, Rest, Result};
 
 const LENGTH: Field = 0..4;
 const MESSAGE_TYPE: Field = 4..6;
@@ -315,8 +315,8 @@ impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> NetlinkBuffer<&'a mut T> {
 
 #[cfg(test)]
 mod tests {
-    use constants::*;
     use super::*;
+    use constants::*;
 
     // a packet captured with tcpdump that was sent when running `ip link show`
     #[allow(unused_attributes)]

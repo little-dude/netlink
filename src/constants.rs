@@ -133,11 +133,10 @@ mod rtnl_message_types {
 }
 pub use self::rtnl_message_types::*;
 
-
 /// Constants used for the "flags" field of the netlink header.
 mod nl_flags {
-    use libc;
     use bindgen_constants as constants;
+    use libc;
     // Standard flag bits
     // =====================================
 
@@ -199,8 +198,8 @@ pub use self::nl_flags::*;
 
 /// Constants used in the `IFLA_AF_SPEC` attributes for the `NETLINK_ROUTE` protocol family.
 mod rtnl_afspec {
-    use libc;
     use bindgen_constants as constants;
+    use libc;
 
     pub const AF_UNSPEC: u16 = libc::AF_UNSPEC as u16;
     pub const AF_UNIX: u16 = libc::AF_UNIX as u16;

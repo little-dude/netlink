@@ -1,5 +1,5 @@
 use byteorder::{ByteOrder, NativeEndian};
-use {NlaBuffer, NlasIterator, Field, Index, Rest, Result};
+use {Field, Index, NlaBuffer, NlasIterator, Rest, Result};
 
 use super::{LinkFlags, LinkLayerType};
 

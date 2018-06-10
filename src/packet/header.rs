@@ -1,5 +1,5 @@
-use {Emitable, Parseable, Result};
 use super::{NetlinkBuffer, NetlinkFlags, HEADER_LEN};
+use {Emitable, Parseable, Result};
 
 /// A Netlink header representation. For more details about the meaning of the fields, see `man 7 netlink`
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Default)]

@@ -1,7 +1,7 @@
 use super::*;
 use constants::*;
 
-use { Emitable, Error, Parseable, Result , NetlinkBuffer, NetlinkFlags, NetlinkHeader};
+use {Emitable, Error, NetlinkBuffer, NetlinkFlags, NetlinkHeader, Parseable, Result};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct NetlinkMessage {
