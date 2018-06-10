@@ -28,6 +28,14 @@ version = "0.1.1"
 lazy_static = "1.0.1"
 
 [features]
-default = []
+default = ["rtnl_support", "mio_support", "tokio_support"]
+rtnl_support = []
 mio_support = ["mio"]
 tokio_support = ["mio_support", "tokio-io", "tokio-reactor", "futures"]
+
+[[example]]
+name = "dump_links"
+
+# [[example]]
+# name = "dump_links_tokio"
+# required-features = ["tokio_support"]

@@ -3,11 +3,11 @@ use tokio_io::codec::{Decoder, Encoder};
 
 use bytes::{BufMut, BytesMut};
 use futures::{Async, AsyncSink, Poll, Sink, StartSend, Stream};
-use socket::tokio::Socket;
 use socket::SocketAddr;
+use socket::TokioSocket;
 
 pub struct NetlinkFramed<C> {
-    socket: Socket,
+    socket: TokioSocket,
     codec: C,
     reader: BytesMut,
     writer: BytesMut,
@@ -98,7 +98,7 @@ impl<C> NetlinkFramed<C> {
     /// Create a new `NetlinkFramed` backed by the given socket and codec.
     ///
     /// See struct level documentation for more details.
-    pub fn new(socket: Socket, codec: C) -> NetlinkFramed<C> {
+    pub fn new(socket: TokioSocket, codec: C) -> NetlinkFramed<C> {
         NetlinkFramed {
             socket,
             codec,
@@ -116,7 +116,7 @@ impl<C> NetlinkFramed<C> {
     /// Care should be taken to not tamper with the underlying stream of data
     /// coming in as it may corrupt the stream of frames otherwise being worked
     /// with.
-    pub fn get_ref(&self) -> &Socket {
+    pub fn get_ref(&self) -> &TokioSocket {
         &self.socket
     }
 
@@ -128,12 +128,12 @@ impl<C> NetlinkFramed<C> {
     /// Care should be taken to not tamper with the underlying stream of data
     /// coming in as it may corrupt the stream of frames otherwise being worked
     /// with.
-    pub fn get_mut(&mut self) -> &mut Socket {
+    pub fn get_mut(&mut self) -> &mut TokioSocket {
         &mut self.socket
     }
 
     /// Consumes the `Framed`, returning its underlying I/O stream.
-    pub fn into_inner(self) -> Socket {
+    pub fn into_inner(self) -> TokioSocket {
         self.socket
     }
 }

@@ -23,5 +23,6 @@ pub use self::flags::*;
 mod header;
 pub use self::header::*;
 
+#[cfg(feature = "rtnl_support")]
 /// rtnetlink types (see `man 7 rtnetlink`)
 pub mod rtnl;

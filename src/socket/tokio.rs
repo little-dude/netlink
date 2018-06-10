@@ -8,9 +8,9 @@ use super::sys;
 use super::Protocol;
 
 /// An I/O object representing a UDP socket.
-pub struct Socket(PollEvented<sys::Socket>);
+pub struct TokioSocket(PollEvented<sys::Socket>);
 
-impl Socket {
+impl TokioSocket {
     /// This function will create a new UDP socket and attempt to bind it to
     /// the `addr` provided.
     pub fn bind(&mut self, addr: &sys::SocketAddr) -> io::Result<()> {
@@ -20,7 +20,7 @@ impl Socket {
     pub fn new(protocol: Protocol) -> io::Result<Self> {
         let socket = sys::Socket::new(protocol)?;
         socket.set_non_blocking(true)?;
-        Ok(Socket(PollEvented::new(socket)))
+        Ok(TokioSocket(PollEvented::new(socket)))
     }
 
     pub fn connect(&self, addr: &sys::SocketAddr) -> io::Result<()> {

@@ -1,13 +1,14 @@
 use super::constants;
 
 mod protocols;
-pub use self::protocols::Protocol;
+pub use self::protocols::*;
 
-pub mod sys;
-pub use self::sys::SocketAddr;
+mod sys;
+pub use self::sys::*;
 
 #[cfg(feature = "mio_support")]
-pub mod mio;
+mod mio;
 
 #[cfg(feature = "tokio_support")]
-pub mod tokio;
+mod tokio;
+pub use self::tokio::*;
