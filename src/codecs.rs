@@ -14,7 +14,7 @@ impl Decoder for NetlinkBuffer<Vec<u8>> {
             Err(e) => panic!("Unknown error while reading packet: {}", e),
         };
         let bytes = src.split_to(len);
-        return Ok(Some(NetlinkBuffer::new(bytes.to_vec())));
+        Ok(Some(NetlinkBuffer::new(bytes.to_vec())))
     }
 }
 
