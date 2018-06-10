@@ -1,6 +1,5 @@
-use packet::common::{Emitable, Parseable, Result};
-
-use super::{AddressNla, RtnlAddressBuffer, HEADER_LEN};
+use {Emitable, Parseable, Result, HEADER_LEN};
+use rtnl::{AddressNla, RtnlAddressBuffer};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct RtnlAddressMessage {

@@ -1,7 +1,6 @@
 use byteorder::{ByteOrder, NativeEndian};
 
-use packet::common::nla::{NlaBuffer, NlasIterator};
-use packet::common::{Field, Index, Rest, Result};
+use {NlaBuffer, NlasIterator, Field, Index, Rest, Result};
 
 const FAMILY: Index = 0;
 const PREFIX_LEN: Index = 1;

@@ -1,4 +1,4 @@
-use packet::common::{Emitable, Parseable, Result};
+use {Emitable, Parseable, Result};
 
 use super::{LinkFlags, LinkLayerType, LinkNla, RtnlLinkBuffer, HEADER_LEN};
 

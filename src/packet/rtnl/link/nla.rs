@@ -1,65 +1,11 @@
-use byteorder::{ByteOrder, NativeEndian};
-use constants;
-use packet::common::nla::{
-    parse_i32, parse_string, parse_u32, parse_u8, DefaultNla, NativeNla, Nla, NlaBuffer,
-};
-use packet::common::{Emitable, Parseable, Result};
-use packet::rtnl::link::{af_spec, map, stats};
 use std::mem::size_of;
 
-pub const IFLA_UNSPEC: u16 = constants::IFLA_UNSPEC as u16;
-pub const IFLA_ADDRESS: u16 = constants::IFLA_ADDRESS as u16;
-pub const IFLA_BROADCAST: u16 = constants::IFLA_BROADCAST as u16;
-pub const IFLA_IFNAME: u16 = constants::IFLA_IFNAME as u16;
-pub const IFLA_MTU: u16 = constants::IFLA_MTU as u16;
-pub const IFLA_LINK: u16 = constants::IFLA_LINK as u16;
-pub const IFLA_QDISC: u16 = constants::IFLA_QDISC as u16;
-pub const IFLA_STATS: u16 = constants::IFLA_STATS as u16;
-pub const IFLA_COST: u16 = constants::IFLA_COST as u16;
-pub const IFLA_PRIORITY: u16 = constants::IFLA_PRIORITY as u16;
-pub const IFLA_MASTER: u16 = constants::IFLA_MASTER as u16;
-// TODO: implement custom parsing for this struct
-pub const IFLA_WIRELESS: u16 = constants::IFLA_WIRELESS as u16;
-// TODO: implement custom parsing for this struct
-pub const IFLA_PROTINFO: u16 = constants::IFLA_PROTINFO as u16;
-pub const IFLA_TXQLEN: u16 = constants::IFLA_TXQLEN as u16;
-pub const IFLA_MAP: u16 = constants::IFLA_MAP as u16;
-pub const IFLA_WEIGHT: u16 = constants::IFLA_WEIGHT as u16;
-pub const IFLA_OPERSTATE: u16 = constants::IFLA_OPERSTATE as u16;
-pub const IFLA_LINKMODE: u16 = constants::IFLA_LINKMODE as u16;
-// TODO: implement custom parsing for this struct
-pub const IFLA_LINKINFO: u16 = constants::IFLA_LINKINFO as u16;
-pub const IFLA_NET_NS_PID: u16 = constants::IFLA_NET_NS_PID as u16;
-pub const IFLA_IFALIAS: u16 = constants::IFLA_IFALIAS as u16;
-pub const IFLA_NUM_VF: u16 = constants::IFLA_NUM_VF as u16;
-pub const IFLA_VFINFO_LIST: u16 = constants::IFLA_VFINFO_LIST as u16;
-pub const IFLA_STATS64: u16 = constants::IFLA_STATS64 as u16;
-pub const IFLA_VF_PORTS: u16 = constants::IFLA_VF_PORTS as u16;
-pub const IFLA_PORT_SELF: u16 = constants::IFLA_PORT_SELF as u16;
-pub const IFLA_AF_SPEC: u16 = constants::IFLA_AF_SPEC as u16;
-pub const IFLA_GROUP: u16 = constants::IFLA_GROUP as u16;
-pub const IFLA_NET_NS_FD: u16 = constants::IFLA_NET_NS_FD as u16;
-pub const IFLA_EXT_MASK: u16 = constants::IFLA_EXT_MASK as u16;
-pub const IFLA_PROMISCUITY: u16 = constants::IFLA_PROMISCUITY as u16;
-pub const IFLA_NUM_TX_QUEUES: u16 = constants::IFLA_NUM_TX_QUEUES as u16;
-pub const IFLA_NUM_RX_QUEUES: u16 = constants::IFLA_NUM_RX_QUEUES as u16;
-pub const IFLA_CARRIER: u16 = constants::IFLA_CARRIER as u16;
-pub const IFLA_PHYS_PORT_ID: u16 = constants::IFLA_PHYS_PORT_ID as u16;
-pub const IFLA_CARRIER_CHANGES: u16 = constants::IFLA_CARRIER_CHANGES as u16;
-pub const IFLA_PHYS_SWITCH_ID: u16 = constants::IFLA_PHYS_SWITCH_ID as u16;
-pub const IFLA_LINK_NETNSID: u16 = constants::IFLA_LINK_NETNSID as u16;
-pub const IFLA_PHYS_PORT_NAME: u16 = constants::IFLA_PHYS_PORT_NAME as u16;
-pub const IFLA_PROTO_DOWN: u16 = constants::IFLA_PROTO_DOWN as u16;
-pub const IFLA_GSO_MAX_SEGS: u16 = constants::IFLA_GSO_MAX_SEGS as u16;
-pub const IFLA_GSO_MAX_SIZE: u16 = constants::IFLA_GSO_MAX_SIZE as u16;
-pub const IFLA_PAD: u16 = constants::IFLA_PAD as u16;
-pub const IFLA_XDP: u16 = constants::IFLA_XDP as u16;
-pub const IFLA_EVENT: u16 = constants::IFLA_EVENT as u16;
-pub const IFLA_NEW_NETNSID: u16 = constants::IFLA_NEW_NETNSID as u16;
-pub const IFLA_IF_NETNSID: u16 = constants::IFLA_IF_NETNSID as u16;
-pub const IFLA_CARRIER_UP_COUNT: u16 = constants::IFLA_CARRIER_UP_COUNT as u16;
-pub const IFLA_CARRIER_DOWN_COUNT: u16 = constants::IFLA_CARRIER_DOWN_COUNT as u16;
-pub const IFLA_NEW_IFINDEX: u16 = constants::IFLA_NEW_IFINDEX as u16;
+use byteorder::{ByteOrder, NativeEndian};
+
+use constants::*;
+use rtnl::link::af_spec;
+use utils::{parse_i32, parse_string, parse_u32, parse_u8};
+use {DefaultNla, NativeNla, Nla, NlaBuffer, Emitable, Parseable, Result};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum LinkNla {
@@ -121,9 +67,9 @@ pub enum LinkNla {
     // i32
     LinkNetnsId(i32),
     // custom
-    Stats(stats::Stats32),
-    Stats64(stats::Stats64),
-    Map(map::Map),
+    Stats(structs::Stats32),
+    Stats64(structs::Stats64),
+    Map(structs::Map),
     // AF_SPEC
     AfSpec(af_spec::AfSpec),
     Other(DefaultNla),
@@ -192,9 +138,9 @@ impl Nla for LinkNla {
                 | LinkNetnsId(_) => size_of::<u32>(),
 
             // Defaults
-            Map(_) => size_of::<map::Map>(),
-            Stats(_) => size_of::<stats::Stats32>(),
-            Stats64(_) => size_of::<stats::Stats64>(),
+            Map(_) => size_of::<structs::Map>(),
+            Stats(_) => size_of::<structs::Stats32>(),
+            Stats64(_) => size_of::<structs::Stats64>(),
             AfSpec(ref af_spec) => af_spec.value_len(),
             Other(ref attr)  => attr.value_len(),
         }
@@ -408,11 +354,88 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkNla> for NlaBuffer<&'buffer
             // i32
             IFLA_LINK_NETNSID => LinkNetnsId(parse_i32(payload)?),
 
-            IFLA_MAP => Map(map::Map::from_bytes(payload)?),
-            IFLA_STATS => Stats(stats::Stats32::from_bytes(payload)?),
+            IFLA_MAP => Map(structs::Map::from_bytes(payload)?),
+            IFLA_STATS => Stats(structs::Stats32::from_bytes(payload)?),
+            IFLA_STATS64 => Stats64(structs::Stats64::from_bytes(payload)?),
             IFLA_AF_SPEC => AfSpec(<Self as Parseable<af_spec::AfSpec>>::parse(self)?),
             // default nlas
             _ => Other(<Self as Parseable<DefaultNla>>::parse(self)?),
         })
     }
 }
+
+
+mod structs {
+    use super::*;
+    #[repr(C)]
+    #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+    pub struct Map {
+        pub memory_start: u64,
+        pub memory_end: u64,
+        pub base_address: u64,
+        pub irq: u16,
+        pub dma: u8,
+        pub port: u8,
+    }
+
+    impl NativeNla for Map {}
+
+    #[repr(C)]
+    #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+    pub struct Stats<T> {
+        /// total packets received
+        pub rx_packets: T,
+        /// total packets transmitted
+        pub tx_packets: T,
+        /// total bytes received
+        pub rx_bytes: T,
+        /// total bytes transmitted
+        pub tx_bytes: T,
+        /// bad packets received
+        pub rx_errors: T,
+        /// packet transmit problems
+        pub tx_errors: T,
+        /// no space in linux buffers
+        pub rx_dropped: T,
+        /// no space available in linux
+        pub tx_dropped: T,
+        /// multicast packets received
+        pub multicast: T,
+        pub collisions: T,
+
+        // detailed rx_errors
+        pub rx_length_errors: T,
+        /// receiver ring buff overflow
+        pub rx_over_errors: T,
+        /// received packets with crc error
+        pub rx_crc_errors: T,
+        /// received frame alignment errors
+        pub rx_frame_errors: T,
+        /// recv'r fifo overrun
+        pub rx_fifo_errors: T,
+        /// receiver missed packet
+        pub rx_missed_errors: T,
+
+        // detailed tx_errors
+        pub tx_aborted_errors: T,
+        pub tx_carrier_errors: T,
+        pub tx_fifo_errors: T,
+        pub tx_heartbeat_errors: T,
+        pub tx_window_errors: T,
+
+        // for cslip etc
+        pub rx_compressed: T,
+        pub tx_compressed: T,
+
+        /// dropped, no handler found
+        pub rx_nohandler: T,
+    }
+
+    impl NativeNla for Stats<u32> {}
+    impl NativeNla for Stats<u64> {}
+
+    pub type Stats32 = Stats<u32>;
+    pub type Stats64 = Stats<u64>;
+}
+
+pub use self::structs::{Stats32, Stats64, Map};

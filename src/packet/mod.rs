@@ -8,14 +8,17 @@
 //! [`packet::rtnl`]: rtnl/index.html
 //! [libnl]: https://www.infradead.org/~tgr/libnl/doc/core.html#core_netlink_fundamentals
 
-/// A collections of constants used in this package
-pub mod constants;
+use core::ops::{Range, RangeFrom};
+
+/// Represent a multi-bytes field with a fixed size in a packet
+pub(crate) type Field = Range<usize>;
+/// Represent a field that starts at a given index in a packet
+pub(crate) type Rest = RangeFrom<usize>;
+/// Represent a field of exactly one byte in a packet
+pub(crate) type Index = usize;
 
 mod buffer;
 pub use self::buffer::*;
-
-pub(crate) mod common;
-pub use self::common::{Error, Result};
 
 mod flags;
 pub use self::flags::*;
@@ -26,3 +29,15 @@ pub use self::header::*;
 #[cfg(feature = "rtnl_support")]
 /// rtnetlink types (see `man 7 rtnetlink`)
 pub mod rtnl;
+
+// FIXME: should we expose these traits or only keep them for internal use?
+mod traits;
+pub use self::traits::*;
+
+mod error;
+pub use self::error::*;
+
+mod nla;
+pub use self::nla::*;
+
+pub(crate) mod utils;

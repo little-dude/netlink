@@ -2,10 +2,11 @@ use std::mem::size_of;
 
 use byteorder::{ByteOrder, NativeEndian};
 
-use packet::common::nla::{parse_ipv6, parse_u32, parse_u8, DefaultNla, NativeNla, Nla, NlaBuffer};
-use packet::common::{Parseable, Result};
+use constants::*;
 
-use super::constants::*;
+use utils::{parse_ipv6, parse_u32, parse_u8};
+use {DefaultNla, NativeNla, Nla, NlaBuffer, Parseable, Result};
+
 
 #[repr(C)]
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]

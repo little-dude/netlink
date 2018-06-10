@@ -10,12 +10,16 @@ extern crate bytes;
 extern crate core;
 extern crate libc;
 
+pub mod constants;
+
 // We do not re-export all the constants. They are used internally and re-exported in submodules.
-mod constants;
+mod bindgen_constants;
 /// Types representing netlink packets, and providing message serialization and deserialization.
-pub mod packet;
+mod packet;
+pub use self::packet::*;
 /// Netlink socket.
-pub mod socket;
+mod socket;
+pub use self::socket::*;
 
 // Mio
 #[cfg(feature = "mio_support")] extern crate mio;

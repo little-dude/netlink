@@ -1,7 +1,7 @@
-mod error;
-pub use self::error::*;
+// FIXME: should we expose these traits directly? They may be useful, but the `Emitable` trait is
+// a bit tricky since `emit()` can panic. Exposing only `Parseable` seems clumsy.
 
-pub mod nla;
+use Result;
 
 /// A type that implements `Emitable` can be serialized.
 pub trait Emitable {
@@ -26,15 +26,3 @@ pub trait Parseable<T> {
     fn parse(&self) -> Result<T>;
 }
 
-mod field {
-    use core::ops::{Range, RangeFrom};
-
-    pub type Field = Range<usize>;
-    pub type Rest = RangeFrom<usize>;
-    pub type Index = usize;
-
-    pub fn dynamic_field(start: usize, length: usize) -> Field {
-        start..start + length
-    }
-}
-pub use self::field::*;

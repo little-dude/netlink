@@ -1,4 +1,4 @@
-use packet::constants::flags::*;
+use constants::*;
 
 /// Represent the flags field in a netlink packet header.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]

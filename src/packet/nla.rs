@@ -1,19 +1,15 @@
-use super::{dynamic_field, Emitable, Error, Field, Parseable, Result};
-use byteorder::{ByteOrder, NativeEndian};
-use constants;
 use std::mem::size_of;
 use std::ptr;
+use byteorder::{ByteOrder, NativeEndian};
 
-const TYPE_MASK: u16 = (constants::NLA_TYPE_MASK & 0xFFFF) as u16;
-const NESTED_MASK: u16 = (constants::NLA_F_NESTED & 0xFFFF) as u16;
-const NET_BYTEORDER_MASK: u16 = (constants::NLA_F_NET_BYTEORDER & 0xFFFF) as u16;
+use packet::{Emitable, Error, Field, Parseable, Result};
+use constants::{NLA_F_NESTED, NLA_F_NET_BYTEORDER, NLA_TYPE_MASK};
 
 const LENGTH: Field = 0..2;
 const TYPE: Field = 2..4;
-
 #[allow(non_snake_case)]
 fn VALUE(length: usize) -> Field {
-    dynamic_field(TYPE.end, length)
+    TYPE.end..TYPE.end + length
 }
 
 // with Copy, NlaBuffer<&'buffer T> can be copied, which turns out to be pretty conveninent. And since it's
@@ -53,17 +49,17 @@ impl<T: AsRef<[u8]>> NlaBuffer<T> {
     /// Return the `type` field
     pub fn kind(&self) -> u16 {
         let data = self.buffer.as_ref();
-        NativeEndian::read_u16(&data[TYPE]) & TYPE_MASK
+        NativeEndian::read_u16(&data[TYPE]) & NLA_TYPE_MASK
     }
 
     pub fn nested_flag(&self) -> bool {
         let data = self.buffer.as_ref();
-        (NativeEndian::read_u16(&data[TYPE]) & NESTED_MASK) != 0
+        (NativeEndian::read_u16(&data[TYPE]) & NLA_F_NESTED) != 0
     }
 
     pub fn network_byte_order_flag(&self) -> bool {
         let data = self.buffer.as_ref();
-        (NativeEndian::read_u16(&data[TYPE]) & NET_BYTEORDER_MASK) != 0
+        (NativeEndian::read_u16(&data[TYPE]) & NLA_F_NET_BYTEORDER) != 0
     }
 
     /// Return the `length` field. The `length` field corresponds to the length of the nla
@@ -88,19 +84,19 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> NlaBuffer<T> {
     /// Set the `type` field
     pub fn set_kind(&mut self, kind: u16) {
         let data = self.buffer.as_mut();
-        NativeEndian::write_u16(&mut data[TYPE], kind & TYPE_MASK)
+        NativeEndian::write_u16(&mut data[TYPE], kind & NLA_TYPE_MASK)
     }
 
     pub fn set_nested_flag(&mut self) {
         let kind = self.kind();
         let data = self.buffer.as_mut();
-        NativeEndian::write_u16(&mut data[TYPE], kind | NESTED_MASK)
+        NativeEndian::write_u16(&mut data[TYPE], kind | NLA_F_NESTED)
     }
 
     pub fn set_network_byte_order_flag(&mut self) {
         let kind = self.kind();
         let data = self.buffer.as_mut();
-        NativeEndian::write_u16(&mut data[TYPE], kind | NET_BYTEORDER_MASK)
+        NativeEndian::write_u16(&mut data[TYPE], kind | NLA_F_NET_BYTEORDER)
     }
 
     /// Set the `length` field
@@ -237,48 +233,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized + 'buffer> Iterator for NlasIterator<&'buf
     }
 }
 
-pub fn parse_ipv6(payload: &[u8]) -> Result<[u8; 16]> {
-    if payload.len() != 16 {
-        return Err(Error::MalformedNlaValue);
-    }
-    let mut address: [u8; 16] = [0; 16];
-    for (i, byte) in payload.into_iter().enumerate() {
-        address[i] = *byte;
-    }
-    Ok(address)
-}
-
-pub fn parse_string(payload: &[u8]) -> Result<String> {
-    if payload.is_empty() {
-        return Ok(String::new());
-    }
-    let s = String::from_utf8(payload[..payload.len() - 1].to_vec())
-        .map_err(|_| Error::MalformedNlaValue)?;
-    Ok(s)
-}
-
-pub fn parse_u8(payload: &[u8]) -> Result<u8> {
-    if payload.len() != 1 {
-        return Err(Error::MalformedNlaValue);
-    }
-    Ok(payload[0])
-}
-
-pub fn parse_u32(payload: &[u8]) -> Result<u32> {
-    if payload.len() != 4 {
-        return Err(Error::MalformedNlaValue);
-    }
-    Ok(NativeEndian::read_u32(payload))
-}
-
-pub fn parse_i32(payload: &[u8]) -> Result<i32> {
-    if payload.len() != 4 {
-        return Err(Error::MalformedNlaValue);
-    }
-    Ok(NativeEndian::read_i32(payload))
-}
-
-pub trait NativeNla
+pub(crate) trait NativeNla
 where
     Self: Copy,
 {

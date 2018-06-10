@@ -1,5 +1,5 @@
-use packet::common::Error;
-use packet::NetlinkBuffer;
+use Error;
+use NetlinkBuffer;
 
 use bytes::BytesMut;
 use tokio_io::codec::{Decoder, Encoder};

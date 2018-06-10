@@ -1,4 +1,4 @@
-use super::common::{Emitable, Parseable, Result};
+use {Emitable, Parseable, Result};
 use super::{NetlinkBuffer, NetlinkFlags, HEADER_LEN};
 
 /// A Netlink header representation. For more details about the meaning of the fields, see `man 7 netlink`

@@ -1,7 +1,6 @@
 use byteorder::{ByteOrder, NativeEndian};
 
-use super::common::{Error, Field, Rest, Result};
-use super::NetlinkFlags;
+use {Error, Field, Rest, Result, NetlinkFlags};
 
 const LENGTH: Field = 0..4;
 const MESSAGE_TYPE: Field = 4..6;
@@ -21,8 +20,7 @@ pub const HEADER_LEN: usize = PAYLOAD.start;
 ///
 /// ```rust
 /// use netlink::packet::NetlinkBuffer;
-/// use netlink::packet::constants::message_type::RTM_GETLINK;
-/// use netlink::packet::constants::flags::{NLM_F_ROOT, NLM_F_REQUEST, NLM_F_MATCH};
+/// use netlink::packet::{RTM_GETLINK, NLM_F_ROOT, NLM_F_REQUEST, NLM_F_MATCH};
 ///
 /// fn main() {
 ///     // Artificially create an array of bytes that represents a netlink packet.

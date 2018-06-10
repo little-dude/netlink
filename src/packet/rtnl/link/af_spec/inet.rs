@@ -1,9 +1,8 @@
 use std::mem::size_of;
 
-use packet::common::nla::{DefaultNla, NativeNla, Nla, NlaBuffer};
-use packet::common::{Parseable, Result};
+use constants::*;
+use {Parseable, Result, DefaultNla, NativeNla, Nla, NlaBuffer};
 
-use super::constants::*;
 
 #[repr(C)]
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]

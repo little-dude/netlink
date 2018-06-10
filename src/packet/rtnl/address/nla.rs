@@ -1,36 +1,10 @@
 use byteorder::{ByteOrder, NativeEndian};
 use std::mem::size_of;
 
-use constants;
+use utils::{parse_string, parse_u32};
+use {DefaultNla, NativeNla, Nla, NlaBuffer, Parseable, Result};
 
-use packet::common::nla::{parse_string, parse_u32, DefaultNla, NativeNla, Nla, NlaBuffer};
-use packet::common::{Parseable, Result};
-
-use super::cacheinfo;
-
-pub const IFA_F_SECONDARY: u32 = constants::IFA_F_SECONDARY as u32;
-pub const IFA_F_TEMPORARY: u32 = constants::IFA_F_TEMPORARY as u32;
-pub const IFA_F_NODAD: u32 = constants::IFA_F_NODAD as u32;
-pub const IFA_F_OPTIMISTIC: u32 = constants::IFA_F_OPTIMISTIC as u32;
-pub const IFA_F_DADFAILED: u32 = constants::IFA_F_DADFAILED as u32;
-pub const IFA_F_HOMEADDRESS: u32 = constants::IFA_F_HOMEADDRESS as u32;
-pub const IFA_F_DEPRECATED: u32 = constants::IFA_F_DEPRECATED as u32;
-pub const IFA_F_TENTATIVE: u32 = constants::IFA_F_TENTATIVE as u32;
-pub const IFA_F_PERMANENT: u32 = constants::IFA_F_PERMANENT as u32;
-pub const IFA_F_MANAGETEMPADDR: u32 = constants::IFA_F_MANAGETEMPADDR as u32;
-pub const IFA_F_NOPREFIXROUTE: u32 = constants::IFA_F_NOPREFIXROUTE as u32;
-pub const IFA_F_MCAUTOJOIN: u32 = constants::IFA_F_MCAUTOJOIN as u32;
-pub const IFA_F_STABLE_PRIVACY: u32 = constants::IFA_F_STABLE_PRIVACY as u32;
-
-pub const IFA_UNSPEC: u16 = constants::IFA_UNSPEC as u16;
-pub const IFA_ADDRESS: u16 = constants::IFA_ADDRESS as u16;
-pub const IFA_LOCAL: u16 = constants::IFA_LOCAL as u16;
-pub const IFA_LABEL: u16 = constants::IFA_LABEL as u16;
-pub const IFA_BROADCAST: u16 = constants::IFA_BROADCAST as u16;
-pub const IFA_ANYCAST: u16 = constants::IFA_ANYCAST as u16;
-pub const IFA_CACHEINFO: u16 = constants::IFA_CACHEINFO as u16;
-pub const IFA_MULTICAST: u16 = constants::IFA_MULTICAST as u16;
-pub const IFA_FLAGS: u16 = constants::IFA_FLAGS as u16;
+use constants::*;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum AddressNla {
@@ -40,7 +14,7 @@ pub enum AddressNla {
     Label(String),
     Broadcast(Vec<u8>),
     Anycast(Vec<u8>),
-    CacheInfo(cacheinfo::CacheInfo),
+    CacheInfo(CacheInfo),
     Multicast(Vec<u8>),
     Flags(u32),
     Other(DefaultNla),
@@ -50,6 +24,7 @@ impl Nla for AddressNla {
     #[allow(unused_attributes)]
     #[rustfmt::skip]
     fn value_len(&self) -> usize {
+        use self::CacheInfo as CacheInfo_;
         use self::AddressNla::*;
         match *self {
             // Vec<u8>
@@ -67,7 +42,7 @@ impl Nla for AddressNla {
             Flags(_) => size_of::<u32>(),
 
             // Native
-            CacheInfo(_) => size_of::<cacheinfo::CacheInfo>(),
+            CacheInfo(_) => size_of::<CacheInfo_>(),
 
             // Defaults
             Other(ref attr)  => attr.value_len(),
@@ -123,6 +98,7 @@ impl Nla for AddressNla {
 
 impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<AddressNla> for NlaBuffer<&'buffer T> {
     fn parse(&self) -> Result<AddressNla> {
+        use self::CacheInfo as CacheInfo_;
         use self::AddressNla::*;
         let payload = self.value();
         Ok(match self.kind() {
@@ -132,10 +108,21 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<AddressNla> for NlaBuffer<&'buf
             IFA_LABEL => Label(parse_string(payload)?),
             IFA_BROADCAST => Broadcast(payload.to_vec()),
             IFA_ANYCAST => Anycast(payload.to_vec()),
-            IFA_CACHEINFO => CacheInfo(cacheinfo::CacheInfo::from_bytes(payload)?),
+            IFA_CACHEINFO => CacheInfo(CacheInfo_::from_bytes(payload)?),
             IFA_MULTICAST => Multicast(payload.to_vec()),
             IFA_FLAGS => Flags(parse_u32(payload)?),
             _ => Other(<Self as Parseable<DefaultNla>>::parse(self)?),
         })
     }
 }
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub struct CacheInfo {
+    pub ifa_preferred: i32,
+    pub ifa_valid: i32,
+    pub cstamp: i32,
+    pub tstamp: i32,
+}
+
+impl NativeNla for CacheInfo {}

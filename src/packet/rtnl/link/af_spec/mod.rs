@@ -16,7 +16,6 @@
 //     ...
 // }
 
-mod constants;
 mod inet;
 mod inet6;
 
@@ -24,12 +23,11 @@ mod inet6;
 mod tests;
 
 // Just re-export everything. We don't want to export the inner structure of this module
-pub use self::constants::*;
 pub use self::inet::*;
 pub use self::inet6::*;
 
-use packet::common::nla::{DefaultNla, Nla, NlaBuffer, NlasIterator};
-use packet::common::{Emitable, Parseable, Result};
+use {DefaultNla, Nla, NlaBuffer, NlasIterator,Emitable, Parseable, Result};
+use constants::*;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub enum AfSpec {

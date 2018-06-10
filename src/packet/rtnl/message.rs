@@ -1,7 +1,7 @@
 use super::*;
-use packet::common::{Emitable, Error, Parseable, Result};
-use packet::constants::message_type::*;
-use packet::{NetlinkBuffer, NetlinkFlags, NetlinkHeader};
+use constants::*;
+
+use { Emitable, Error, Parseable, Result , NetlinkBuffer, NetlinkFlags, NetlinkHeader};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct NetlinkMessage {
