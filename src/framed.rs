@@ -100,8 +100,8 @@ impl<C> NetlinkFramed<C> {
     /// See struct level documentation for more details.
     pub fn new(socket: Socket, codec: C) -> NetlinkFramed<C> {
         NetlinkFramed {
-            socket: socket,
-            codec: codec,
+            socket,
+            codec,
             out_addr: SocketAddr::new(0, 0),
             reader: BytesMut::with_capacity(INITIAL_READER_CAPACITY),
             writer: BytesMut::with_capacity(INITIAL_WRITER_CAPACITY),
