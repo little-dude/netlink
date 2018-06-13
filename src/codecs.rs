@@ -1,10 +1,23 @@
-use Error;
-use NetlinkBuffer;
+use std::marker::PhantomData;
 
-use bytes::BytesMut;
+use bytes::{BufMut, BytesMut};
 use tokio_io::codec::{Decoder, Encoder};
 
-impl Decoder for NetlinkBuffer<Vec<u8>> {
+use {Error, NetlinkBuffer, Emitable};
+
+pub struct NetlinkCodec<T> {
+    phantom: PhantomData<T>
+}
+
+impl<T> NetlinkCodec<T> {
+    pub fn new() -> Self {
+        NetlinkCodec {
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl Decoder for NetlinkCodec<NetlinkBuffer<Vec<u8>>> {
     type Item = NetlinkBuffer<Vec<u8>>;
     type Error = Error;
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
@@ -18,7 +31,7 @@ impl Decoder for NetlinkBuffer<Vec<u8>> {
     }
 }
 
-impl<T: AsRef<[u8]>> Encoder for NetlinkBuffer<T> {
+impl<T: AsRef<[u8]>> Encoder for NetlinkCodec<NetlinkBuffer<T>> {
     type Item = NetlinkBuffer<T>;
     type Error = Error;
 
@@ -33,26 +46,37 @@ mod rtnl {
     use super::*;
     use packet::rtnl::NetlinkMessage;
 
-    impl Decoder for NetlinkMessage {
+    impl Decoder for NetlinkCodec<NetlinkMessage> {
         type Item = NetlinkMessage;
         type Error = Error;
 
         fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
             let len = match NetlinkBuffer::new_checked(src.as_ref()) {
                 Ok(buf) => buf.length() as usize,
-                Err(Error::Truncated) => return Ok(None),
+                Err(Error::Truncated) => {
+                    return Ok(None);
+                }
                 Err(e) => panic!("Unknown error while reading packet: {}", e),
             };
             let bytes = src.split_to(len);
-            Ok(NetlinkMessage::from_bytes(&bytes).ok())
+            Ok(Some(NetlinkMessage::from_bytes(&bytes).unwrap()))
         }
     }
-    impl Encoder for NetlinkMessage {
+    impl Encoder for NetlinkCodec<NetlinkMessage> {
         type Item = NetlinkMessage;
         type Error = Error;
 
-        fn encode(&mut self, msg: Self::Item, mut buf: &mut BytesMut) -> Result<(), Self::Error> {
-            let _ = msg.to_bytes(&mut buf)?;
+        fn encode(&mut self, msg: Self::Item, buf: &mut BytesMut) -> Result<(), Self::Error> {
+            let msg_len = msg.buffer_len();
+            // FIXME: we should have a max length for the buffer
+            while buf.remaining_mut() < msg_len {
+                let new_len = buf.len() + 2048;
+                buf.resize(new_len, 0);
+            }
+            unsafe {
+                let size = msg.to_bytes(&mut buf.bytes_mut()[..])?;
+                buf.advance_mut(size);
+            }
             Ok(())
         }
     }
