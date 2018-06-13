@@ -26,7 +26,6 @@ version = "0.1.1"
 
 [dev-dependencies]
 lazy_static = "1.0.1"
-tokio-core = "0.1"
 
 [features]
 default = ["rtnl_support", "mio_support", "tokio_support"]

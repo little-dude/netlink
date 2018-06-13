@@ -1,5 +1,4 @@
 extern crate futures;
-// extern crate tokio_core;
 extern crate netlink;
 
 use futures::{Future, Sink, Stream};
@@ -14,7 +13,6 @@ fn main() {
     let _port_number = socket.bind_auto().unwrap().port_number();
     socket.connect(&SocketAddr::new(0, 0)).unwrap();
     let stream = NetlinkFramed::new(socket, NetlinkCodec::<NetlinkMessage>::new());
-    // let mut core = tokio_core::reactor::Core::new().unwrap();
 
     let mut packet: NetlinkMessage = RtnlMessage::GetLink(RtnlLinkMessage {
         header: RtnlLinkHeader {
