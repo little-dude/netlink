@@ -26,6 +26,7 @@ version = "0.1.1"
 
 [dev-dependencies]
 lazy_static = "1.0.1"
+tokio-core = "0.1"
 
 [features]
 default = ["rtnl_support", "mio_support", "tokio_support"]
@@ -36,6 +37,6 @@ tokio_support = ["mio_support", "tokio-io", "tokio-reactor", "futures"]
 [[example]]
 name = "dump_links"
 
-# [[example]]
-# name = "dump_links_tokio"
-# required-features = ["tokio_support"]
+[[example]]
+name = "dump_links_tokio"
+required-features = ["tokio_support"]
