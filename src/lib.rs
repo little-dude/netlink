@@ -30,6 +30,7 @@ pub use self::socket::*;
 #[cfg(feature = "tokio_support")] extern crate tokio_reactor;
 #[cfg(feature = "tokio_support")] mod framed;
 #[cfg(feature = "tokio_support")] mod codecs;
+#[cfg(feature = "tokio_support")] pub use codecs::*;
 #[cfg(feature = "tokio_support")] pub use self::framed::*;
 
 // Tests
