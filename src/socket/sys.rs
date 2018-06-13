@@ -20,6 +20,7 @@ impl Drop for Socket {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct SocketAddr(libc::sockaddr_nl);
 
 impl SocketAddr {
