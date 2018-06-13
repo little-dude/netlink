@@ -12,6 +12,7 @@ pub struct NetlinkFramed<C> {
     reader: BytesMut,
     writer: BytesMut,
     out_addr: SocketAddr,
+    in_addr: SocketAddr,
     flushed: bool,
 }
 
@@ -20,22 +21,29 @@ impl<C: Decoder> Stream for NetlinkFramed<C> {
     type Error = C::Error;
 
     fn poll(&mut self) -> Poll<Option<(Self::Item)>, Self::Error> {
-        self.reader.reserve(INITIAL_READER_CAPACITY);
+        loop {
+            if let Some(item) = self.codec.decode(&mut self.reader)? {
+                // FIXME: If we return Async::Ready here, poll() won't be scheduled. We need a way
+                // to ensure it's called again.
+                return Ok(Async::Ready(Some((item, self.in_addr))));
+            }
 
-        let (n, addr) = unsafe {
-            // Read into the buffer without having to initialize the memory.
-            let (n, addr) = try_ready!(self.socket.poll_recv_from(self.reader.bytes_mut()));
-            self.reader.advance_mut(n);
-            (n, addr)
-        };
+            // There should not be byte left in the buffer. Message oriented protocols guarantee that
+            // complete datagrams are being delivered.
+            if !self.reader.is_empty() {
+                error!("{} bytes left in the buffer that could not be decoded", self.reader.len());
+            }
 
-        trace!("received {} bytes, decoding", n);
-        let frame_res = self.codec.decode(&mut self.reader);
-        self.reader.clear();
-        let frame = frame_res?;
-        let result = frame.map(|frame| (frame, addr));
-        trace!("frame decoded from buffer");
-        Ok(Async::Ready(result))
+            self.reader.clear();
+            self.reader.reserve(INITIAL_READER_CAPACITY);
+
+            self.in_addr = unsafe {
+                // Read into the buffer without having to initialize the memory.
+                let (n, addr) = try_ready!(self.socket.poll_recv_from(self.reader.bytes_mut()));
+                self.reader.advance_mut(n);
+                addr
+            };
+        }
     }
 }
 
@@ -103,6 +111,7 @@ impl<C> NetlinkFramed<C> {
             socket,
             codec,
             out_addr: SocketAddr::new(0, 0),
+            in_addr: SocketAddr::new(0, 0),
             reader: BytesMut::with_capacity(INITIAL_READER_CAPACITY),
             writer: BytesMut::with_capacity(INITIAL_WRITER_CAPACITY),
             flushed: true,
