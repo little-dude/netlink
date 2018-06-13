@@ -17,6 +17,10 @@ impl TokioSocket {
         self.0.get_mut().bind(addr)
     }
 
+    pub fn bind_auto(&mut self) -> io::Result<sys::SocketAddr> {
+        self.0.get_mut().bind_auto()
+    }
+
     pub fn new(protocol: Protocol) -> io::Result<Self> {
         let socket = sys::Socket::new(protocol)?;
         socket.set_non_blocking(true)?;
