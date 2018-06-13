@@ -31,7 +31,10 @@ impl<C: Decoder> Stream for NetlinkFramed<C> {
             // There should not be byte left in the buffer. Message oriented protocols guarantee that
             // complete datagrams are being delivered.
             if !self.reader.is_empty() {
-                error!("{} bytes left in the buffer that could not be decoded", self.reader.len());
+                error!(
+                    "{} bytes left in the buffer that could not be decoded",
+                    self.reader.len()
+                );
             }
 
             self.reader.clear();

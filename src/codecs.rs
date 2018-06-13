@@ -1,12 +1,15 @@
 use std::marker::PhantomData;
 
+// FIXME: for some reason, the compiler says BufMut and Emitable are unused, but they _are_ used.
+// These traits need to be in scope for some methods to be called.
+
 use bytes::{BufMut, BytesMut};
 use tokio_io::codec::{Decoder, Encoder};
 
-use {Error, NetlinkBuffer, Emitable};
+use {Emitable, Error, NetlinkBuffer};
 
 pub struct NetlinkCodec<T> {
-    phantom: PhantomData<T>
+    phantom: PhantomData<T>,
 }
 
 impl<T> NetlinkCodec<T> {
