@@ -1,7 +1,7 @@
-#![feature(tool_attributes)]
-#![feature(custom_attribute)]
-#![allow(unused_attributes)]
-#![rustfmt::skip]
+#![cfg_attr(feature = "nightly", feature(tool_attributes))]
+#![cfg_attr(feature = "nightly", feature(custom_attribute))]
+#![cfg_attr(feature = "nightly", allow(unused_attributes))]
+#![cfg_attr(feature = "nightly", rustfmt::skip)]
 
 #[macro_use]
 extern crate log;

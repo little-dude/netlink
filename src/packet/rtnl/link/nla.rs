@@ -76,8 +76,8 @@ pub enum LinkNla {
 }
 
 impl Nla for LinkNla {
-    #[allow(unused_attributes)]
-    #[rustfmt::skip]
+    #[cfg_attr(nightly, allow(unused_attributes))]
+    #[cfg_attr(nightly, rustfmt::skip)]
     fn value_len(&self) -> usize {
         use self::LinkNla::*;
         match *self {
@@ -146,8 +146,8 @@ impl Nla for LinkNla {
         }
     }
 
-    #[allow(unused_attributes)]
-    #[rustfmt::skip]
+    #[cfg_attr(nightly, allow(unused_attributes))]
+    #[cfg_attr(nightly, rustfmt::skip)]
     fn emit_value(&self, buffer: &mut [u8]) {
         use self::LinkNla::*;
         match *self {

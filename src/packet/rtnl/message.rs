@@ -196,8 +196,8 @@ impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<NetlinkMessage> for NetlinkBuf
 }
 
 impl Emitable for NetlinkMessage {
-    #[allow(unused_attributes)]
-    #[rustfmt::skip]
+    #[cfg_attr(nightly, allow(unused_attributes))]
+    #[cfg_attr(nightly, rustfmt::skip)]
     fn buffer_len(&self) -> usize {
         use self::RtnlMessage::*;
         let payload_len = match self.message {
@@ -222,8 +222,8 @@ impl Emitable for NetlinkMessage {
         self.header.buffer_len() + payload_len
     }
 
-    #[allow(unused_attributes)]
-    #[rustfmt::skip]
+    #[cfg_attr(nightly, allow(unused_attributes))]
+    #[cfg_attr(nightly, rustfmt::skip)]
     fn emit(&self, buffer: &mut [u8]) {
         use self::RtnlMessage::*;
         self.header.emit(buffer);

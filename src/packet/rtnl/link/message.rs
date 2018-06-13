@@ -77,8 +77,8 @@ mod test {
     use super::*;
     use packet::rtnl::link::*;
 
-    #[allow(unused_attributes)]
-    #[rustfmt::skip]
+    #[cfg_attr(nightly, allow(unused_attributes))]
+    #[cfg_attr(nightly, rustfmt::skip)]
     static HEADER: [u8; 96] = [
         0x00, // address family
         0x00, // reserved

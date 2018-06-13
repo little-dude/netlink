@@ -73,8 +73,8 @@ pub enum AfSpec {
 }
 
 impl Nla for AfSpec {
-    #[allow(unused_attributes)]
-    #[rustfmt::skip]
+    #[cfg_attr(nightly, allow(unused_attributes))]
+    #[cfg_attr(nightly, rustfmt::skip)]
     fn value_len(&self) -> usize {
         use self::AfSpec::*;
         match *self {
@@ -120,8 +120,8 @@ impl Nla for AfSpec {
         }
     }
 
-    #[allow(unused_attributes)]
-    #[rustfmt::skip]
+    #[cfg_attr(nightly, allow(unused_attributes))]
+    #[cfg_attr(nightly, rustfmt::skip)]
     fn emit_value(&self, buffer: &mut [u8]) {
         use self::AfSpec::*;
         match *self {

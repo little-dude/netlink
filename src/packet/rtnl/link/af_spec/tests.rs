@@ -4,8 +4,8 @@ use NlasIterator;
 use super::*;
 // https://lists.infradead.org/pipermail/libnl/2015-November/002034.html
 // https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/if_link.h#L89
-#[allow(unused_attributes)]
-#[rustfmt::skip]
+#[cfg_attr(nightly, allow(unused_attributes))]
+#[cfg_attr(nightly, rustfmt::skip)]
 static BYTES: [u8; 748] = [
     // AF_SPEC (L=748, T=26)
     0xec, 0x02, 0x1a, 0x00,

@@ -54,8 +54,8 @@ mod tests {
     use packet::flags::*;
 
     // a packet captured with tcpdump that was sent when running `ip link show`
-    #[allow(unused_attributes)]
-    #[rustfmt::skip]
+    #[cfg_attr(nightly, allow(unused_attributes))]
+    #[cfg_attr(nightly, rustfmt::skip)]
     static IP_LINK_SHOW_PKT: [u8; 40] = [
         0x28, 0x00, 0x00, 0x00, // length = 40
         0x12, 0x00, // message type = 18 (RTM_GETLINK)

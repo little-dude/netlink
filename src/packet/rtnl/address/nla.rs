@@ -21,8 +21,8 @@ pub enum AddressNla {
 }
 
 impl Nla for AddressNla {
-    #[allow(unused_attributes)]
-    #[rustfmt::skip]
+    #[cfg_attr(nightly, allow(unused_attributes))]
+    #[cfg_attr(nightly, rustfmt::skip)]
     fn value_len(&self) -> usize {
         use self::CacheInfo as CacheInfo_;
         use self::AddressNla::*;
@@ -49,8 +49,8 @@ impl Nla for AddressNla {
         }
     }
 
-    #[allow(unused_attributes)]
-    #[rustfmt::skip]
+    #[cfg_attr(nightly, allow(unused_attributes))]
+    #[cfg_attr(nightly, rustfmt::skip)]
     fn emit_value(&self, buffer: &mut [u8]) {
         use self::AddressNla::*;
         match *self {
