@@ -141,7 +141,7 @@ impl Nla for LinkNla {
             Map(_) => size_of::<structs::Map>(),
             Stats(_) => size_of::<structs::Stats32>(),
             Stats64(_) => size_of::<structs::Stats64>(),
-            AfSpec(ref af_spec) => af_spec.value_len(),
+            AfSpec(ref af_spec) => af_spec.buffer_len(),
             Other(ref attr)  => attr.value_len(),
         }
     }
@@ -289,10 +289,6 @@ impl Nla for LinkNla {
 }
 
 impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkNla> for NlaBuffer<&'buffer T> {
-    /// # Panic
-    ///
-    /// This panics on buffers for which the "length" field value is is wrong. The
-    /// `NlaBuffer` argument must be checked before being passed to this method.
     fn parse(&self) -> Result<LinkNla> {
         use self::LinkNla::*;
         let payload = self.value();
@@ -357,7 +353,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkNla> for NlaBuffer<&'buffer
             IFLA_MAP => Map(structs::Map::from_bytes(payload)?),
             IFLA_STATS => Stats(structs::Stats32::from_bytes(payload)?),
             IFLA_STATS64 => Stats64(structs::Stats64::from_bytes(payload)?),
-            IFLA_AF_SPEC => AfSpec(<Self as Parseable<af_spec::AfSpec>>::parse(self)?),
+            IFLA_AF_SPEC => AfSpec(NlaBuffer::new_checked(payload)?.parse()?),
             // default nlas
             _ => Other(<Self as Parseable<DefaultNla>>::parse(self)?),
         })

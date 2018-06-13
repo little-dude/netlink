@@ -404,3 +404,150 @@ mod rtnl_link_layer_type {
     pub const ARPHRD_NONE: u16 = constants::ARPHRD_NONE as u16;
 }
 pub use self::rtnl_link_layer_type::*;
+
+mod rtnl_route_types {
+    use bindgen_constants as constants;
+    /// Unknown route
+    pub const RTN_UNSPEC: u8 = constants::RTN_UNSPEC as u8;
+    /// A gateway or direct route
+    pub const RTN_UNICAST: u8 = constants::RTN_UNICAST as u8;
+    /// A local interface route
+    pub const RTN_LOCAL: u8 = constants::RTN_LOCAL as u8;
+    /// A local broadcast route (sent as a broadcast)
+    pub const RTN_BROADCAST: u8 = constants::RTN_BROADCAST as u8;
+    /// A local broadcast route (sent as a unicast)
+    pub const RTN_ANYCAST: u8 = constants::RTN_ANYCAST as u8;
+    /// A multicast route
+    pub const RTN_MULTICAST: u8 = constants::RTN_MULTICAST as u8;
+    /// A packet dropping route
+    pub const RTN_BLACKHOLE: u8 = constants::RTN_BLACKHOLE as u8;
+    /// An unreachable destination
+    pub const RTN_UNREACHABLE: u8 = constants::RTN_UNREACHABLE as u8;
+    /// A packet rejection route
+    pub const RTN_PROHIBIT: u8 = constants::RTN_PROHIBIT as u8;
+    /// Continue routing lookup in another table
+    pub const RTN_THROW: u8 = constants::RTN_THROW as u8;
+    /// A network address translation rule
+    pub const RTN_NAT: u8 = constants::RTN_NAT as u8;
+    /// Refer to an external resolver (not implemented)
+    pub const RTN_XRESOLVE: u8 = constants::RTN_XRESOLVE as u8;
+}
+pub use self::rtnl_route_types::*;
+
+mod rtnl_route_protocols {
+    use bindgen_constants as constants;
+    /// Unknown
+    pub const RTPROT_UNSPEC: u8 = constants::RTPROT_UNSPEC as u8;
+    /// Route was learnt by an ICMP redirect
+    pub const RTPROT_REDIRECT: u8 = constants::RTPROT_REDIRECT as u8;
+    /// Route was learnt by the kernel
+    pub const RTPROT_KERNEL: u8 = constants::RTPROT_KERNEL as u8;
+    /// Route was learnt during boot
+    pub const RTPROT_BOOT: u8 = constants::RTPROT_BOOT as u8;
+    /// Route was set statically
+    pub const RTPROT_STATIC: u8 = constants::RTPROT_STATIC as u8;
+    pub const RTPROT_GATED: u8 = constants::RTPROT_GATED as u8;
+    pub const RTPROT_RA: u8 = constants::RTPROT_RA as u8;
+    pub const RTPROT_MRT: u8 = constants::RTPROT_MRT as u8;
+    pub const RTPROT_ZEBRA: u8 = constants::RTPROT_ZEBRA as u8;
+    pub const RTPROT_BIRD: u8 = constants::RTPROT_BIRD as u8;
+    pub const RTPROT_DNROUTED: u8 = constants::RTPROT_DNROUTED as u8;
+    pub const RTPROT_XORP: u8 = constants::RTPROT_XORP as u8;
+    pub const RTPROT_NTK: u8 = constants::RTPROT_NTK as u8;
+    pub const RTPROT_DHCP: u8 = constants::RTPROT_DHCP as u8;
+    pub const RTPROT_MROUTED: u8 = constants::RTPROT_MROUTED as u8;
+    pub const RTPROT_BABEL: u8 = constants::RTPROT_BABEL as u8;
+}
+pub use self::rtnl_route_protocols::*;
+
+/// Distance to the destination
+mod rtnl_route_scope {
+    use bindgen_constants as constants;
+
+    /// Global route
+    pub const RT_SCOPE_UNIVERSE: u8 = constants::RT_SCOPE_UNIVERSE as u8;
+    /// Interior route in the local autonomous system
+    pub const RT_SCOPE_SITE: u8 = constants::RT_SCOPE_SITE as u8;
+    /// Route on this link
+    pub const RT_SCOPE_LINK: u8 = constants::RT_SCOPE_LINK as u8;
+    /// Route on the local host
+    pub const RT_SCOPE_HOST: u8 = constants::RT_SCOPE_HOST as u8;
+    /// Destination doesn't exist
+    pub const RT_SCOPE_NOWHERE: u8 = constants::RT_SCOPE_NOWHERE as u8;
+}
+pub use self::rtnl_route_scope::*;
+
+/// Routing table
+mod rtnl_route_table {
+    use bindgen_constants as constants;
+    pub const RT_TABLE_UNSPEC: u8 = constants::RT_TABLE_UNSPEC as u8;
+    pub const RT_TABLE_COMPAT: u8 = constants::RT_TABLE_COMPAT as u8;
+    pub const RT_TABLE_DEFAULT: u8 = constants::RT_TABLE_DEFAULT as u8;
+    pub const RT_TABLE_MAIN: u8 = constants::RT_TABLE_MAIN as u8;
+    pub const RT_TABLE_LOCAL: u8 = constants::RT_TABLE_LOCAL as u8;
+}
+pub use self::rtnl_route_table::*;
+
+mod rtnl_route_flags {
+    use bindgen_constants as constants;
+    pub const RTM_F_NOTIFY: u32 = constants::RTM_F_NOTIFY as u32;
+    pub const RTM_F_CLONED: u32 = constants::RTM_F_CLONED as u32;
+    pub const RTM_F_EQUALIZE: u32 = constants::RTM_F_EQUALIZE as u32;
+    pub const RTM_F_PREFIX: u32 = constants::RTM_F_PREFIX as u32;
+    pub const RTM_F_LOOKUP_TABLE: u32 = constants::RTM_F_LOOKUP_TABLE as u32;
+    pub const RTM_F_FIB_MATCH: u32 = constants::RTM_F_FIB_MATCH as u32;
+}
+pub use self::rtnl_route_flags::*;
+
+mod rtnl_route_nlas {
+    use bindgen_constants as constants;
+
+    pub const RTA_UNSPEC: u16 = constants::RTA_UNSPEC as u16;
+    pub const RTA_DST: u16 = constants::RTA_DST as u16;
+    pub const RTA_SRC: u16 = constants::RTA_SRC as u16;
+    pub const RTA_IIF: u16 = constants::RTA_IIF as u16;
+    pub const RTA_OIF: u16 = constants::RTA_OIF as u16;
+    pub const RTA_GATEWAY: u16 = constants::RTA_GATEWAY as u16;
+    pub const RTA_PRIORITY: u16 = constants::RTA_PRIORITY as u16;
+    pub const RTA_PREFSRC: u16 = constants::RTA_PREFSRC as u16;
+    pub const RTA_METRICS: u16 = constants::RTA_METRICS as u16;
+    pub const RTA_MULTIPATH: u16 = constants::RTA_MULTIPATH as u16;
+    pub const RTA_PROTOINFO: u16 = constants::RTA_PROTOINFO as u16;
+    pub const RTA_FLOW: u16 = constants::RTA_FLOW as u16;
+    pub const RTA_CACHEINFO: u16 = constants::RTA_CACHEINFO as u16;
+    pub const RTA_SESSION: u16 = constants::RTA_SESSION as u16;
+    pub const RTA_MP_ALGO: u16 = constants::RTA_MP_ALGO as u16;
+    pub const RTA_TABLE: u16 = constants::RTA_TABLE as u16;
+    pub const RTA_MARK: u16 = constants::RTA_MARK as u16;
+    pub const RTA_MFC_STATS: u16 = constants::RTA_MFC_STATS as u16;
+    pub const RTA_VIA: u16 = constants::RTA_VIA as u16;
+    pub const RTA_NEWDST: u16 = constants::RTA_NEWDST as u16;
+    pub const RTA_PREF: u16 = constants::RTA_PREF as u16;
+    pub const RTA_ENCAP_TYPE: u16 = constants::RTA_ENCAP_TYPE as u16;
+    pub const RTA_ENCAP: u16 = constants::RTA_ENCAP as u16;
+    pub const RTA_EXPIRES: u16 = constants::RTA_EXPIRES as u16;
+    pub const RTA_PAD: u16 = constants::RTA_PAD as u16;
+    pub const RTA_UID: u16 = constants::RTA_UID as u16;
+    pub const RTA_TTL_PROPAGATE: u16 = constants::RTA_TTL_PROPAGATE as u16;
+
+    pub const RTAX_UNSPEC: u16 = constants::RTAX_UNSPEC as u16;
+    pub const RTAX_LOCK: u16 = constants::RTAX_LOCK as u16;
+    pub const RTAX_MTU: u16 = constants::RTAX_MTU as u16;
+    pub const RTAX_WINDOW: u16 = constants::RTAX_WINDOW as u16;
+    pub const RTAX_RTT: u16 = constants::RTAX_RTT as u16;
+    pub const RTAX_RTTVAR: u16 = constants::RTAX_RTTVAR as u16;
+    pub const RTAX_SSTHRESH: u16 = constants::RTAX_SSTHRESH as u16;
+    pub const RTAX_CWND: u16 = constants::RTAX_CWND as u16;
+    pub const RTAX_ADVMSS: u16 = constants::RTAX_ADVMSS as u16;
+    pub const RTAX_REORDERING: u16 = constants::RTAX_REORDERING as u16;
+    pub const RTAX_HOPLIMIT: u16 = constants::RTAX_HOPLIMIT as u16;
+    pub const RTAX_INITCWND: u16 = constants::RTAX_INITCWND as u16;
+    pub const RTAX_FEATURES: u16 = constants::RTAX_FEATURES as u16;
+    pub const RTAX_RTO_MIN: u16 = constants::RTAX_RTO_MIN as u16;
+    pub const RTAX_INITRWND: u16 = constants::RTAX_INITRWND as u16;
+    pub const RTAX_QUICKACK: u16 = constants::RTAX_QUICKACK as u16;
+    pub const RTAX_CC_ALGO: u16 = constants::RTAX_CC_ALGO as u16;
+    pub const RTAX_FASTOPEN_NO_COOKIE: u16 = constants::RTAX_FASTOPEN_NO_COOKIE as u16;
+}
+
+pub use self::rtnl_route_nlas::*;
