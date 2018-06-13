@@ -21,31 +21,39 @@ impl<C: Decoder> Stream for NetlinkFramed<C> {
     type Error = C::Error;
 
     fn poll(&mut self) -> Poll<Option<(Self::Item)>, Self::Error> {
-        loop {
-            if let Some(item) = self.codec.decode(&mut self.reader)? {
-                // FIXME: If we return Async::Ready here, poll() won't be scheduled. We need a way
-                // to ensure it's called again.
-                return Ok(Async::Ready(Some((item, self.in_addr))));
-            }
+        if let Some(item) = self.codec.decode(&mut self.reader)? {
+            return Ok(Async::Ready(Some((item, self.in_addr))));
+        }
 
-            // There should not be byte left in the buffer. Message oriented protocols guarantee that
-            // complete datagrams are being delivered.
-            if !self.reader.is_empty() {
-                error!(
-                    "{} bytes left in the buffer that could not be decoded",
-                    self.reader.len()
-                );
-            }
+        // There should not be byte left in the buffer. Message oriented protocols guarantee that
+        // complete datagrams are being delivered.
+        if !self.reader.is_empty() {
+            error!(
+                "{} bytes left in the buffer that could not be decoded",
+                self.reader.len()
+            );
+        }
 
-            self.reader.clear();
-            self.reader.reserve(INITIAL_READER_CAPACITY);
+        self.reader.clear();
+        self.reader.reserve(INITIAL_READER_CAPACITY);
 
-            self.in_addr = unsafe {
-                // Read into the buffer without having to initialize the memory.
-                let (n, addr) = try_ready!(self.socket.poll_recv_from(self.reader.bytes_mut()));
-                self.reader.advance_mut(n);
-                addr
-            };
+        self.in_addr = unsafe {
+            // Read into the buffer without having to initialize the memory.
+            let (n, addr) = try_ready!(self.socket.poll_recv_from(self.reader.bytes_mut()));
+            self.reader.advance_mut(n);
+            addr
+        };
+
+        if let Some(item) = self.codec.decode(&mut self.reader)? {
+            return Ok(Async::Ready(Some((item, self.in_addr))));
+        } else {
+            // FIXME: I think that is impossible, unless 0 bytes were read.
+            //
+            // But then we would have returned NotReady I think?
+            //
+            // Or does this means EOF? But if it's EOF, we should already have return an io::Err
+            // in try_ready! no?
+            panic!("I'm not sure how to handle this")
         }
     }
 }
