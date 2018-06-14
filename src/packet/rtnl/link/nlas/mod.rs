@@ -1,9 +1,20 @@
+mod inet;
+pub use self::inet::*;
+
+mod inet6;
+pub use self::inet6::*;
+
+mod af_spec;
+pub use self::af_spec::*;
+
+#[cfg(test)]
+mod tests;
+
 use std::mem::size_of;
 
 use byteorder::{ByteOrder, NativeEndian};
 
 use constants::*;
-use rtnl::link::af_spec;
 use utils::{parse_i32, parse_string, parse_u32, parse_u8};
 use {DefaultNla, Emitable, NativeNla, Nla, NlaBuffer, Parseable, Result};
 
@@ -67,11 +78,11 @@ pub enum LinkNla {
     // i32
     LinkNetnsId(i32),
     // custom
-    Stats(structs::Stats32),
-    Stats64(structs::Stats64),
-    Map(structs::Map),
+    Stats(LinkStats32),
+    Stats64(LinkStats64),
+    Map(LinkMap),
     // AF_SPEC
-    AfSpec(af_spec::AfSpec),
+    AfSpec(LinkAfSpecNla),
     Other(DefaultNla),
 }
 
@@ -105,44 +116,44 @@ impl Nla for LinkNla {
                 | Address(ref bytes)
                 | Broadcast(ref bytes) => bytes.len(),
 
-            // strings: +1 because we need to append a nul byte
-            IfName(ref string)
-                | Qdisc(ref string)
-                | IfAlias(ref string)
-                | PhysPortName(ref string) => string.as_bytes().len() + 1,
+                // strings: +1 because we need to append a nul byte
+                IfName(ref string)
+                    | Qdisc(ref string)
+                    | IfAlias(ref string)
+                    | PhysPortName(ref string) => string.as_bytes().len() + 1,
 
-            // Mac addresses are arrays of 6 bytes
+                    // Mac addresses are arrays of 6 bytes
 
-            // u8
-            OperState(_)
-                | LinkMode(_)
-                | Carrier(_)
-                | ProtoDown(_) => size_of::<u8>(),
+                    // u8
+                    OperState(_)
+                        | LinkMode(_)
+                        | Carrier(_)
+                        | ProtoDown(_) => size_of::<u8>(),
 
-            // u32 and i32
-            Mtu(_)
-                | Link(_)
-                | Master(_)
-                | TxQueueLen(_)
-                | NetNsPid(_)
-                | NumVf(_)
-                | Group(_)
-                | NetnsFd(_)
-                | ExtMask(_)
-                | Promiscuity(_)
-                | NumTxQueues(_)
-                | NumRxQueues(_)
-                | CarrierChanges(_)
-                | GsoMaxSegs(_)
-                | GsoMaxSize(_)
-                | LinkNetnsId(_) => size_of::<u32>(),
+                        // u32 and i32
+                        Mtu(_)
+                            | Link(_)
+                            | Master(_)
+                            | TxQueueLen(_)
+                            | NetNsPid(_)
+                            | NumVf(_)
+                            | Group(_)
+                            | NetnsFd(_)
+                            | ExtMask(_)
+                            | Promiscuity(_)
+                            | NumTxQueues(_)
+                            | NumRxQueues(_)
+                            | CarrierChanges(_)
+                            | GsoMaxSegs(_)
+                            | GsoMaxSize(_)
+                            | LinkNetnsId(_) => size_of::<u32>(),
 
-            // Defaults
-            Map(_) => size_of::<structs::Map>(),
-            Stats(_) => size_of::<structs::Stats32>(),
-            Stats64(_) => size_of::<structs::Stats64>(),
-            AfSpec(ref af_spec) => af_spec.buffer_len(),
-            Other(ref attr)  => attr.value_len(),
+                            // Defaults
+                        Map(_) => size_of::<LinkMap>(),
+                        Stats(_) => size_of::<LinkStats32>(),
+                        Stats64(_) => size_of::<LinkStats64>(),
+                        AfSpec(ref af_spec) => af_spec.buffer_len(),
+                        Other(ref attr)  => attr.value_len(),
         }
     }
 
@@ -177,14 +188,14 @@ impl Nla for LinkNla {
                 | Address(ref bytes)
                 | Broadcast(ref bytes) => buffer.copy_from_slice(bytes.as_slice()),
 
-            // String
-            IfName(ref string)
-                | Qdisc(ref string)
-                | IfAlias(ref string)
-                | PhysPortName(ref string) => {
-                    buffer.copy_from_slice(string.as_bytes());
-                    buffer[string.as_bytes().len()] = 0;
-                }
+                // String
+                IfName(ref string)
+                    | Qdisc(ref string)
+                    | IfAlias(ref string)
+                    | PhysPortName(ref string) => {
+                        buffer.copy_from_slice(string.as_bytes());
+                        buffer[string.as_bytes().len()] = 0;
+                    }
 
             // u8
             OperState(ref val)
@@ -192,34 +203,34 @@ impl Nla for LinkNla {
                 | Carrier(ref val)
                 | ProtoDown(ref val) => buffer[0] = *val,
 
-            // u32
-            Mtu(ref value)
-                | Link(ref value)
-                | Master(ref value)
-                | TxQueueLen(ref value)
-                | NetNsPid(ref value)
-                | NumVf(ref value)
-                | Group(ref value)
-                | NetnsFd(ref value)
-                | ExtMask(ref value)
-                | Promiscuity(ref value)
-                | NumTxQueues(ref value)
-                | NumRxQueues(ref value)
-                | CarrierChanges(ref value)
-                | GsoMaxSegs(ref value)
-                | GsoMaxSize(ref value) => NativeEndian::write_u32(buffer, *value),
+                // u32
+                Mtu(ref value)
+                    | Link(ref value)
+                    | Master(ref value)
+                    | TxQueueLen(ref value)
+                    | NetNsPid(ref value)
+                    | NumVf(ref value)
+                    | Group(ref value)
+                    | NetnsFd(ref value)
+                    | ExtMask(ref value)
+                    | Promiscuity(ref value)
+                    | NumTxQueues(ref value)
+                    | NumRxQueues(ref value)
+                    | CarrierChanges(ref value)
+                    | GsoMaxSegs(ref value)
+                    | GsoMaxSize(ref value) => NativeEndian::write_u32(buffer, *value),
 
-            LinkNetnsId(ref value) => NativeEndian::write_i32(buffer, *value),
+                    LinkNetnsId(ref value) => NativeEndian::write_i32(buffer, *value),
 
-            Map(ref map) => map.to_bytes(buffer),
-            Stats(ref stats) => stats.to_bytes(buffer),
-            Stats64(ref stats) => stats.to_bytes(buffer),
-            // This is not supposed to fail, because the buffer length has normally been checked
-            // before cally this method. If that fails, there's a bug in out code that needs to be
-            // fixed.
-            AfSpec(ref af_spec) => af_spec.emit(buffer),
-            // default nlas
-            Other(ref attr) => attr.emit_value(buffer),
+                    Map(ref map) => map.to_bytes(buffer),
+                    Stats(ref stats) => stats.to_bytes(buffer),
+                    Stats64(ref stats) => stats.to_bytes(buffer),
+                    // This is not supposed to fail, because the buffer length has normally been checked
+                    // before cally this method. If that fails, there's a bug in out code that needs to be
+                    // fixed.
+                    AfSpec(ref af_spec) => af_spec.emit(buffer),
+                    // default nlas
+                    Other(ref attr) => attr.emit_value(buffer),
         }
     }
 
@@ -350,9 +361,9 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkNla> for NlaBuffer<&'buffer
             // i32
             IFLA_LINK_NETNSID => LinkNetnsId(parse_i32(payload)?),
 
-            IFLA_MAP => Map(structs::Map::from_bytes(payload)?),
-            IFLA_STATS => Stats(structs::Stats32::from_bytes(payload)?),
-            IFLA_STATS64 => Stats64(structs::Stats64::from_bytes(payload)?),
+            IFLA_MAP => Map(LinkMap::from_bytes(payload)?),
+            IFLA_STATS => Stats(LinkStats32::from_bytes(payload)?),
+            IFLA_STATS64 => Stats64(LinkStats64::from_bytes(payload)?),
             IFLA_AF_SPEC => AfSpec(NlaBuffer::new_checked(payload)?.parse()?),
             // default nlas
             _ => Other(<Self as Parseable<DefaultNla>>::parse(self)?),
@@ -360,77 +371,72 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkNla> for NlaBuffer<&'buffer
     }
 }
 
-mod structs {
-    use super::*;
-    #[repr(C)]
-    #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-    pub struct Map {
-        pub memory_start: u64,
-        pub memory_end: u64,
-        pub base_address: u64,
-        pub irq: u16,
-        pub dma: u8,
-        pub port: u8,
-    }
-
-    impl NativeNla for Map {}
-
-    #[repr(C)]
-    #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-    pub struct Stats<T> {
-        /// total packets received
-        pub rx_packets: T,
-        /// total packets transmitted
-        pub tx_packets: T,
-        /// total bytes received
-        pub rx_bytes: T,
-        /// total bytes transmitted
-        pub tx_bytes: T,
-        /// bad packets received
-        pub rx_errors: T,
-        /// packet transmit problems
-        pub tx_errors: T,
-        /// no space in linux buffers
-        pub rx_dropped: T,
-        /// no space available in linux
-        pub tx_dropped: T,
-        /// multicast packets received
-        pub multicast: T,
-        pub collisions: T,
-
-        // detailed rx_errors
-        pub rx_length_errors: T,
-        /// receiver ring buff overflow
-        pub rx_over_errors: T,
-        /// received packets with crc error
-        pub rx_crc_errors: T,
-        /// received frame alignment errors
-        pub rx_frame_errors: T,
-        /// recv'r fifo overrun
-        pub rx_fifo_errors: T,
-        /// receiver missed packet
-        pub rx_missed_errors: T,
-
-        // detailed tx_errors
-        pub tx_aborted_errors: T,
-        pub tx_carrier_errors: T,
-        pub tx_fifo_errors: T,
-        pub tx_heartbeat_errors: T,
-        pub tx_window_errors: T,
-
-        // for cslip etc
-        pub rx_compressed: T,
-        pub tx_compressed: T,
-
-        /// dropped, no handler found
-        pub rx_nohandler: T,
-    }
-
-    impl NativeNla for Stats<u32> {}
-    impl NativeNla for Stats<u64> {}
-
-    pub type Stats32 = Stats<u32>;
-    pub type Stats64 = Stats<u64>;
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub struct LinkMap {
+    pub memory_start: u64,
+    pub memory_end: u64,
+    pub base_address: u64,
+    pub irq: u16,
+    pub dma: u8,
+    pub port: u8,
 }
 
-pub use self::structs::{Map, Stats32, Stats64};
+impl NativeNla for LinkMap {}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub struct LinkStats<T> {
+    /// total packets received
+    pub rx_packets: T,
+    /// total packets transmitted
+    pub tx_packets: T,
+    /// total bytes received
+    pub rx_bytes: T,
+    /// total bytes transmitted
+    pub tx_bytes: T,
+    /// bad packets received
+    pub rx_errors: T,
+    /// packet transmit problems
+    pub tx_errors: T,
+    /// no space in linux buffers
+    pub rx_dropped: T,
+    /// no space available in linux
+    pub tx_dropped: T,
+    /// multicast packets received
+    pub multicast: T,
+    pub collisions: T,
+
+    // detailed rx_errors
+    pub rx_length_errors: T,
+    /// receiver ring buff overflow
+    pub rx_over_errors: T,
+    /// received packets with crc error
+    pub rx_crc_errors: T,
+    /// received frame alignment errors
+    pub rx_frame_errors: T,
+    /// recv'r fifo overrun
+    pub rx_fifo_errors: T,
+    /// receiver missed packet
+    pub rx_missed_errors: T,
+
+    // detailed tx_errors
+    pub tx_aborted_errors: T,
+    pub tx_carrier_errors: T,
+    pub tx_fifo_errors: T,
+    pub tx_heartbeat_errors: T,
+    pub tx_window_errors: T,
+
+    // for cslip etc
+    pub rx_compressed: T,
+    pub tx_compressed: T,
+
+    /// dropped, no handler found
+    pub rx_nohandler: T,
+}
+
+impl NativeNla for LinkStats<u32> {}
+impl NativeNla for LinkStats<u64> {}
+
+pub type LinkStats32 = LinkStats<u32>;
+pub type LinkStats64 = LinkStats<u64>;

@@ -1,14 +1,14 @@
-use rtnl::{AddressNla, RtnlAddressBuffer};
+use super::{AddressBuffer, AddressNla};
 use {Emitable, Parseable, Result, HEADER_LEN};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct RtnlAddressMessage {
-    pub header: RtnlAddressHeader,
+pub struct AddressMessage {
+    pub header: AddressHeader,
     pub nlas: Vec<AddressNla>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct RtnlAddressHeader {
+pub struct AddressHeader {
     pub family: u8,
     pub prefix_len: u8,
     pub flags: u8,
@@ -16,13 +16,13 @@ pub struct RtnlAddressHeader {
     pub index: u32,
 }
 
-impl Emitable for RtnlAddressHeader {
+impl Emitable for AddressHeader {
     fn buffer_len(&self) -> usize {
         HEADER_LEN
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        let mut packet = RtnlAddressBuffer::new(buffer);
+        let mut packet = AddressBuffer::new(buffer);
         packet.set_family(self.family);
         packet.set_prefix_len(self.prefix_len);
         packet.set_flags(self.flags);
@@ -31,7 +31,7 @@ impl Emitable for RtnlAddressHeader {
     }
 }
 
-impl Emitable for RtnlAddressMessage {
+impl Emitable for AddressMessage {
     fn buffer_len(&self) -> usize {
         self.header.buffer_len() + self.nlas.as_slice().buffer_len()
     }
@@ -43,9 +43,9 @@ impl Emitable for RtnlAddressMessage {
     }
 }
 
-impl<T: AsRef<[u8]>> Parseable<RtnlAddressHeader> for RtnlAddressBuffer<T> {
-    fn parse(&self) -> Result<RtnlAddressHeader> {
-        Ok(RtnlAddressHeader {
+impl<T: AsRef<[u8]>> Parseable<AddressHeader> for AddressBuffer<T> {
+    fn parse(&self) -> Result<AddressHeader> {
+        Ok(AddressHeader {
             family: self.family(),
             prefix_len: self.prefix_len(),
             flags: self.flags(),
@@ -55,11 +55,9 @@ impl<T: AsRef<[u8]>> Parseable<RtnlAddressHeader> for RtnlAddressBuffer<T> {
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<RtnlAddressMessage>
-    for RtnlAddressBuffer<&'buffer T>
-{
-    fn parse(&self) -> Result<RtnlAddressMessage> {
-        Ok(RtnlAddressMessage {
+impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<AddressMessage> for AddressBuffer<&'buffer T> {
+    fn parse(&self) -> Result<AddressMessage> {
+        Ok(AddressMessage {
             header: self.parse()?,
             nlas: self.parse()?,
         })
@@ -69,9 +67,7 @@ impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<RtnlAddressMessage>
 // FIXME: we should make it possible to provide a "best effort" parsing method. Right now, if we
 // fail on a single nla, we return an error. Maybe we could have another impl that returns
 // Vec<Result<Address>>.
-impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Vec<AddressNla>>
-    for RtnlAddressBuffer<&'buffer T>
-{
+impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Vec<AddressNla>> for AddressBuffer<&'buffer T> {
     fn parse(&self) -> Result<Vec<AddressNla>> {
         let mut nlas = vec![];
         for nla_buf in self.nlas() {

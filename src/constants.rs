@@ -405,6 +405,49 @@ mod rtnl_link_layer_type {
 }
 pub use self::rtnl_link_layer_type::*;
 
+mod rtnl_link_flags {
+    use libc;
+    /// Link is up (administratively).
+    pub const IFF_UP: u32 = libc::IFF_UP as u32;
+    /// Link is up and carrier is OK (RFC2863 OPER_UP)
+    pub const IFF_RUNNING: u32 = libc::IFF_RUNNING as u32;
+    /// Link layer is operational
+    pub const IFF_LOWER_UP: u32 = libc::IFF_LOWER_UP as u32;
+    /// Driver signals IFF_DORMANT
+    pub const IFF_DORMANT: u32 = libc::IFF_DORMANT as u32;
+    /// Link supports broadcasting
+    pub const IFF_BROADCAST: u32 = libc::IFF_BROADCAST as u32;
+    /// Link supports multicasting
+    pub const IFF_MULTICAST: u32 = libc::IFF_MULTICAST as u32;
+    /// Link supports multicast routing
+    pub const IFF_ALLMULTI: u32 = libc::IFF_ALLMULTI as u32;
+    /// Tell driver to do debugging (currently unused)
+    pub const IFF_DEBUG: u32 = libc::IFF_DEBUG as u32;
+    /// Link loopback network
+    pub const IFF_LOOPBACK: u32 = libc::IFF_LOOPBACK as u32;
+    /// u32erface is point-to-point link
+    pub const IFF_POINTOPOINT: u32 = libc::IFF_POINTOPOINT as u32;
+    /// ARP is not supported
+    pub const IFF_NOARP: u32 = libc::IFF_NOARP as u32;
+    /// Receive all packets.
+    pub const IFF_PROMISC: u32 = libc::IFF_PROMISC as u32;
+    /// Master of a load balancer (bonding)
+    pub const IFF_MASTER: u32 = libc::IFF_MASTER as u32;
+    /// Slave of a load balancer
+    pub const IFF_SLAVE: u32 = libc::IFF_SLAVE as u32;
+    /// Link selects port automatically (only used by ARM ethernet)
+    pub const IFF_PORTSEL: u32 = libc::IFF_PORTSEL as u32;
+    /// Driver supports setting media type (only used by ARM ethernet)
+    pub const IFF_AUTOMEDIA: u32 = libc::IFF_AUTOMEDIA as u32;
+    /// Echo sent packets (testing feature, CAN only)
+    pub const IFF_ECHO: u32 = libc::IFF_ECHO as u32;
+    /// Dialup device with changing addresses (unused, BSD compatibility)
+    pub const IFF_DYNAMIC: u32 = libc::IFF_DYNAMIC as u32;
+    /// Avoid use of trailers (unused, BSD compatibility)
+    pub const IFF_NOTRAILERS: u32 = libc::IFF_NOTRAILERS as u32;
+}
+pub use self::rtnl_link_flags::*;
+
 mod rtnl_route_types {
     use bindgen_constants as constants;
     /// Unknown route

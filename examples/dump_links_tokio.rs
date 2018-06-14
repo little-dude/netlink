@@ -3,19 +3,17 @@ extern crate netlink;
 
 use futures::{Future, Sink, Stream};
 use netlink::constants::{NLM_F_DUMP, NLM_F_REQUEST};
-use netlink::rtnl::{
-    LinkFlags, LinkLayerType, NetlinkMessage, RtnlLinkHeader, RtnlLinkMessage, RtnlMessage,
-};
+use netlink::rtnl::{LinkFlags, LinkHeader, LinkLayerType, LinkMessage, Message, RtnlMessage};
 use netlink::{NetlinkCodec, NetlinkFlags, NetlinkFramed, Protocol, SocketAddr, TokioSocket};
 
 fn main() {
     let mut socket = TokioSocket::new(Protocol::Route).unwrap();
     let _port_number = socket.bind_auto().unwrap().port_number();
     socket.connect(&SocketAddr::new(0, 0)).unwrap();
-    let stream = NetlinkFramed::new(socket, NetlinkCodec::<NetlinkMessage>::new());
+    let stream = NetlinkFramed::new(socket, NetlinkCodec::<Message>::new());
 
-    let mut packet: NetlinkMessage = RtnlMessage::GetLink(RtnlLinkMessage {
-        header: RtnlLinkHeader {
+    let mut packet: Message = RtnlMessage::GetLink(LinkMessage {
+        header: LinkHeader {
             address_family: 0, // AF_UNSPEC
             link_layer_type: LinkLayerType::Ether,
             flags: LinkFlags::new(),

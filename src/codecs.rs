@@ -47,10 +47,10 @@ impl<T: AsRef<[u8]>> Encoder for NetlinkCodec<NetlinkBuffer<T>> {
 #[cfg(feature = "rtnl_support")]
 mod rtnl {
     use super::*;
-    use packet::rtnl::NetlinkMessage;
+    use packet::rtnl::Message;
 
-    impl Decoder for NetlinkCodec<NetlinkMessage> {
-        type Item = NetlinkMessage;
+    impl Decoder for NetlinkCodec<Message> {
+        type Item = Message;
         type Error = Error;
 
         fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
@@ -62,11 +62,11 @@ mod rtnl {
                 Err(e) => panic!("Unknown error while reading packet: {}", e),
             };
             let bytes = src.split_to(len);
-            Ok(Some(NetlinkMessage::from_bytes(&bytes).unwrap()))
+            Ok(Some(Message::from_bytes(&bytes).unwrap()))
         }
     }
-    impl Encoder for NetlinkCodec<NetlinkMessage> {
-        type Item = NetlinkMessage;
+    impl Encoder for NetlinkCodec<Message> {
+        type Item = Message;
         type Error = Error;
 
         fn encode(&mut self, msg: Self::Item, buf: &mut BytesMut) -> Result<(), Self::Error> {

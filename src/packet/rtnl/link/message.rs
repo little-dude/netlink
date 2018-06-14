@@ -1,48 +1,27 @@
 use {Emitable, Parseable, Result};
 
-use super::{LinkFlags, LinkLayerType, LinkNla, RtnlLinkBuffer, HEADER_LEN};
+use super::{LinkBuffer, LinkHeader, LinkNla};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct RtnlLinkHeader {
-    pub address_family: u8,
-    pub link_layer_type: LinkLayerType,
-    pub flags: LinkFlags,
-}
-
-impl Emitable for RtnlLinkHeader {
-    fn buffer_len(&self) -> usize {
-        HEADER_LEN
-    }
-
-    fn emit(&self, buffer: &mut [u8]) {
-        let mut packet = RtnlLinkBuffer::new(buffer);
-        packet.set_address_family(self.address_family);
-        packet.set_link_layer_type(self.link_layer_type);
-        packet.set_flags(self.flags);
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct RtnlLinkMessage {
-    pub header: RtnlLinkHeader,
+pub struct LinkMessage {
+    pub header: LinkHeader,
     pub nlas: Vec<LinkNla>,
 }
 
-impl Emitable for RtnlLinkMessage {
+impl Emitable for LinkMessage {
     fn buffer_len(&self) -> usize {
         self.header.buffer_len() + self.nlas.as_slice().buffer_len()
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        // in rust, we're guaranteed that when doing `a() + b(), a() is evaluated first
         self.header.emit(buffer);
         self.nlas.as_slice().emit(buffer);
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<RtnlLinkMessage> for RtnlLinkBuffer<&'buffer T> {
-    fn parse(&self) -> Result<RtnlLinkMessage> {
-        Ok(RtnlLinkMessage {
+impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<LinkMessage> for LinkBuffer<&'buffer T> {
+    fn parse(&self) -> Result<LinkMessage> {
+        Ok(LinkMessage {
             header: self.parse()?,
             nlas: self.parse()?,
         })
@@ -52,7 +31,7 @@ impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<RtnlLinkMessage> for RtnlLinkB
 // FIXME: we should make it possible to provide a "best effort" parsing method. Right now, if we
 // fail on a single nla, we return an error. Maybe we could have another impl that returns
 // Vec<Result<LinkNla>>.
-impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Vec<LinkNla>> for RtnlLinkBuffer<&'buffer T> {
+impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Vec<LinkNla>> for LinkBuffer<&'buffer T> {
     fn parse(&self) -> Result<Vec<LinkNla>> {
         let mut nlas = vec![];
         for nla_buf in self.nlas() {
@@ -62,19 +41,10 @@ impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Vec<LinkNla>> for RtnlLinkBuff
     }
 }
 
-impl<T: AsRef<[u8]>> Parseable<RtnlLinkHeader> for RtnlLinkBuffer<T> {
-    fn parse(&self) -> Result<RtnlLinkHeader> {
-        Ok(RtnlLinkHeader {
-            address_family: self.address_family(),
-            link_layer_type: self.link_layer_type(),
-            flags: self.flags(),
-        })
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
+    use constants::*;
     use packet::rtnl::link::*;
 
     #[cfg_attr(nightly, allow(unused_attributes))]
@@ -107,7 +77,7 @@ mod test {
 
     #[test]
     fn packet_header_read() {
-        let packet = RtnlLinkBuffer::new(&HEADER[0..16]);
+        let packet = LinkBuffer::new(&HEADER[0..16]);
         assert_eq!(packet.address_family(), 0);
         assert_eq!(packet.reserved_1(), 0);
         assert_eq!(packet.link_layer_type(), LinkLayerType::Loopback);
@@ -126,7 +96,7 @@ mod test {
     fn packet_header_build() {
         let mut buf = vec![0xff; 16];
         {
-            let mut packet = RtnlLinkBuffer::new(&mut buf);
+            let mut packet = LinkBuffer::new(&mut buf);
             packet.set_address_family(0);
             packet.set_reserved_1(0);
             packet.set_link_layer_type(LinkLayerType::Loopback);
@@ -143,7 +113,7 @@ mod test {
 
     #[test]
     fn packet_nlas_read() {
-        let packet = RtnlLinkBuffer::new(&HEADER[..]);
+        let packet = LinkBuffer::new(&HEADER[..]);
         assert_eq!(packet.nlas().count(), 10);
         let mut nlas = packet.nlas();
 

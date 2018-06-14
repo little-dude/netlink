@@ -5,7 +5,7 @@ use {DefaultNla, NativeNla, Nla, NlaBuffer, Parseable, Result};
 
 #[repr(C)]
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
-pub struct InetDevConf {
+pub struct LinkInetDevConf {
     pub forwarding: i32,
     pub mc_forwarding: i32,
     pub proxy_arp: i32,
@@ -39,23 +39,23 @@ pub struct InetDevConf {
     pub drop_gratuitous_arp: i32,
 }
 
-impl NativeNla for InetDevConf {}
+impl NativeNla for LinkInetDevConf {}
 
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub enum AfInet {
-    DevConf(InetDevConf),
+pub enum LinkAfInetNla {
+    DevConf(LinkInetDevConf),
     Unspec(Vec<u8>),
     Other(DefaultNla),
 }
 
-impl Nla for AfInet {
+impl Nla for LinkAfInetNla {
     #[cfg_attr(nightly, allow(unused_attributes))]
     #[cfg_attr(nightly, rustfmt::skip)]
     fn value_len(&self) -> usize {
-        use self::AfInet::*;
+        use self::LinkAfInetNla::*;
         match *self {
             Unspec(ref bytes) => bytes.len(),
-            DevConf(_) => size_of::<InetDevConf>(),
+            DevConf(_) => size_of::<LinkInetDevConf>(),
             Other(ref nla) => nla.value_len(),
         }
     }
@@ -63,7 +63,7 @@ impl Nla for AfInet {
     #[cfg_attr(nightly, allow(unused_attributes))]
     #[cfg_attr(nightly, rustfmt::skip)]
     fn emit_value(&self, buffer: &mut [u8]) {
-        use self::AfInet::*;
+        use self::LinkAfInetNla::*;
         match *self {
             Unspec(ref bytes) => buffer.copy_from_slice(bytes.as_slice()),
             DevConf(ref dev_conf) => dev_conf.to_bytes(buffer),
@@ -72,7 +72,7 @@ impl Nla for AfInet {
     }
 
     fn kind(&self) -> u16 {
-        use self::AfInet::*;
+        use self::LinkAfInetNla::*;
         match *self {
             Unspec(_) => IFLA_INET_UNSPEC,
             DevConf(_) => IFLA_INET_CONF,
@@ -81,13 +81,13 @@ impl Nla for AfInet {
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<AfInet> for NlaBuffer<&'buffer T> {
-    fn parse(&self) -> Result<AfInet> {
-        use self::AfInet::*;
+impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkAfInetNla> for NlaBuffer<&'buffer T> {
+    fn parse(&self) -> Result<LinkAfInetNla> {
+        use self::LinkAfInetNla::*;
         let payload = self.value();
         Ok(match self.kind() {
             IFLA_INET_UNSPEC => Unspec(payload.to_vec()),
-            IFLA_INET_CONF => DevConf(InetDevConf::from_bytes(payload)?),
+            IFLA_INET_CONF => DevConf(LinkInetDevConf::from_bytes(payload)?),
             _ => Other(<Self as Parseable<DefaultNla>>::parse(self)?),
         })
     }

@@ -10,13 +10,13 @@ const INDEX: Field = 4..8;
 const ATTRIBUTES: Rest = 8..;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct RtnlAddressBuffer<T> {
+pub struct AddressBuffer<T> {
     buffer: T,
 }
 
-impl<T: AsRef<[u8]>> RtnlAddressBuffer<T> {
-    pub fn new(buffer: T) -> RtnlAddressBuffer<T> {
-        RtnlAddressBuffer { buffer }
+impl<T: AsRef<[u8]>> AddressBuffer<T> {
+    pub fn new(buffer: T) -> AddressBuffer<T> {
+        AddressBuffer { buffer }
     }
 
     pub fn into_inner(self) -> T {
@@ -49,7 +49,7 @@ impl<T: AsRef<[u8]>> RtnlAddressBuffer<T> {
     }
 }
 
-impl<'a, T: AsRef<[u8]> + ?Sized> RtnlAddressBuffer<&'a T> {
+impl<'a, T: AsRef<[u8]> + ?Sized> AddressBuffer<&'a T> {
     /// Return a pointer to the payload.
     pub fn payload(&self) -> &'a [u8] {
         let data = self.buffer.as_ref();
@@ -61,7 +61,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> RtnlAddressBuffer<&'a T> {
     }
 }
 
-impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> RtnlAddressBuffer<&'a mut T> {
+impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> AddressBuffer<&'a mut T> {
     /// Return a mutable pointer to the payload.
     pub fn payload_mut(&mut self) -> &mut [u8] {
         let data = self.buffer.as_mut();
@@ -69,7 +69,7 @@ impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> RtnlAddressBuffer<&'a mut T> {
     }
 }
 
-impl<T: AsRef<[u8]> + AsMut<[u8]>> RtnlAddressBuffer<T> {
+impl<T: AsRef<[u8]> + AsMut<[u8]>> AddressBuffer<T> {
     pub fn set_family(&mut self, value: u8) {
         let data = self.buffer.as_mut();
         data[FAMILY] = value

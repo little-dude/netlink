@@ -1,9 +1,7 @@
 extern crate netlink;
 
 use netlink::constants::{NLM_F_DUMP, NLM_F_REQUEST};
-use netlink::rtnl::{
-    LinkFlags, LinkLayerType, NetlinkMessage, RtnlLinkHeader, RtnlLinkMessage, RtnlMessage,
-};
+use netlink::rtnl::{LinkFlags, LinkHeader, LinkLayerType, LinkMessage, Message, RtnlMessage};
 use netlink::{NetlinkFlags, Protocol, Socket, SocketAddr};
 
 fn main() {
@@ -11,8 +9,8 @@ fn main() {
     let _port_number = socket.bind_auto().unwrap().port_number();
     socket.connect(&SocketAddr::new(0, 0)).unwrap();
 
-    let mut packet: NetlinkMessage = RtnlMessage::GetLink(RtnlLinkMessage {
-        header: RtnlLinkHeader {
+    let mut packet: Message = RtnlMessage::GetLink(LinkMessage {
+        header: LinkHeader {
             address_family: 0, // AF_UNSPEC
             link_layer_type: LinkLayerType::Ether,
             flags: LinkFlags::new(),
@@ -35,7 +33,7 @@ fn main() {
         let size = socket.recv(&mut receive_buffer[..], 0).unwrap();
 
         loop {
-            let rx_packet = NetlinkMessage::from_bytes(&receive_buffer[offset..]).unwrap();
+            let rx_packet = Message::from_bytes(&receive_buffer[offset..]).unwrap();
             println!("<<< {:?}", rx_packet);
 
             if *rx_packet.message() == RtnlMessage::Done {

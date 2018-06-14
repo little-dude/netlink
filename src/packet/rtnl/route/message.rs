@@ -1,5 +1,5 @@
+use super::{RouteBuffer, RouteHeader, RouteNla};
 use {Emitable, Parseable, Result};
-use super::{RouteNla, RouteHeader, RouteBuffer};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct RouteMessage {

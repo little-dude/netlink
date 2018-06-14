@@ -16,22 +16,15 @@
 //     ...
 // }
 
-mod inet;
-mod inet6;
-
-#[cfg(test)]
-mod tests;
-
-// Just re-export everything. We don't want to export the inner structure of this module
-pub use self::inet::*;
-pub use self::inet6::*;
+pub use super::inet::LinkAfInetNla;
+pub use super::inet6::LinkAfInet6Nla;
 
 use constants::*;
 use {DefaultNla, Emitable, Nla, NlaBuffer, NlasIterator, Parseable, Result};
 
 // FIXME: There are many of those that I don't know how to parse. Help welcome.
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub enum AfSpec {
+pub enum LinkAfSpecNla {
     Unspec(Vec<u8>),
     Unix(Vec<u8>),
     Ax25(Vec<u8>),
@@ -41,8 +34,8 @@ pub enum AfSpec {
     Bridge(Vec<u8>),
     AtmPvc(Vec<u8>),
     X25(Vec<u8>),
-    Inet(Vec<AfInet>),
-    Inet6(Vec<AfInet6>),
+    Inet(Vec<LinkAfInetNla>),
+    Inet6(Vec<LinkAfInet6Nla>),
     Rose(Vec<u8>),
     DecNet(Vec<u8>),
     NetbEui(Vec<u8>),
@@ -72,11 +65,11 @@ pub enum AfSpec {
     Other(DefaultNla),
 }
 
-impl Nla for AfSpec {
+impl Nla for LinkAfSpecNla {
     #[cfg_attr(nightly, allow(unused_attributes))]
     #[cfg_attr(nightly, rustfmt::skip)]
     fn value_len(&self) -> usize {
-        use self::AfSpec::*;
+        use self::LinkAfSpecNla::*;
         match *self {
             Unspec(ref bytes)
                 | Unix(ref bytes)
@@ -123,7 +116,7 @@ impl Nla for AfSpec {
     #[cfg_attr(nightly, allow(unused_attributes))]
     #[cfg_attr(nightly, rustfmt::skip)]
     fn emit_value(&self, buffer: &mut [u8]) {
-        use self::AfSpec::*;
+        use self::LinkAfSpecNla::*;
         match *self {
             Unspec(ref bytes)
                 | Unix(ref bytes)
@@ -161,14 +154,14 @@ impl Nla for AfSpec {
                 | Caif(ref bytes)
                 | Alg(ref bytes)
                 => buffer.copy_from_slice(bytes.as_slice()),
-            AfSpec::Inet6(ref attrs) => attrs.as_slice().emit(buffer),
-            AfSpec::Inet(ref attrs) => attrs.as_slice().emit(buffer),
-            AfSpec::Other(ref nla)  => nla.emit_value(buffer),
+            LinkAfSpecNla::Inet6(ref attrs) => attrs.as_slice().emit(buffer),
+            LinkAfSpecNla::Inet(ref attrs) => attrs.as_slice().emit(buffer),
+            LinkAfSpecNla::Other(ref nla)  => nla.emit_value(buffer),
         }
     }
 
     fn kind(&self) -> u16 {
-        use self::AfSpec::*;
+        use self::LinkAfSpecNla::*;
         match *self {
             Inet(_) => AF_INET,
             Unspec(_) => AF_UNSPEC,
@@ -212,24 +205,24 @@ impl Nla for AfSpec {
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<AfSpec> for NlaBuffer<&'buffer T> {
-    fn parse(&self) -> Result<AfSpec> {
-        use self::AfSpec::*;
+impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkAfSpecNla> for NlaBuffer<&'buffer T> {
+    fn parse(&self) -> Result<LinkAfSpecNla> {
+        use self::LinkAfSpecNla::*;
         let payload = self.value();
         Ok(match self.kind() {
             AF_UNSPEC => Unspec(payload.to_vec()),
             AF_INET => {
                 let mut nlas = vec![];
                 for nla in NlasIterator::new(payload) {
-                    nlas.push(<Parseable<AfInet>>::parse(&(nla?))?);
+                    nlas.push(<Parseable<LinkAfInetNla>>::parse(&(nla?))?);
                 }
                 Inet(nlas)
             }
             AF_INET6 => {
                 let mut nlas = vec![];
                 for nla in NlasIterator::new(payload) {
-                    // nlas.push(AfInet6::parse(&nla?)?)
-                    nlas.push(<Parseable<AfInet6>>::parse(&(nla?))?);
+                    // nlas.push(LinkAfInet6Nla::parse(&nla?)?)
+                    nlas.push(<Parseable<LinkAfInet6Nla>>::parse(&(nla?))?);
                 }
                 Inet6(nlas)
             }
@@ -267,7 +260,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<AfSpec> for NlaBuffer<&'buffer 
             AF_IEEE802154 => Ieee802154(payload.to_vec()),
             AF_CAIF => Caif(payload.to_vec()),
             AF_ALG => Alg(payload.to_vec()),
-            _ => AfSpec::Other(<Self as Parseable<DefaultNla>>::parse(self)?),
+            _ => LinkAfSpecNla::Other(<Self as Parseable<DefaultNla>>::parse(self)?),
         })
     }
 }

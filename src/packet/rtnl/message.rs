@@ -4,15 +4,15 @@ use constants::*;
 use {Emitable, Error, NetlinkBuffer, NetlinkFlags, NetlinkHeader, Parseable, Result};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct NetlinkMessage {
+pub struct Message {
     header: NetlinkHeader,
     message: RtnlMessage,
     finalized: bool,
 }
 
-impl From<RtnlMessage> for NetlinkMessage {
+impl From<RtnlMessage> for Message {
     fn from(message: RtnlMessage) -> Self {
-        NetlinkMessage {
+        Message {
             header: NetlinkHeader::default(),
             message,
             finalized: false,
@@ -20,7 +20,7 @@ impl From<RtnlMessage> for NetlinkMessage {
     }
 }
 
-impl NetlinkMessage {
+impl Message {
     pub fn message(&self) -> &RtnlMessage {
         &self.message
     }
@@ -143,25 +143,25 @@ pub enum RtnlMessage {
     Error(Vec<u8>),
     Noop,
     Overrun(Vec<u8>),
-    NewLink(RtnlLinkMessage),
-    DelLink(RtnlLinkMessage),
-    GetLink(RtnlLinkMessage),
-    SetLink(RtnlLinkMessage),
-    NewAddress(RtnlAddressMessage),
-    DelAddress(RtnlAddressMessage),
-    GetAddress(RtnlAddressMessage),
+    NewLink(LinkMessage),
+    DelLink(LinkMessage),
+    GetLink(LinkMessage),
+    SetLink(LinkMessage),
+    NewAddress(AddressMessage),
+    DelAddress(AddressMessage),
+    GetAddress(AddressMessage),
     Other(Vec<u8>),
 }
 
-impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<NetlinkMessage> for NetlinkBuffer<&'buffer T> {
-    fn parse(&self) -> Result<NetlinkMessage> {
+impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Message> for NetlinkBuffer<&'buffer T> {
+    fn parse(&self) -> Result<Message> {
         use self::RtnlMessage::*;
         let header = <Self as Parseable<NetlinkHeader>>::parse(self)?;
 
         let message = match header.message_type {
             // Link messages
             RTM_NEWLINK | RTM_GETLINK | RTM_DELLINK | RTM_SETLINK => {
-                let msg: RtnlLinkMessage = RtnlLinkBuffer::new(&self.payload()).parse()?;
+                let msg: LinkMessage = LinkBuffer::new(&self.payload()).parse()?;
                 match header.message_type {
                     RTM_NEWLINK => NewLink(msg),
                     RTM_GETLINK => GetLink(msg),
@@ -173,7 +173,7 @@ impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<NetlinkMessage> for NetlinkBuf
 
             // Address messages
             RTM_NEWADDR | RTM_GETADDR | RTM_DELADDR => {
-                let msg: RtnlAddressMessage = RtnlAddressBuffer::new(&self.payload()).parse()?;
+                let msg: AddressMessage = AddressBuffer::new(&self.payload()).parse()?;
                 match header.message_type {
                     RTM_NEWADDR => NewAddress(msg),
                     RTM_GETADDR => GetAddress(msg),
@@ -187,7 +187,7 @@ impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<NetlinkMessage> for NetlinkBuf
             NLMSG_DONE => Done,
             _ => Other(self.payload().to_vec()),
         };
-        Ok(NetlinkMessage {
+        Ok(Message {
             header,
             message,
             finalized: true,
@@ -195,7 +195,7 @@ impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<NetlinkMessage> for NetlinkBuf
     }
 }
 
-impl Emitable for NetlinkMessage {
+impl Emitable for Message {
     #[cfg_attr(nightly, allow(unused_attributes))]
     #[cfg_attr(nightly, rustfmt::skip)]
     fn buffer_len(&self) -> usize {

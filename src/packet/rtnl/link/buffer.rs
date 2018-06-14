@@ -14,13 +14,13 @@ const ATTRIBUTES: Rest = 16..;
 pub const HEADER_LEN: usize = ATTRIBUTES.start;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct RtnlLinkBuffer<T> {
+pub struct LinkBuffer<T> {
     buffer: T,
 }
 
-impl<T: AsRef<[u8]>> RtnlLinkBuffer<T> {
-    pub fn new(buffer: T) -> RtnlLinkBuffer<T> {
-        RtnlLinkBuffer { buffer }
+impl<T: AsRef<[u8]>> LinkBuffer<T> {
+    pub fn new(buffer: T) -> LinkBuffer<T> {
+        LinkBuffer { buffer }
     }
 
     /// Consume the packet, returning the underlying buffer.
@@ -65,7 +65,7 @@ impl<T: AsRef<[u8]>> RtnlLinkBuffer<T> {
     }
 }
 
-impl<'a, T: AsRef<[u8]> + ?Sized> RtnlLinkBuffer<&'a T> {
+impl<'a, T: AsRef<[u8]> + ?Sized> LinkBuffer<&'a T> {
     /// Return a pointer to the payload.
     pub fn payload(&self) -> &'a [u8] {
         let data = self.buffer.as_ref();
@@ -77,7 +77,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> RtnlLinkBuffer<&'a T> {
     }
 }
 
-impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> RtnlLinkBuffer<&'a mut T> {
+impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> LinkBuffer<&'a mut T> {
     /// Return a mutable pointer to the payload.
     pub fn payload_mut(&mut self) -> &mut [u8] {
         let data = self.buffer.as_mut();
@@ -85,7 +85,7 @@ impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> RtnlLinkBuffer<&'a mut T> {
     }
 }
 
-impl<T: AsRef<[u8]> + AsMut<[u8]>> RtnlLinkBuffer<T> {
+impl<T: AsRef<[u8]> + AsMut<[u8]>> LinkBuffer<T> {
     /// set the address family field
     pub fn set_address_family(&mut self, value: u8) {
         let data = self.buffer.as_mut();

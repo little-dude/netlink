@@ -9,7 +9,7 @@ use {DefaultNla, NativeNla, Nla, NlaBuffer, Parseable, Result};
 
 #[repr(C)]
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
-pub struct Inet6Stats {
+pub struct LinkInet6Stats {
     pub num: i64,
     pub in_pkts: i64,
     pub in_octets: i64,
@@ -48,11 +48,11 @@ pub struct Inet6Stats {
     pub in_ce_pkts: i64,
 }
 
-impl NativeNla for Inet6Stats {}
+impl NativeNla for LinkInet6Stats {}
 
 #[repr(C)]
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
-pub struct Icmp6Stats {
+pub struct LinkIcmp6Stats {
     pub num: i64,
     pub in_msgs: i64,
     pub in_errors: i64,
@@ -61,11 +61,11 @@ pub struct Icmp6Stats {
     pub csum_errors: i64,
 }
 
-impl NativeNla for Icmp6Stats {}
+impl NativeNla for LinkIcmp6Stats {}
 
 #[repr(C)]
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
-pub struct Inet6DevConf {
+pub struct LinkInet6DevConf {
     pub forwarding: i32,
     pub hoplimit: i32,
     pub mtu6: i32,
@@ -119,45 +119,45 @@ pub struct Inet6DevConf {
     pub ndisc_tclass: i32,
 }
 
-impl NativeNla for Inet6DevConf {}
+impl NativeNla for LinkInet6DevConf {}
 
 #[repr(C)]
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
-pub struct Inet6CacheInfo {
+pub struct LinkInet6CacheInfo {
     pub max_reasm_len: i32,
     pub tstamp: i32,
     pub reachable_time: i32,
     pub retrans_time: i32,
 }
 
-impl NativeNla for Inet6CacheInfo {}
+impl NativeNla for LinkInet6CacheInfo {}
 
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub enum AfInet6 {
+pub enum LinkAfInet6Nla {
     Flags(u32),
-    CacheInfo(Inet6CacheInfo),
-    // Inet6DevConf is big (198 bytes), so we're wasting a space for each variant without a box.
-    DevConf(Box<Inet6DevConf>),
+    CacheInfo(LinkInet6CacheInfo),
+    // LinkInet6DevConf is big (198 bytes), so we're wasting a space for each variant without a box.
+    DevConf(Box<LinkInet6DevConf>),
     Unspec(Vec<u8>),
-    // Inet6Stats is huge (288 bytes), so we're wasting a *lot* of space for each variant without a
+    // LinkInet6Stats is huge (288 bytes), so we're wasting a *lot* of space for each variant without a
     // box.
-    Stats(Box<Inet6Stats>),
-    IcmpStats(Icmp6Stats),
+    Stats(Box<LinkInet6Stats>),
+    IcmpStats(LinkIcmp6Stats),
     Token([u8; 16]),
     AddrGenMode(u8),
     Other(DefaultNla),
 }
 
-impl Nla for AfInet6 {
+impl Nla for LinkAfInet6Nla {
     fn value_len(&self) -> usize {
-        use self::AfInet6::*;
+        use self::LinkAfInet6Nla::*;
         match *self {
             Unspec(ref bytes) => bytes.len(),
             Flags(_) => size_of::<u32>(),
-            CacheInfo(_) => size_of::<Inet6CacheInfo>(),
-            DevConf(_) => size_of::<Inet6DevConf>(),
-            Stats(_) => size_of::<Inet6Stats>(),
-            IcmpStats(_) => size_of::<Icmp6Stats>(),
+            CacheInfo(_) => size_of::<LinkInet6CacheInfo>(),
+            DevConf(_) => size_of::<LinkInet6DevConf>(),
+            Stats(_) => size_of::<LinkInet6Stats>(),
+            IcmpStats(_) => size_of::<LinkIcmp6Stats>(),
             Token(_) => 16,
             AddrGenMode(_) => 1,
             Other(ref nla) => nla.value_len(),
@@ -165,7 +165,7 @@ impl Nla for AfInet6 {
     }
 
     fn emit_value(&self, buffer: &mut [u8]) {
-        use self::AfInet6::*;
+        use self::LinkAfInet6Nla::*;
         match *self {
             Unspec(ref bytes) => buffer.copy_from_slice(bytes.as_slice()),
             Flags(ref value) => NativeEndian::write_u32(buffer, *value),
@@ -180,7 +180,7 @@ impl Nla for AfInet6 {
     }
 
     fn kind(&self) -> u16 {
-        use self::AfInet6::*;
+        use self::LinkAfInet6Nla::*;
         match *self {
             Unspec(_) => IFLA_INET6_UNSPEC,
             Flags(_) => IFLA_INET6_FLAGS,
@@ -195,17 +195,17 @@ impl Nla for AfInet6 {
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<AfInet6> for NlaBuffer<&'buffer T> {
-    fn parse(&self) -> Result<AfInet6> {
-        use self::AfInet6::*;
+impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkAfInet6Nla> for NlaBuffer<&'buffer T> {
+    fn parse(&self) -> Result<LinkAfInet6Nla> {
+        use self::LinkAfInet6Nla::*;
         let payload = self.value();
         Ok(match self.kind() {
             IFLA_INET6_UNSPEC => Unspec(payload.to_vec()),
             IFLA_INET6_FLAGS => Flags(parse_u32(payload)?),
-            IFLA_INET6_CACHEINFO => CacheInfo(Inet6CacheInfo::from_bytes(payload)?),
-            IFLA_INET6_CONF => DevConf(Box::new(Inet6DevConf::from_bytes(payload)?)),
-            IFLA_INET6_STATS => Stats(Box::new(Inet6Stats::from_bytes(payload)?)),
-            IFLA_INET6_ICMP6STATS => IcmpStats(Icmp6Stats::from_bytes(payload)?),
+            IFLA_INET6_CACHEINFO => CacheInfo(LinkInet6CacheInfo::from_bytes(payload)?),
+            IFLA_INET6_CONF => DevConf(Box::new(LinkInet6DevConf::from_bytes(payload)?)),
+            IFLA_INET6_STATS => Stats(Box::new(LinkInet6Stats::from_bytes(payload)?)),
+            IFLA_INET6_ICMP6STATS => IcmpStats(LinkIcmp6Stats::from_bytes(payload)?),
             IFLA_INET6_TOKEN => Token(parse_ipv6(payload)?),
             IFLA_INET6_ADDR_GEN_MODE => AddrGenMode(parse_u8(payload)?),
             _ => Other(<Self as Parseable<DefaultNla>>::parse(self)?),
