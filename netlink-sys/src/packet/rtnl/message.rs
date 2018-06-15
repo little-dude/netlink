@@ -51,6 +51,30 @@ impl Message {
         self.header.message_type
     }
 
+    pub fn is_done(&self) -> bool {
+        self.message() == &RtnlMessage::Done
+    }
+
+    pub fn is_noop(&self) -> bool {
+        self.message() == &RtnlMessage::Noop
+    }
+
+    pub fn is_overrun(&self) -> bool {
+        if let RtnlMessage::Overrun(_) = *self.message() {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_error(&self) -> bool {
+        if let RtnlMessage::Error(_) = *self.message() {
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn set_message_type(&mut self, value: u16) {
         self.header.message_type = value;
     }
@@ -196,7 +220,6 @@ impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Message> for NetlinkBuffer<&'b
 }
 
 impl Emitable for Message {
-    #[cfg_attr(nightly, allow(unused_attributes))]
     #[cfg_attr(nightly, rustfmt::skip)]
     fn buffer_len(&self) -> usize {
         use self::RtnlMessage::*;
@@ -222,7 +245,6 @@ impl Emitable for Message {
         self.header.buffer_len() + payload_len
     }
 
-    #[cfg_attr(nightly, allow(unused_attributes))]
     #[cfg_attr(nightly, rustfmt::skip)]
     fn emit(&self, buffer: &mut [u8]) {
         use self::RtnlMessage::*;

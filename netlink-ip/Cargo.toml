@@ -3,8 +3,15 @@ name = "netlink-ip"
 version = "0.1.0"
 authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 
+[dependencies]
+bytes = "*"
+tokio-core = "*"
+futures = "0.1"
+log = "*"
+lazy_static = "*"
+
 [dependencies.netlink-sys]
 version = "*"
 default-features = false
-features = ["rtnl_support"]
+features = ["rtnl_support", "tokio_support"]
 path = "../netlink-sys"

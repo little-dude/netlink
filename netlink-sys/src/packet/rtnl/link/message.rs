@@ -47,7 +47,6 @@ mod test {
     use constants::*;
     use packet::rtnl::link::*;
 
-    #[cfg_attr(nightly, allow(unused_attributes))]
     #[cfg_attr(nightly, rustfmt::skip)]
     static HEADER: [u8; 96] = [
         0x00, // address family
@@ -142,7 +141,7 @@ mod test {
         assert_eq!(nla.kind(), 16);
         assert_eq!(nla.value(), &[0x00]);
         let parsed: LinkNla = nla.parse().unwrap();
-        assert_eq!(parsed, LinkNla::OperState(0));
+        assert_eq!(parsed, LinkNla::OperState(LinkState::Unknown));
 
         // Link mode L=5,T=17,V=0
         let nla = nlas.next().unwrap().unwrap();

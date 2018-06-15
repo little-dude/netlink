@@ -7,6 +7,9 @@ pub use self::inet6::*;
 mod af_spec;
 pub use self::af_spec::*;
 
+mod link_infos;
+pub use self::link_infos::*;
+
 #[cfg(test)]
 mod tests;
 
@@ -38,7 +41,7 @@ pub enum LinkNla {
     CarrierUpCount(Vec<u8>),
     CarrierDownCount(Vec<u8>),
     NewIfIndex(Vec<u8>),
-    LinkInfo(Vec<u8>),
+    LinkInfo(Vec<LinkInfo>),
     Wireless(Vec<u8>),
     ProtoInfo(Vec<u8>),
     // mac address (use to be [u8; 6] but it turns out MAC != HW address, for instance for IP over
@@ -55,7 +58,6 @@ pub enum LinkNla {
     IfAlias(String),
     PhysPortName(String),
     // byte
-    OperState(u8),
     LinkMode(u8),
     Carrier(u8),
     ProtoDown(u8),
@@ -78,6 +80,7 @@ pub enum LinkNla {
     // i32
     LinkNetnsId(i32),
     // custom
+    OperState(LinkState),
     Stats(LinkStats32),
     Stats64(LinkStats64),
     Map(LinkMap),
@@ -87,7 +90,6 @@ pub enum LinkNla {
 }
 
 impl Nla for LinkNla {
-    #[cfg_attr(nightly, allow(unused_attributes))]
     #[cfg_attr(nightly, rustfmt::skip)]
     fn value_len(&self) -> usize {
         use self::LinkNla::*;
@@ -107,57 +109,57 @@ impl Nla for LinkNla {
                 | Event(ref bytes)
                 | NewNetnsId(ref bytes)
                 | IfNetnsId(ref bytes)
-                | LinkInfo(ref bytes)
                 | Wireless(ref bytes)
                 | ProtoInfo(ref bytes)
                 | CarrierUpCount(ref bytes)
                 | CarrierDownCount(ref bytes)
                 | NewIfIndex(ref bytes)
                 | Address(ref bytes)
-                | Broadcast(ref bytes) => bytes.len(),
+                | Broadcast(ref bytes)
+                => bytes.len(),
 
-                // strings: +1 because we need to append a nul byte
-                IfName(ref string)
-                    | Qdisc(ref string)
-                    | IfAlias(ref string)
-                    | PhysPortName(ref string) => string.as_bytes().len() + 1,
+            // strings: +1 because we need to append a nul byte
+            IfName(ref string)
+                | Qdisc(ref string)
+                | IfAlias(ref string)
+                | PhysPortName(ref string)
+                => string.as_bytes().len() + 1,
 
-                    // Mac addresses are arrays of 6 bytes
+            // u8
+            LinkMode(_)
+                | Carrier(_)
+                | ProtoDown(_)
+                => size_of::<u8>(),
 
-                    // u8
-                    OperState(_)
-                        | LinkMode(_)
-                        | Carrier(_)
-                        | ProtoDown(_) => size_of::<u8>(),
+            // u32 and i32
+            Mtu(_)
+                | Link(_)
+                | Master(_)
+                | TxQueueLen(_)
+                | NetNsPid(_)
+                | NumVf(_)
+                | Group(_)
+                | NetnsFd(_)
+                | ExtMask(_)
+                | Promiscuity(_)
+                | NumTxQueues(_)
+                | NumRxQueues(_)
+                | CarrierChanges(_)
+                | GsoMaxSegs(_)
+                | GsoMaxSize(_)
+                | LinkNetnsId(_) => size_of::<u32>(),
 
-                        // u32 and i32
-                        Mtu(_)
-                            | Link(_)
-                            | Master(_)
-                            | TxQueueLen(_)
-                            | NetNsPid(_)
-                            | NumVf(_)
-                            | Group(_)
-                            | NetnsFd(_)
-                            | ExtMask(_)
-                            | Promiscuity(_)
-                            | NumTxQueues(_)
-                            | NumRxQueues(_)
-                            | CarrierChanges(_)
-                            | GsoMaxSegs(_)
-                            | GsoMaxSize(_)
-                            | LinkNetnsId(_) => size_of::<u32>(),
-
-                            // Defaults
-                        Map(_) => size_of::<LinkMap>(),
-                        Stats(_) => size_of::<LinkStats32>(),
-                        Stats64(_) => size_of::<LinkStats64>(),
-                        AfSpec(ref af_spec) => af_spec.buffer_len(),
-                        Other(ref attr)  => attr.value_len(),
+            // Defaults
+            OperState(_) => size_of::<u8>(),
+            Map(_) => size_of::<LinkMap>(),
+            Stats(_) => size_of::<LinkStats32>(),
+            Stats64(_) => size_of::<LinkStats64>(),
+            LinkInfo(ref nlas) => nlas.as_slice().buffer_len(),
+            AfSpec(ref af_spec) => af_spec.buffer_len(),
+            Other(ref attr)  => attr.value_len(),
         }
     }
 
-    #[cfg_attr(nightly, allow(unused_attributes))]
     #[cfg_attr(nightly, rustfmt::skip)]
     fn emit_value(&self, buffer: &mut [u8]) {
         use self::LinkNla::*;
@@ -172,7 +174,6 @@ impl Nla for LinkNla {
                 | PortSelf(ref bytes)
                 | PhysPortId(ref bytes)
                 | PhysSwitchId(ref bytes)
-                | LinkInfo(ref bytes)
                 | Wireless(ref bytes)
                 | ProtoInfo(ref bytes)
                 | Pad(ref bytes)
@@ -186,51 +187,56 @@ impl Nla for LinkNla {
                 // mac address (could be [u8; 6] or [u8; 4] for example. Not sure if we should have
                 // a separate type for them
                 | Address(ref bytes)
-                | Broadcast(ref bytes) => buffer.copy_from_slice(bytes.as_slice()),
+                | Broadcast(ref bytes)
+                => buffer.copy_from_slice(bytes.as_slice()),
 
-                // String
-                IfName(ref string)
-                    | Qdisc(ref string)
-                    | IfAlias(ref string)
-                    | PhysPortName(ref string) => {
-                        buffer.copy_from_slice(string.as_bytes());
-                        buffer[string.as_bytes().len()] = 0;
-                    }
+            // String
+            IfName(ref string)
+                | Qdisc(ref string)
+                | IfAlias(ref string)
+                | PhysPortName(ref string)
+                => {
+                    buffer.copy_from_slice(string.as_bytes());
+                    buffer[string.as_bytes().len()] = 0;
+                }
 
             // u8
-            OperState(ref val)
-                | LinkMode(ref val)
+            LinkMode(ref val)
                 | Carrier(ref val)
-                | ProtoDown(ref val) => buffer[0] = *val,
+                | ProtoDown(ref val)
+                => buffer[0] = *val,
 
-                // u32
-                Mtu(ref value)
-                    | Link(ref value)
-                    | Master(ref value)
-                    | TxQueueLen(ref value)
-                    | NetNsPid(ref value)
-                    | NumVf(ref value)
-                    | Group(ref value)
-                    | NetnsFd(ref value)
-                    | ExtMask(ref value)
-                    | Promiscuity(ref value)
-                    | NumTxQueues(ref value)
-                    | NumRxQueues(ref value)
-                    | CarrierChanges(ref value)
-                    | GsoMaxSegs(ref value)
-                    | GsoMaxSize(ref value) => NativeEndian::write_u32(buffer, *value),
+            // u32
+            Mtu(ref value)
+                | Link(ref value)
+                | Master(ref value)
+                | TxQueueLen(ref value)
+                | NetNsPid(ref value)
+                | NumVf(ref value)
+                | Group(ref value)
+                | NetnsFd(ref value)
+                | ExtMask(ref value)
+                | Promiscuity(ref value)
+                | NumTxQueues(ref value)
+                | NumRxQueues(ref value)
+                | CarrierChanges(ref value)
+                | GsoMaxSegs(ref value)
+                | GsoMaxSize(ref value)
+                => NativeEndian::write_u32(buffer, *value),
 
-                    LinkNetnsId(ref value) => NativeEndian::write_i32(buffer, *value),
+            LinkNetnsId(ref value) => NativeEndian::write_i32(buffer, *value),
 
-                    Map(ref map) => map.to_bytes(buffer),
-                    Stats(ref stats) => stats.to_bytes(buffer),
-                    Stats64(ref stats) => stats.to_bytes(buffer),
-                    // This is not supposed to fail, because the buffer length has normally been checked
-                    // before cally this method. If that fails, there's a bug in out code that needs to be
-                    // fixed.
-                    AfSpec(ref af_spec) => af_spec.emit(buffer),
-                    // default nlas
-                    Other(ref attr) => attr.emit_value(buffer),
+            OperState(state) => buffer[0] = state.into(),
+            Map(ref map) => map.to_bytes(buffer),
+            Stats(ref stats) => stats.to_bytes(buffer),
+            Stats64(ref stats) => stats.to_bytes(buffer),
+            LinkInfo(ref nlas) => nlas.as_slice().emit(buffer),
+            // This is not supposed to fail, because the buffer length has normally been checked
+            // before cally this method. If that fails, there's a bug in out code that needs to be
+            // fixed.
+            AfSpec(ref af_spec) => af_spec.emit(buffer),
+            // default nlas
+            Other(ref attr) => attr.emit_value(buffer),
         }
     }
 
@@ -267,7 +273,6 @@ impl Nla for LinkNla {
             IfAlias(_) => IFLA_IFALIAS,
             PhysPortName(_) => IFLA_PHYS_PORT_NAME,
             // u8
-            OperState(_) => IFLA_OPERSTATE,
             LinkMode(_) => IFLA_LINKMODE,
             Carrier(_) => IFLA_CARRIER,
             ProtoDown(_) => IFLA_PROTO_DOWN,
@@ -290,6 +295,7 @@ impl Nla for LinkNla {
             // i32
             LinkNetnsId(_) => IFLA_LINK_NETNSID,
             // custom
+            OperState(_) => IFLA_OPERSTATE,
             Map(_) => IFLA_MAP,
             Stats(_) => IFLA_STATS,
             Stats64(_) => IFLA_STATS64,
@@ -314,7 +320,6 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkNla> for NlaBuffer<&'buffer
             IFLA_PORT_SELF => PortSelf(payload.to_vec()),
             IFLA_PHYS_PORT_ID => PhysPortId(payload.to_vec()),
             IFLA_PHYS_SWITCH_ID => PhysSwitchId(payload.to_vec()),
-            IFLA_LINKINFO => LinkInfo(payload.to_vec()),
             IFLA_WIRELESS => Wireless(payload.to_vec()),
             IFLA_PROTINFO => ProtoInfo(payload.to_vec()),
             IFLA_PAD => Pad(payload.to_vec()),
@@ -336,7 +341,6 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkNla> for NlaBuffer<&'buffer
             IFLA_PHYS_PORT_NAME => PhysPortName(parse_string(payload)?),
 
             // u8
-            IFLA_OPERSTATE => OperState(parse_u8(payload)?),
             IFLA_LINKMODE => LinkMode(parse_u8(payload)?),
             IFLA_CARRIER => Carrier(parse_u8(payload)?),
             IFLA_PROTO_DOWN => ProtoDown(parse_u8(payload)?),
@@ -361,10 +365,13 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkNla> for NlaBuffer<&'buffer
             // i32
             IFLA_LINK_NETNSID => LinkNetnsId(parse_i32(payload)?),
 
+            IFLA_OPERSTATE => OperState(parse_u8(payload)?.into()),
             IFLA_MAP => Map(LinkMap::from_bytes(payload)?),
             IFLA_STATS => Stats(LinkStats32::from_bytes(payload)?),
             IFLA_STATS64 => Stats64(LinkStats64::from_bytes(payload)?),
             IFLA_AF_SPEC => AfSpec(NlaBuffer::new_checked(payload)?.parse()?),
+
+            IFLA_LINKINFO => LinkInfo(NlaBuffer::new_checked(payload)?.parse()?),
             // default nlas
             _ => Other(<Self as Parseable<DefaultNla>>::parse(self)?),
         })
@@ -440,3 +447,56 @@ impl NativeNla for LinkStats<u64> {}
 
 pub type LinkStats32 = LinkStats<u32>;
 pub type LinkStats64 = LinkStats<u64>;
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum LinkState {
+    /// Status can't be determined
+    Unknown,
+    /// Some component is missing
+    NotPresent,
+    /// Down
+    Down,
+    /// Down due to state of lower layer
+    LowerLayerDown,
+    /// In some test mode
+    Testing,
+    /// Not up but pending an external event
+    Dormant,
+    /// Up, ready to send packets
+    Up,
+    /// Unrecognized value. This should go away when `TryFrom` is stable in Rust
+    // FIXME: there's not point in having this. When TryFrom is stable we'll remove it
+    Other(u8),
+}
+
+impl From<u8> for LinkState {
+    fn from(value: u8) -> Self {
+        use self::LinkState::*;
+        match value {
+            IF_OPER_UNKNOWN => Unknown,
+            IF_OPER_NOTPRESENT => NotPresent,
+            IF_OPER_DOWN => Down,
+            IF_OPER_LOWERLAYERDOWN => LowerLayerDown,
+            IF_OPER_TESTING => Testing,
+            IF_OPER_DORMANT => Dormant,
+            IF_OPER_UP => Up,
+            _ => Other(value),
+        }
+    }
+}
+
+impl From<LinkState> for u8 {
+    fn from(value: LinkState) -> Self {
+        use self::LinkState::*;
+        match value {
+            Unknown => IF_OPER_UNKNOWN,
+            NotPresent => IF_OPER_NOTPRESENT,
+            Down => IF_OPER_DOWN,
+            LowerLayerDown => IF_OPER_LOWERLAYERDOWN,
+            Testing => IF_OPER_TESTING,
+            Dormant => IF_OPER_DORMANT,
+            Up => IF_OPER_UP,
+            Other(other) => other,
+        }
+    }
+}

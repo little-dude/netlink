@@ -1,10 +1,10 @@
 extern crate futures;
-extern crate netlink;
+extern crate netlink_sys;
 
 use futures::{Future, Sink, Stream};
-use netlink::constants::{NLM_F_DUMP, NLM_F_REQUEST};
-use netlink::rtnl::{LinkFlags, LinkHeader, LinkLayerType, LinkMessage, Message, RtnlMessage};
-use netlink::{NetlinkCodec, NetlinkFlags, NetlinkFramed, Protocol, SocketAddr, TokioSocket};
+use netlink_sys::constants::{NLM_F_DUMP, NLM_F_REQUEST};
+use netlink_sys::rtnl::{LinkFlags, LinkHeader, LinkLayerType, LinkMessage, Message, RtnlMessage};
+use netlink_sys::{NetlinkCodec, NetlinkFlags, NetlinkFramed, Protocol, SocketAddr, TokioSocket};
 
 fn main() {
     let mut socket = TokioSocket::new(Protocol::Route).unwrap();

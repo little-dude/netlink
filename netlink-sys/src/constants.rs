@@ -1,3 +1,5 @@
+#![cfg_attr(nightly, rustfmt::skip)]
+
 use bindgen_constants as constants;
 
 /// Constants used for the "message type" field of netlink headers, that apply to any protocol family.
@@ -329,6 +331,66 @@ mod rtnl_link_nlas {
     pub const IFLA_CARRIER_UP_COUNT: u16 = constants::IFLA_CARRIER_UP_COUNT as u16;
     pub const IFLA_CARRIER_DOWN_COUNT: u16 = constants::IFLA_CARRIER_DOWN_COUNT as u16;
     pub const IFLA_NEW_IFINDEX: u16 = constants::IFLA_NEW_IFINDEX as u16;
+
+    pub const IFLA_INFO_UNSPEC: u16 = constants::IFLA_INFO_UNSPEC as u16;
+    pub const IFLA_INFO_KIND: u16 = constants::IFLA_INFO_KIND as u16;
+    pub const IFLA_INFO_DATA: u16 = constants::IFLA_INFO_DATA as u16;
+    pub const IFLA_INFO_XSTATS: u16 = constants::IFLA_INFO_XSTATS as u16;
+    pub const IFLA_INFO_SLAVE_KIND: u16 = constants::IFLA_INFO_SLAVE_KIND as u16;
+    pub const IFLA_INFO_SLAVE_DATA: u16 = constants::IFLA_INFO_SLAVE_DATA as u16;
+
+    pub const IFLA_VLAN_UNSPEC: u16 = constants::IFLA_VLAN_UNSPEC as u16;
+    pub const IFLA_VLAN_ID: u16 = constants::IFLA_VLAN_ID as u16;
+    pub const IFLA_VLAN_FLAGS: u16 = constants::IFLA_VLAN_FLAGS as u16;
+    pub const IFLA_VLAN_EGRESS_QOS: u16 = constants::IFLA_VLAN_EGRESS_QOS as u16;
+    pub const IFLA_VLAN_INGRESS_QOS: u16 = constants::IFLA_VLAN_INGRESS_QOS as u16;
+    pub const IFLA_VLAN_PROTOCOL: u16 = constants::IFLA_VLAN_PROTOCOL as u16;
+
+    pub const IFLA_BR_UNSPEC: u16 = constants::IFLA_BR_UNSPEC as u16;
+    pub const IFLA_BR_FORWARD_DELAY: u16 = constants::IFLA_BR_FORWARD_DELAY as u16;
+    pub const IFLA_BR_HELLO_TIME: u16 = constants::IFLA_BR_HELLO_TIME as u16;
+    pub const IFLA_BR_MAX_AGE: u16 = constants::IFLA_BR_MAX_AGE as u16;
+    pub const IFLA_BR_AGEING_TIME: u16 = constants::IFLA_BR_AGEING_TIME as u16;
+    pub const IFLA_BR_STP_STATE: u16 = constants::IFLA_BR_STP_STATE as u16;
+    pub const IFLA_BR_PRIORITY: u16 = constants::IFLA_BR_PRIORITY as u16;
+    pub const IFLA_BR_VLAN_FILTERING: u16 = constants::IFLA_BR_VLAN_FILTERING as u16;
+    pub const IFLA_BR_VLAN_PROTOCOL: u16 = constants::IFLA_BR_VLAN_PROTOCOL as u16;
+    pub const IFLA_BR_GROUP_FWD_MASK: u16 = constants::IFLA_BR_GROUP_FWD_MASK as u16;
+    pub const IFLA_BR_ROOT_ID: u16 = constants::IFLA_BR_ROOT_ID as u16;
+    pub const IFLA_BR_BRIDGE_ID: u16 = constants::IFLA_BR_BRIDGE_ID as u16;
+    pub const IFLA_BR_ROOT_PORT: u16 = constants::IFLA_BR_ROOT_PORT as u16;
+    pub const IFLA_BR_ROOT_PATH_COST: u16 = constants::IFLA_BR_ROOT_PATH_COST as u16;
+    pub const IFLA_BR_TOPOLOGY_CHANGE: u16 = constants::IFLA_BR_TOPOLOGY_CHANGE as u16;
+    pub const IFLA_BR_TOPOLOGY_CHANGE_DETECTED: u16 = constants::IFLA_BR_TOPOLOGY_CHANGE_DETECTED as u16;
+    pub const IFLA_BR_HELLO_TIMER: u16 = constants::IFLA_BR_HELLO_TIMER as u16;
+    pub const IFLA_BR_TCN_TIMER: u16 = constants::IFLA_BR_TCN_TIMER as u16;
+    pub const IFLA_BR_TOPOLOGY_CHANGE_TIMER: u16 = constants::IFLA_BR_TOPOLOGY_CHANGE_TIMER as u16;
+    pub const IFLA_BR_GC_TIMER: u16 = constants::IFLA_BR_GC_TIMER as u16;
+    pub const IFLA_BR_GROUP_ADDR: u16 = constants::IFLA_BR_GROUP_ADDR as u16;
+    pub const IFLA_BR_FDB_FLUSH: u16 = constants::IFLA_BR_FDB_FLUSH as u16;
+    pub const IFLA_BR_MCAST_ROUTER: u16 = constants::IFLA_BR_MCAST_ROUTER as u16;
+    pub const IFLA_BR_MCAST_SNOOPING: u16 = constants::IFLA_BR_MCAST_SNOOPING as u16;
+    pub const IFLA_BR_MCAST_QUERY_USE_IFADDR: u16 = constants::IFLA_BR_MCAST_QUERY_USE_IFADDR as u16;
+    pub const IFLA_BR_MCAST_QUERIER: u16 = constants::IFLA_BR_MCAST_QUERIER as u16;
+    pub const IFLA_BR_MCAST_HASH_ELASTICITY: u16 = constants::IFLA_BR_MCAST_HASH_ELASTICITY as u16;
+    pub const IFLA_BR_MCAST_HASH_MAX: u16 = constants::IFLA_BR_MCAST_HASH_MAX as u16;
+    pub const IFLA_BR_MCAST_LAST_MEMBER_CNT: u16 = constants::IFLA_BR_MCAST_LAST_MEMBER_CNT as u16;
+    pub const IFLA_BR_MCAST_STARTUP_QUERY_CNT: u16 = constants::IFLA_BR_MCAST_STARTUP_QUERY_CNT as u16;
+    pub const IFLA_BR_MCAST_LAST_MEMBER_INTVL: u16 = constants::IFLA_BR_MCAST_LAST_MEMBER_INTVL as u16;
+    pub const IFLA_BR_MCAST_MEMBERSHIP_INTVL: u16 = constants::IFLA_BR_MCAST_MEMBERSHIP_INTVL as u16;
+    pub const IFLA_BR_MCAST_QUERIER_INTVL: u16 = constants::IFLA_BR_MCAST_QUERIER_INTVL as u16;
+    pub const IFLA_BR_MCAST_QUERY_INTVL: u16 = constants::IFLA_BR_MCAST_QUERY_INTVL as u16;
+    pub const IFLA_BR_MCAST_QUERY_RESPONSE_INTVL: u16 = constants::IFLA_BR_MCAST_QUERY_RESPONSE_INTVL as u16;
+    pub const IFLA_BR_MCAST_STARTUP_QUERY_INTVL: u16 = constants::IFLA_BR_MCAST_STARTUP_QUERY_INTVL as u16;
+    pub const IFLA_BR_NF_CALL_IPTABLES: u16 = constants::IFLA_BR_NF_CALL_IPTABLES as u16;
+    pub const IFLA_BR_NF_CALL_IP6TABLES: u16 = constants::IFLA_BR_NF_CALL_IP6TABLES as u16;
+    pub const IFLA_BR_NF_CALL_ARPTABLES: u16 = constants::IFLA_BR_NF_CALL_ARPTABLES as u16;
+    pub const IFLA_BR_VLAN_DEFAULT_PVID: u16 = constants::IFLA_BR_VLAN_DEFAULT_PVID as u16;
+    pub const IFLA_BR_PAD: u16 = constants::IFLA_BR_PAD as u16;
+    pub const IFLA_BR_VLAN_STATS_ENABLED: u16 = constants::IFLA_BR_VLAN_STATS_ENABLED as u16;
+    pub const IFLA_BR_MCAST_STATS_ENABLED: u16 = constants::IFLA_BR_MCAST_STATS_ENABLED as u16;
+    pub const IFLA_BR_MCAST_IGMP_VERSION: u16 = constants::IFLA_BR_MCAST_IGMP_VERSION as u16;
+    pub const IFLA_BR_MCAST_MLD_VERSION: u16 = constants::IFLA_BR_MCAST_MLD_VERSION as u16;
 }
 pub use self::rtnl_link_nlas::*;
 
@@ -594,3 +656,14 @@ mod rtnl_route_nlas {
 }
 
 pub use self::rtnl_route_nlas::*;
+
+mod if_states {
+	pub const IF_OPER_UNKNOWN: u8 = 0;
+	pub const IF_OPER_NOTPRESENT: u8 = 1;
+	pub const IF_OPER_DOWN: u8 = 2;
+	pub const IF_OPER_LOWERLAYERDOWN: u8 = 3;
+	pub const IF_OPER_TESTING: u8 = 4;
+	pub const IF_OPER_DORMANT: u8 = 5;
+	pub const IF_OPER_UP: u8 = 6;
+}
+pub use self::if_states::*;

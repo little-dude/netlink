@@ -9,4 +9,5 @@ mod mio;
 
 #[cfg(feature = "tokio_support")]
 mod tokio;
+#[cfg(feature = "tokio_support")]
 pub use self::tokio::*;

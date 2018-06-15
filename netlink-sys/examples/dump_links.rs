@@ -1,8 +1,8 @@
-extern crate netlink;
+extern crate netlink_sys;
 
-use netlink::constants::{NLM_F_DUMP, NLM_F_REQUEST};
-use netlink::rtnl::{LinkFlags, LinkHeader, LinkLayerType, LinkMessage, Message, RtnlMessage};
-use netlink::{NetlinkFlags, Protocol, Socket, SocketAddr};
+use netlink_sys::constants::{NLM_F_DUMP, NLM_F_REQUEST};
+use netlink_sys::rtnl::{LinkFlags, LinkHeader, LinkLayerType, LinkMessage, Message, RtnlMessage};
+use netlink_sys::{NetlinkFlags, Protocol, Socket, SocketAddr};
 
 fn main() {
     let mut socket = Socket::new(Protocol::Route).unwrap();

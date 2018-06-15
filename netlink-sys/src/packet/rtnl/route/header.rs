@@ -259,7 +259,7 @@ impl RouteFlags {
 
     /// Check whether the`RTM_F_NOTIFY` flag is set. If this flag is set and the route changes, a
     /// rtnetlink notification is sent to the user by the kernel.
-    pub fn has_notify(&self) -> bool {
+    pub fn has_notify(self) -> bool {
         self.0 & RTM_F_NOTIFY == RTM_F_NOTIFY
     }
 
@@ -271,7 +271,7 @@ impl RouteFlags {
 
     /// Check whether the`RTM_F_CLONED` flag is set. This flag is set if the route is cloned from
     /// another route.
-    pub fn has_cloned(&self) -> bool {
+    pub fn has_cloned(self) -> bool {
         self.0 & RTM_F_CLONED == RTM_F_CLONED
     }
 
@@ -281,7 +281,7 @@ impl RouteFlags {
     }
 
     /// Check whether the`RTM_F_EQUALIZE` flag is set.
-    pub fn has_equalize(&self) -> bool {
+    pub fn has_equalize(self) -> bool {
         self.0 & RTM_F_EQUALIZE == RTM_F_EQUALIZE
     }
 
@@ -291,7 +291,7 @@ impl RouteFlags {
     }
 
     /// Check whether the`RTM_F_PREFIX` flag is set.
-    pub fn has_prefix(&self) -> bool {
+    pub fn has_prefix(self) -> bool {
         self.0 & RTM_F_PREFIX == RTM_F_PREFIX
     }
 
@@ -301,7 +301,7 @@ impl RouteFlags {
     }
 
     /// Check whether the`RTM_F_LOOKUP_TABLE` flag is set.
-    pub fn has_lookup_table(&self) -> bool {
+    pub fn has_lookup_table(self) -> bool {
         self.0 & RTM_F_LOOKUP_TABLE == RTM_F_LOOKUP_TABLE
     }
 
@@ -311,7 +311,7 @@ impl RouteFlags {
     }
 
     /// Check whether the`RTM_F_FIB_MATCH` flag is set.
-    pub fn has_fib_match(&self) -> bool {
+    pub fn has_fib_match(self) -> bool {
         self.0 & RTM_F_FIB_MATCH == RTM_F_FIB_MATCH
     }
 

@@ -49,7 +49,6 @@ pub enum LinkAfInetNla {
 }
 
 impl Nla for LinkAfInetNla {
-    #[cfg_attr(nightly, allow(unused_attributes))]
     #[cfg_attr(nightly, rustfmt::skip)]
     fn value_len(&self) -> usize {
         use self::LinkAfInetNla::*;
@@ -60,7 +59,6 @@ impl Nla for LinkAfInetNla {
         }
     }
 
-    #[cfg_attr(nightly, allow(unused_attributes))]
     #[cfg_attr(nightly, rustfmt::skip)]
     fn emit_value(&self, buffer: &mut [u8]) {
         use self::LinkAfInetNla::*;

@@ -40,7 +40,7 @@ impl NetlinkFlags {
     }
 
     /// Check if the `NLM_F_REQUEST` flag is set
-    pub fn has_request(&self) -> bool {
+    pub fn has_request(self) -> bool {
         self.0 & NLM_F_REQUEST == NLM_F_REQUEST
     }
 
@@ -49,7 +49,7 @@ impl NetlinkFlags {
         self.0 |= NLM_MULTIPART
     }
     /// Check if the `NLM_MULTIPART` flag is set
-    pub fn has_multipart(&self) -> bool {
+    pub fn has_multipart(self) -> bool {
         self.0 & NLM_MULTIPART == NLM_MULTIPART
     }
 
@@ -58,7 +58,7 @@ impl NetlinkFlags {
         self.0 |= NLM_F_ACK
     }
     /// Check if the `NLM_F_ACK` flag is set
-    pub fn has_ack(&self) -> bool {
+    pub fn has_ack(self) -> bool {
         self.0 & NLM_F_ACK == NLM_F_ACK
     }
 
@@ -67,7 +67,7 @@ impl NetlinkFlags {
         self.0 |= NLM_F_ECHO
     }
     /// Check if the `NLM_F_ECHO` flag is set
-    pub fn has_echo(&self) -> bool {
+    pub fn has_echo(self) -> bool {
         self.0 & NLM_F_ECHO == NLM_F_ECHO
     }
 
@@ -76,7 +76,7 @@ impl NetlinkFlags {
         self.0 |= NLM_F_DUMP_INTR
     }
     /// Check if the `NLM_F_DUMP_INTR` flag is set
-    pub fn has_dump_intr(&self) -> bool {
+    pub fn has_dump_intr(self) -> bool {
         self.0 & NLM_F_DUMP_INTR == NLM_F_DUMP_INTR
     }
 
@@ -85,7 +85,7 @@ impl NetlinkFlags {
         self.0 |= NLM_F_DUMP_FILTERED
     }
     /// Check if the `NLM_F_DUMP_FILTERED` flag is set
-    pub fn has_dump_filterd(&self) -> bool {
+    pub fn has_dump_filterd(self) -> bool {
         self.0 & NLM_F_DUMP_FILTERED == NLM_F_DUMP_FILTERED
     }
 
@@ -94,7 +94,7 @@ impl NetlinkFlags {
         self.0 |= NLM_F_ROOT
     }
     /// Check if the `NLM_F_ROOT` flag is set
-    pub fn has_root(&self) -> bool {
+    pub fn has_root(self) -> bool {
         self.0 & NLM_F_ROOT == NLM_F_ROOT
     }
 
@@ -103,7 +103,7 @@ impl NetlinkFlags {
         self.0 |= NLM_F_MATCH
     }
     /// Check if the `NLM_F_MATCH` flag is set
-    pub fn has_match(&self) -> bool {
+    pub fn has_match(self) -> bool {
         self.0 & NLM_F_MATCH == NLM_F_MATCH
     }
 
@@ -112,7 +112,7 @@ impl NetlinkFlags {
         self.0 |= NLM_F_ATOMIC
     }
     /// Check if the `NLM_F_ATOMIC` flag is set
-    pub fn has_atomic(&self) -> bool {
+    pub fn has_atomic(self) -> bool {
         self.0 & NLM_F_ATOMIC == NLM_F_ATOMIC
     }
 
@@ -121,7 +121,7 @@ impl NetlinkFlags {
         self.0 |= NLM_F_DUMP
     }
     /// Check if the `NLM_F_DUMP` flag is set
-    pub fn has_dump(&self) -> bool {
+    pub fn has_dump(self) -> bool {
         self.0 & NLM_F_DUMP == NLM_F_DUMP
     }
 
@@ -130,7 +130,7 @@ impl NetlinkFlags {
         self.0 |= NLM_F_REPLACE
     }
     /// Check if the `NLM_F_REPLACE` flag is set
-    pub fn has_replace(&self) -> bool {
+    pub fn has_replace(self) -> bool {
         self.0 & NLM_F_REPLACE == NLM_F_REPLACE
     }
 
@@ -139,7 +139,7 @@ impl NetlinkFlags {
         self.0 |= NLM_F_EXCL
     }
     /// Check if the `NLM_F_EXCL` flag is set
-    pub fn has_excl(&self) -> bool {
+    pub fn has_excl(self) -> bool {
         self.0 & NLM_F_EXCL == NLM_F_EXCL
     }
 
@@ -148,7 +148,7 @@ impl NetlinkFlags {
         self.0 |= NLM_F_CREATE
     }
     /// Check if the `NLM_F_CREATE` flag is set
-    pub fn has_create(&self) -> bool {
+    pub fn has_create(self) -> bool {
         self.0 & NLM_F_CREATE == NLM_F_CREATE
     }
 
@@ -157,7 +157,7 @@ impl NetlinkFlags {
         self.0 |= NLM_F_APPEND
     }
     /// Check if the `NLM_F_APPEND` flag is set
-    pub fn has_append(&self) -> bool {
+    pub fn has_append(self) -> bool {
         self.0 & NLM_F_APPEND == NLM_F_APPEND
     }
 
@@ -166,7 +166,7 @@ impl NetlinkFlags {
         self.0 |= NLM_F_NONREC
     }
     /// Check if the `NLM_F_NONREC` flag is set
-    pub fn has_nonrec(&self) -> bool {
+    pub fn has_nonrec(self) -> bool {
         self.0 & NLM_F_NONREC == NLM_F_NONREC
     }
 
@@ -175,7 +175,7 @@ impl NetlinkFlags {
         self.0 |= NLM_F_ACK_TLVS
     }
     /// Check if the `NLM_F_ACK_TLVS` flag is set
-    pub fn has_ack_tvls(&mut self) -> bool {
+    pub fn has_ack_tvls(self) -> bool {
         self.0 & NLM_F_ACK_TLVS == NLM_F_ACK_TLVS
     }
 
@@ -184,7 +184,7 @@ impl NetlinkFlags {
         self.0 |= NLM_F_CAPPED
     }
     /// Check if the `NLM_F_CAPPED` flag is set
-    pub fn has_capped(&self) -> bool {
+    pub fn has_capped(self) -> bool {
         self.0 & NLM_F_CAPPED == NLM_F_CAPPED
     }
 }

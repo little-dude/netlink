@@ -2,6 +2,7 @@
 authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 name = "netlink-sys"
 version = "0.1.0"
+
 [dependencies]
 byteorder = "1.2.3"
 bytes = "0.4.8"
