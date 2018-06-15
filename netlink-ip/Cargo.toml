@@ -1,0 +1,10 @@
+[package]
+name = "netlink-ip"
+version = "0.1.0"
+authors = ["Corentin Henry <corentinhenry@gmail.com>"]
+
+[dependencies.netlink-sys]
+version = "*"
+default-features = false
+features = ["rtnl_support"]
+path = "../netlink-sys"

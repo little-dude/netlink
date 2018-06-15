@@ -1,0 +1,42 @@
+[package]
+authors = ["Corentin Henry <corentinhenry@gmail.com>"]
+name = "netlink-sys"
+version = "0.1.0"
+[dependencies]
+byteorder = "1.2.3"
+bytes = "0.4.8"
+libc = "0.2.42"
+log = "0.4.2"
+
+[dependencies.futures]
+optional = true
+version = "0.1.1"
+
+[dependencies.mio]
+optional = true
+version = "0.6.14"
+
+[dependencies.tokio-io]
+optional = true
+version = "0.1.6"
+
+[dependencies.tokio-reactor]
+optional = true
+version = "0.1.1"
+
+[dev-dependencies]
+lazy_static = "1.0.1"
+
+[features]
+default = ["rtnl_support", "mio_support", "tokio_support"]
+nightly = []
+rtnl_support = []
+mio_support = ["mio"]
+tokio_support = ["mio_support", "tokio-io", "tokio-reactor", "futures"]
+
+[[example]]
+name = "dump_links"
+
+[[example]]
+name = "dump_links_tokio"
+required-features = ["tokio_support"]
