@@ -45,9 +45,6 @@ static BYTES: [u8; 748] = [
             0x00, 0x00, 0x00, 0x00, // 31 drop_gratuitous_arp
 
         // AF_INET6 (L=612, T=10)
-        // FIXME: there are three bytes of padding. Padding is usually not taken into account in
-        // the nla length, so I'm not sure if this is a bug or if AF_SPEC nlas are
-        // special.
         0x64, 0x02, 0x0a, 0x00,
             // IFLA_INET6_FLAGS (L=8,T=1)
             0x08, 0x00, 0x01, 0x00,
@@ -168,10 +165,7 @@ static BYTES: [u8; 748] = [
 
             // IFLA_INET6_ADDR_GEN_MODE (L=5, T=8)
             0x05, 0x00, 0x08, 0x00,
-            0x00,
-
-            // PADDING
-            0x00, 0x00, 0x00];
+            0x00, 0x00, 0x00, 0x00];
 
 lazy_static! {
     static ref BUFFER: NlaBuffer<&'static [u8]> = NlaBuffer::new_checked(&BYTES[..]).unwrap();
@@ -356,7 +350,13 @@ fn parse_af_inet() {
 #[test]
 fn emit_af_inet() {
     let mut bytes = vec![0xff; 132];
+
+    // Note: the value is a Vec of nlas, so the padding is automatically added for each nla.
+    assert_eq!(PARSED_AF_INET.value_len(), 128);
+    assert_eq!(PARSED_AF_INET.buffer_len(), 128 + 4);
+
     PARSED_AF_INET.emit(&mut bytes[..]);
+
     let buf = NlaBuffer::new_checked(&bytes[..]).unwrap();
 
     let mut nlas = get_nlas();
@@ -369,12 +369,11 @@ fn emit_af_inet() {
 
 #[test]
 fn emit_af_inet6() {
-    let mut bytes = vec![0xff; 609];
+    let mut bytes = vec![0xff; 612];
 
-    // Note that we don't have the three extra bytes of padding that are present in the packet we
-    // captured. Based on the protocol specs, I don't think they are mandatory.
-    assert_eq!(PARSED_AF_INET6.value_len(), 605);
-    assert_eq!(PARSED_AF_INET6.buffer_len(), 609);
+    // Note: the value is a Vec of nlas, so the padding is automatically added for each nla.
+    assert_eq!(PARSED_AF_INET6.value_len(), 608);
+    assert_eq!(PARSED_AF_INET6.buffer_len(), 608 + 4);
     PARSED_AF_INET6.emit(&mut bytes[..]);
 
     let buf = NlaBuffer::new_checked(&bytes[..]).unwrap();
@@ -384,15 +383,8 @@ fn emit_af_inet6() {
     let expected_buf = nlas.next().unwrap().unwrap();
 
     assert_eq!(expected_buf.kind(), buf.kind());
-    // this does not work because our reference packet has 3 bytes of padding which we don't emit.
-    // I'm not sure if this is a bug or not. According to the spec, padding is only necessary if
-    // there's another nla following. Also, the padding should not be taken into account in
-    // the length field.
-    //
-    // assert_eq!(expected_buf.length(), buf.length());
-    // assert_eq!(expected_buf.value(), buf.value());
-    assert_eq!(609, buf.length());
-    assert_eq!(&expected_buf.value()[..605], buf.value());
+    assert_eq!(expected_buf.length(), buf.length());
+    assert_eq!(expected_buf.value(), buf.value());
 }
 
 #[test]

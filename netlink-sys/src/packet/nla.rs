@@ -46,6 +46,10 @@ impl<T: AsRef<[u8]>> NlaBuffer<T> {
         self.buffer
     }
 
+    fn as_mut(&mut self) -> &mut T {
+        &mut self.buffer
+    }
+
     /// Return the `type` field
     pub fn kind(&self) -> u16 {
         let data = self.buffer.as_ref();
@@ -158,20 +162,30 @@ pub trait Nla {
 
 impl<T: Nla> Emitable for T {
     fn buffer_len(&self) -> usize {
-        self.value_len() as usize + 4
+        let padding = (4 - self.value_len() % 4) % 4;
+        self.value_len() + padding + 4
     }
 
     fn emit(&self, buffer: &mut [u8]) {
         let mut buffer = NlaBuffer::new(buffer);
         buffer.set_kind(self.kind());
-        buffer.set_length(self.buffer_len() as u16);
+        // do not include the padding here, but do include the header
+        buffer.set_length(self.value_len() as u16 + 4);
         self.emit_value(buffer.value_mut());
+        // add the padding. this is a bit ugly, not sure how to make it better
+        let padding = (4 - self.value_len() % 4) % 4;
+        for i in 0..padding {
+            buffer.as_mut()[4 + self.value_len() + i] = 0;
+        }
     }
 }
 
 impl<'a, T: Nla> Emitable for &'a [T] {
     fn buffer_len(&self) -> usize {
-        self.iter().fold(0, |acc, nla| acc + nla.buffer_len())
+        self.iter().fold(0, |acc, nla| {
+            assert_eq!(nla.buffer_len() % 4, 0);
+            acc + nla.buffer_len()
+        })
     }
 
     fn emit(&self, buffer: &mut [u8]) {
@@ -179,6 +193,7 @@ impl<'a, T: Nla> Emitable for &'a [T] {
         let mut end: usize;
         for nla in self.iter() {
             let attr_len = nla.buffer_len();
+            assert_eq!(nla.buffer_len() % 4, 0);
             end = start + attr_len;
             nla.emit(&mut buffer[start..end]);
             start = end;

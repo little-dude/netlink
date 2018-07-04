@@ -106,8 +106,8 @@ impl Nla for LinkAfSpecNla {
                 | Caif(ref bytes)
                 | Alg(ref bytes)
                 => bytes.len(),
-            Inet6(ref af_inet6) => af_inet6.iter().fold(0, |sum, nla| sum + 4 + nla.value_len()),
-            Inet(ref af_inet) =>  af_inet.iter().fold(0, |sum, nla| sum + 4 + nla.value_len()),
+            Inet6(ref af_inet6) => af_inet6.as_slice().buffer_len(),
+            Inet(ref af_inet) =>  af_inet.as_slice().buffer_len(),
             Other(ref nla) => nla.value_len(),
         }
     }

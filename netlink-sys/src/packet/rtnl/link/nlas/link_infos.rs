@@ -46,8 +46,8 @@ impl Nla for LinkInfo {
                 | SlaveKind(ref bytes)
                 | SlaveData(ref bytes)
                 => bytes.len(),
-            Kind(ref nla) => nla.buffer_len(),
-            Data(ref nla) => nla.buffer_len(),
+            Kind(ref nla) => nla.value_len(),
+            Data(ref nla) => nla.value_len(),
         }
     }
 
@@ -60,8 +60,8 @@ impl Nla for LinkInfo {
                 | SlaveKind(ref bytes)
                 | SlaveData(ref bytes)
                 => buffer.copy_from_slice(bytes),
-            Kind(ref nla) => nla.emit(buffer),
-            Data(ref nla) => nla.emit(buffer),
+            Kind(ref nla) => nla.emit_value(buffer),
+            Data(ref nla) => nla.emit_value(buffer),
         }
     }
 
@@ -327,8 +327,8 @@ impl Nla for LinkInfoKind {
             Gtp => GTP,
             Other(ref s) => s.as_str(),
         };
-        buffer.copy_from_slice(s.as_bytes());
-        buffer[s.as_bytes().len()] = 0;
+        &buffer[..s.len()].copy_from_slice(s.as_bytes());
+        buffer[s.len()] = 0;
     }
 
     fn kind(&self) -> u16 {
@@ -966,26 +966,8 @@ mod tests {
             0x00, 0x00, 0x00 // Padding
     ];
 
-    #[test]
-    fn parse_info_kind() {
-        let info_kind_nla = NlaBuffer::new_checked(&BRIDGE[..12]).unwrap();
-        let parsed = <NlaBuffer<_> as Parseable<LinkInfoKind>>::parse(&info_kind_nla).unwrap();
-        assert_eq!(parsed, LinkInfoKind::Bridge);
-    }
-
-    #[test]
-    fn parse_info_bridge() {
-        let nlas = NlasIterator::new(&BRIDGE[16..]);
-        for nla in nlas.map(|nla| nla.unwrap()) {
-            <NlaBuffer<_> as Parseable<LinkInfoBridge>>::parse(&nla).unwrap();
-        }
-    }
-
-    #[test]
-    fn parse() {
-        let nla = NlaBuffer::new_checked(&BRIDGE[..]).unwrap();
-        let parsed = <NlaBuffer<_> as Parseable<Vec<LinkInfo>>>::parse(&nla).unwrap();
-        let expected_bridge_info = vec![
+    lazy_static! {
+        static ref BRIDGE_INFO: Vec<LinkInfoBridge> = vec![
             LinkInfoBridge::HelloTimer(35),
             LinkInfoBridge::TcnTimer(0),
             LinkInfoBridge::TopologyChangeTimer(0),
@@ -1029,11 +1011,32 @@ mod tests {
             LinkInfoBridge::NfCallIp6Tables(0),
             LinkInfoBridge::NfCallArpTables(0),
         ];
+    }
+
+    #[test]
+    fn parse_info_kind() {
+        let info_kind_nla = NlaBuffer::new_checked(&BRIDGE[..12]).unwrap();
+        let parsed = <NlaBuffer<_> as Parseable<LinkInfoKind>>::parse(&info_kind_nla).unwrap();
+        assert_eq!(parsed, LinkInfoKind::Bridge);
+    }
+
+    #[test]
+    fn parse_info_bridge() {
+        let nlas = NlasIterator::new(&BRIDGE[16..]);
+        for nla in nlas.map(|nla| nla.unwrap()) {
+            <NlaBuffer<_> as Parseable<LinkInfoBridge>>::parse(&nla).unwrap();
+        }
+    }
+
+    #[test]
+    fn parse() {
+        let nla = NlaBuffer::new_checked(&BRIDGE[..]).unwrap();
+        let parsed = <NlaBuffer<_> as Parseable<Vec<LinkInfo>>>::parse(&nla).unwrap();
         assert_eq!(parsed.len(), 2);
         assert_eq!(parsed[0], LinkInfo::Kind(LinkInfoKind::Bridge));
         if let LinkInfo::Data(LinkInfoData::Bridge(nlas)) = parsed[1].clone() {
-            assert_eq!(nlas.len(), expected_bridge_info.len());
-            for (expected, parsed) in expected_bridge_info.iter().zip(nlas) {
+            assert_eq!(nlas.len(), BRIDGE_INFO.len());
+            for (expected, parsed) in BRIDGE_INFO.iter().zip(nlas) {
                 assert_eq!(*expected, parsed);
             }
         } else {
@@ -1042,5 +1045,19 @@ mod tests {
                 parsed[1]
             )
         }
+    }
+
+    #[test]
+    fn emit() {
+        let nlas = vec![
+            LinkInfo::Kind(LinkInfoKind::Bridge),
+            LinkInfo::Data(LinkInfoData::Bridge(BRIDGE_INFO.clone())),
+        ];
+
+        assert_eq!(nlas.as_slice().buffer_len(), 404);
+
+        let mut vec = vec![0xff; 404];
+        nlas.as_slice().emit(&mut vec);
+        assert_eq!(&vec[..], &BRIDGE[..]);
     }
 }
