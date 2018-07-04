@@ -49,7 +49,7 @@ impl Connection {
         let mut close_chan = false;
 
         if let Some(tx) = self.pending_requests.get_mut(&seq) {
-            if ! message.flags().has_multipart() {
+            if !message.flags().has_multipart() {
                 trace!("not a multipart message");
                 close_chan = true;
             }

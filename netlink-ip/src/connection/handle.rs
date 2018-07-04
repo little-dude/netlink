@@ -1,6 +1,6 @@
-use std::io;
 use futures::sync::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 use netlink_sys::rtnl::Message;
+use std::io;
 
 type RequestsTx = UnboundedSender<(UnboundedSender<Message>, Message)>;
 
