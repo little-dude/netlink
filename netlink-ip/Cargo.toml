@@ -4,11 +4,11 @@ version = "0.1.0"
 authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 
 [dependencies]
-bytes = "*"
-tokio-core = "*"
-futures = "0.1"
-log = "*"
-lazy_static = "*"
+bytes = "0.4.8"
+tokio-core = "0.1.17"
+futures = "0.1.21"
+log = "0.4.3"
+lazy_static = "1.0.1"
 
 [dependencies.netlink-sys]
 version = "*"
