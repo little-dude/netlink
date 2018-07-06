@@ -66,9 +66,13 @@ impl<C: Encoder> Sink for NetlinkFramed<C> {
         trace!("sending frame");
 
         if !self.flushed {
-            match try!(self.poll_complete()) {
-                Async::Ready(()) => {}
-                Async::NotReady => return Ok(AsyncSink::NotReady(item)),
+            trace!("flushing the sink, before sending the frame");
+            match self.poll_complete()? {
+                Async::Ready(()) => trace!("sink flushed"),
+                Async::NotReady => {
+                    trace!("could not flush the sink entirely");
+                    return Ok(AsyncSink::NotReady(item));
+                }
             }
         }
 

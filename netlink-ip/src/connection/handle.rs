@@ -26,8 +26,12 @@ impl ConnectionHandle {
         let (tx, rx) = unbounded::<Message>();
         // Ignore the result. If this failed, `tx` will be dropped when this fcuntion returns, and
         // polling rx with fail, carrying the error.
+        debug!("handle: forwarding new request to connection");
         let _ = UnboundedSender::unbounded_send(&self.requests_tx, (tx, message));
-        rx.map_err(|()| NetlinkIpError::ConnectionClosed)
+        rx.map_err(|()| {
+            error!("could not forward new request to connection: the connection is closed");
+            NetlinkIpError::ConnectionClosed
+        })
     }
 
     pub fn get_links(&mut self) -> impl Future<Item = Vec<Link>, Error = NetlinkIpError> {
@@ -47,12 +51,15 @@ impl ConnectionHandle {
         ));
 
         // send the request
+        debug!("sending request to retrieve link");
         let rx = self.request(req);
 
         // handle the response: FutureVec turns the response messages into a vec of Link.
         let nl_handle = self.clone();
         FutureVec::new(rx.map(move |msg| {
+            trace!("got message");
             if !msg.is_new_link() {
+                error!("unexpected netlink response message: {:?}", msg);
                 return Err(NetlinkIpError::UnexpectedMessage(msg));
             }
 
@@ -88,13 +95,18 @@ impl<S: Stream<Item = Result<T, NetlinkIpError>, Error = NetlinkIpError>, T> Fut
     type Error = NetlinkIpError;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        trace!("polling FutureVec");
         loop {
             match self.0.poll()? {
                 Async::Ready(Some(item)) => self.1.as_mut().unwrap().push(item?),
                 Async::Ready(None) => {
-                    return Ok(Async::Ready(mem::replace(&mut self.1, None).unwrap()))
+                    trace!("FutureVec: end of stream");
+                    return Ok(Async::Ready(mem::replace(&mut self.1, None).unwrap()));
                 }
-                Async::NotReady => return Ok(Async::NotReady),
+                Async::NotReady => {
+                    trace!("FutureVec: not ready");
+                    return Ok(Async::NotReady);
+                }
             }
         }
     }

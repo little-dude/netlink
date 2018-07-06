@@ -17,3 +17,5 @@ mod errors;
 mod link;
 
 pub use connection::*;
+pub use errors::*;
+pub use link::*;
