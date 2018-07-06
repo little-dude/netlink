@@ -1,9 +1,7 @@
 use connection::ConnectionHandle;
 use errors::NetlinkIpError;
 use eui48::MacAddress;
-use netlink_sys::rtnl::{
-    LinkFlags, LinkLayerType, LinkMessage, LinkNla, LinkState, Message, RtnlMessage,
-};
+use netlink_sys::rtnl::{LinkFlags, LinkLayerType, LinkMessage, LinkNla, LinkState};
 
 #[derive(Clone, Debug)]
 pub struct Link {
@@ -289,7 +287,7 @@ impl LinkData {
     }
 
     pub fn mtu(&self) -> Option<u32> {
-        self.mtu.as_ref().map(|v| *v)
+        self.mtu.as_ref().cloned()
     }
 
     pub fn mtu_mut(&mut self) -> Option<&mut u32> {
@@ -297,7 +295,7 @@ impl LinkData {
     }
 
     pub fn tx_queue_length(&self) -> Option<u32> {
-        self.tx_queue_length.as_ref().map(|v| *v)
+        self.tx_queue_length.as_ref().cloned()
     }
 
     pub fn tx_queue_length_mut(&mut self) -> Option<&mut u32> {
@@ -313,7 +311,7 @@ impl LinkData {
     }
 
     pub fn parent_index(&self) -> Option<u32> {
-        self.parent_index.as_ref().map(|v| *v)
+        self.parent_index.as_ref().cloned()
     }
 
     pub fn parent_index_mut(&mut self) -> Option<&mut u32> {
@@ -321,7 +319,7 @@ impl LinkData {
     }
 
     pub fn master_index(&self) -> Option<u32> {
-        self.master_index.as_ref().map(|v| *v)
+        self.master_index.as_ref().cloned()
     }
 
     pub fn master_index_mut(&mut self) -> Option<&mut u32> {
@@ -337,7 +335,7 @@ impl LinkData {
     }
 
     pub fn promiscuous_mode(&self) -> Option<bool> {
-        self.promiscuous_mode.as_ref().map(|v| *v)
+        self.promiscuous_mode.as_ref().cloned()
     }
 
     pub fn promiscuous_mode_mut(&mut self) -> Option<&mut bool> {
@@ -345,7 +343,7 @@ impl LinkData {
     }
 
     pub fn operational_state(&self) -> Option<LinkState> {
-        self.operational_state.as_ref().map(|v| *v)
+        self.operational_state.as_ref().cloned()
     }
 
     pub fn operational_state_mut(&mut self) -> Option<&mut LinkState> {
@@ -461,9 +459,7 @@ impl LinkData {
                 LinkNla::Mtu(mtu) => link.set_mtu(mtu),
                 LinkNla::Master(index) => link.set_master_index(index),
                 LinkNla::TxQueueLen(length) => link.set_tx_queue_length(length),
-                LinkNla::Promiscuity(promisc) => {
-                    link.set_promiscuous_mode(if promisc == 0 { false } else { true })
-                }
+                LinkNla::Promiscuity(promisc) => link.set_promiscuous_mode(promisc != 0),
                 LinkNla::OperState(state) => link.set_operational_state(state),
                 _ => link.add_attribute(nla),
             };

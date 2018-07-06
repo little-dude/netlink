@@ -327,7 +327,7 @@ impl Nla for LinkInfoKind {
             Gtp => GTP,
             Other(ref s) => s.as_str(),
         };
-        &buffer[..s.len()].copy_from_slice(s.as_bytes());
+        buffer[..s.len()].copy_from_slice(s.as_bytes());
         buffer[s.len()] = 0;
     }
 

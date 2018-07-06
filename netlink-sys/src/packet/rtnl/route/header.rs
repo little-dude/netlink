@@ -251,6 +251,12 @@ impl From<RouteFlags> for u32 {
     }
 }
 
+impl Default for RouteFlags {
+    fn default() -> Self {
+        RouteFlags::new()
+    }
+}
+
 impl RouteFlags {
     /// Create a new empty flags field (no flag is set)
     pub fn new() -> Self {

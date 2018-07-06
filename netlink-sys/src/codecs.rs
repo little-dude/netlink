@@ -12,6 +12,11 @@ pub struct NetlinkCodec<T> {
     phantom: PhantomData<T>,
 }
 
+impl<T> Default for NetlinkCodec<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 impl<T> NetlinkCodec<T> {
     pub fn new() -> Self {
         NetlinkCodec {
