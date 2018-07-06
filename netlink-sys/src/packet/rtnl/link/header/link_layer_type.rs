@@ -286,3 +286,9 @@ impl From<u16> for LinkLayerType {
         }
     }
 }
+
+impl Default for LinkLayerType {
+    fn default() -> Self {
+        LinkLayerType::Ether
+    }
+}

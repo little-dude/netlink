@@ -21,6 +21,10 @@ impl From<RtnlMessage> for Message {
 }
 
 impl Message {
+    pub fn into_parts(self) -> (NetlinkHeader, RtnlMessage) {
+        (self.header, self.message)
+    }
+
     pub fn message(&self) -> &RtnlMessage {
         &self.message
     }
@@ -52,27 +56,47 @@ impl Message {
     }
 
     pub fn is_done(&self) -> bool {
-        self.message() == &RtnlMessage::Done
+        self.message().is_done()
     }
 
     pub fn is_noop(&self) -> bool {
-        self.message() == &RtnlMessage::Noop
+        self.message().is_noop()
     }
 
     pub fn is_overrun(&self) -> bool {
-        if let RtnlMessage::Overrun(_) = *self.message() {
-            true
-        } else {
-            false
-        }
+        self.message().is_overrun()
     }
 
     pub fn is_error(&self) -> bool {
-        if let RtnlMessage::Error(_) = *self.message() {
-            true
-        } else {
-            false
-        }
+        self.message().is_error()
+    }
+
+    pub fn is_new_link(&self) -> bool {
+        self.message().is_new_link()
+    }
+
+    pub fn is_del_link(&self) -> bool {
+        self.message().is_del_link()
+    }
+
+    pub fn is_get_link(&self) -> bool {
+        self.message().is_get_link()
+    }
+
+    pub fn is_set_link(&self) -> bool {
+        self.message().is_set_link()
+    }
+
+    pub fn is_new_address(&self) -> bool {
+        self.message().is_new_address()
+    }
+
+    pub fn is_del_address(&self) -> bool {
+        self.message().is_del_address()
+    }
+
+    pub fn is_get_address(&self) -> bool {
+        self.message().is_get_address()
     }
 
     pub fn set_message_type(&mut self, value: u16) {
@@ -175,6 +199,88 @@ pub enum RtnlMessage {
     DelAddress(AddressMessage),
     GetAddress(AddressMessage),
     Other(Vec<u8>),
+}
+
+impl RtnlMessage {
+    pub fn is_done(&self) -> bool {
+        *self == RtnlMessage::Done
+    }
+
+    pub fn is_noop(&self) -> bool {
+        *self == RtnlMessage::Noop
+    }
+
+    pub fn is_overrun(&self) -> bool {
+        if let RtnlMessage::Overrun(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_error(&self) -> bool {
+        if let RtnlMessage::Error(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_new_link(&self) -> bool {
+        if let RtnlMessage::NewLink(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_del_link(&self) -> bool {
+        if let RtnlMessage::DelLink(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_get_link(&self) -> bool {
+        if let RtnlMessage::GetLink(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_set_link(&self) -> bool {
+        if let RtnlMessage::SetLink(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_new_address(&self) -> bool {
+        if let RtnlMessage::NewAddress(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_del_address(&self) -> bool {
+        if let RtnlMessage::DelAddress(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_get_address(&self) -> bool {
+        if let RtnlMessage::GetAddress(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
 }
 
 impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Message> for NetlinkBuffer<&'buffer T> {

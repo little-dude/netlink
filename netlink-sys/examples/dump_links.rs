@@ -14,6 +14,8 @@ fn main() {
             address_family: 0, // AF_UNSPEC
             link_layer_type: LinkLayerType::Ether,
             flags: LinkFlags::new(),
+            change_mask: LinkFlags::new(),
+            index: 0,
         },
         nlas: vec![],
     }).into();

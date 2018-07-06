@@ -9,6 +9,9 @@ tokio-core = "0.1.17"
 futures = "0.1.21"
 log = "0.4.3"
 lazy_static = "1.0.1"
+eui48 = "0.3.2"
+failure = "0.1.1"
+failure_derive = "*"
 
 [dependencies.netlink-sys]
 version = "*"

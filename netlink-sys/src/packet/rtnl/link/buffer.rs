@@ -8,7 +8,7 @@ const RESERVED_1: Index = 1;
 const LINK_LAYER_TYPE: Field = 2..4;
 const LINK_INDEX: Field = 4..8;
 const FLAGS: Field = 8..12;
-const RESERVED_2: Field = 12..16;
+const CHANGE_MASK: Field = 12..16;
 const ATTRIBUTES: Rest = 16..;
 
 pub const HEADER_LEN: usize = ATTRIBUTES.start;
@@ -59,9 +59,9 @@ impl<T: AsRef<[u8]>> LinkBuffer<T> {
     }
 
     /// Return the link index field
-    pub fn reserved_2(&self) -> u32 {
+    pub fn change_mask(&self) -> LinkFlags {
         let data = self.buffer.as_ref();
-        NativeEndian::read_u32(&data[RESERVED_2])
+        LinkFlags::from(NativeEndian::read_u32(&data[CHANGE_MASK]))
     }
 }
 
@@ -112,8 +112,8 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> LinkBuffer<T> {
         NativeEndian::write_u32(&mut data[FLAGS], value.into())
     }
 
-    pub fn set_reserved_2(&mut self, value: u32) {
+    pub fn set_change_mask(&mut self, value: LinkFlags) {
         let data = self.buffer.as_mut();
-        NativeEndian::write_u32(&mut data[RESERVED_2], value)
+        NativeEndian::write_u32(&mut data[CHANGE_MASK], value.into())
     }
 }

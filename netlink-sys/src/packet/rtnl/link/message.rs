@@ -8,6 +8,12 @@ pub struct LinkMessage {
     pub nlas: Vec<LinkNla>,
 }
 
+impl LinkMessage {
+    pub fn into_parts(self) -> (LinkHeader, Vec<LinkNla>) {
+        (self.header, self.nlas)
+    }
+}
+
 impl Emitable for LinkMessage {
     fn buffer_len(&self) -> usize {
         self.header.buffer_len() + self.nlas.as_slice().buffer_len()
