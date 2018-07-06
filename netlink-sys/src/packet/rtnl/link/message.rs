@@ -94,7 +94,7 @@ mod test {
         assert!(packet.flags().has_running());
         assert!(packet.flags().has_loopback());
         assert!(packet.flags().has_up());
-        assert_eq!(packet.reserved_2(), 0);
+        assert_eq!(packet.change_mask(), LinkFlags::new());
     }
 
     #[test]
@@ -111,7 +111,7 @@ mod test {
             flags.set_loopback();
             flags.set_running();
             packet.set_flags(flags);
-            packet.set_reserved_2(0);
+            packet.set_change_mask(LinkFlags::new());
         }
         assert_eq!(&buf[..], &HEADER[0..16]);
     }
