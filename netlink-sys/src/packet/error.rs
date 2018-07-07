@@ -1,57 +1,86 @@
-use core::{self, fmt};
-use std::error::Error as StdError;
-use std::io;
+use byteorder::{ByteOrder, NativeEndian};
+use std::mem::size_of;
+use {Emitable, Error, Field, NetlinkBuffer, NetlinkHeader, Parseable, Rest, Result, HEADER_LEN};
 
-/// The error type for the netlink packet parser
-#[derive(Debug)]
-pub enum Error {
-    /// An operation cannot proceed because a buffer is empty or full.
-    Exhausted,
-    /// An incoming packet could not be parsed because some of its fields were out of bounds
-    /// of the received data.
-    Truncated,
-    /// An incoming packet could not be recognized and was dropped.
-    /// E.g. an Ethernet packet with an unknown EtherType.
-    Unrecognized,
-    /// An incoming packet was recognized but was self-contradictory.
-    /// E.g. a TCP packet with both SYN and FIN flags set.
-    Malformed,
-    /// Parsing of a netlink nla value failed.
-    MalformedNlaValue,
-    /// Failed to read or write a packet due to an IO error
-    Io(io::Error),
-    #[doc(hidden)]
-    __Nonexhaustive,
+const CODE: Field = 0..4;
+const PAYLOAD: Rest = 4..;
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct ErrorBuffer<T> {
+    buffer: T,
 }
 
-pub type Result<T> = core::result::Result<T, Error>;
+impl<T: AsRef<[u8]>> ErrorBuffer<T> {
+    pub fn new(buffer: T) -> ErrorBuffer<T> {
+        ErrorBuffer { buffer }
+    }
 
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.description())
+    /// Consume the packet, returning the underlying buffer.
+    pub fn into_inner(self) -> T {
+        self.buffer
+    }
+
+    /// Return the error code
+    pub fn code(&self) -> i32 {
+        let data = self.buffer.as_ref();
+        NativeEndian::read_i32(&data[CODE])
     }
 }
 
-impl StdError for Error {
-    fn description(&self) -> &str {
-        match *self {
-            Error::Exhausted => "buffer space exhausted",
-            Error::Truncated => "truncated packet",
-            Error::Unrecognized => "unrecognized packet",
-            Error::Malformed => "malformed packet",
-            Error::MalformedNlaValue => "failed to parse a netlink nla value",
-            Error::Io(_) => "failed to read or write a packet due to an IO error",
-            Error::__Nonexhaustive => unreachable!(),
-        }
-    }
-
-    fn cause(&self) -> Option<&StdError> {
-        None
+impl<'a, T: AsRef<[u8]> + ?Sized> ErrorBuffer<&'a T> {
+    /// Return a pointer to the payload.
+    pub fn payload(&self) -> &'a [u8] {
+        let data = self.buffer.as_ref();
+        &data[PAYLOAD]
     }
 }
 
-impl From<io::Error> for Error {
-    fn from(io_err: io::Error) -> Error {
-        Error::Io(io_err)
+impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> ErrorBuffer<&'a mut T> {
+    /// Return a mutable pointer to the payload.
+    pub fn payload_mut(&mut self) -> &mut [u8] {
+        let data = self.buffer.as_mut();
+        &mut data[PAYLOAD]
+    }
+}
+
+impl<T: AsRef<[u8]> + AsMut<[u8]>> ErrorBuffer<T> {
+    /// set the error code field
+    pub fn set_code(&mut self, value: i32) {
+        let data = self.buffer.as_mut();
+        NativeEndian::write_i32(&mut data[CODE], value)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ErrorMessage {
+    pub code: i32,
+    pub header: NetlinkHeader,
+}
+
+pub type AckMessage = ErrorMessage;
+
+impl Emitable for ErrorMessage {
+    fn buffer_len(&self) -> usize {
+        size_of::<i32>() + self.header.buffer_len()
+    }
+    fn emit(&self, buffer: &mut [u8]) {
+        let mut buffer = ErrorBuffer::new(buffer);
+        buffer.set_code(self.code);
+        self.header.emit(buffer.payload_mut())
+    }
+}
+
+impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<ErrorMessage> for ErrorBuffer<&'buffer T> {
+    fn parse(&self) -> Result<ErrorMessage> {
+        let header: NetlinkHeader = {
+            if self.payload().len() < HEADER_LEN {
+                return Err(Error::Truncated);
+            }
+            NetlinkBuffer::new(self.payload()).parse()?
+        };
+        Ok(ErrorMessage {
+            code: self.code(),
+            header,
+        })
     }
 }

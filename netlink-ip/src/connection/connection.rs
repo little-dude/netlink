@@ -125,11 +125,13 @@ impl Connection {
             } else if message.is_noop() {
                 trace!("ignoring NOOP");
             } else if message.is_error() {
-                // FIXME: handle ack! They are special errors!
                 trace!("forwarding error message and closing channel with handle");
                 // If send returns an Err, its because the other side has been dropped, so it
                 // does not really matter.
                 let _ = UnboundedSender::unbounded_send(tx, message);
+                close_chan = true;
+            } else if message.is_ack() {
+                trace!("received ack for message {}", message.sequence_number());
                 close_chan = true;
             } else if message.is_overrun() {
                 // FIXME: we should obviously NOT panic here but I'm not sure what we
@@ -137,7 +139,6 @@ impl Connection {
                 // users?
                 panic!("overrun: receive buffer is full");
             } else {
-                // FIXME
                 tx.unbounded_send(message).expect("FIXME: handle that");
             }
         } else {

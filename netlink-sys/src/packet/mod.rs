@@ -37,6 +37,9 @@ pub use self::traits::*;
 mod error;
 pub use self::error::*;
 
+mod errors;
+pub use self::errors::*;
+
 mod nla;
 pub use self::nla::*;
 

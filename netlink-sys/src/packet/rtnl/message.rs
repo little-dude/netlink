@@ -1,7 +1,10 @@
 use super::*;
 use constants::*;
 
-use {Emitable, Error, NetlinkBuffer, NetlinkFlags, NetlinkHeader, Parseable, Result};
+use {
+    AckMessage, Emitable, Error, ErrorBuffer, ErrorMessage, NetlinkBuffer, NetlinkFlags,
+    NetlinkHeader, Parseable, Result,
+};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Message {
@@ -71,6 +74,10 @@ impl Message {
         self.message().is_error()
     }
 
+    pub fn is_ack(&self) -> bool {
+        self.message().is_ack()
+    }
+
     pub fn is_new_link(&self) -> bool {
         self.message().is_new_link()
     }
@@ -125,7 +132,7 @@ impl Message {
         self.header.message_type = match self.message {
             Noop => NLMSG_NOOP,
             Done => NLMSG_DONE,
-            Error(_) => NLMSG_ERROR,
+            Error(_) | Ack(_) => NLMSG_ERROR,
             Overrun(_) => NLMSG_OVERRUN,
             NewLink(_) => RTM_NEWLINK,
             DelLink(_) => RTM_DELLINK,
@@ -188,7 +195,8 @@ impl Message {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum RtnlMessage {
     Done,
-    Error(Vec<u8>),
+    Error(ErrorMessage),
+    Ack(AckMessage),
     Noop,
     Overrun(Vec<u8>),
     NewLink(LinkMessage),
@@ -220,6 +228,14 @@ impl RtnlMessage {
 
     pub fn is_error(&self) -> bool {
         if let RtnlMessage::Error(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_ack(&self) -> bool {
+        if let RtnlMessage::Ack(_) = *self {
             true
         } else {
             false
@@ -312,7 +328,14 @@ impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Message> for NetlinkBuffer<&'b
                 }
             }
 
-            NLMSG_ERROR => Error(self.payload().to_vec()),
+            NLMSG_ERROR => {
+                let msg: ErrorMessage = ErrorBuffer::new(&self.payload()).parse()?;
+                if msg.code <= 0 {
+                    Ack(msg as AckMessage)
+                } else {
+                    Error(msg)
+                }
+            }
             NLMSG_NOOP => Noop,
             NLMSG_DONE => Done,
             _ => Other(self.payload().to_vec()),
@@ -332,10 +355,12 @@ impl Emitable for Message {
         let payload_len = match self.message {
             Noop | Done => 0,
 
-            | Error(ref bytes)
             | Overrun(ref bytes)
             | Other(ref bytes)
             => bytes.len(),
+
+            Error(ref msg) => msg.buffer_len(),
+            Ack(ref msg) => msg.buffer_len(),
 
             | NewLink(ref msg)
             | DelLink(ref msg)
@@ -359,10 +384,12 @@ impl Emitable for Message {
         match self.message {
             Noop | Done => {},
 
-            | Error(ref bytes)
-            | Overrun(ref bytes)
+            Overrun(ref bytes)
             | Other(ref bytes)
             => buffer.copy_from_slice(bytes),
+
+            Error(ref msg) => msg.emit(buffer),
+            Ack(ref msg) => msg.emit(buffer),
 
             | NewLink(ref msg)
             | DelLink(ref msg)
