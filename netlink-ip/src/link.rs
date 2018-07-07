@@ -1,211 +1,16 @@
 use connection::ConnectionHandle;
 use errors::NetlinkIpError;
 use eui48::MacAddress;
-use netlink_sys::rtnl::{LinkFlags, LinkLayerType, LinkMessage, LinkNla, LinkState};
+use futures::{Future, Stream};
+use netlink_sys::rtnl::{
+    LinkFlags, LinkHeader, LinkLayerType, LinkMessage, LinkNla, LinkState, Message, RtnlMessage,
+};
+use netlink_sys::{constants, NetlinkFlags};
 
-#[derive(Clone, Debug)]
-pub struct Link {
-    nl_handle: ConnectionHandle,
-    link: LinkData,
-}
-
-impl Link {
-    pub(crate) fn new(nl_handle: ConnectionHandle, link: LinkData) -> Self {
-        Link { nl_handle, link }
-    }
-
-    pub fn address_family(&self) -> u8 {
-        self.link.address_family()
-    }
-
-    pub fn address_family_mut(&mut self) -> &mut u8 {
-        self.link.address_family_mut()
-    }
-
-    pub fn index(&self) -> u32 {
-        self.link.index()
-    }
-
-    pub fn index_mut(&mut self) -> &mut u32 {
-        self.link.index_mut()
-    }
-
-    pub fn flags(&self) -> LinkFlags {
-        self.link.flags()
-    }
-
-    pub fn flags_mut(&mut self) -> &mut LinkFlags {
-        self.link.flags_mut()
-    }
-
-    pub fn change_mask(&self) -> LinkFlags {
-        self.link.change_mask()
-    }
-
-    pub fn change_mask_mut(&mut self) -> &mut LinkFlags {
-        self.link.change_mask_mut()
-    }
-
-    pub fn name(&self) -> Option<&str> {
-        self.link.name()
-    }
-
-    pub fn name_mut(&mut self) -> Option<&mut String> {
-        self.link.name_mut()
-    }
-
-    pub fn mtu(&self) -> Option<u32> {
-        self.link.mtu()
-    }
-
-    pub fn mtu_mut(&mut self) -> Option<&mut u32> {
-        self.link.mtu_mut()
-    }
-
-    pub fn tx_queue_length(&self) -> Option<u32> {
-        self.link.tx_queue_length()
-    }
-
-    pub fn tx_queue_length_mut(&mut self) -> Option<&mut u32> {
-        self.link.tx_queue_length_mut()
-    }
-
-    pub fn address(&self) -> Option<&MacAddress> {
-        self.link.address()
-    }
-
-    pub fn address_mut(&mut self) -> Option<&mut MacAddress> {
-        self.link.address_mut()
-    }
-
-    pub fn parent_index(&self) -> Option<u32> {
-        self.link.parent_index()
-    }
-
-    pub fn parent_index_mut(&mut self) -> Option<&mut u32> {
-        self.link.parent_index_mut()
-    }
-
-    pub fn master_index(&self) -> Option<u32> {
-        self.link.master_index()
-    }
-
-    pub fn master_index_mut(&mut self) -> Option<&mut u32> {
-        self.link.master_index_mut()
-    }
-
-    pub fn alias(&self) -> Option<&str> {
-        self.link.alias()
-    }
-
-    pub fn alias_mut(&mut self) -> Option<&mut String> {
-        self.link.alias_mut()
-    }
-
-    pub fn promiscuous_mode(&self) -> Option<bool> {
-        self.link.promiscuous_mode()
-    }
-
-    pub fn promiscuous_mode_mut(&mut self) -> Option<&mut bool> {
-        self.link.promiscuous_mode_mut()
-    }
-
-    pub fn operational_state(&self) -> Option<LinkState> {
-        self.link.operational_state()
-    }
-
-    pub fn operational_state_mut(&mut self) -> Option<&mut LinkState> {
-        self.link.operational_state_mut()
-    }
-
-    pub fn attributes(&self) -> &[LinkNla] {
-        self.link.attributes()
-    }
-
-    pub fn attributes_mut(&mut self) -> &mut [LinkNla] {
-        self.link.attributes_mut()
-    }
-
-    pub fn set_address_family(&mut self, value: u8) -> &mut Self {
-        let _ = self.link.set_address_family(value);
-        self
-    }
-
-    pub fn set_index(&mut self, value: u32) -> &mut Self {
-        let _ = self.link.set_index(value);
-        self
-    }
-
-    pub fn set_flags(&mut self, value: LinkFlags) -> &mut Self {
-        let _ = self.link.set_flags(value);
-        self
-    }
-
-    pub fn set_change_mask(&mut self, value: LinkFlags) -> &mut Self {
-        let _ = self.link.set_change_mask(value);
-        self
-    }
-
-    pub fn set_name(&mut self, value: String) -> &mut Self {
-        let _ = self.link.set_name(value);
-        self
-    }
-
-    pub fn set_mtu(&mut self, value: u32) -> &mut Self {
-        let _ = self.link.set_mtu(value);
-        self
-    }
-
-    pub fn set_tx_queue_length(&mut self, value: u32) -> &mut Self {
-        let _ = self.link.set_tx_queue_length(value);
-        self
-    }
-
-    pub fn set_address(&mut self, value: MacAddress) -> &mut Self {
-        let _ = self.link.set_address(value);
-        self
-    }
-
-    pub fn set_parent_index(&mut self, value: u32) -> &mut Self {
-        let _ = self.link.set_parent_index(value);
-        self
-    }
-
-    pub fn set_master_index(&mut self, value: u32) -> &mut Self {
-        let _ = self.link.set_master_index(value);
-        self
-    }
-
-    pub fn set_alias(&mut self, value: String) -> &mut Self {
-        let _ = self.link.set_alias(value);
-        self
-    }
-
-    pub fn set_promiscuous_mode(&mut self, value: bool) -> &mut Self {
-        let _ = self.link.set_promiscuous_mode(value);
-        self
-    }
-
-    pub fn set_operational_state(&mut self, value: LinkState) -> &mut Self {
-        let _ = self.link.set_operational_state(value);
-        self
-    }
-
-    pub fn set_attributes(&mut self, value: Vec<LinkNla>) -> &mut Self {
-        let _ = self.link.set_attributes(value);
-        self
-    }
-
-    pub fn add_attribute(&mut self, value: LinkNla) -> &mut Self {
-        let _ = self.link.add_attribute(value);
-        self
-    }
-}
-
-// FIXME: we should probably have different types for the different types of links.
+use FutureVec;
 
 #[derive(Clone, Debug, Default)]
-pub struct LinkData {
+pub struct Link {
     // These attributes are common to all the links, since they are part of the
     // RTM_{GET,SET,DEL,NEW}LINK header.
     /// Address family. Defaults to 0 (`AF_UNSPEC`).
@@ -214,7 +19,7 @@ pub struct LinkData {
     index: u32,
     /// Link layer type. Defaults to `LinkLayerType::Ether` (`ARPHRD_ETHER`).
     link_layer_type: LinkLayerType,
-    /// Link flags. Defaults to 0 (no flag set).    flags: LinkFlags,
+    /// Link flags. Defaults to 0 (no flag set).
     flags: LinkFlags,
     /// Change mask. Defaults to 0 (no flag set).
     change_mask: LinkFlags,
@@ -233,7 +38,7 @@ pub struct LinkData {
     attributes: Vec<LinkNla>,
 }
 
-impl LinkData {
+impl Link {
     pub fn new() -> Self {
         Default::default()
     }
@@ -440,7 +245,7 @@ impl LinkData {
 
     pub fn from_link_message(value: LinkMessage) -> Result<Self, NetlinkIpError> {
         let (header, mut nlas) = value.into_parts();
-        let mut link = LinkData::default();
+        let mut link = Link::default();
         link.set_index(header.index)
             .set_address_family(header.address_family)
             .set_link_layer_type(header.link_layer_type)
@@ -465,5 +270,57 @@ impl LinkData {
             };
         }
         Ok(link)
+    }
+}
+
+pub struct LinkHandle(ConnectionHandle);
+
+impl LinkHandle {
+    pub fn new(handle: ConnectionHandle) -> Self {
+        LinkHandle(handle)
+    }
+
+    fn new_link_message(&self) -> LinkMessage {
+        LinkMessage {
+            header: LinkHeader {
+                address_family: 0, // AF_UNSPEC
+                link_layer_type: LinkLayerType::Ether,
+                flags: LinkFlags::new(),
+                change_mask: LinkFlags::new(),
+                index: 0,
+            },
+            nlas: vec![],
+        }
+    }
+
+    fn request(&mut self, req: Message) -> impl Stream<Item = Message, Error = NetlinkIpError> {
+        self.0.request(req)
+    }
+
+    pub fn list(&mut self) -> impl Future<Item = Vec<Link>, Error = NetlinkIpError> {
+        // build the request
+        let mut req: Message = RtnlMessage::GetLink(self.new_link_message()).into();
+        req.set_flags(NetlinkFlags::from(
+            constants::NLM_F_DUMP | constants::NLM_F_REQUEST,
+        ));
+
+        // send the request
+        debug!("sending request to retrieve links");
+        let response = self.request(req);
+
+        // handle the response: FutureVec turns the response messages into a vec of Link.
+        FutureVec::new(response.map(move |msg| {
+            if !msg.is_new_link() {
+                error!("unexpected netlink response message: {:?}", msg);
+                return Err(NetlinkIpError::UnexpectedMessage(msg));
+            }
+
+            if let (_, RtnlMessage::NewLink(link_message)) = msg.into_parts() {
+                Ok(Link::from_link_message(link_message)?)
+            } else {
+                // We checked that msg.is_new_link() above, so the should not be reachable.
+                unreachable!();
+            }
+        }))
     }
 }
