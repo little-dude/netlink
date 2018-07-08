@@ -13,9 +13,10 @@ use tokio_core::reactor::Core;
 fn main() {
     env_logger::init();
     let mut core = Core::new().unwrap();
-    let conn = new_connection(&core.handle()).unwrap();
-    core.run(conn.link().list().and_then(|links| {
-        println!("{:?}", links);
+    let (connection, handle) = new_connection().unwrap();
+    core.handle().spawn(connection.map_err(|_| ()));
+    core.run(handle.link().list().and_then(|links| {
+        println!("{:#?}", links);
         Ok(())
     })).unwrap();
 }

@@ -2,12 +2,13 @@ use connection::ConnectionHandle;
 use errors::NetlinkIpError;
 use eui48::MacAddress;
 use futures::{Future, Stream};
+use netlink_sys::constants::*;
 use netlink_sys::rtnl::{
     LinkFlags, LinkHeader, LinkLayerType, LinkMessage, LinkNla, LinkState, Message, RtnlMessage,
 };
-use netlink_sys::{constants, NetlinkFlags};
+use netlink_sys::NetlinkFlags;
 
-use FutureVec;
+use {Stream2Ack, Stream2Vec};
 
 #[derive(Clone, Debug, Default)]
 pub struct Link {
@@ -281,16 +282,15 @@ impl LinkHandle {
     }
 
     fn new_link_message(&self) -> LinkMessage {
-        LinkMessage {
-            header: LinkHeader {
-                address_family: 0, // AF_UNSPEC
-                link_layer_type: LinkLayerType::Ether,
-                flags: LinkFlags::new(),
-                change_mask: LinkFlags::new(),
-                index: 0,
-            },
-            nlas: vec![],
-        }
+        let header = LinkHeader {
+            address_family: 0, // AF_UNSPEC
+            link_layer_type: LinkLayerType::Ether,
+            flags: LinkFlags::new(),
+            change_mask: LinkFlags::new(),
+            index: 0,
+        };
+        let nlas = vec![];
+        LinkMessage::from_parts(header, nlas)
     }
 
     fn request(&mut self, req: Message) -> impl Stream<Item = Message, Error = NetlinkIpError> {
@@ -300,16 +300,14 @@ impl LinkHandle {
     pub fn list(&mut self) -> impl Future<Item = Vec<Link>, Error = NetlinkIpError> {
         // build the request
         let mut req: Message = RtnlMessage::GetLink(self.new_link_message()).into();
-        req.set_flags(NetlinkFlags::from(
-            constants::NLM_F_DUMP | constants::NLM_F_REQUEST,
-        ));
+        req.set_flags(NetlinkFlags::from(NLM_F_DUMP | NLM_F_REQUEST));
 
         // send the request
         debug!("sending request to retrieve links");
         let response = self.request(req);
 
-        // handle the response: FutureVec turns the response messages into a vec of Link.
-        FutureVec::new(response.map(move |msg| {
+        // handle the response: Stream2Vec turns the response messages into a vec of Link.
+        Stream2Vec::new(response.map(move |msg| {
             if !msg.is_new_link() {
                 error!("unexpected netlink response message: {:?}", msg);
                 return Err(NetlinkIpError::UnexpectedMessage(msg));
@@ -322,5 +320,26 @@ impl LinkHandle {
                 unreachable!();
             }
         }))
+    }
+
+    pub fn set_up(&mut self, index: u32) -> impl Future<Item = (), Error = NetlinkIpError> {
+        let mut link_msg = self.new_link_message();
+        link_msg.header_mut().index = index;
+        link_msg.header_mut().flags = LinkFlags::from(IFF_UP);
+        link_msg.header_mut().change_mask = LinkFlags::from(IFF_UP);
+
+        let mut req = Message::from(RtnlMessage::NewLink(link_msg));
+        req.set_flags(NetlinkFlags::from(NLM_F_ACK));
+        Stream2Ack::new(self.request(req))
+    }
+
+    pub fn set_down(&mut self, index: u32) -> impl Future<Item = (), Error = NetlinkIpError> {
+        let mut link_msg = self.new_link_message();
+        link_msg.header_mut().index = index;
+        link_msg.header_mut().change_mask = LinkFlags::from(IFF_UP);
+
+        let mut req = Message::from(RtnlMessage::NewLink(link_msg));
+        req.set_flags(NetlinkFlags::from(NLM_F_ACK));
+        Stream2Ack::new(self.request(req))
     }
 }

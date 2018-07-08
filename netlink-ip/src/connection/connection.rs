@@ -59,7 +59,7 @@ impl Connection {
 
         // FIXME: in futures 0.2, use poll_ready before reading from pending_responses, and
         // don't panic here.
-        trace!("sending message to kernel");
+        trace!("sending message: {:?}", message);
         match self.socket.start_send((message, *KERNEL_PORT)).unwrap() {
             AsyncSink::NotReady((message, _)) => {
                 // The sink is full atm. There is no need to try to call poll_send() because

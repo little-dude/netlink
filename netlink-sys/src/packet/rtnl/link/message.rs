@@ -4,13 +4,33 @@ use super::{LinkBuffer, LinkHeader, LinkNla};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct LinkMessage {
-    pub header: LinkHeader,
-    pub nlas: Vec<LinkNla>,
+    header: LinkHeader,
+    nlas: Vec<LinkNla>,
 }
 
 impl LinkMessage {
     pub fn into_parts(self) -> (LinkHeader, Vec<LinkNla>) {
         (self.header, self.nlas)
+    }
+
+    pub fn header_mut(&mut self) -> &mut LinkHeader {
+        &mut self.header
+    }
+
+    pub fn header(&self) -> &LinkHeader {
+        &self.header
+    }
+
+    pub fn nlas(&self) -> &[LinkNla] {
+        self.nlas.as_slice()
+    }
+
+    pub fn nlas_mut(&mut self) -> &mut Vec<LinkNla> {
+        &mut self.nlas
+    }
+
+    pub fn from_parts(header: LinkHeader, nlas: Vec<LinkNla>) -> Self {
+        LinkMessage { header, nlas }
     }
 }
 

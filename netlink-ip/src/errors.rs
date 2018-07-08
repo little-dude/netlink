@@ -12,6 +12,12 @@ pub enum NetlinkIpError {
     #[fail(display = "Received an unexpected message")]
     UnexpectedMessage(Message),
 
+    #[fail(display = "Did not receive an ACK for a request")]
+    NoAck,
+
+    #[fail(display = "Received an error message as a response: {:?}", _0)]
+    NetlinkError(Message),
+
     #[fail(
         display = "Received a link message (RTM_GETLINK, RTM_NEWLINK, RTM_SETLINK or RTMGETLINK) with an invalid hardware address attribute."
     )]
