@@ -9,6 +9,10 @@ pub struct LinkMessage {
 }
 
 impl LinkMessage {
+    pub fn new() -> Self {
+        LinkMessage::from_parts(LinkHeader::new(), vec![])
+    }
+
     pub fn into_parts(self) -> (LinkHeader, Vec<LinkNla>) {
         (self.header, self.nlas)
     }

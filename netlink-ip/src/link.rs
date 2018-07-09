@@ -4,7 +4,7 @@ use eui48::MacAddress;
 use futures::{Future, Stream};
 use netlink_sys::constants::*;
 use netlink_sys::rtnl::{
-    LinkFlags, LinkHeader, LinkLayerType, LinkMessage, LinkNla, LinkState, Message, RtnlMessage,
+    LinkFlags, LinkLayerType, LinkMessage, LinkNla, LinkState, Message, RtnlMessage,
 };
 use netlink_sys::NetlinkFlags;
 
@@ -276,25 +276,77 @@ impl Link {
 
 pub struct LinkHandle(ConnectionHandle);
 
+lazy_static! {
+    static ref SET_FLAGS: NetlinkFlags =
+        NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
+}
+
+pub struct SetRequest {
+    handle: ConnectionHandle,
+    message: LinkMessage,
+}
+
+impl SetRequest {
+    fn new(handle: ConnectionHandle) -> Self {
+        SetRequest {
+            handle,
+            message: LinkMessage::new(),
+        }
+    }
+
+    /// Execute the request
+    pub fn execute(self) -> impl Future<Item = (), Error = NetlinkIpError> {
+        let SetRequest {
+            mut handle,
+            message,
+        } = self;
+        let mut req = Message::from(RtnlMessage::SetLink(message));
+        req.header_mut().set_flags(*SET_FLAGS);
+        Stream2Ack::new(handle.request(req))
+    }
+
+    /// Return a mutable reference to the request
+    pub fn message_mut(&mut self) -> &mut LinkMessage {
+        &mut self.message
+    }
+
+    /// Set the link with the given index up (equivalent to `ip link set dev DEV up`)
+    pub fn up(mut self, index: u32) -> impl Future<Item = (), Error = NetlinkIpError> {
+        self.message
+            .header_mut()
+            .set_index(index)
+            .set_flags(LinkFlags::from(IFF_UP))
+            .set_change_mask(LinkFlags::from(IFF_UP));
+        self.execute()
+    }
+
+    /// Set the link with the given index down (equivalent to `ip link set dev DEV down`)
+    pub fn down(mut self, index: u32) -> impl Future<Item = (), Error = NetlinkIpError> {
+        self.message
+            .header_mut()
+            .set_index(index)
+            .set_change_mask(LinkFlags::from(IFF_UP));
+        self.execute()
+    }
+}
+
 impl LinkHandle {
     pub fn new(handle: ConnectionHandle) -> Self {
         LinkHandle(handle)
-    }
-
-    fn new_link_message(&self) -> LinkMessage {
-        let header = LinkHeader::new();
-        let nlas = vec![];
-        LinkMessage::from_parts(header, nlas)
     }
 
     fn request(&mut self, req: Message) -> impl Stream<Item = Message, Error = NetlinkIpError> {
         self.0.request(req)
     }
 
+    pub fn set(&self) -> SetRequest {
+        SetRequest::new(self.0.clone())
+    }
+
     /// Retrieve the list of links (equivalent to `ip link show`)
     pub fn list(&mut self) -> impl Future<Item = Vec<Link>, Error = NetlinkIpError> {
         // build the request
-        let mut req: Message = RtnlMessage::GetLink(self.new_link_message()).into();
+        let mut req: Message = RtnlMessage::GetLink(LinkMessage::new()).into();
         *req.header_mut().flags_mut() = NetlinkFlags::from(NLM_F_DUMP | NLM_F_REQUEST);
 
         // send the request
@@ -315,38 +367,5 @@ impl LinkHandle {
                 unreachable!();
             }
         }))
-    }
-
-    /// Set the link with the given index up (equivalent to `ip link set dev DEV up`)
-    pub fn set_up(&mut self, index: u32) -> impl Future<Item = (), Error = NetlinkIpError> {
-        let mut link_msg = self.new_link_message();
-        link_msg
-            .header_mut()
-            .set_index(index)
-            .set_flags(LinkFlags::from(IFF_UP))
-            .set_change_mask(LinkFlags::from(IFF_UP));
-
-        let mut req = Message::from(RtnlMessage::SetLink(link_msg));
-        req.header_mut().set_flags(NetlinkFlags::from(
-            NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE,
-        ));
-
-        Stream2Ack::new(self.request(req))
-    }
-
-    /// Set the link with the given index down (equivalent to `ip link set dev DEV down`)
-    pub fn set_down(&mut self, index: u32) -> impl Future<Item = (), Error = NetlinkIpError> {
-        let mut link_msg = self.new_link_message();
-        link_msg
-            .header_mut()
-            .set_index(index)
-            .set_change_mask(LinkFlags::from(IFF_UP));
-
-        let mut req = Message::from(RtnlMessage::SetLink(link_msg));
-        req.header_mut().set_flags(NetlinkFlags::from(
-            NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE,
-        ));
-
-        Stream2Ack::new(self.request(req))
     }
 }
