@@ -297,6 +297,7 @@ impl LinkHandle {
         self.0.request(req)
     }
 
+    /// Retrieve the list of links (equivalent to `ip link show`)
     pub fn list(&mut self) -> impl Future<Item = Vec<Link>, Error = NetlinkIpError> {
         // build the request
         let mut req: Message = RtnlMessage::GetLink(self.new_link_message()).into();
@@ -322,6 +323,7 @@ impl LinkHandle {
         }))
     }
 
+    /// Set the link with the given index up (equivalent to `ip link set dev DEV up`)
     pub fn set_up(&mut self, index: u32) -> impl Future<Item = (), Error = NetlinkIpError> {
         let mut link_msg = self.new_link_message();
         link_msg
@@ -338,6 +340,7 @@ impl LinkHandle {
         Stream2Ack::new(self.request(req))
     }
 
+    /// Set the link with the given index down (equivalent to `ip link set dev DEV down`)
     pub fn set_down(&mut self, index: u32) -> impl Future<Item = (), Error = NetlinkIpError> {
         let mut link_msg = self.new_link_message();
         link_msg
