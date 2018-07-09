@@ -20,6 +20,73 @@ pub struct NetlinkHeader {
     pub port_number: u32,
 }
 
+impl NetlinkHeader {
+    pub fn length(&self) -> u32 {
+        self.length
+    }
+
+    pub fn length_mut(&mut self) -> &mut u32 {
+        &mut self.length
+    }
+
+    pub fn set_length(&mut self, value: u32) -> &mut Self {
+        self.length = value;
+        self
+    }
+
+    pub fn message_type(&self) -> u16 {
+        self.message_type
+    }
+
+    pub fn message_type_mut(&mut self) -> &mut u16 {
+        &mut self.message_type
+    }
+
+    pub fn set_message_type(&mut self, value: u16) -> &mut Self {
+        self.message_type = value;
+        self
+    }
+
+    pub fn flags(&self) -> NetlinkFlags {
+        self.flags
+    }
+
+    pub fn flags_mut(&mut self) -> &mut NetlinkFlags {
+        &mut self.flags
+    }
+
+    pub fn set_flags(&mut self, value: NetlinkFlags) -> &mut Self {
+        self.flags = value;
+        self
+    }
+
+    pub fn sequence_number(&self) -> u32 {
+        self.sequence_number
+    }
+
+    pub fn sequence_number_mut(&mut self) -> &mut u32 {
+        &mut self.sequence_number
+    }
+
+    pub fn set_sequence_number(&mut self, value: u32) -> &mut Self {
+        self.sequence_number = value;
+        self
+    }
+
+    pub fn port_number(&self) -> u32 {
+        self.port_number
+    }
+
+    pub fn port_number_mut(&mut self) -> &mut u32 {
+        &mut self.port_number
+    }
+
+    pub fn set_port_number(&mut self, value: u32) -> &mut Self {
+        self.port_number = value;
+        self
+    }
+}
+
 impl Emitable for NetlinkHeader {
     fn buffer_len(&self) -> usize {
         HEADER_LEN

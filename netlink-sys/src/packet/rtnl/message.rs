@@ -2,8 +2,8 @@ use super::*;
 use constants::*;
 
 use {
-    AckMessage, Emitable, Error, ErrorBuffer, ErrorMessage, NetlinkBuffer, NetlinkFlags,
-    NetlinkHeader, Parseable, Result,
+    AckMessage, Emitable, Error, ErrorBuffer, ErrorMessage, NetlinkBuffer, NetlinkHeader,
+    Parseable, Result,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -31,31 +31,32 @@ impl Message {
     pub fn message(&self) -> &RtnlMessage {
         &self.message
     }
+
+    pub fn message_mut(&mut self) -> &mut RtnlMessage {
+        &mut self.message
+    }
+
+    pub fn header(&self) -> &NetlinkHeader {
+        &self.header
+    }
+
+    pub fn header_mut(&mut self) -> &mut NetlinkHeader {
+        &mut self.header
+    }
+
     pub fn to_bytes(&self, buffer: &mut [u8]) -> Result<usize> {
         if !self.finalized {
             Err(Error::Malformed)
-        } else if self.length() as usize > buffer.len() {
+        } else if self.header().length() as usize > buffer.len() {
             Err(Error::Exhausted)
         } else {
             self.emit(buffer);
-            Ok(self.length() as usize)
+            Ok(self.header().length() as usize)
         }
     }
 
     pub fn from_bytes(buffer: &[u8]) -> Result<Self> {
         NetlinkBuffer::new_checked(&buffer)?.parse()
-    }
-
-    pub fn length(&self) -> u32 {
-        self.header.length
-    }
-
-    pub fn set_length(&mut self, value: u32) {
-        self.header.length = value;
-    }
-
-    pub fn message_type(&self) -> u16 {
-        self.header.message_type
     }
 
     pub fn is_done(&self) -> bool {
@@ -104,26 +105,6 @@ impl Message {
 
     pub fn is_get_address(&self) -> bool {
         self.message().is_get_address()
-    }
-
-    pub fn set_message_type(&mut self, value: u16) {
-        self.header.message_type = value;
-    }
-
-    pub fn sequence_number(&self) -> u32 {
-        self.header.sequence_number
-    }
-
-    pub fn set_sequence_number(&mut self, value: u32) {
-        self.header.sequence_number = value;
-    }
-
-    pub fn flags(&self) -> NetlinkFlags {
-        self.header.flags
-    }
-
-    pub fn set_flags(&mut self, flags: NetlinkFlags) {
-        self.header.flags = flags;
     }
 
     pub fn finalize(&mut self) {
@@ -330,7 +311,7 @@ impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Message> for NetlinkBuffer<&'b
 
             NLMSG_ERROR => {
                 let msg: ErrorMessage = ErrorBuffer::new(&self.payload()).parse()?;
-                if msg.code <= 0 {
+                if msg.code >= 0 {
                     Ack(msg as AckMessage)
                 } else {
                     Error(msg)

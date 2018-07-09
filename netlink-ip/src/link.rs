@@ -300,7 +300,7 @@ impl LinkHandle {
     pub fn list(&mut self) -> impl Future<Item = Vec<Link>, Error = NetlinkIpError> {
         // build the request
         let mut req: Message = RtnlMessage::GetLink(self.new_link_message()).into();
-        req.set_flags(NetlinkFlags::from(NLM_F_DUMP | NLM_F_REQUEST));
+        *req.header_mut().flags_mut() = NetlinkFlags::from(NLM_F_DUMP | NLM_F_REQUEST);
 
         // send the request
         debug!("sending request to retrieve links");
@@ -324,22 +324,32 @@ impl LinkHandle {
 
     pub fn set_up(&mut self, index: u32) -> impl Future<Item = (), Error = NetlinkIpError> {
         let mut link_msg = self.new_link_message();
-        link_msg.header_mut().index = index;
-        link_msg.header_mut().flags = LinkFlags::from(IFF_UP);
-        link_msg.header_mut().change_mask = LinkFlags::from(IFF_UP);
+        link_msg
+            .header_mut()
+            .set_index(index)
+            .set_flags(LinkFlags::from(IFF_UP))
+            .set_change_mask(LinkFlags::from(IFF_UP));
 
-        let mut req = Message::from(RtnlMessage::NewLink(link_msg));
-        req.set_flags(NetlinkFlags::from(NLM_F_ACK));
+        let mut req = Message::from(RtnlMessage::SetLink(link_msg));
+        req.header_mut().set_flags(NetlinkFlags::from(
+            NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE,
+        ));
+
         Stream2Ack::new(self.request(req))
     }
 
     pub fn set_down(&mut self, index: u32) -> impl Future<Item = (), Error = NetlinkIpError> {
         let mut link_msg = self.new_link_message();
-        link_msg.header_mut().index = index;
-        link_msg.header_mut().change_mask = LinkFlags::from(IFF_UP);
+        link_msg
+            .header_mut()
+            .set_index(index)
+            .set_change_mask(LinkFlags::from(IFF_UP));
 
-        let mut req = Message::from(RtnlMessage::NewLink(link_msg));
-        req.set_flags(NetlinkFlags::from(NLM_F_ACK));
+        let mut req = Message::from(RtnlMessage::SetLink(link_msg));
+        req.header_mut().set_flags(NetlinkFlags::from(
+            NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE,
+        ));
+
         Stream2Ack::new(self.request(req))
     }
 }

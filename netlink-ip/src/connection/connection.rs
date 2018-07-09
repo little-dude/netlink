@@ -45,7 +45,7 @@ impl Connection {
 
     fn prepare_request(&mut self, message: &mut Message) {
         self.sequence_id += 1;
-        message.set_sequence_number(self.sequence_id);
+        message.header_mut().set_sequence_number(self.sequence_id);
         message.finalize();
     }
 
@@ -108,13 +108,13 @@ impl Connection {
     }
 
     fn handle_message(&mut self, message: Message) {
-        let seq = message.sequence_number();
+        let seq = message.header().sequence_number();
         let mut close_chan = false;
 
         debug!("handling message {}", seq);
 
         if let Some(tx) = self.pending_requests.get_mut(&seq) {
-            if !message.flags().has_multipart() {
+            if !message.header().flags().has_multipart() {
                 trace!("not a multipart message");
                 close_chan = true;
             }
@@ -131,7 +131,10 @@ impl Connection {
                 let _ = UnboundedSender::unbounded_send(tx, message);
                 close_chan = true;
             } else if message.is_ack() {
-                trace!("received ack for message {}", message.sequence_number());
+                trace!(
+                    "received ack for message {}",
+                    message.header().sequence_number()
+                );
                 close_chan = true;
             } else if message.is_overrun() {
                 // FIXME: we should obviously NOT panic here but I'm not sure what we
@@ -145,7 +148,7 @@ impl Connection {
             // FIXME: we should check whether it's an Overrun error maybe?
             trace!(
                 "unknown sequence number {}, ignoring the message",
-                message.sequence_number()
+                message.header().sequence_number()
             );
         }
 

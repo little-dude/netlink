@@ -15,6 +15,59 @@ pub struct LinkHeader {
     pub change_mask: LinkFlags,
 }
 
+impl LinkHeader {
+    pub fn address_family(&self) -> u8 {
+        self.address_family
+    }
+    pub fn address_family_mut(&mut self) -> &mut u8 {
+        &mut self.address_family
+    }
+    pub fn set_address_family(&mut self, value: u8) -> &mut Self {
+        self.address_family = value;
+        self
+    }
+    pub fn index(&self) -> u32 {
+        self.index
+    }
+    pub fn index_mut(&mut self) -> &mut u32 {
+        &mut self.index
+    }
+    pub fn set_index(&mut self, value: u32) -> &mut Self {
+        self.index = value;
+        self
+    }
+    pub fn link_layer_type(&self) -> LinkLayerType {
+        self.link_layer_type
+    }
+    pub fn link_layer_type_mut(&mut self) -> &mut LinkLayerType {
+        &mut self.link_layer_type
+    }
+    pub fn set_link_layer_type(&mut self, value: LinkLayerType) -> &mut Self {
+        self.link_layer_type = value;
+        self
+    }
+    pub fn flags(&self) -> LinkFlags {
+        self.flags
+    }
+    pub fn flags_mut(&mut self) -> &mut LinkFlags {
+        &mut self.flags
+    }
+    pub fn set_flags(&mut self, value: LinkFlags) -> &mut Self {
+        self.flags = value;
+        self
+    }
+    pub fn change_mask(&self) -> LinkFlags {
+        self.change_mask
+    }
+    pub fn change_mask_mut(&mut self) -> &mut LinkFlags {
+        &mut self.change_mask
+    }
+    pub fn set_change_mask(&mut self, value: LinkFlags) -> &mut Self {
+        self.change_mask = value;
+        self
+    }
+}
+
 impl Emitable for LinkHeader {
     fn buffer_len(&self) -> usize {
         HEADER_LEN

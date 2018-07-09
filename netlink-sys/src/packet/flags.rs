@@ -35,8 +35,9 @@ impl NetlinkFlags {
     }
 
     /// Set the `NLM_F_REQUEST` flag
-    pub fn set_request(&mut self) {
+    pub fn set_request(&mut self) -> &mut Self {
         self.0 |= NLM_F_REQUEST;
+        self
     }
 
     /// Check if the `NLM_F_REQUEST` flag is set
@@ -45,8 +46,9 @@ impl NetlinkFlags {
     }
 
     /// Set the `NLM_MULTIPART` flag
-    pub fn set_multipart(&mut self) {
-        self.0 |= NLM_MULTIPART
+    pub fn set_multipart(&mut self) -> &mut Self {
+        self.0 |= NLM_MULTIPART;
+        self
     }
     /// Check if the `NLM_MULTIPART` flag is set
     pub fn has_multipart(self) -> bool {
@@ -54,8 +56,9 @@ impl NetlinkFlags {
     }
 
     /// Set the `NLM_F_ACK` flag
-    pub fn set_ack(&mut self) {
-        self.0 |= NLM_F_ACK
+    pub fn set_ack(&mut self) -> &mut Self {
+        self.0 |= NLM_F_ACK;
+        self
     }
     /// Check if the `NLM_F_ACK` flag is set
     pub fn has_ack(self) -> bool {
@@ -63,8 +66,9 @@ impl NetlinkFlags {
     }
 
     /// Set the `NLM_F_ECHO` flag
-    pub fn set_echo(&mut self) {
-        self.0 |= NLM_F_ECHO
+    pub fn set_echo(&mut self) -> &mut Self {
+        self.0 |= NLM_F_ECHO;
+        self
     }
     /// Check if the `NLM_F_ECHO` flag is set
     pub fn has_echo(self) -> bool {
@@ -72,8 +76,9 @@ impl NetlinkFlags {
     }
 
     /// Set the `NLM_F_DUMP_INTR` flag
-    pub fn set_dump_intr(&mut self) {
-        self.0 |= NLM_F_DUMP_INTR
+    pub fn set_dump_intr(&mut self) -> &mut Self {
+        self.0 |= NLM_F_DUMP_INTR;
+        self
     }
     /// Check if the `NLM_F_DUMP_INTR` flag is set
     pub fn has_dump_intr(self) -> bool {
@@ -81,8 +86,9 @@ impl NetlinkFlags {
     }
 
     /// Set the `NLM_F_DUMP_FILTERED` flag
-    pub fn set_dump_filterd(&mut self) {
-        self.0 |= NLM_F_DUMP_FILTERED
+    pub fn set_dump_filterd(&mut self) -> &mut Self {
+        self.0 |= NLM_F_DUMP_FILTERED;
+        self
     }
     /// Check if the `NLM_F_DUMP_FILTERED` flag is set
     pub fn has_dump_filterd(self) -> bool {
@@ -90,8 +96,9 @@ impl NetlinkFlags {
     }
 
     /// Set the `NLM_F_ROOT` flag
-    pub fn set_root(&mut self) {
-        self.0 |= NLM_F_ROOT
+    pub fn set_root(&mut self) -> &mut Self {
+        self.0 |= NLM_F_ROOT;
+        self
     }
     /// Check if the `NLM_F_ROOT` flag is set
     pub fn has_root(self) -> bool {
@@ -99,8 +106,9 @@ impl NetlinkFlags {
     }
 
     /// Set the `NLM_F_MATCH` flag
-    pub fn set_match(&mut self) {
-        self.0 |= NLM_F_MATCH
+    pub fn set_match(&mut self) -> &mut Self {
+        self.0 |= NLM_F_MATCH;
+        self
     }
     /// Check if the `NLM_F_MATCH` flag is set
     pub fn has_match(self) -> bool {
@@ -108,8 +116,9 @@ impl NetlinkFlags {
     }
 
     /// Set the `NLM_F_ATOMIC` flag
-    pub fn set_atomic(&mut self) {
-        self.0 |= NLM_F_ATOMIC
+    pub fn set_atomic(&mut self) -> &mut Self {
+        self.0 |= NLM_F_ATOMIC;
+        self
     }
     /// Check if the `NLM_F_ATOMIC` flag is set
     pub fn has_atomic(self) -> bool {
@@ -117,8 +126,9 @@ impl NetlinkFlags {
     }
 
     /// Set the `NLM_F_DUMP` flag
-    pub fn set_dump(&mut self) {
-        self.0 |= NLM_F_DUMP
+    pub fn set_dump(&mut self) -> &mut Self {
+        self.0 |= NLM_F_DUMP;
+        self
     }
     /// Check if the `NLM_F_DUMP` flag is set
     pub fn has_dump(self) -> bool {
@@ -126,8 +136,9 @@ impl NetlinkFlags {
     }
 
     /// Set the `NLM_F_REPLACE` flag
-    pub fn set_replace(&mut self) {
-        self.0 |= NLM_F_REPLACE
+    pub fn set_replace(&mut self) -> &mut Self {
+        self.0 |= NLM_F_REPLACE;
+        self
     }
     /// Check if the `NLM_F_REPLACE` flag is set
     pub fn has_replace(self) -> bool {
@@ -135,8 +146,9 @@ impl NetlinkFlags {
     }
 
     /// Set the `NLM_F_EXCL` flag
-    pub fn set_excl(&mut self) {
-        self.0 |= NLM_F_EXCL
+    pub fn set_excl(&mut self) -> &mut Self {
+        self.0 |= NLM_F_EXCL;
+        self
     }
     /// Check if the `NLM_F_EXCL` flag is set
     pub fn has_excl(self) -> bool {
@@ -144,8 +156,9 @@ impl NetlinkFlags {
     }
 
     /// Set the `NLM_F_CREATE` flag
-    pub fn set_create(&mut self) {
-        self.0 |= NLM_F_CREATE
+    pub fn set_create(&mut self) -> &mut Self {
+        self.0 |= NLM_F_CREATE;
+        self
     }
     /// Check if the `NLM_F_CREATE` flag is set
     pub fn has_create(self) -> bool {
@@ -153,8 +166,9 @@ impl NetlinkFlags {
     }
 
     /// Set the `NLM_F_APPEND` flag
-    pub fn set_append(&mut self) {
-        self.0 |= NLM_F_APPEND
+    pub fn set_append(&mut self) -> &mut Self {
+        self.0 |= NLM_F_APPEND;
+        self
     }
     /// Check if the `NLM_F_APPEND` flag is set
     pub fn has_append(self) -> bool {
@@ -162,8 +176,9 @@ impl NetlinkFlags {
     }
 
     /// Set the `NLM_F_NONREC` flag
-    pub fn set_nonrec(&mut self) {
-        self.0 |= NLM_F_NONREC
+    pub fn set_nonrec(&mut self) -> &mut Self {
+        self.0 |= NLM_F_NONREC;
+        self
     }
     /// Check if the `NLM_F_NONREC` flag is set
     pub fn has_nonrec(self) -> bool {
@@ -171,8 +186,9 @@ impl NetlinkFlags {
     }
 
     /// Set the `NLM_F_ACK_TLVS` flag
-    pub fn set_ack_tvls(&mut self) {
-        self.0 |= NLM_F_ACK_TLVS
+    pub fn set_ack_tvls(&mut self) -> &mut Self {
+        self.0 |= NLM_F_ACK_TLVS;
+        self
     }
     /// Check if the `NLM_F_ACK_TLVS` flag is set
     pub fn has_ack_tvls(self) -> bool {
@@ -180,8 +196,9 @@ impl NetlinkFlags {
     }
 
     /// Set the `NLM_F_CAPPED` flag
-    pub fn set_capped(&mut self) {
-        self.0 |= NLM_F_CAPPED
+    pub fn set_capped(&mut self) -> &mut Self {
+        self.0 |= NLM_F_CAPPED;
+        self
     }
     /// Check if the `NLM_F_CAPPED` flag is set
     pub fn has_capped(self) -> bool {
