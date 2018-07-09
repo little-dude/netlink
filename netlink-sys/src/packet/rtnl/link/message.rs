@@ -33,6 +33,10 @@ impl LinkMessage {
         &mut self.nlas
     }
 
+    pub fn append_nla(&mut self, nla: LinkNla) {
+        self.nlas.push(nla)
+    }
+
     pub fn from_parts(header: LinkHeader, nlas: Vec<LinkNla>) -> Self {
         LinkMessage { header, nlas }
     }
@@ -45,7 +49,9 @@ impl Emitable for LinkMessage {
 
     fn emit(&self, buffer: &mut [u8]) {
         self.header.emit(buffer);
-        self.nlas.as_slice().emit(buffer);
+        self.nlas
+            .as_slice()
+            .emit(&mut buffer[self.header.buffer_len()..]);
     }
 }
 
@@ -219,5 +225,36 @@ mod test {
         assert_eq!(nla.value(), &[0x01, 0x00, 0x00, 0x00]);
         let parsed: LinkNla = nla.parse().unwrap();
         assert_eq!(parsed, LinkNla::NumTxQueues(1));
+    }
+
+    #[test]
+    fn emit() {
+        let mut header = LinkHeader::new();
+        header
+            .set_link_layer_type(LinkLayerType::Loopback)
+            .set_index(1)
+            .set_flags(LinkFlags::from(
+                IFF_UP | IFF_LOOPBACK | IFF_RUNNING | IFF_LOWER_UP,
+            ));
+
+        let nlas = vec![
+            LinkNla::IfName("lo".into()),
+            LinkNla::TxQueueLen(1000),
+            LinkNla::OperState(LinkState::Unknown),
+            LinkNla::LinkMode(0),
+            LinkNla::Mtu(0x1_0000),
+            LinkNla::Group(0),
+            LinkNla::Promiscuity(0),
+            LinkNla::NumTxQueues(1),
+            LinkNla::GsoMaxSegs(0xffff),
+            LinkNla::GsoMaxSize(0x1_0000),
+        ];
+
+        let packet = LinkMessage::from_parts(header, nlas);
+
+        let mut buf = vec![0; 96];
+
+        assert_eq!(packet.buffer_len(), 96);
+        packet.emit(&mut buf[..]);
     }
 }

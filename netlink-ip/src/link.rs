@@ -328,8 +328,15 @@ impl SetRequest {
             .set_change_mask(LinkFlags::from(IFF_UP));
         self.execute()
     }
-}
 
+    /// Set the link with the given index down (equivalent to `ip link set DEV name NAME`)
+    pub fn name(mut self, index: u32, name: String) -> impl Future<Item = (), Error = NetlinkIpError> {
+        self.message.header_mut().set_index(index);
+        self.message.append_nla(LinkNla::IfName(name));
+        self.execute()
+    }
+
+}
 impl LinkHandle {
     pub fn new(handle: ConnectionHandle) -> Self {
         LinkHandle(handle)
