@@ -247,10 +247,10 @@ impl Link {
     pub fn from_link_message(value: LinkMessage) -> Result<Self, NetlinkIpError> {
         let (header, mut nlas) = value.into_parts();
         let mut link = Link::default();
-        link.set_index(header.index)
-            .set_address_family(header.address_family)
-            .set_link_layer_type(header.link_layer_type)
-            .set_change_mask(header.change_mask);
+        link.set_index(header.index())
+            .set_address_family(header.address_family())
+            .set_link_layer_type(header.link_layer_type())
+            .set_change_mask(header.change_mask());
         for nla in nlas.drain(..) {
             let _ = match nla {
                 LinkNla::Address(bytes) => {
@@ -282,13 +282,7 @@ impl LinkHandle {
     }
 
     fn new_link_message(&self) -> LinkMessage {
-        let header = LinkHeader {
-            address_family: 0, // AF_UNSPEC
-            link_layer_type: LinkLayerType::Ether,
-            flags: LinkFlags::new(),
-            change_mask: LinkFlags::new(),
-            index: 0,
-        };
+        let header = LinkHeader::new();
         let nlas = vec![];
         LinkMessage::from_parts(header, nlas)
     }

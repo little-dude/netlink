@@ -9,15 +9,15 @@ impl From<u32> for LinkFlags {
     }
 }
 
-impl<'a> Into<u32> for &'a LinkFlags {
-    fn into(self) -> u32 {
-        self.0
+impl<'a> From<&'a LinkFlags> for u32 {
+    fn from(flags: &'a LinkFlags) -> u32 {
+        flags.0
     }
 }
 
-impl Into<u32> for LinkFlags {
-    fn into(self) -> u32 {
-        self.0
+impl From<LinkFlags> for u32 {
+    fn from(flags: LinkFlags) -> u32 {
+        flags.0
     }
 }
 
@@ -38,7 +38,7 @@ impl LinkFlags {
     }
 
     /// Check if the `IFF_UP` flag is set
-    pub fn has_up(self) -> bool {
+    pub fn is_up(self) -> bool {
         self.0 & IFF_UP == IFF_UP
     }
 
@@ -48,7 +48,7 @@ impl LinkFlags {
     }
 
     /// Check if the `IFF_RUNNING` flag is set
-    pub fn has_running(self) -> bool {
+    pub fn is_running(self) -> bool {
         self.0 & IFF_RUNNING == IFF_RUNNING
     }
 
@@ -58,7 +58,7 @@ impl LinkFlags {
     }
 
     /// Check if the `IFF_LOWER_UP` flag is set
-    pub fn has_lower_up(self) -> bool {
+    pub fn is_lower_up(self) -> bool {
         self.0 & IFF_LOWER_UP == IFF_LOWER_UP
     }
 
@@ -68,7 +68,7 @@ impl LinkFlags {
     }
 
     /// Check if the `IFF_DORMANT` flag is set
-    pub fn has_dormant(self) -> bool {
+    pub fn is_dormant(self) -> bool {
         self.0 & IFF_DORMANT == IFF_DORMANT
     }
 
@@ -78,7 +78,7 @@ impl LinkFlags {
     }
 
     /// Check if the `IFF_BROADCAST` flag is set
-    pub fn has_broadcast(self) -> bool {
+    pub fn is_broadcast(self) -> bool {
         self.0 & IFF_BROADCAST == IFF_BROADCAST
     }
 
@@ -88,7 +88,7 @@ impl LinkFlags {
     }
 
     /// Check if the `IFF_MULTICAST` flag is set
-    pub fn has_multicast(self) -> bool {
+    pub fn is_multicast(self) -> bool {
         self.0 & IFF_MULTICAST == IFF_MULTICAST
     }
 
@@ -98,7 +98,7 @@ impl LinkFlags {
     }
 
     /// Check if the `IFF_ALLMULTI` flag is set
-    pub fn has_allmulti(self) -> bool {
+    pub fn is_allmulti(self) -> bool {
         self.0 & IFF_ALLMULTI == IFF_ALLMULTI
     }
 
@@ -108,7 +108,7 @@ impl LinkFlags {
     }
 
     /// Check if the `IFF_DEBUG` flag is set
-    pub fn has_debug(self) -> bool {
+    pub fn is_debug(self) -> bool {
         self.0 & IFF_DEBUG == IFF_DEBUG
     }
 
@@ -118,7 +118,7 @@ impl LinkFlags {
     }
 
     /// Check if the `IFF_LOOPBACK` flag is set
-    pub fn has_loopback(self) -> bool {
+    pub fn is_loopback(self) -> bool {
         self.0 & IFF_LOOPBACK == IFF_LOOPBACK
     }
 
@@ -128,7 +128,7 @@ impl LinkFlags {
     }
 
     /// Check if the `IFF_POINTOPOINT` flag is set
-    pub fn has_point_to_point(self) -> bool {
+    pub fn is_point_to_point(self) -> bool {
         self.0 & IFF_POINTOPOINT == IFF_POINTOPOINT
     }
 
@@ -138,7 +138,7 @@ impl LinkFlags {
     }
 
     /// Check if the `IFF_NOARP` flag is set
-    pub fn has_no_arp(self) -> bool {
+    pub fn is_no_arp(self) -> bool {
         self.0 & IFF_NOARP == IFF_NOARP
     }
 
@@ -148,7 +148,7 @@ impl LinkFlags {
     }
 
     /// Check if the `IFF_PROMISC` flag is set
-    pub fn has_promiscuous(self) -> bool {
+    pub fn is_promiscuous(self) -> bool {
         self.0 & IFF_PROMISC == IFF_PROMISC
     }
 
@@ -158,7 +158,7 @@ impl LinkFlags {
     }
 
     /// Check if the `IFF_MASTER` flag is set
-    pub fn has_master(self) -> bool {
+    pub fn is_master(self) -> bool {
         self.0 & IFF_MASTER == IFF_MASTER
     }
 
@@ -168,7 +168,7 @@ impl LinkFlags {
     }
 
     /// Check if the `IFF_SLAVE` flag is set
-    pub fn has_slave(self) -> bool {
+    pub fn is_slave(self) -> bool {
         self.0 & IFF_SLAVE == IFF_SLAVE
     }
 
@@ -178,7 +178,7 @@ impl LinkFlags {
     }
 
     /// Check if the `IFF_PORTSEL` flag is set
-    pub fn has_port_select(self) -> bool {
+    pub fn is_port_select(self) -> bool {
         self.0 & IFF_PORTSEL == IFF_PORTSEL
     }
 
@@ -188,7 +188,7 @@ impl LinkFlags {
     }
 
     /// Check if the `IFF_AUTOMEDIA` flag is set
-    pub fn has_auto_media_type(self) -> bool {
+    pub fn is_auto_media_type(self) -> bool {
         self.0 & IFF_AUTOMEDIA == IFF_AUTOMEDIA
     }
 

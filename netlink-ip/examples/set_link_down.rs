@@ -1,6 +1,6 @@
+extern crate futures;
 extern crate netlink_ip;
 extern crate tokio_core;
-extern crate futures;
 
 use std::env;
 use std::thread::spawn;
@@ -9,7 +9,6 @@ use futures::Future;
 use tokio_core::reactor::Core;
 
 use netlink_ip::new_connection;
-
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -42,7 +41,8 @@ fn main() {
 }
 
 fn usage() {
-    eprintln!("usage:
+    eprintln!(
+        "usage:
     cargo run --example set_link_down -- <link name>
 
 Note that you need to run this program as root. Instead of running cargo as root,
@@ -52,5 +52,6 @@ build the example normally:
 
 Then find the binary in the target directory:
 
-    cd ../target/debug/example ; sudo ./set_link_down <link_name>");
+    cd ../target/debug/example ; sudo ./set_link_down <link_name>"
+    );
 }

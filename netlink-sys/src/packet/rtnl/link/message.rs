@@ -111,9 +111,9 @@ mod test {
             packet.flags(),
             LinkFlags::from(IFF_UP | IFF_LOOPBACK | IFF_RUNNING)
         );
-        assert!(packet.flags().has_running());
-        assert!(packet.flags().has_loopback());
-        assert!(packet.flags().has_up());
+        assert!(packet.flags().is_running());
+        assert!(packet.flags().is_loopback());
+        assert!(packet.flags().is_up());
         assert_eq!(packet.change_mask(), LinkFlags::new());
     }
 
