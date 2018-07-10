@@ -196,7 +196,7 @@ impl Nla for LinkNla {
                 | IfAlias(ref string)
                 | PhysPortName(ref string)
                 => {
-                    &mut buffer[..string.len()].copy_from_slice(string.as_bytes());
+                    buffer[..string.len()].copy_from_slice(string.as_bytes());
                     buffer[string.len()] = 0;
                 }
 
