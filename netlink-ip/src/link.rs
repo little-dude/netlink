@@ -287,11 +287,10 @@ pub struct SetRequest {
 }
 
 impl SetRequest {
-    fn new(handle: ConnectionHandle) -> Self {
-        SetRequest {
-            handle,
-            message: LinkMessage::new(),
-        }
+    fn new(handle: ConnectionHandle, index: u32) -> Self {
+        let mut message = LinkMessage::new();
+        message.header_mut().set_index(index);
+        SetRequest { handle, message }
     }
 
     /// Execute the request
@@ -311,32 +310,42 @@ impl SetRequest {
     }
 
     /// Set the link with the given index up (equivalent to `ip link set dev DEV up`)
-    pub fn up(mut self, index: u32) -> impl Future<Item = (), Error = NetlinkIpError> {
+    pub fn up(mut self) -> Self {
         self.message
             .header_mut()
-            .set_index(index)
             .set_flags(LinkFlags::from(IFF_UP))
             .set_change_mask(LinkFlags::from(IFF_UP));
-        self.execute()
+        self
     }
 
     /// Set the link with the given index down (equivalent to `ip link set dev DEV down`)
-    pub fn down(mut self, index: u32) -> impl Future<Item = (), Error = NetlinkIpError> {
+    pub fn down(mut self) -> Self {
         self.message
             .header_mut()
-            .set_index(index)
             .set_change_mask(LinkFlags::from(IFF_UP));
-        self.execute()
+        self
     }
 
-    /// Set the link with the given index down (equivalent to `ip link set DEV name NAME`)
-    pub fn name(mut self, index: u32, name: String) -> impl Future<Item = (), Error = NetlinkIpError> {
-        self.message.header_mut().set_index(index);
+    /// Set the name of the link with the given index (equivalent to `ip link set DEV name NAME`)
+    pub fn name(mut self, name: String) -> Self {
         self.message.append_nla(LinkNla::IfName(name));
-        self.execute()
+        self
     }
 
+    /// Set the mtu of the link with the given index (equivalent to `ip link set DEV mtu MTU`)
+    pub fn mtu(mut self, mtu: u32) -> Self {
+        self.message.append_nla(LinkNla::Mtu(mtu));
+        self
+    }
+
+    /// Set the hardware address of the link with the given index (equivalent to `ip link set DEV address ADDRESS`)
+    pub fn address(mut self, address: MacAddress) -> Self {
+        self.message
+            .append_nla(LinkNla::Address(Vec::from(address.as_bytes())));
+        self
+    }
 }
+
 impl LinkHandle {
     pub fn new(handle: ConnectionHandle) -> Self {
         LinkHandle(handle)
@@ -346,8 +355,8 @@ impl LinkHandle {
         self.0.request(req)
     }
 
-    pub fn set(&self) -> SetRequest {
-        SetRequest::new(self.0.clone())
+    pub fn set(&self, index: u32) -> SetRequest {
+        SetRequest::new(self.0.clone(), index)
     }
 
     /// Retrieve the list of links (equivalent to `ip link show`)

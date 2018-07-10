@@ -30,7 +30,8 @@ fn main() {
         // Find the link with the name provided as argument, and set it down
         if link.name().unwrap() == link_name {
             println!("setting link {} down", link_name);
-            match handle.link().set().down(link.index()).wait() {
+            let req = handle.link().set(link.index()).down();
+            match req.execute().wait() {
                 Ok(()) => println!("done"),
                 Err(e) => eprintln!("error: {}", e),
             }
