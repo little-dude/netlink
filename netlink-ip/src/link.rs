@@ -4,7 +4,8 @@ use eui48::MacAddress;
 use futures::{Future, Stream};
 use netlink_sys::constants::*;
 use netlink_sys::rtnl::{
-    LinkFlags, LinkLayerType, LinkMessage, LinkNla, LinkState, Message, RtnlMessage,
+    LinkFlags, LinkInfo, LinkInfoData, LinkInfoKind, LinkLayerType, LinkMessage, LinkNla,
+    LinkState, Message, RtnlMessage,
 };
 use netlink_sys::NetlinkFlags;
 
@@ -277,7 +278,11 @@ impl Link {
 pub struct LinkHandle(ConnectionHandle);
 
 lazy_static! {
+    // Flags for `ip link set`
     static ref SET_FLAGS: NetlinkFlags =
+        NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
+    // Flags for `ip link add`
+    static ref ADD_FLAGS: NetlinkFlags =
         NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
 }
 
@@ -359,6 +364,10 @@ impl LinkHandle {
         SetRequest::new(self.0.clone(), index)
     }
 
+    pub fn add(&self) -> AddRequest {
+        AddRequest::new(self.0.clone())
+    }
+
     /// Retrieve the list of links (equivalent to `ip link show`)
     pub fn list(&mut self) -> impl Future<Item = Vec<Link>, Error = NetlinkIpError> {
         // build the request
@@ -383,5 +392,52 @@ impl LinkHandle {
                 unreachable!();
             }
         }))
+    }
+}
+
+pub struct AddRequest {
+    handle: ConnectionHandle,
+    message: LinkMessage,
+}
+
+impl AddRequest {
+    fn new(handle: ConnectionHandle) -> Self {
+        let mut message = LinkMessage::new();
+        message.header_mut();
+        AddRequest { handle, message }
+    }
+
+    /// Execute the request
+    pub fn execute(self) -> impl Future<Item = (), Error = NetlinkIpError> {
+        let AddRequest {
+            mut handle,
+            message,
+        } = self;
+        let mut req = Message::from(RtnlMessage::NewLink(message));
+        req.header_mut().set_flags(*ADD_FLAGS);
+        Stream2Ack::new(handle.request(req))
+    }
+
+    /// Return a mutable reference to the request
+    pub fn message_mut(&mut self) -> &mut LinkMessage {
+        &mut self.message
+    }
+
+    pub fn dummy(self, name: String) -> Self {
+        self.name(name).link_info(LinkInfoKind::Dummy, None)
+    }
+
+    fn link_info(mut self, kind: LinkInfoKind, data: Option<LinkInfoData>) -> Self {
+        let mut link_info_nlas = vec![LinkInfo::Kind(kind)];
+        if let Some(data) = data {
+            link_info_nlas.push(LinkInfo::Data(data));
+        }
+        self.message.append_nla(LinkNla::LinkInfo(link_info_nlas));
+        self
+    }
+
+    fn name(mut self, name: String) -> Self {
+        self.message.append_nla(LinkNla::IfName(name));
+        self
     }
 }
