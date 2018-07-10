@@ -284,6 +284,12 @@ lazy_static! {
     // Flags for `ip link add`
     static ref ADD_FLAGS: NetlinkFlags =
         NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
+    // Flags for `ip link del`
+    static ref DEL_FLAGS: NetlinkFlags =
+        NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
+    // Flags for `ip link get`
+    static ref GET_FLAGS: NetlinkFlags =
+        NetlinkFlags::from(NLM_F_REQUEST | NLM_F_DUMP);
 }
 
 pub struct SetRequest {
@@ -368,20 +374,25 @@ impl LinkHandle {
         AddRequest::new(self.0.clone())
     }
 
+    pub fn del(&mut self, index: u32) -> impl Future<Item = (), Error = NetlinkIpError> {
+        let mut msg = LinkMessage::new();
+        msg.header_mut().set_index(index);
+
+        let mut req: Message = RtnlMessage::DelLink(msg).into();
+        req.header_mut().set_flags(NetlinkFlags::from(*DEL_FLAGS));
+
+        Stream2Ack::new(self.request(req))
+    }
+
     /// Retrieve the list of links (equivalent to `ip link show`)
     pub fn list(&mut self) -> impl Future<Item = Vec<Link>, Error = NetlinkIpError> {
-        // build the request
         let mut req: Message = RtnlMessage::GetLink(LinkMessage::new()).into();
-        *req.header_mut().flags_mut() = NetlinkFlags::from(NLM_F_DUMP | NLM_F_REQUEST);
-
-        // send the request
-        debug!("sending request to retrieve links");
+        *req.header_mut().flags_mut() = NetlinkFlags::from(*GET_FLAGS);
         let response = self.request(req);
 
         // handle the response: Stream2Vec turns the response messages into a vec of Link.
         Stream2Vec::new(response.map(move |msg| {
             if !msg.is_new_link() {
-                error!("unexpected netlink response message: {:?}", msg);
                 return Err(NetlinkIpError::UnexpectedMessage(msg));
             }
 
