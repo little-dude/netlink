@@ -32,7 +32,7 @@ impl Connection {
     pub(crate) fn new(requests_rx: RequestsRx) -> io::Result<Self> {
         let socket = TokioSocket::new(Protocol::Route)?;
         trace!("socket: connecting");
-        socket.connect(&SocketAddr::new(0, 0))?;
+        socket.connect(&KERNEL_PORT)?;
         Ok(Connection {
             socket: NetlinkFramed::new(socket, NetlinkCodec::<Message>::new()),
             sequence_id: 0,
