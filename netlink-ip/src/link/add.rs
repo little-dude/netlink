@@ -1,8 +1,8 @@
 use futures::Future;
 
-use netlink_sys::constants::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST};
+use netlink_sys::constants::{IFF_UP, NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST};
 use netlink_sys::rtnl::{
-    LinkInfo, LinkInfoData, LinkInfoKind, LinkMessage, LinkNla, Message, RtnlMessage,
+    LinkFlags, LinkInfo, LinkInfoData, LinkInfoKind, LinkMessage, LinkNla, Message, RtnlMessage,
 };
 use netlink_sys::NetlinkFlags;
 
@@ -44,21 +44,44 @@ impl AddRequest {
         &mut self.message
     }
 
+    /// Add a dummy link
     pub fn dummy(self, name: String) -> Self {
-        self.name(name).link_info(LinkInfoKind::Dummy, None)
+        self.name(name).link_info(LinkInfoKind::Dummy, None).up()
     }
 
-    fn link_info(mut self, kind: LinkInfoKind, data: Option<LinkInfoData>) -> Self {
+    /// Create a veth pair
+    pub fn veth(self, name: String, peer_name: String) -> Self {
+        let mut peer = LinkMessage::new();
+        peer.nlas_mut().push(LinkNla::IfName(peer_name));
+
+        self.name(name)
+            .link_info(LinkInfoKind::Veth, Some(LinkInfoData::Veth(peer)))
+            .up()
+    }
+
+    fn up(mut self) -> Self {
+        self.message_mut()
+            .header_mut()
+            .set_flags(LinkFlags::from(IFF_UP))
+            .set_change_mask(LinkFlags::from(IFF_UP));
+        self
+    }
+
+    fn link_info(self, kind: LinkInfoKind, data: Option<LinkInfoData>) -> Self {
         let mut link_info_nlas = vec![LinkInfo::Kind(kind)];
         if let Some(data) = data {
             link_info_nlas.push(LinkInfo::Data(data));
         }
-        self.message.append_nla(LinkNla::LinkInfo(link_info_nlas));
-        self
+        self.append_nla(LinkNla::LinkInfo(link_info_nlas))
     }
 
     fn name(mut self, name: String) -> Self {
         self.message.append_nla(LinkNla::IfName(name));
+        self
+    }
+
+    fn append_nla(mut self, nla: LinkNla) -> Self {
+        self.message.nlas_mut().push(nla);
         self
     }
 }
