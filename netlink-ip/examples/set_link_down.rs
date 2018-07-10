@@ -24,7 +24,7 @@ fn main() {
     spawn(move || Core::new().unwrap().run(connection));
 
     // Get the list of links
-    let links = handle.link().list().wait().unwrap();
+    let links = handle.link().get().execute().wait().unwrap();
 
     for link in links {
         // Find the link with the name provided as argument, and set it down

@@ -1,15 +1,21 @@
-use connection::ConnectionHandle;
 use errors::NetlinkIpError;
 use eui48::MacAddress;
-use futures::{Future, Stream};
-use netlink_sys::constants::*;
-use netlink_sys::rtnl::{
-    LinkFlags, LinkInfo, LinkInfoData, LinkInfoKind, LinkLayerType, LinkMessage, LinkNla,
-    LinkState, Message, RtnlMessage,
-};
-use netlink_sys::NetlinkFlags;
+use netlink_sys::rtnl::{LinkFlags, LinkLayerType, LinkMessage, LinkNla, LinkState};
 
-use {Stream2Ack, Stream2Vec};
+mod handle;
+pub use self::handle::*;
+
+mod add;
+pub use self::add::*;
+
+mod del;
+pub use self::del::*;
+
+mod get;
+pub use self::get::*;
+
+mod set;
+pub use self::set::*;
 
 #[derive(Clone, Debug, Default)]
 pub struct Link {
@@ -272,183 +278,5 @@ impl Link {
             };
         }
         Ok(link)
-    }
-}
-
-pub struct LinkHandle(ConnectionHandle);
-
-lazy_static! {
-    // Flags for `ip link set`
-    static ref SET_FLAGS: NetlinkFlags =
-        NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
-    // Flags for `ip link add`
-    static ref ADD_FLAGS: NetlinkFlags =
-        NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
-    // Flags for `ip link del`
-    static ref DEL_FLAGS: NetlinkFlags =
-        NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
-    // Flags for `ip link get`
-    static ref GET_FLAGS: NetlinkFlags =
-        NetlinkFlags::from(NLM_F_REQUEST | NLM_F_DUMP);
-}
-
-pub struct SetRequest {
-    handle: ConnectionHandle,
-    message: LinkMessage,
-}
-
-impl SetRequest {
-    fn new(handle: ConnectionHandle, index: u32) -> Self {
-        let mut message = LinkMessage::new();
-        message.header_mut().set_index(index);
-        SetRequest { handle, message }
-    }
-
-    /// Execute the request
-    pub fn execute(self) -> impl Future<Item = (), Error = NetlinkIpError> {
-        let SetRequest {
-            mut handle,
-            message,
-        } = self;
-        let mut req = Message::from(RtnlMessage::SetLink(message));
-        req.header_mut().set_flags(*SET_FLAGS);
-        Stream2Ack::new(handle.request(req))
-    }
-
-    /// Return a mutable reference to the request
-    pub fn message_mut(&mut self) -> &mut LinkMessage {
-        &mut self.message
-    }
-
-    /// Set the link with the given index up (equivalent to `ip link set dev DEV up`)
-    pub fn up(mut self) -> Self {
-        self.message
-            .header_mut()
-            .set_flags(LinkFlags::from(IFF_UP))
-            .set_change_mask(LinkFlags::from(IFF_UP));
-        self
-    }
-
-    /// Set the link with the given index down (equivalent to `ip link set dev DEV down`)
-    pub fn down(mut self) -> Self {
-        self.message
-            .header_mut()
-            .set_change_mask(LinkFlags::from(IFF_UP));
-        self
-    }
-
-    /// Set the name of the link with the given index (equivalent to `ip link set DEV name NAME`)
-    pub fn name(mut self, name: String) -> Self {
-        self.message.append_nla(LinkNla::IfName(name));
-        self
-    }
-
-    /// Set the mtu of the link with the given index (equivalent to `ip link set DEV mtu MTU`)
-    pub fn mtu(mut self, mtu: u32) -> Self {
-        self.message.append_nla(LinkNla::Mtu(mtu));
-        self
-    }
-
-    /// Set the hardware address of the link with the given index (equivalent to `ip link set DEV address ADDRESS`)
-    pub fn address(mut self, address: MacAddress) -> Self {
-        self.message
-            .append_nla(LinkNla::Address(Vec::from(address.as_bytes())));
-        self
-    }
-}
-
-impl LinkHandle {
-    pub fn new(handle: ConnectionHandle) -> Self {
-        LinkHandle(handle)
-    }
-
-    fn request(&mut self, req: Message) -> impl Stream<Item = Message, Error = NetlinkIpError> {
-        self.0.request(req)
-    }
-
-    pub fn set(&self, index: u32) -> SetRequest {
-        SetRequest::new(self.0.clone(), index)
-    }
-
-    pub fn add(&self) -> AddRequest {
-        AddRequest::new(self.0.clone())
-    }
-
-    pub fn del(&mut self, index: u32) -> impl Future<Item = (), Error = NetlinkIpError> {
-        let mut msg = LinkMessage::new();
-        msg.header_mut().set_index(index);
-
-        let mut req: Message = RtnlMessage::DelLink(msg).into();
-        req.header_mut().set_flags(NetlinkFlags::from(*DEL_FLAGS));
-
-        Stream2Ack::new(self.request(req))
-    }
-
-    /// Retrieve the list of links (equivalent to `ip link show`)
-    pub fn list(&mut self) -> impl Future<Item = Vec<Link>, Error = NetlinkIpError> {
-        let mut req: Message = RtnlMessage::GetLink(LinkMessage::new()).into();
-        *req.header_mut().flags_mut() = NetlinkFlags::from(*GET_FLAGS);
-        let response = self.request(req);
-
-        // handle the response: Stream2Vec turns the response messages into a vec of Link.
-        Stream2Vec::new(response.map(move |msg| {
-            if !msg.is_new_link() {
-                return Err(NetlinkIpError::UnexpectedMessage(msg));
-            }
-
-            if let (_, RtnlMessage::NewLink(link_message)) = msg.into_parts() {
-                Ok(Link::from_link_message(link_message)?)
-            } else {
-                // We checked that msg.is_new_link() above, so the should not be reachable.
-                unreachable!();
-            }
-        }))
-    }
-}
-
-pub struct AddRequest {
-    handle: ConnectionHandle,
-    message: LinkMessage,
-}
-
-impl AddRequest {
-    fn new(handle: ConnectionHandle) -> Self {
-        let mut message = LinkMessage::new();
-        message.header_mut();
-        AddRequest { handle, message }
-    }
-
-    /// Execute the request
-    pub fn execute(self) -> impl Future<Item = (), Error = NetlinkIpError> {
-        let AddRequest {
-            mut handle,
-            message,
-        } = self;
-        let mut req = Message::from(RtnlMessage::NewLink(message));
-        req.header_mut().set_flags(*ADD_FLAGS);
-        Stream2Ack::new(handle.request(req))
-    }
-
-    /// Return a mutable reference to the request
-    pub fn message_mut(&mut self) -> &mut LinkMessage {
-        &mut self.message
-    }
-
-    pub fn dummy(self, name: String) -> Self {
-        self.name(name).link_info(LinkInfoKind::Dummy, None)
-    }
-
-    fn link_info(mut self, kind: LinkInfoKind, data: Option<LinkInfoData>) -> Self {
-        let mut link_info_nlas = vec![LinkInfo::Kind(kind)];
-        if let Some(data) = data {
-            link_info_nlas.push(LinkInfo::Data(data));
-        }
-        self.message.append_nla(LinkNla::LinkInfo(link_info_nlas));
-        self
-    }
-
-    fn name(mut self, name: String) -> Self {
-        self.message.append_nla(LinkNla::IfName(name));
-        self
     }
 }

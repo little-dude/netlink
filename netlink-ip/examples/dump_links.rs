@@ -13,7 +13,7 @@ fn main() {
     let mut core = Core::new().unwrap();
     let (connection, handle) = new_connection().unwrap();
     core.handle().spawn(connection.map_err(|_| ()));
-    core.run(handle.link().list().and_then(|links| {
+    core.run(handle.link().get().execute().and_then(|links| {
         println!("{:#?}", links);
         Ok(())
     })).unwrap();
