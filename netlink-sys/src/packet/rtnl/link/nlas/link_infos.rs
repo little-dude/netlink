@@ -1,5 +1,6 @@
 use byteorder::{ByteOrder, NativeEndian};
 use constants::*;
+use packet::rtnl::{LinkBuffer, LinkHeader, LinkMessage, LinkNla};
 use std::mem::size_of;
 use utils::{parse_mac, parse_string, parse_u16, parse_u32, parse_u64, parse_u8};
 use {DefaultNla, Emitable, Error, Nla, NlaBuffer, NlasIterator, Parseable, Result};
@@ -123,7 +124,14 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<Vec<LinkInfo>> for NlaBuffer<&'
                             }
                             LinkInfoKind::Tun => LinkInfoData::Tun(payload.to_vec()),
                             LinkInfoKind::Nlmon => LinkInfoData::Nlmon(payload.to_vec()),
-                            LinkInfoKind::Veth => LinkInfoData::Veth(payload.to_vec()),
+                            LinkInfoKind::Veth => {
+                                let buffer = LinkBuffer::new(&payload);
+                                let header =
+                                    <LinkBuffer<_> as Parseable<LinkHeader>>::parse(&buffer)?;
+                                let nlas =
+                                    <LinkBuffer<_> as Parseable<Vec<LinkNla>>>::parse(&buffer)?;
+                                LinkInfoData::Veth(LinkMessage::from_parts(header, nlas))
+                            }
                             LinkInfoKind::Vxlan => LinkInfoData::Vxlan(payload.to_vec()),
                             LinkInfoKind::Bond => LinkInfoData::Bond(payload.to_vec()),
                             LinkInfoKind::IpVlan => LinkInfoData::IpVlan(payload.to_vec()),
@@ -161,7 +169,7 @@ pub enum LinkInfoData {
     Vlan(Vec<LinkInfoVlan>),
     Dummy(Vec<u8>),
     Ifb(Vec<u8>),
-    Veth(Vec<u8>),
+    Veth(LinkMessage),
     Vxlan(Vec<u8>),
     Bond(Vec<u8>),
     IpVlan(Vec<u8>),
@@ -186,11 +194,11 @@ impl Nla for LinkInfoData {
         match self {
             Bridge(ref nlas) => nlas.as_slice().buffer_len(),
             Vlan(ref nlas) =>  nlas.as_slice().buffer_len(),
+            Veth(ref msg) => msg.buffer_len(),
             Dummy(ref bytes)
                 | Tun(ref bytes)
                 | Nlmon(ref bytes)
                 | Ifb(ref bytes)
-                | Veth(ref bytes)
                 | Vxlan(ref bytes)
                 | Bond(ref bytes)
                 | IpVlan(ref bytes)
@@ -216,11 +224,11 @@ impl Nla for LinkInfoData {
         match self {
             Bridge(ref nlas) => nlas.as_slice().emit(buffer),
             Vlan(ref nlas) => nlas.as_slice().emit(buffer),
+            Veth(ref msg) => msg.emit(buffer),
             Dummy(ref bytes)
                 | Tun(ref bytes)
                 | Nlmon(ref bytes)
                 | Ifb(ref bytes)
-                | Veth(ref bytes)
                 | Vxlan(ref bytes)
                 | Bond(ref bytes)
                 | IpVlan(ref bytes)
