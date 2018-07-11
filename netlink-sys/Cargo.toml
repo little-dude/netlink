@@ -1,7 +1,14 @@
 [package]
 authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 name = "netlink-sys"
-version = "0.1.0"
+version = "0.0.1"
+
+homepage = "https://github.com/little-dude/netlink"
+keywords = ["netlink", "ip", "linux"]
+license-file = "../LICENSE-MIT"
+readme = "../README.md"
+repository = "https://github.com/little-dude/netlink"
+description = "netlink socket and messages"
 
 [dependencies]
 byteorder = "1.2.3"
@@ -11,7 +18,7 @@ log = "0.4.3"
 
 [dependencies.futures]
 optional = true
-version = "0.1.21"
+version = "0.1.22"
 
 [dependencies.mio]
 optional = true
