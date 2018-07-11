@@ -7,6 +7,7 @@ use errors::NetlinkIpError;
 
 type RequestsTx = UnboundedSender<(UnboundedSender<Message>, Message)>;
 
+/// A handle to pass requests to a [`Connection`](struct.Connection.html).
 #[derive(Clone, Debug)]
 pub struct ConnectionHandle {
     requests_tx: UnboundedSender<(UnboundedSender<Message>, Message)>,
@@ -17,12 +18,18 @@ impl ConnectionHandle {
         ConnectionHandle { requests_tx }
     }
 
+    /// Send a new request and get the response as a stream of messages. Note that some messages
+    /// are not part of the response stream:
+    ///
+    /// - **acknowledgements**: when an acknowledgement is received, the stream is closed
+    /// - **end of dump messages**: similarly, upon receiving an "end of dump" message, the stream is
+    /// closed
     pub fn request(
         &mut self,
         message: Message,
     ) -> impl Stream<Item = Message, Error = NetlinkIpError> {
         let (tx, rx) = unbounded::<Message>();
-        // Ignore the result. If this failed, `tx` will be dropped when this fcuntion returns, and
+        // Ignore the result. If this failed, `tx` will be dropped when this funtion returns, and
         // polling rx with fail, carrying the error.
         debug!("handle: forwarding new request to connection");
         let _ = UnboundedSender::unbounded_send(&self.requests_tx, (tx, message));
@@ -32,6 +39,7 @@ impl ConnectionHandle {
         })
     }
 
+    /// Create a new handle, specifically for link requests (equivalent to `ip link` commands)
     pub fn link(&self) -> LinkHandle {
         LinkHandle::new(self.clone())
     }

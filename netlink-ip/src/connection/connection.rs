@@ -15,6 +15,10 @@ lazy_static! {
     static ref KERNEL_PORT: SocketAddr = SocketAddr::new(0, 0);
 }
 
+/// Connection to a netlink socket, running in the background.
+///
+/// [`ConnectionHandle`](struct.ConnectionHandle.html) are used to pass new requests to the
+/// `Connection`, that in turn, sends them through the netlink socket.
 pub struct Connection {
     socket: NetlinkFramed<NetlinkCodec<Message>>,
     sequence_id: u32,
