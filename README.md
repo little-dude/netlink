@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/little-dude/netlink.svg?branch=master)](https://travis-ci.org/little-dude/netlink)
+
 netlink-rs
 ==========
 
@@ -12,6 +14,13 @@ netlink protocol](https://www.infradead.org/~tgr/libnl/doc/route.html) (see
 The project is in its early stages, and I'm currently focusing on the route
 netlink protocol.
 
+Documentation
+-------------
+
+- [`netlink_socket`](https://docs.rs/netlink-socket/0.0.2/netlink_socket/)
+- [`rtnetlink`](https://docs.rs/rtnetlink/0.0.2/rtnetlink/)
+- [`iproute2`](https://docs.rs/iproute2/0.0.2/iproute2/)
+
 Organization
 ------------
 
@@ -21,8 +30,8 @@ Organization
 - the [`rtnetlink`](./rtnetlink) crate provides types for netlink's [route
   subprotocol](https://www.infradead.org/~tgr/libnl/doc/route.html) (see `man 7
   rtnetlink`). Integration with [Tokio](tokio.rs) is optional.
-- the [`iproute2`](./iproute2) provides higher level abstractions for the route
-  protocol, like the [`iproute2`](https://en.wikipedia.org/wiki/Iproute2)
+- the [`iproute2`](./iproute2) crate provides higher level abstractions for the
+  route protocol, like the [`iproute2`](https://en.wikipedia.org/wiki/Iproute2)
   commands: it leverages the netlink route protocol to offer access to links,
   addresses, arp tables and route tables. It is fully asynchronous and built on
   top of [tokio](tokio.rs).
@@ -61,7 +70,7 @@ Other non-rust netlink projects
 Credits
 -------
 
-My main resource so far have been the source code of
+My main resource so far has been the source code of
 [`pyroute2`](https://github.com/svinota/pyroute2/tree/master/pyroute2/netlink)
 and [`netlink`](https://github.com/vishvananda/netlink) **a lot**. These two
 projects are great, and very nicely written. As someone who does not read C

@@ -1,11 +1,11 @@
 [package]
 name = "iproute2"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 
 homepage = "https://github.com/little-dude/netlink"
 keywords = ["netlink", "ip", "linux"]
-license-file = "../LICENSE-MIT"
+license = "MIT"
 readme = "../README.md"
 repository = "https://github.com/little-dude/netlink"
 description = "manipulate linux networking resources via netlink"
@@ -21,13 +21,13 @@ failure = "0.1.1"
 failure_derive = "0.1.1"
 
 [dependencies.rtnetlink]
-version = "0.0.1"
+version = "0.0"
 default-features = false
 features = ["tokio_support"]
 path = "../rtnetlink"
 
 [dependencies.netlink-socket]
-version = "0.0.1"
+version = "0.0"
 default-features = false
 features = ["tokio_support"]
 path = "../netlink-socket"

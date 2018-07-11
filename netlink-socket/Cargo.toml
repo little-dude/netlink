@@ -1,11 +1,11 @@
 [package]
 authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 name = "netlink-socket"
-version = "0.0.1"
+version = "0.0.2"
 
 homepage = "https://github.com/little-dude/netlink"
 keywords = ["netlink", "ip", "linux"]
-license-file = "../LICENSE-MIT"
+license = "MIT"
 readme = "../README.md"
 repository = "https://github.com/little-dude/netlink"
 description = "netlink sockets, with optional integration with mio and tokio"

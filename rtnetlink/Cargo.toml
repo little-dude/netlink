@@ -1,11 +1,11 @@
 [package]
 authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 name = "rtnetlink"
-version = "0.0.1"
+version = "0.0.2"
 
 homepage = "https://github.com/little-dude/netlink"
 keywords = ["netlink", "ip", "linux"]
-license-file = "../LICENSE-MIT"
+license = "MIT"
 readme = "../README.md"
 repository = "https://github.com/little-dude/netlink"
 description = "rtnetlink messages (see `man 7 rtnetlink`)"
@@ -15,7 +15,7 @@ byteorder = "1.2.3"
 bytes = "0.4.8"
 libc = "0.2.42"
 log = "0.4.3"
-netlink-socket = { path = "../netlink-socket", version = "0.0.1" }
+netlink-socket = { path = "../netlink-socket", version = "0.0" }
 
 [dependencies.futures]
 optional = true
