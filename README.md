@@ -15,11 +15,17 @@ netlink protocol.
 Organization
 ------------
 
-- the [`netlink-sys`](./netlink-sys) crate provides low level building blocks:
-  constants, socket, and packet parsing
-- the [`netlink-ip`](./netlink-ip) crate provides higher level abstractions for
-  the route netlink protocol. It is fully asynchronous and built on top of
-  [tokio](tokio.rs).
+- the [`netlink_socket`](./netlink-socket) crate provides netlink sockets.
+  Integration with [`mio`](https://github.com/carllerche/mio) and
+  [`tokio`](https://github.com/tokio-rs/) is optional.
+- the [`rtnetlink`](./rtnetlink) crate provides types for netlink's [route
+  subprotocol](https://www.infradead.org/~tgr/libnl/doc/route.html) (see `man 7
+  rtnetlink`). Integration with [Tokio](tokio.rs) is optional.
+- the [`iproute2`](./iproute2) provides higher level abstractions for the route
+  protocol, like the [`iproute2`](https://en.wikipedia.org/wiki/Iproute2)
+  commands: it leverages the netlink route protocol to offer access to links,
+  addresses, arp tables and route tables. It is fully asynchronous and built on
+  top of [tokio](tokio.rs).
 
 Other netlink projects in rust
 ------------------------------
@@ -34,7 +40,7 @@ but none seems to be really complete.
   be more knowledgeable about netlink than I am. It also has broader coverage
   of the route netlink protocol (support for the `RTM_{NEW,DEL,GET}ROUTE` and
   `RTM_{NEW,DEL,GET}ADDRESS` messages). However, many attributes supported by
-  `netlink-sys` are not covered.
+  `rtnetlink` are not covered.
 - https://github.com/crhino/netlink-rs: rust bindings for libnl. Very
   incomplete and not developed.
 - https://github.com/jbaublitz/neli: generic netlink protocol. Pretty recent
@@ -76,7 +82,7 @@ Thanks also to the people behing [tokio](tokio.rs), especially @carllerche, for
 the amazing tool they are building, and the support they provide. The project
 structure and code quality are mind blowing, and some parts of this projects
 are basically [rip-offs from tokio's source
-code](https://github.com/little-dude/netlink/blob/master/netlink-sys/src/framed.rs).
+code](https://github.com/little-dude/netlink/blob/master/rtnetlink/src/framed.rs).
 
 Finally, thanks to the Rust community, which
 [helped me](https://users.rust-lang.org/t/help-understanding-libc-call/17308)

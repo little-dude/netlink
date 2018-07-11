@@ -1,0 +1,49 @@
+[package]
+authors = ["Corentin Henry <corentinhenry@gmail.com>"]
+name = "rtnetlink"
+version = "0.0.1"
+
+homepage = "https://github.com/little-dude/netlink"
+keywords = ["netlink", "ip", "linux"]
+license-file = "../LICENSE-MIT"
+readme = "../README.md"
+repository = "https://github.com/little-dude/netlink"
+description = "rtnetlink messages (see `man 7 rtnetlink`)"
+
+[dependencies]
+byteorder = "1.2.3"
+bytes = "0.4.8"
+libc = "0.2.42"
+log = "0.4.3"
+netlink-socket = { path = "../netlink-socket", version = "0.0.1" }
+
+[dependencies.futures]
+optional = true
+version = "0.1.22"
+
+[dependencies.tokio-io]
+optional = true
+version = "0.1.7"
+
+[dependencies.tokio-reactor]
+optional = true
+version = "0.1.2"
+
+[dev-dependencies]
+lazy_static = "1.0.1"
+env_logger = "0.5.10"
+
+[features]
+default = []
+tokio_support = [
+    "netlink-socket/tokio_support",
+    "futures",
+    "tokio-io",
+    "tokio-reactor"]
+
+[[example]]
+name = "dump_links"
+
+[[example]]
+name = "dump_links_tokio"
+required-features = ["tokio_support"]

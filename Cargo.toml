@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
-    "netlink-sys",
-    "netlink-ip",
+    "netlink-socket",
+    "iproute2",
+    "rtnetlink",
 ]
