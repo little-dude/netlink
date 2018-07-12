@@ -45,14 +45,16 @@
 //!     0x08, 0x00, 0x1d, 0x00, 0x01, 0x00, 0x00, 0x00];
 //!
 //! fn main() {
-//!     // Create a buffer. Notice the double &&. That is because Parseable<NetlinkMessage> is
-//!     // implemented for NetlinkBuffer<&T> not NetlinkBuffer<T>. The reason behing this is that
-//!     // we want the storage T to be able to outlive our NetlinkBuffer, if necessary. It feels a
-//!     // bit weird here but can be useful in other circumstances.
-//!     let buf = NetlinkBuffer::new_checked(&&PKT[..]).unwrap();
-//!
-//!     // Convert the buffer into an actual message. This is when the parsing logic occurs.
-//!     let pkt: NetlinkMessage = buf.parse().unwrap();
+//!     let pkt: NetlinkMessage =
+//!         // Create a buffer. Notice the double &&. That is because Parseable<NetlinkMessage> is
+//!         // implemented for NetlinkBuffer<&T> not NetlinkBuffer<T>. The reason behing this is
+//!         // that we want the storage T to be able to outlive our NetlinkBuffer, if necessary. It
+//!         // feels a bit weird here but can be useful in other circumstances.
+//!         NetlinkBuffer::new_checked(&&PKT[..])
+//!             .unwrap()
+//!             // Convert the buffer into an actual message. This is when the parsing occurs.
+//!             .parse()
+//!             .unwrap();
 //!
 //!     println!("{:#?}", pkt);
 //! }
