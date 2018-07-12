@@ -1,7 +1,7 @@
 [package]
 authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 name = "rtnetlink"
-version = "0.0.2"
+version = "0.0.3"
 
 homepage = "https://github.com/little-dude/netlink"
 keywords = ["netlink", "ip", "linux"]
