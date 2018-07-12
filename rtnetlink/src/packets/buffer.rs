@@ -94,7 +94,6 @@ pub const NETLINK_HEADER_LEN: usize = PAYLOAD.start;
 /// Note that in this second example we don't call
 /// [`new_checked()`](struct.NetlinkBuffer.html#method.new_checked) because the length field is
 /// initialized to 0, so `new_checked()` would return an error.
-
 pub struct NetlinkBuffer<T> {
     buffer: T,
 }

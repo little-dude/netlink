@@ -40,4 +40,7 @@ pub use self::error::*;
 mod nla;
 pub use self::nla::*;
 
+mod message;
+pub use self::message::*;
+
 pub(crate) mod utils;

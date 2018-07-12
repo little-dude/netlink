@@ -10,15 +10,15 @@ impl From<u16> for NetlinkFlags {
     }
 }
 
-impl<'a> Into<u16> for &'a NetlinkFlags {
-    fn into(self) -> u16 {
-        self.0
+impl<'a> From<&'a NetlinkFlags> for u16 {
+    fn from(flags: &'a NetlinkFlags) -> u16 {
+        flags.0
     }
 }
 
-impl Into<u16> for NetlinkFlags {
-    fn into(self) -> u16 {
-        self.0
+impl From<NetlinkFlags> for u16 {
+    fn from(flags: NetlinkFlags) -> u16 {
+        flags.0
     }
 }
 
@@ -200,6 +200,7 @@ impl NetlinkFlags {
         self.0 |= NLM_F_CAPPED;
         self
     }
+
     /// Check if the `NLM_F_CAPPED` flag is set
     pub fn has_capped(self) -> bool {
         self.0 & NLM_F_CAPPED == NLM_F_CAPPED
