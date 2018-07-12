@@ -26,8 +26,9 @@ impl<T> NetlinkCodec<T> {
     }
 }
 
-impl<'a, T> Decoder for NetlinkCodec<NetlinkBuffer<T>>
-    where T: From<&'a [u8]> + AsRef<[u8]>
+impl<T> Decoder for NetlinkCodec<NetlinkBuffer<T>>
+where
+    T: for<'a> From<&'a [u8]> + AsRef<[u8]>,
 {
     type Item = NetlinkBuffer<T>;
     type Error = Error;
@@ -41,11 +42,7 @@ impl<'a, T> Decoder for NetlinkCodec<NetlinkBuffer<T>>
             Err(e) => panic!("Unknown error while reading packet: {}", e),
         };
         let bytes = src.split_to(len);
-        let t = T::from(&bytes);
-        // `bytes` is still borrowed here :(
-        // I understand _why_ but I mean to express the fact that T::from uses the reference and
-        // then does not need it anymore.
-        Ok(Some(NetlinkBuffer::new(t)))
+        Ok(Some(NetlinkBuffer::new(T::from(&bytes))))
     }
 }
 
