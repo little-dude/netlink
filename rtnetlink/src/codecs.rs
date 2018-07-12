@@ -26,17 +26,26 @@ impl<T> NetlinkCodec<T> {
     }
 }
 
-impl Decoder for NetlinkCodec<NetlinkBuffer<Vec<u8>>> {
-    type Item = NetlinkBuffer<Vec<u8>>;
+impl<'a, T> Decoder for NetlinkCodec<NetlinkBuffer<T>>
+    where T: From<&'a [u8]> + AsRef<[u8]>
+{
+    type Item = NetlinkBuffer<T>;
     type Error = Error;
+
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         let len = match NetlinkBuffer::new_checked(src.as_ref()) {
             Ok(buf) => buf.length() as usize,
             Err(Error::Truncated) => return Ok(None),
+            // This should not happen. Errors should only occur if the message is not as long as
+            // the length field in the header says it is.
             Err(e) => panic!("Unknown error while reading packet: {}", e),
         };
         let bytes = src.split_to(len);
-        Ok(Some(NetlinkBuffer::new(bytes.to_vec())))
+        let t = T::from(&bytes);
+        // `bytes` is still borrowed here :(
+        // I understand _why_ but I mean to express the fact that T::from uses the reference and
+        // then does not need it anymore.
+        Ok(Some(NetlinkBuffer::new(t)))
     }
 }
 
