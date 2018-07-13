@@ -1,49 +1,25 @@
-extern crate netlink_socket;
+extern crate futures;
 extern crate rtnetlink;
+extern crate tokio_core;
 
-use netlink_socket::{Protocol, Socket, SocketAddr};
-use rtnetlink::constants::{NLM_F_DUMP, NLM_F_REQUEST};
-use rtnetlink::{LinkHeader, LinkMessage, NetlinkFlags, NetlinkMessage, RtnlMessage};
+use futures::{Future, Stream};
+use rtnetlink::new_connection;
+use tokio_core::reactor::Core;
 
 fn main() {
-    let mut socket = Socket::new(Protocol::Route).unwrap();
-    let _port_number = socket.bind_auto().unwrap().port_number();
-    socket.connect(&SocketAddr::new(0, 0)).unwrap();
+    // Create a netlink connection, and a handle to send requests via this connection
+    let (connection, handle) = new_connection().unwrap();
 
-    let mut packet: NetlinkMessage =
-        RtnlMessage::GetLink(LinkMessage::from_parts(LinkHeader::new(), vec![])).into();
-    packet
-        .header_mut()
-        .set_flags(NetlinkFlags::from(NLM_F_DUMP | NLM_F_REQUEST))
-        .set_sequence_number(1);
-    packet.finalize();
-    let mut buf = vec![0; packet.header().length() as usize];
-    packet.to_bytes(&mut buf[..]).unwrap();
+    // The connection will run in an event loop
+    let mut core = Core::new().unwrap();
+    core.handle().spawn(connection.map_err(|_| ()));
 
-    println!(">>> {:?}", packet);
-    socket.send(&buf[..], 0).unwrap();
+    // Create a netlink request
+    let request = handle.link().get().execute().for_each(|link| {
+        println!("{:#?}", link);
+        Ok(())
+    });
 
-    let mut receive_buffer = vec![0; 4096];
-    let mut offset = 0;
-
-    // we set the NLM_F_DUMP flag so we expect a multipart rx_packet in response.
-    loop {
-        let size = socket.recv(&mut receive_buffer[..], 0).unwrap();
-
-        loop {
-            let rx_packet = NetlinkMessage::from_bytes(&receive_buffer[offset..]).unwrap();
-            println!("<<< {:?}", rx_packet);
-
-            if *rx_packet.message() == RtnlMessage::Done {
-                println!("Done!");
-                return;
-            }
-
-            offset += rx_packet.header().length() as usize;
-            if offset == size || rx_packet.header().length() == 0 {
-                offset = 0;
-                break;
-            }
-        }
-    }
+    // Run the request on the event loop
+    core.run(request).unwrap();
 }
