@@ -316,7 +316,7 @@ impl Emitable for NetlinkMessage {
     fn emit(&self, buffer: &mut [u8]) {
         use self::RtnlMessage::*;
         self.header.emit(buffer);
-        let buffer = &mut buffer[self.header.buffer_len()..];
+        let buffer = &mut buffer[self.header.buffer_len()..self.header.length() as usize];
         match self.message {
             Noop | Done => {},
 
