@@ -316,7 +316,7 @@ impl Emitable for NetlinkMessage {
 
         self.header.emit(buffer);
 
-        let buffer = &mut buffer[self.header.buffer_len()..];
+        let buffer = &mut buffer[self.header.buffer_len()..self.header.length() as usize];
         match self.payload {
             Noop | Done => {}
             Overrun(ref bytes) => buffer.copy_from_slice(bytes),
