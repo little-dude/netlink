@@ -1,13 +1,13 @@
 use super::{AddressBuffer, AddressNla};
 use {Emitable, Parseable, Result, ADDRESS_HEADER_LEN};
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct AddressMessage {
     pub header: AddressHeader,
     pub nlas: Vec<AddressNla>,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct AddressHeader {
     pub family: u8,
     pub prefix_len: u8,
@@ -39,7 +39,7 @@ impl Emitable for AddressMessage {
     fn emit(&self, buffer: &mut [u8]) {
         // in rust, we're guaranteed that when doing `a() + b(), a() is evaluated first
         self.header.emit(buffer);
-        self.nlas.as_slice().emit(buffer);
+        self.nlas.as_slice().emit(&mut buffer[self.header.buffer_len()..]);
     }
 }
 

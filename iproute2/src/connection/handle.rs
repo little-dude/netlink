@@ -1,6 +1,7 @@
 use futures::sync::mpsc::{unbounded, UnboundedSender};
 use futures::Stream;
 use rtnetlink::NetlinkMessage;
+use AddressHandle;
 use LinkHandle;
 
 use errors::NetlinkIpError;
@@ -42,5 +43,10 @@ impl ConnectionHandle {
     /// Create a new handle, specifically for link requests (equivalent to `ip link` commands)
     pub fn link(&self) -> LinkHandle {
         LinkHandle::new(self.clone())
+    }
+
+    /// Create a new handle, specifically for address requests (equivalent to `ip addr` commands)
+    pub fn address(&self) -> AddressHandle {
+        AddressHandle::new(self.clone())
     }
 }

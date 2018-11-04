@@ -19,6 +19,7 @@ lazy_static = "1.0.1"
 eui48 = "0.3.2"
 failure = "0.1.1"
 failure_derive = "0.1.1"
+ipnetwork = "0.13"
 
 [dependencies.rtnetlink]
 version = "0.0"

@@ -61,8 +61,8 @@ impl Nla for AddressNla {
 
             // String
             Label(ref string) => {
-                buffer.copy_from_slice(string.as_bytes());
-                buffer[string.as_bytes().len()] = 0;
+                buffer[..string.len()].copy_from_slice(string.as_bytes());
+                buffer[string.len()] = 0;
             }
 
             // u32
@@ -113,7 +113,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<AddressNla> for NlaBuffer<&'buf
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct AddressCacheInfo {
     pub ifa_preferred: i32,
     pub ifa_valid: i32,
