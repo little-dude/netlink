@@ -106,8 +106,7 @@ impl LinkAddRequest {
             .link_info(
                 LinkInfoKind::Vlan,
                 Some(LinkInfoData::Vlan(vec![LinkInfoVlan::Id(vlan_id)])),
-            )
-            .append_nla(LinkNla::Link(index))
+            ).append_nla(LinkNla::Link(index))
             .up()
     }
 
