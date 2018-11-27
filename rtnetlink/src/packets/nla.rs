@@ -254,10 +254,17 @@ where
     Self: Copy,
 {
     fn from_bytes(buf: &[u8]) -> Result<Self> {
-        if buf.len() != size_of::<Self>() {
-            return Err(Error::MalformedNlaValue);
+        // some expected fields might not present in the buffer (issue #3)
+        // or some additional/unexpected fields might be present in the buffer (issue #8)
+        // to avoid parsing errors the input buffer is truncated or padded with 0
+        // to match the size of Self so that parsing cannot fail
+        let mut my_buf = vec![0u8; size_of::<Self>()];
+        if buf.len() > size_of::<Self>() {
+            my_buf.copy_from_slice(&buf[..size_of::<Self>()]);
+        } else {
+            my_buf[..buf.len()].copy_from_slice(buf);
         }
-        Ok(unsafe { ptr::read(buf.as_ptr() as *const Self) })
+        Ok(unsafe { ptr::read(my_buf.as_ptr() as *const Self) })
     }
 
     fn to_bytes(&self, buf: &mut [u8]) {
