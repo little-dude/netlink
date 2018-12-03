@@ -257,6 +257,7 @@ impl Link {
         link.set_index(header.index())
             .set_address_family(header.address_family())
             .set_link_layer_type(header.link_layer_type())
+            .set_flags(header.flags())
             .set_change_mask(header.change_mask());
         for nla in nlas.drain(..) {
             let _ = match nla {
