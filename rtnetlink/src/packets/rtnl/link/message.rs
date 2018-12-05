@@ -57,21 +57,30 @@ impl Emitable for LinkMessage {
 
 impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<LinkMessage> for LinkBuffer<&'buffer T> {
     fn parse(&self) -> Result<LinkMessage> {
-        Ok(LinkMessage {
-            header: self.parse()?,
-            nlas: self.parse()?,
-        })
+        let header = self.parse()?;
+
+        let parsed_nlas: Vec<Result<LinkNla>> = self.parse()?;
+        let (valid_nlas, parse_errors): (Vec<_>, Vec<_>) =
+            parsed_nlas.into_iter().partition(Result::is_ok);
+        let nlas = valid_nlas.into_iter().map(Result::unwrap).collect();
+
+        // FIXME: perhaps there should be a way to access the error(s) after the message is ready?
+        for parse_result in parse_errors {
+            warn!(
+                "Failed to parse a Netlink Link message attribute: {}",
+                parse_result.unwrap_err()
+            );
+        }
+
+        Ok(LinkMessage { header, nlas })
     }
 }
 
-// FIXME: we should make it possible to provide a "best effort" parsing method. Right now, if we
-// fail on a single nla, we return an error. Maybe we could have another impl that returns
-// Vec<Result<LinkNla>>.
-impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Vec<LinkNla>> for LinkBuffer<&'buffer T> {
-    fn parse(&self) -> Result<Vec<LinkNla>> {
+impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Vec<Result<LinkNla>>> for LinkBuffer<&'buffer T> {
+    fn parse(&self) -> Result<Vec<Result<LinkNla>>> {
         let mut nlas = vec![];
         for nla_buf in self.nlas() {
-            nlas.push(nla_buf?.parse()?);
+            nlas.push(nla_buf.and_then(|nla_buf| nla_buf.parse()));
         }
         Ok(nlas)
     }
