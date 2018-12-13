@@ -160,6 +160,42 @@ impl NetlinkMessage {
         self.message().is_get_address()
     }
 
+    pub fn is_new_qdisc(&self) -> bool {
+        self.message().is_new_qdisc()
+    }
+
+    pub fn is_del_qdisc(&self) -> bool {
+        self.message().is_del_qdisc()
+    }
+
+    pub fn is_get_qdisc(&self) -> bool {
+        self.message().is_get_qdisc()
+    }
+
+    pub fn is_new_class(&self) -> bool {
+        self.message().is_new_class()
+    }
+
+    pub fn is_del_class(&self) -> bool {
+        self.message().is_del_class()
+    }
+
+    pub fn is_get_class(&self) -> bool {
+        self.message().is_get_class()
+    }
+
+    pub fn is_new_filter(&self) -> bool {
+        self.message().is_new_filter()
+    }
+
+    pub fn is_del_filter(&self) -> bool {
+        self.message().is_del_filter()
+    }
+
+    pub fn is_get_filter(&self) -> bool {
+        self.message().is_get_filter()
+    }
+
     /// Ensure the header (`NetlinkHeader`) is consistent with the payload (`RtnlMessage`):
     ///
     /// - compute the payload length and set the header's length field
@@ -193,15 +229,15 @@ impl NetlinkMessage {
             // NewRule(_) => RTM_NEWRULE,
             // DelRule(_) => RTM_DELRULE,
             // GetRule(_) => RTM_GETRULE,
-            // NewQueueDiscipline(_) => RTM_NEWQDISC,
-            // DelQueueDiscipline(_) => RTM_DELQDISC,
-            // GetQueueDiscipline(_) => RTM_GETQDISC,
-            // NewTrafficClass(_) => RTM_NEWTCLASS,
-            // DelTrafficClass(_) => RTM_DELTCLASS,
-            // GetTrafficClass(_) => RTM_GETTCLASS,
-            // NewTrafficFilter(_) => RTM_NEWTFILTER,
-            // DelTrafficFilter(_) => RTM_DELTFILTER,
-            // GetTrafficFilter(_) => RTM_GETTFILTER,
+            NewQueueDiscipline(_) => RTM_NEWQDISC,
+            DelQueueDiscipline(_) => RTM_DELQDISC,
+            GetQueueDiscipline(_) => RTM_GETQDISC,
+            NewTrafficClass(_) => RTM_NEWTCLASS,
+            DelTrafficClass(_) => RTM_DELTCLASS,
+            GetTrafficClass(_) => RTM_GETTCLASS,
+            NewTrafficFilter(_) => RTM_NEWTFILTER,
+            DelTrafficFilter(_) => RTM_DELTFILTER,
+            GetTrafficFilter(_) => RTM_GETTFILTER,
             // NewAction(_) => RTM_NEWACTION,
             // DelAction(_) => RTM_DELACTION,
             // GetAction(_) => RTM_GETACTION,
@@ -264,6 +300,31 @@ impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<NetlinkMessage> for NetlinkBuf
                 }
             }
 
+            // TC Messages
+            RTM_NEWQDISC
+            | RTM_DELQDISC
+            | RTM_GETQDISC
+            | RTM_NEWTCLASS
+            | RTM_DELTCLASS
+            | RTM_GETTCLASS
+            | RTM_NEWTFILTER
+            | RTM_DELTFILTER
+            | RTM_GETTFILTER => {
+                let msg: TcMessage = TcBuffer::new(&self.payload()).parse()?;
+                match header.message_type() {
+                    RTM_NEWQDISC => NewQueueDiscipline(msg),
+                    RTM_DELQDISC => DelQueueDiscipline(msg),
+                    RTM_GETQDISC => GetQueueDiscipline(msg),
+                    RTM_NEWTCLASS => NewTrafficClass(msg),
+                    RTM_DELTCLASS => DelTrafficClass(msg),
+                    RTM_GETTCLASS => GetTrafficClass(msg),
+                    RTM_NEWTFILTER => NewTrafficFilter(msg),
+                    RTM_DELTFILTER => DelTrafficFilter(msg),
+                    RTM_GETTFILTER => GetTrafficFilter(msg),
+                    _ => unreachable!(),
+                }
+            }
+
             NLMSG_ERROR => {
                 let msg: ErrorMessage = ErrorBuffer::new(&self.payload()).parse()?;
                 if msg.code >= 0 {
@@ -307,6 +368,17 @@ impl Emitable for NetlinkMessage {
             | NewAddress(ref msg)
             | DelAddress(ref msg)
             | GetAddress(ref msg)
+            => msg.buffer_len(),
+
+            | NewQueueDiscipline(ref msg)
+            | DelQueueDiscipline(ref msg)
+            | GetQueueDiscipline(ref msg)
+            | NewTrafficClass(ref msg)
+            | DelTrafficClass(ref msg)
+            | GetTrafficClass(ref msg)
+            | NewTrafficFilter(ref msg)
+            | DelTrafficFilter(ref msg)
+            | GetTrafficFilter(ref msg)
             => msg.buffer_len()
         };
         self.header.buffer_len() + payload_len
@@ -336,6 +408,17 @@ impl Emitable for NetlinkMessage {
             | NewAddress(ref msg)
             | DelAddress(ref msg)
             | GetAddress(ref msg)
+            => msg.emit(buffer),
+
+            | NewQueueDiscipline(ref msg)
+            | DelQueueDiscipline(ref msg)
+            | GetQueueDiscipline(ref msg)
+            | NewTrafficClass(ref msg)
+            | DelTrafficClass(ref msg)
+            | GetTrafficClass(ref msg)
+            | NewTrafficFilter(ref msg)
+            | DelTrafficFilter(ref msg)
+            | GetTrafficFilter(ref msg)
             => msg.emit(buffer)
         }
     }

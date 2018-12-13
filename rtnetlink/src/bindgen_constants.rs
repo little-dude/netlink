@@ -683,23 +683,23 @@ pub const RTAX_FASTOPEN_NO_COOKIE: int = 17;
 // pub const PREFIX_UNSPEC: int = 0;
 // pub const PREFIX_ADDRESS: int = 1;
 // pub const PREFIX_CACHEINFO: int = 2;
-//
-// pub const TCA_UNSPEC: int = 0;
-// pub const TCA_KIND: int = 1;
-// pub const TCA_OPTIONS: int = 2;
-// pub const TCA_STATS: int = 3;
-// pub const TCA_XSTATS: int = 4;
-// pub const TCA_RATE: int = 5;
-// pub const TCA_FCNT: int = 6;
-// pub const TCA_STATS2: int = 7;
-// pub const TCA_STAB: int = 8;
+
+pub const TCA_UNSPEC: int = 0;
+pub const TCA_KIND: int = 1;
+pub const TCA_OPTIONS: int = 2;
+pub const TCA_STATS: int = 3;
+pub const TCA_XSTATS: int = 4;
+pub const TCA_RATE: int = 5;
+pub const TCA_FCNT: int = 6;
+pub const TCA_STATS2: int = 7;
+pub const TCA_STAB: int = 8;
 // pub const TCA_PAD: int = 9;
 // pub const TCA_DUMP_INVISIBLE: int = 10;
 // pub const TCA_CHAIN: int = 11;
-// pub const TCA_HW_OFFLOAD: int = 12;
+pub const TCA_HW_OFFLOAD: int = 12;
 // pub const TCA_INGRESS_BLOCK: int = 13;
 // pub const TCA_EGRESS_BLOCK: int = 14;
-//
+
 // pub const __BITS_PER_LONG: int = 64;
 // pub const __FD_SETSIZE: int = 1024;
 // pub const SI_LOAD_SHIFT: int = 16;

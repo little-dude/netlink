@@ -657,6 +657,21 @@ mod rtnl_route_nlas {
 
 pub use self::rtnl_route_nlas::*;
 
+mod rtnl_tc_nlas {
+    use bindgen_constants as constants;
+    pub const TCA_UNSPEC: u16 = constants::TCA_UNSPEC as u16;
+    pub const TCA_KIND: u16 = constants::TCA_KIND as u16;
+    pub const TCA_OPTIONS: u16 = constants::TCA_OPTIONS as u16;
+    pub const TCA_STATS: u16 = constants::TCA_STATS as u16;
+    pub const TCA_XSTATS: u16 = constants::TCA_XSTATS as u16;
+    pub const TCA_RATE: u16 = constants::TCA_RATE as u16;
+    pub const TCA_FCNT: u16 = constants::TCA_FCNT as u16;
+    pub const TCA_STATS2: u16 = constants::TCA_STATS2 as u16;
+    pub const TCA_STAB: u16 = constants::TCA_STAB as u16;
+    pub const TCA_HW_OFFLOAD: u16 = constants::TCA_HW_OFFLOAD as u16;
+}
+pub use self::rtnl_tc_nlas::*;
+
 mod if_states {
 	pub const IF_OPER_UNKNOWN: u8 = 0;
 	pub const IF_OPER_NOTPRESENT: u8 = 1;
