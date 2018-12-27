@@ -157,13 +157,15 @@ impl<T: AsRef<[u8]>> NetlinkBuffer<T> {
             Err(format!(
                 "invalid netlink buffer: length is {} but netlink packets are at least {} bytes",
                 len, PORT_NUMBER.end
-            ).into())
+            )
+            .into())
         } else if len < self.length() as usize {
             Err(format!(
                 "invalid netlink buffer: length field says {} the buffer is {} bytes long",
                 self.length(),
                 len
-            ).into())
+            )
+            .into())
         } else if (self.length() as usize) < PORT_NUMBER.end {
             Err(format!(
                 "invalid netlink buffer: length field says {} but netlink packets are at least {} bytes",

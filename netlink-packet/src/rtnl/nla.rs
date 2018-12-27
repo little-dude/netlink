@@ -37,19 +37,22 @@ impl<T: AsRef<[u8]>> NlaBuffer<T> {
             Err(format!(
                 "buffer has length {}, but an NLA header is {} bytes",
                 len, TYPE.end
-            ).into())
+            )
+            .into())
         } else if len < self.length() as usize {
             Err(format!(
                 "buffer has length: {}, but the NLA is {} bytes",
                 len,
                 self.length()
-            ).into())
+            )
+            .into())
         } else if (self.length() as usize) < TYPE.end {
             Err(format!(
                 "NLA has invalid length: {} (should be at least {} bytes",
                 self.length(),
                 TYPE.end,
-            ).into())
+            )
+            .into())
         } else {
             Ok(())
         }
@@ -280,6 +283,8 @@ where
         Ok(unsafe { ptr::read(my_buf.as_ptr() as *const Self) })
     }
 
+    // FIXME: I think this is too risky... I don't know if checking the buffer's length is enough
+    // to guarantee that there's no UB here. And clippy really doesn't like that unsafe anyway.
     fn to_bytes(&self, buf: &mut [u8]) {
         unsafe { ptr::write(buf.as_mut_ptr() as *mut Self, *self) }
     }

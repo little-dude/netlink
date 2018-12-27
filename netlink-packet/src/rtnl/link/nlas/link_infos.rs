@@ -127,18 +127,16 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<Vec<LinkInfo>> for NlaBuffer<&'
                             LinkInfoKind::Nlmon => LinkInfoData::Nlmon(payload.to_vec()),
                             LinkInfoKind::Veth => {
                                 let buffer = LinkBuffer::new(&payload);
-                                let header = <LinkBuffer<_> as Parseable<LinkHeader>>::parse(
-                                    &buffer,
-                                ).context("failed to parse veth link info")?;
+                                let header =
+                                    <LinkBuffer<_> as Parseable<LinkHeader>>::parse(&buffer)
+                                        .context("failed to parse veth link info")?;
 
                                 let parsed_nlas =
                                     <LinkBuffer<_> as Parseable<
                                         Vec<Result<LinkNla, DecodeError>>,
                                     >>::parse(&buffer)?;
-                                let (valid_nlas, parse_errors): (
-                                    Vec<_>,
-                                    Vec<_>,
-                                ) = parsed_nlas.into_iter().partition(Result::is_ok);
+                                let (valid_nlas, parse_errors): (Vec<_>, Vec<_>) =
+                                    parsed_nlas.into_iter().partition(Result::is_ok);
                                 let nlas = valid_nlas.into_iter().map(Result::unwrap).collect();
 
                                 for parse_result in parse_errors {
@@ -369,7 +367,8 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkInfoKind> for NlaBuffer<&'b
             return Err(format!(
                 "failed to parse IFLA_INFO_KIND: NLA type is {}",
                 self.kind()
-            ).into());
+            )
+            .into());
         }
         let s = parse_string(self.value()).context("invalid IFLA_INFO_KIND value")?;
         Ok(match s.as_str() {

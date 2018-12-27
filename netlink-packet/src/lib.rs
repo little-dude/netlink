@@ -101,6 +101,7 @@
 #![cfg_attr(rustfmt, rustfmt::skip)]
 #![allow(clippy::new_without_default_derive)]
 
+#[cfg(feature = "audit")] extern crate bit_field;
 extern crate byteorder;
 extern crate bytes;
 extern crate core;
@@ -129,6 +130,11 @@ pub(crate) type Index = usize;
 mod rtnl;
 #[cfg(feature = "rtnetlink")]
 pub use self::rtnl::*;
+
+#[cfg(feature = "audit")]
+mod audit;
+#[cfg(feature = "audit")]
+pub use self::audit::*;
 
 mod netlink;
 pub use self::netlink::*;

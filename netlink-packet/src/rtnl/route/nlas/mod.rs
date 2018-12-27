@@ -224,7 +224,8 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<RouteNla> for NlaBuffer<&'buffe
                     .context("invalid RTA_METRICS value")?,
             ),
             _ => Other(
-                <Self as Parseable<DefaultNla>>::parse(self).context("invalid NLA (unknown kind)")?,
+                <Self as Parseable<DefaultNla>>::parse(self)
+                    .context("invalid NLA (unknown kind)")?,
             ),
         })
     }

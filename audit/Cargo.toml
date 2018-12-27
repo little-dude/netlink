@@ -1,0 +1,42 @@
+[package]
+name = "audit"
+version = "0.0.2"
+authors = ["Corentin Henry <corentinhenry@gmail.com>"]
+
+homepage = "https://github.com/little-dude/netlink"
+keywords = ["netlink", "ip", "linux", "audit"]
+license = "MIT"
+readme = "../README.md"
+repository = "https://github.com/little-dude/netlink"
+description = "linux audit via netlink"
+
+[dependencies]
+bytes = "0.4.11"
+tokio-core = "0.1.17"
+futures = "0.1.25"
+log = "0.4.6"
+lazy_static = "1.2.0"
+eui48 = "0.4.1"
+failure = "0.1.3"
+failure_derive = "0.1.3"
+
+[dependencies.netlink-sys]
+version = "*"
+default-features = false
+features = ["tokio_support"]
+path = "../netlink-sys"
+
+[dependencies.netlink-packet]
+version = "0.0"
+default-features = false
+features = ["audit"]
+path = "../netlink-packet"
+
+[dependencies.netlink-proto]
+version = "0.0"
+default-features = false
+features = ["audit"]
+path = "../netlink-proto"
+
+[dev-dependencies]
+env_logger = "0.6.0"
