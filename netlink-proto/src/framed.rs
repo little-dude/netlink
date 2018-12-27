@@ -38,17 +38,26 @@ impl<C: Decoder> Stream for NetlinkFramed<C> {
 
         self.in_addr = unsafe {
             // Read into the buffer without having to initialize the memory.
+            // Note: this can return NotReady
             let (n, addr) = try_ready!(self.socket.poll_recv_from(self.reader.bytes_mut()));
             self.reader.advance_mut(n);
             addr
         };
 
         if let Some(item) = self.codec.decode(&mut self.reader)? {
-            return Ok(Async::Ready(Some((item, self.in_addr))));
+            Ok(Async::Ready(Some((item, self.in_addr))))
         } else {
-            // FIXME: Or codec returns `None` when it fails to parse a packet, or when 0 bytes were
-            // read.  We should definitely not panic when we fail to parse a packet...
-            panic!("FIXME");
+            // The codec returns None if there's nothing left in the reader. Previously, we were
+            // returning Async::NotReady here. But under some conditions (specifically, when the
+            // Codec returned None upon failing to decode a message, and recursively calling
+            // codec.decode()), this would lead to hangs, because we MUST poll the socket until it
+            // returns NotReady before returning NotReady ourself.
+            //
+            // It is also important to reset the reader's cursor here, otherwise, the next message
+            // will lead to a non-recoverable decoding error.
+            self.reader.clear();
+            self.reader.reserve(INITIAL_READER_CAPACITY);
+            self.poll()
         }
     }
 }
@@ -99,7 +108,8 @@ impl<C: Encoder> Sink for NetlinkFramed<C> {
             Err(io::Error::new(
                 io::ErrorKind::Other,
                 "failed to write entire datagram to socket",
-            ).into())
+            )
+            .into())
         }
     }
 

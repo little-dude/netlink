@@ -32,49 +32,48 @@ impl Decoder for NetlinkCodec<NetlinkMessage> {
     type Error = io::Error;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+        debug!("NetlinkCodec: decoding next message");
+        // If there's nothing to read, return Ok(None)
+        if src.as_ref().is_empty() {
+            trace!("buffer is empty");
+            src.clear();
+            return Ok(None);
+        }
+
         // This is a bit hacky because we don't want to keep `src` borrowed, since we need to
         // mutate it later.
         let len = match NetlinkBuffer::new_checked(src.as_ref()) {
-            Ok(buf) => Some(buf.length() as usize),
-            Err(DecodeError { .. }) => {
-                if !src.as_ref().is_empty() {
-                    // If this fails, that means we either received a truncated packet, or the
-                    // packet if malformed (invalid length field). If the packet is truncated,
-                    // there's not point in waiting for more bytes, because netlink is a datagram
-                    // protocol so packets cannot be partially read from the netlink socket. Here
-                    // is what the `recvfrom` man page says:
-                    //
-                    // > For message-based sockets, such as SOCK_RAW, SOCK_DGRAM, and
-                    // > SOCK_SEQPACKET, the entire message shall be read in a single operation. If
-                    // > a message is too long to fit in the supplied buffer, and MSG_PEEK is not
-                    // > set in the flags argument, the excess bytes shall be discarded.
-                    //
-                    // At this point, there's no way to decode other packets, because we cannot
-                    // know where they start, so we have empty the buffer and wait for new packets,
-                    // potentially losing some valid messages.
-                    error!("failed to find boundaries of a valid netlink packet");
-                }
-                None
+            Ok(buf) => buf.length() as usize,
+            Err(e) => {
+                // We either received a truncated packet, or the packet if malformed (invalid
+                // length field). If the packet is truncated, there's not point in waiting for
+                // more bytes, because netlink is a datagram protocol so packets cannot be
+                // partially read from the netlink socket. Here is what the `recvfrom` man page
+                // says:
+                //
+                // > For message-based sockets, such as SOCK_RAW, SOCK_DGRAM, and >
+                // SOCK_SEQPACKET, the entire message shall be read in a single operation. If >
+                // a message is too long to fit in the supplied buffer, and MSG_PEEK is not >
+                // set in the flags argument, the excess bytes shall be discarded.
+                //
+                // At this point, there's no way to decode other packets, because we cannot
+                // know where they start, so we just error out.
+                error!("{:?}: {:#x?}.", e, src.as_ref());
+                return Err(io::Error::new(io::ErrorKind::Other, format!("{:?}", e)));
             }
         };
 
-        if let Some(len) = len {
-            let bytes = src.split_to(len);
-            match NetlinkMessage::from_bytes(&bytes) {
-                Ok(packet) => Ok(Some(packet)),
-                Err(mut e) => {
-                    let mut error_string = format!("failed to decode packet {:x?}", &bytes);
-                    for cause in e.causes() {
-                        error_string += &format!(": {}", cause);
-                    }
-                    error!("{}", error_string);
-                    // Try to decode the next packet, if any.
-                    self.decode(src)
+        let bytes = src.split_to(len);
+        match NetlinkMessage::from_bytes(&bytes) {
+            Ok(packet) => Ok(Some(packet)),
+            Err(mut e) => {
+                let mut error_string = format!("failed to decode packet {:#x?}", &bytes);
+                for cause in e.causes() {
+                    error_string += &format!(": {}", cause);
                 }
+                error!("{}", error_string);
+                Ok(None)
             }
-        } else {
-            src.clear();
-            Ok(None)
         }
     }
 }
