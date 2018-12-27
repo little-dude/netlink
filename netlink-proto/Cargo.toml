@@ -36,6 +36,10 @@ rtnetlink = [
     "netlink-packet", "netlink-packet/rtnetlink",
     "netlink-sys", "netlink-sys/tokio_support"]
 
+audit = [
+    "netlink-packet", "netlink-packet/audit",
+    "netlink-sys", "netlink-sys/tokio_support"]
+
 [dev-dependencies]
 env_logger = "0.6.0"
 

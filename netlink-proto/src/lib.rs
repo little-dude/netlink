@@ -1,4 +1,4 @@
-#![cfg(any(feature = "rtnetlink"))]
+#![cfg(any(feature = "audit", feature = "rtnetlink"))]
 
 extern crate bytes;
 extern crate core;
@@ -11,9 +11,9 @@ extern crate lazy_static;
 extern crate log;
 extern crate tokio_io;
 
-#[cfg(any(feature = "rtnetlink"))]
+#[cfg(any(feature = "audit", feature = "rtnetlink"))]
 extern crate netlink_packet;
-#[cfg(any(feature = "rtnetlink"))]
+#[cfg(any(feature = "audit", feature = "rtnetlink"))]
 extern crate netlink_sys;
 
 mod codecs;

@@ -9,6 +9,9 @@ use {
 #[cfg(feature = "rtnetlink")]
 use RtnlMessage;
 
+#[cfg(feature = "audit")]
+use AuditMessage;
+
 /// Represent a netlink message.
 ///
 /// A netlink message is made of a header (represented by
@@ -47,7 +50,9 @@ pub enum NetlinkPayload {
     Overrun(Vec<u8>),
     #[cfg(feature = "rtnetlink")]
     Rtnl(RtnlMessage),
-    #[cfg(not(any(feature = "rtnetlink")))]
+    #[cfg(feature = "audit")]
+    Audit(AuditMessage),
+    #[cfg(not(any(feature = "rtnetlink", feature = "audit")))]
     #[doc(hidden)]
     __Default,
 }
@@ -63,7 +68,9 @@ impl NetlinkPayload {
             Overrun(_) => NLMSG_OVERRUN,
             #[cfg(feature = "rtnetlink")]
             Rtnl(ref msg) => msg.message_type(),
-            #[cfg(not(any(feature = "rtnetlink")))]
+            #[cfg(feature = "audit")]
+            Audit(ref msg) => msg.message_type(),
+            #[cfg(not(any(feature = "rtnetlink", feature = "audit")))]
             _ => 0,
         }
     }
@@ -71,6 +78,15 @@ impl NetlinkPayload {
     #[cfg(feature = "rtnetlink")]
     pub fn is_rtnl(&self) -> bool {
         if let NetlinkPayload::Rtnl(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    #[cfg(feature = "audit")]
+    pub fn is_audit(&self) -> bool {
+        if let NetlinkPayload::Audit(_) = *self {
             true
         } else {
             false
@@ -123,6 +139,13 @@ impl From<NetlinkPayload> for NetlinkMessage {
 impl From<RtnlMessage> for NetlinkMessage {
     fn from(msg: RtnlMessage) -> Self {
         NetlinkMessage::from(NetlinkPayload::Rtnl(msg))
+    }
+}
+
+#[cfg(feature = "audit")]
+impl From<AuditMessage> for NetlinkMessage {
+    fn from(msg: AuditMessage) -> Self {
+        NetlinkMessage::from(NetlinkPayload::Audit(msg))
     }
 }
 
@@ -209,6 +232,11 @@ impl NetlinkMessage {
         self.payload().is_rtnl()
     }
 
+    #[cfg(feature = "audit")]
+    pub fn is_audit(&self) -> bool {
+        self.payload().is_audit()
+    }
+
     /// Ensure the header (`NetlinkHeader`) is consistent with the payload (`NetlinkPayload`):
     ///
     /// - compute the payload length and set the header's length field
@@ -249,7 +277,12 @@ impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<NetlinkMessage> for NetlinkBuf
                 NetlinkPayload::Rtnl(RtnlMessage::parse(message_type, &self.payload())?)
             }
 
-            #[cfg(not(any(feature = "rtnetlink")))]
+            #[cfg(feature = "audit")]
+            message_type => {
+                NetlinkPayload::Audit(AuditMessage::parse(message_type, &self.payload())?)
+            }
+
+            #[cfg(not(any(feature = "rtnetlink", feature = "audit")))]
             _ => __Default,
         };
         Ok(NetlinkMessage { header, payload })
@@ -268,7 +301,10 @@ impl Emitable for NetlinkMessage {
             #[cfg(feature = "rtnetlink")]
             Rtnl(ref msg) => msg.buffer_len(),
 
-            #[cfg(not(any(feature = "rtnetlink")))]
+            #[cfg(feature = "audit")]
+            Audit(ref msg) => msg.buffer_len(),
+
+            #[cfg(not(any(feature = "rtnetlink", feature = "audit")))]
             __Default => 0,
         };
 
@@ -290,7 +326,10 @@ impl Emitable for NetlinkMessage {
             #[cfg(feature = "rtnetlink")]
             Rtnl(ref msg) => msg.emit(buffer),
 
-            #[cfg(not(any(feature = "rtnetlink")))]
+            #[cfg(feature = "audit")]
+            Audit(ref msg) => msg.emit(buffer),
+
+            #[cfg(not(any(feature = "rtnetlink", feature = "audit")))]
             __Default => {}
         }
     }
