@@ -6,7 +6,7 @@ use std::marker::PhantomData;
 // These traits need to be in scope for some methods to be called.
 
 use bytes::{BufMut, BytesMut};
-use netlink_packet::{DecodeError, Emitable, NetlinkBuffer, NetlinkMessage};
+use netlink_packet::{Emitable, NetlinkBuffer, NetlinkMessage};
 use tokio_io::codec::{Decoder, Encoder};
 
 pub struct NetlinkCodec<T> {
@@ -27,6 +27,8 @@ impl<T> NetlinkCodec<T> {
     }
 }
 
+// FIXME: it seems that for audit, we're receiving malformed packets.
+// See https://github.com/mozilla/libaudit-go/issues/24
 impl Decoder for NetlinkCodec<NetlinkMessage> {
     type Item = NetlinkMessage;
     type Error = io::Error;
@@ -43,7 +45,21 @@ impl Decoder for NetlinkCodec<NetlinkMessage> {
         // This is a bit hacky because we don't want to keep `src` borrowed, since we need to
         // mutate it later.
         let len = match NetlinkBuffer::new_checked(src.as_ref()) {
+            #[cfg(not(feature = "audit"))]
             Ok(buf) => buf.length() as usize,
+            #[cfg(feature = "audit")]
+            Ok(buf) => {
+                if src.as_ref().len() as isize - buf.length() as isize == 16 {
+                    // The audit messages are sometimes truncated, because the length specified in
+                    // the header, does not take the header itself into account. To workaround
+                    // this, we tweak the length.
+                    // See also: https://github.com/mozilla/libaudit-go/issues/24
+                    warn!("found what looks like a truncated audit packet");
+                    src.as_ref().len()
+                } else {
+                    buf.length() as usize
+                }
+            }
             Err(e) => {
                 // We either received a truncated packet, or the packet if malformed (invalid
                 // length field). If the packet is truncated, there's not point in waiting for
@@ -63,7 +79,38 @@ impl Decoder for NetlinkCodec<NetlinkMessage> {
             }
         };
 
+        #[cfg(feature = "audit")]
+        let bytes = {
+            let mut bytes = src.split_to(len);
+            {
+                let mut buf = NetlinkBuffer::new(bytes.as_mut());
+                // If the buffer contains more bytes than what the header says the length is, it
+                // means we ran into a malformed packet (see comment above), and we just set the
+                // "right" length ourself, so that parsing does not fail.
+                //
+                // How do we know that's the right length? Due to an implementation detail and to
+                // the fact that netlink is a datagram protocol.
+                //
+                // - our implementation of Stream always calls the codec with at most 1 message in
+                //   the buffer, so we know the extra bytes do not belong to another message.
+                // - because netlink is a datagram protocol, we receive entire messages, so we know
+                //   that if those extra bytes do not belong to another message, they belong to
+                //   this one.
+                if len != buf.length() as usize {
+                    warn!(
+                        "setting packet length to {} instead of {}",
+                        len,
+                        buf.length()
+                    );
+                    buf.set_length(len as u32);
+                }
+            }
+            bytes
+        };
+
+        #[cfg(not(feature = "audit"))]
         let bytes = src.split_to(len);
+
         match NetlinkMessage::from_bytes(&bytes) {
             Ok(packet) => Ok(Some(packet)),
             Err(mut e) => {
