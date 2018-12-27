@@ -1,57 +1,68 @@
-use core::{self, fmt};
-use std::error::Error as StdError;
-use std::io;
+use failure::{Backtrace, Context, Fail};
+use packet::NetlinkMessage;
+use std::fmt::{self, Display};
 
-/// The error type for the netlink packet parser
 #[derive(Debug)]
-pub enum Error {
-    /// An operation cannot proceed because a buffer is empty or full.
-    Exhausted,
-    /// An incoming packet could not be parsed because some of its fields were out of bounds
-    /// of the received data.
-    Truncated,
-    /// An incoming packet could not be recognized and was dropped.
-    /// E.g. an Ethernet packet with an unknown EtherType.
-    Unrecognized,
-    /// An incoming packet was recognized but was self-contradictory.
-    /// E.g. a TCP packet with both SYN and FIN flags set.
-    Malformed,
-    /// Parsing of a netlink nla value failed.
-    MalformedNlaValue,
-    /// Failed to read or write a packet due to an IO error
-    Io(io::Error),
-    #[doc(hidden)]
-    __Nonexhaustive,
+pub struct Error {
+    inner: Context<ErrorKind>,
 }
 
-pub type Result<T> = core::result::Result<T, Error>;
+#[derive(Clone, Eq, PartialEq, Debug, Fail)]
+pub enum ErrorKind {
+    #[fail(display = "Received an unexpected message {:?}", _0)]
+    UnexpectedMessage(NetlinkMessage),
 
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.description())
+    #[fail(display = "Received a netlink error message {:?}", _0)]
+    NetlinkError(NetlinkMessage),
+
+    #[fail(display = "A netlink request failed")]
+    RequestFailed,
+
+    #[fail(
+        display = "Received a link message (RTM_GETLINK, RTM_NEWLINK, RTM_SETLINK or RTMGETLINK) with an invalid hardware address attribute: {:?}.",
+        _0
+    )]
+    InvalidHardwareAddress(Vec<u8>),
+
+    #[fail(display = "Failed to parse an IP address: {:?}", _0)]
+    InvalidIp(Vec<u8>),
+
+    #[fail(display = "Failed to parse a network address (IP and mask): {:?}/{:?}", _0, _1)]
+    InvalidAddress(Vec<u8>, Vec<u8>),
+}
+
+impl Fail for Error {
+    fn cause(&self) -> Option<&Fail> {
+        self.inner.cause()
+    }
+
+    fn backtrace(&self) -> Option<&Backtrace> {
+        self.inner.backtrace()
     }
 }
 
-impl StdError for Error {
-    fn description(&self) -> &str {
-        match *self {
-            Error::Exhausted => "buffer space exhausted",
-            Error::Truncated => "truncated packet",
-            Error::Unrecognized => "unrecognized packet",
-            Error::Malformed => "malformed packet",
-            Error::MalformedNlaValue => "failed to parse a netlink nla value",
-            Error::Io(_) => "failed to read or write a packet due to an IO error",
-            Error::__Nonexhaustive => unreachable!(),
+impl Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        Display::fmt(&self.inner, f)
+    }
+}
+
+impl Error {
+    pub fn kind(&self) -> ErrorKind {
+        self.inner.get_context().clone()
+    }
+}
+
+impl From<ErrorKind> for Error {
+    fn from(kind: ErrorKind) -> Error {
+        Error {
+            inner: Context::new(kind),
         }
     }
-
-    fn cause(&self) -> Option<&StdError> {
-        None
-    }
 }
 
-impl From<io::Error> for Error {
-    fn from(io_err: io::Error) -> Error {
-        Error::Io(io_err)
+impl From<Context<ErrorKind>> for Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
+        Error { inner }
     }
 }
