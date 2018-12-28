@@ -32,13 +32,9 @@ path = "../netlink-packet"
 version = "0.0"
 
 [features]
-rtnetlink = [
-    "netlink-packet", "netlink-packet/rtnetlink",
-    "netlink-sys", "netlink-sys/tokio_support"]
-
-audit = [
-    "netlink-packet", "netlink-packet/audit",
-    "netlink-sys", "netlink-sys/tokio_support"]
+default   = ["netlink-sys/tokio_support", "netlink-packet"]
+rtnetlink = ["netlink-sys/tokio_support", "netlink-packet/rtnetlink"]
+audit     = ["netlink-sys/tokio_support", "netlink-packet/audit"]
 
 [dev-dependencies]
 env_logger = "0.6.0"
