@@ -1,19 +1,19 @@
 #![cfg_attr(feature = "cargo-clippy", allow(module_inception))]
 
-extern crate log;
+
 #[macro_use]
 extern crate lazy_static;
-extern crate bytes;
-extern crate eui48;
-extern crate failure;
-extern crate failure_derive;
-extern crate futures;
-extern crate tokio_core;
 
-pub extern crate netlink_packet as packet;
-pub extern crate netlink_sys;
+
+use failure;
+
+
+
+
+pub use netlink_packet as packet;
+pub use netlink_sys;
 pub use crate::packet::constants;
-extern crate netlink_proto;
+use netlink_proto;
 pub use netlink_proto::{Connection, Protocol};
 
 mod handle;
