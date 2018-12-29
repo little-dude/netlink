@@ -1,27 +1,37 @@
 //! This package contains types that represent netlink messages. See the [`libnl` library
 //! documentation][libnl] for an introduction to the Netlink protocols.
 //!
-//! Currently, only a subset of the `NETLINK_ROUTE` family has been implemented. It is available in
-//! [`packet::rtnl`]. On the long term, I intend to support a few additional netlink families
-//! (see `man 7 netlink` for a complete list of protocol families).
+//! This crate provides widely different types based on the features that are enabled. There are
+//! currently two features available, which are mutually exclusive `rtnetlink` and `audit`. With
+//! the `rtnetlink` feature, this crates provides types for the `NETLINK_ROUTE` protocol family
+//! (see `man 7 rtnetlink`). With the `audit` feature, this crate provides types for the
+//! `NETLINK_AUDIT` protocol family.
 //!
-//! [`rtnl`]: rtnl/index.html
 //! [libnl]: https://www.infradead.org/~tgr/libnl/doc/core.html#core_netlink_fundamentals
 //!
-//! # Messages
+//! # Generating the documentation for the desired feature
 //!
-//! This crate provides two representations of most netlink packets:
+//! At the moment, rustdoc does not support features very well. If you plan on using this crate,
+//! you should probably generate the appropriate documentation yourself by getting the source, and
+//! running `cargo doc`:
 //!
-//! - **Buffer** types: [`NetlinkBuffer`](struct.NetlinkBuffer.html),
-//! [`LinkBuffer`](struct.LinkBuffer.html), [`NlaBuffer`](struct.NlaBuffer.html), etc. These types
+//! ```no_rust
+//! cargo doc --open --features audit     # for the audit messages
+//! cargo doc --open --features rtnetlink # for the rtnetlink messages
+//! ```
+//!
+//! # Overview
+//!
+//! Independently of the feature that is enabled, this crate provides two representations of most
+//! netlink packets:
+//!
+//! - **Buffer** types like [`NetlinkBuffer`](struct.NetlinkBuffer.html) for instance. These types
 //! wrappers around actual byte buffers, and provide safe accessors to the various fields of the
 //! packet they represent. These types are useful if you manipulate byte streams, but everytime
 //! data is accessed, it must be parsed or encoded.
 //!
-//! - **Message** and **Nla** types: [`NetlinkMessage`](struct.NetlinkMessage.html),
-//! [`LinkMessage`](struct.LinkMessage.html), [`LinkNla`](struct.LinkNla.html),
-//! [`AddressNla`](struct.AddressNla.html) etc. These are higher level representations of netlink
-//! packets and are the prefered way to build packets.
+//! - Higher level representation of netlink packets, like
+//! [`NetlinkMessage`](struct.NetlinkMessage.html), which are the prefered way to build packets.
 //!
 //! ## Using buffer types to parse messages
 //!
@@ -33,9 +43,13 @@
 //! impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<NetlinkMessage> for NetlinkBuffer<&'buffer T>
 //! ```
 //!
-//! That means a `NetlinkBuffer` is parseable into a `NetlinkMessage`:
+//! That means a `NetlinkBuffer` is parseable into a `NetlinkMessage` (note that the following
+//! snippets assumes the crate is being used with the `rtnetlink` feature):
 //!
-//! ```rust
+//! ```rust,no_run
+//! # // FIXME: this snippet is `no_run` because it breaks cargo test, when the rtnetlink feature
+//! # // is not enabled. If rustc supports that better in the future, somehow, we should run this
+//! # // example.
 //! extern crate netlink_packet;
 //! use netlink_packet::{NetlinkBuffer, NetlinkMessage, Parseable};
 //! use netlink_packet::constants::{RTM_GETLINK, NLM_F_ROOT, NLM_F_REQUEST, NLM_F_MATCH};
