@@ -1,6 +1,6 @@
 [package]
 name = "audit"
-version = "0.0.2"
+version = "0.1.0"
 authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 edition = "2018"
 
@@ -22,19 +22,19 @@ failure = "0.1.3"
 failure_derive = "0.1.3"
 
 [dependencies.netlink-sys]
-version = "*"
+version = "0.1"
 default-features = false
 features = ["tokio_support"]
 path = "../netlink-sys"
 
 [dependencies.netlink-packet]
-version = "0.0"
+version = "0.1"
 default-features = false
 features = ["audit"]
 path = "../netlink-packet"
 
 [dependencies.netlink-proto]
-version = "0.0"
+version = "0.1"
 default-features = false
 features = ["audit"]
 path = "../netlink-proto"
