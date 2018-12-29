@@ -216,7 +216,8 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkAfInet6Nla> for NlaBuffer<&
                 LinkInet6Stats::from_bytes(payload).context("invalid IFLA_INET6_STATS value")?,
             )),
             IFLA_INET6_ICMP6STATS => IcmpStats(
-                LinkIcmp6Stats::from_bytes(payload).context("invalid IFLA_INET6_ICMP6STATS value")?,
+                LinkIcmp6Stats::from_bytes(payload)
+                    .context("invalid IFLA_INET6_ICMP6STATS value")?,
             ),
             IFLA_INET6_TOKEN => {
                 Token(parse_ipv6(payload).context("invalid IFLA_INET6_TOKEN value")?)

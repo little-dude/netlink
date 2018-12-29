@@ -5,4 +5,5 @@ members = [
     "netlink-packet",
     "netlink-proto",
     "rtnetlink",
+    "audit",
 ]

@@ -226,7 +226,8 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkAfSpecNla> for NlaBuffer<&'
                 for nla in NlasIterator::new(payload) {
                     let nla = nla.context("invalid AF_INET6 value")?;
                     nlas.push(
-                        <Parseable<LinkAfInet6Nla>>::parse(&nla).context("invalid AF_INET6 value")?,
+                        <Parseable<LinkAfInet6Nla>>::parse(&nla)
+                            .context("invalid AF_INET6 value")?,
                     );
                 }
                 Inet6(nlas)
