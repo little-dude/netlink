@@ -1,7 +1,7 @@
+use crate::packet::NetlinkMessage;
 use failure::{Fail, ResultExt};
 use futures::Stream;
 use netlink_proto::{ConnectionHandle, SocketAddr};
-use crate::packet::NetlinkMessage;
 
 use crate::{AddressHandle, Error, ErrorKind, LinkHandle};
 

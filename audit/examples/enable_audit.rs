@@ -1,7 +1,4 @@
-
-
 use netlink_sys;
-
 
 use audit::new_connection;
 use futures::{Future, Stream};

@@ -91,8 +91,8 @@ impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Vec<Result<LinkNla, DecodeErro
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::rtnl::link::*;
     use crate::constants::*;
+    use crate::rtnl::link::*;
 
     #[rustfmt::skip]
     static HEADER: [u8; 96] = [

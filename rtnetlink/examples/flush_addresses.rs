@@ -1,7 +1,3 @@
-
-
-
-
 use std::thread::spawn;
 
 use futures::{Future, Stream};

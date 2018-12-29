@@ -1,10 +1,10 @@
-use byteorder::{ByteOrder, NativeEndian};
 use crate::constants::*;
-use failure::ResultExt;
 use crate::rtnl::{LinkBuffer, LinkHeader, LinkMessage, LinkNla};
-use std::mem::size_of;
 use crate::utils::{parse_mac, parse_string, parse_u16, parse_u32, parse_u64, parse_u8};
 use crate::{DecodeError, DefaultNla, Emitable, Nla, NlaBuffer, NlasIterator, Parseable};
+use byteorder::{ByteOrder, NativeEndian};
+use failure::ResultExt;
+use std::mem::size_of;
 
 const DUMMY: &str = "dummy";
 const IFB: &str = "ifb";

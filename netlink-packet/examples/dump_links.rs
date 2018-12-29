@@ -1,6 +1,3 @@
-
-
-
 use netlink_packet::constants::{NLM_F_DUMP, NLM_F_REQUEST};
 use netlink_packet::{
     LinkHeader, LinkMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage,

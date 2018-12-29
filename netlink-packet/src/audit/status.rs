@@ -157,19 +157,18 @@ impl StatusMessage {
                 AUDIT_STATUS_BUFFER_LEN
             )));
         }
-            NativeEndian::write_u32(&mut buf[0..4], self.mask);
-            NativeEndian::write_u32(&mut buf[4..8], self.enabled);
-            NativeEndian::write_u32(&mut buf[8..12], self.failure);
-            NativeEndian::write_u32(&mut buf[12..16], self.pid);
-            NativeEndian::write_u32(&mut buf[16..20], self.rate_limiting);
-            NativeEndian::write_u32(&mut buf[20..24], self.backlog_limit);
-            NativeEndian::write_u32(&mut buf[24..28], self.lost);
-            NativeEndian::write_u32(&mut buf[28..32], self.backlog);
-            NativeEndian::write_u32(&mut buf[32..36], self.feature_bitmap);
-            NativeEndian::write_u32(&mut buf[36..40], self.backlog_wait_time);
+        NativeEndian::write_u32(&mut buf[0..4], self.mask);
+        NativeEndian::write_u32(&mut buf[4..8], self.enabled);
+        NativeEndian::write_u32(&mut buf[8..12], self.failure);
+        NativeEndian::write_u32(&mut buf[12..16], self.pid);
+        NativeEndian::write_u32(&mut buf[16..20], self.rate_limiting);
+        NativeEndian::write_u32(&mut buf[20..24], self.backlog_limit);
+        NativeEndian::write_u32(&mut buf[24..28], self.lost);
+        NativeEndian::write_u32(&mut buf[28..32], self.backlog);
+        NativeEndian::write_u32(&mut buf[32..36], self.feature_bitmap);
+        NativeEndian::write_u32(&mut buf[36..40], self.backlog_wait_time);
         Ok(())
     }
-
 }
 
 impl Emitable for StatusMessage {
@@ -178,7 +177,8 @@ impl Emitable for StatusMessage {
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        self.to_bytes(buffer).expect("check the buffer length before calling emit_value()!")
+        self.to_bytes(buffer)
+            .expect("check the buffer length before calling emit_value()!")
     }
 }
 
