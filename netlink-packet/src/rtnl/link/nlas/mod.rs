@@ -20,7 +20,7 @@ use failure::ResultExt;
 
 use constants::*;
 use utils::{parse_i32, parse_string, parse_u32, parse_u8};
-use {DecodeError, DefaultNla, Emitable, NativeNla, Nla, NlaBuffer, Parseable};
+use {DecodeError, DefaultNla, Emitable, Nla, NlaBuffer, Parseable};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum LinkNla {
@@ -228,9 +228,9 @@ impl Nla for LinkNla {
             LinkNetnsId(ref value) => NativeEndian::write_i32(buffer, *value),
 
             OperState(state) => buffer[0] = state.into(),
-            Map(ref map) => map.to_bytes(buffer),
-            Stats(ref stats) => stats.to_bytes(buffer),
-            Stats64(ref stats) => stats.to_bytes(buffer),
+            Map(ref map) => map.to_bytes(buffer).expect("check the buffer length before calling emit_value()!"),
+            Stats(ref stats) => stats.to_bytes(buffer).expect("check the buffer length before calling emit_value()!"),
+            Stats64(ref stats) => stats.to_bytes(buffer).expect("check the buffer length before calling emit_value()!"),
             LinkInfo(ref nlas) => nlas.as_slice().emit(buffer),
             // This is not supposed to fail, because the buffer length has normally been checked
             // before cally this method. If that fails, there's a bug in out code that needs to be
@@ -420,7 +420,6 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkNla> for NlaBuffer<&'buffer
     }
 }
 
-#[repr(C)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct LinkMap {
     pub memory_start: u64,
@@ -431,9 +430,46 @@ pub struct LinkMap {
     pub port: u8,
 }
 
-impl NativeNla for LinkMap {}
+const LINK_MAP_LEN: usize = 8 * 3 + 2 + 2 * 2;
 
-#[repr(C)]
+impl LinkMap {
+    fn from_bytes(buf: &[u8]) -> Result<Self, DecodeError> {
+        if buf.len() < LINK_MAP_LEN {
+            return Err(DecodeError::from(format!(
+                "IFLA_MAP is {} bytes, buffer is only {} bytes: {:#x?}",
+                LINK_MAP_LEN,
+                buf.len(),
+                buf
+            )));
+        }
+        Ok(LinkMap {
+            memory_start: NativeEndian::read_u64(&buf[0..8]),
+            memory_end: NativeEndian::read_u64(&buf[8..16]),
+            base_address: NativeEndian::read_u64(&buf[16..24]),
+            irq: NativeEndian::read_u16(&buf[24..26]),
+            dma: buf[27],
+            port: buf[28],
+        })
+    }
+
+    fn to_bytes(&self, buf: &mut [u8]) -> Result<(), DecodeError> {
+        if buf.len() < LINK_MAP_LEN {
+            return Err(DecodeError::from(format!(
+                "buffer is only {} long, but IFLA_MAP is {} bytes",
+                buf.len(),
+                LINK_MAP_LEN
+            )));
+        }
+        NativeEndian::write_u64(&mut buf[0..8], self.memory_start);
+        NativeEndian::write_u64(&mut buf[8..16], self.memory_end);
+        NativeEndian::write_u64(&mut buf[16..24], self.base_address);
+        NativeEndian::write_u16(&mut buf[24..26], self.irq);
+        buf[27] = self.dma;
+        buf[28] = self.port;
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct LinkStats<T> {
     /// total packets received
@@ -484,8 +520,155 @@ pub struct LinkStats<T> {
     pub rx_nohandler: T,
 }
 
-impl NativeNla for LinkStats<u32> {}
-impl NativeNla for LinkStats<u64> {}
+const LINK_STATS32_LEN: usize = 24 * 4;
+impl LinkStats<u32> {
+    fn from_bytes(buf: &[u8]) -> Result<Self, DecodeError> {
+        if buf.len() < LINK_MAP_LEN {
+            return Err(DecodeError::from(format!(
+                "IFLA_STATS is {} bytes, buffer is only {} bytes: {:#x?}",
+                LINK_STATS32_LEN,
+                buf.len(),
+                buf
+            )));
+        }
+        Ok(LinkStats {
+            rx_packets: NativeEndian::read_u32(&buf[0..4]),
+            tx_packets: NativeEndian::read_u32(&buf[4..8]),
+            rx_bytes: NativeEndian::read_u32(&buf[8..12]),
+            tx_bytes: NativeEndian::read_u32(&buf[12..16]),
+            rx_errors: NativeEndian::read_u32(&buf[12..20]),
+            tx_errors: NativeEndian::read_u32(&buf[20..24]),
+            rx_dropped: NativeEndian::read_u32(&buf[24..28]),
+            tx_dropped: NativeEndian::read_u32(&buf[28..32]),
+            multicast: NativeEndian::read_u32(&buf[32..36]),
+            collisions: NativeEndian::read_u32(&buf[36..40]),
+            rx_length_errors: NativeEndian::read_u32(&buf[40..44]),
+            rx_over_errors: NativeEndian::read_u32(&buf[44..48]),
+            rx_crc_errors: NativeEndian::read_u32(&buf[48..52]),
+            rx_frame_errors: NativeEndian::read_u32(&buf[52..56]),
+            rx_fifo_errors: NativeEndian::read_u32(&buf[56..60]),
+            rx_missed_errors: NativeEndian::read_u32(&buf[60..64]),
+            tx_aborted_errors: NativeEndian::read_u32(&buf[64..68]),
+            tx_carrier_errors: NativeEndian::read_u32(&buf[68..72]),
+            tx_fifo_errors: NativeEndian::read_u32(&buf[72..76]),
+            tx_heartbeat_errors: NativeEndian::read_u32(&buf[76..80]),
+            tx_window_errors: NativeEndian::read_u32(&buf[80..84]),
+            rx_compressed: NativeEndian::read_u32(&buf[84..88]),
+            tx_compressed: NativeEndian::read_u32(&buf[88..92]),
+            rx_nohandler: NativeEndian::read_u32(&buf[92..96]),
+        })
+    }
+
+    fn to_bytes(&self, buf: &mut [u8]) -> Result<(), DecodeError> {
+        if buf.len() < LINK_STATS32_LEN {
+            return Err(DecodeError::from(format!(
+                "buffer is only {} long, but IFLA_STATS is {} bytes",
+                buf.len(),
+                LINK_STATS32_LEN
+            )));
+        }
+        NativeEndian::write_u32(&mut buf[0..4], self.rx_packets);
+        NativeEndian::write_u32(&mut buf[4..8], self.tx_packets);
+        NativeEndian::write_u32(&mut buf[8..12], self.rx_bytes);
+        NativeEndian::write_u32(&mut buf[12..16], self.tx_bytes);
+        NativeEndian::write_u32(&mut buf[12..20], self.rx_errors);
+        NativeEndian::write_u32(&mut buf[20..24], self.tx_errors);
+        NativeEndian::write_u32(&mut buf[24..28], self.rx_dropped);
+        NativeEndian::write_u32(&mut buf[28..32], self.tx_dropped);
+        NativeEndian::write_u32(&mut buf[32..36], self.multicast);
+        NativeEndian::write_u32(&mut buf[36..40], self.collisions);
+        NativeEndian::write_u32(&mut buf[40..44], self.rx_length_errors);
+        NativeEndian::write_u32(&mut buf[44..48], self.rx_over_errors);
+        NativeEndian::write_u32(&mut buf[48..52], self.rx_crc_errors);
+        NativeEndian::write_u32(&mut buf[52..56], self.rx_frame_errors);
+        NativeEndian::write_u32(&mut buf[56..60], self.rx_fifo_errors);
+        NativeEndian::write_u32(&mut buf[60..64], self.rx_missed_errors);
+        NativeEndian::write_u32(&mut buf[64..68], self.tx_aborted_errors);
+        NativeEndian::write_u32(&mut buf[68..72], self.tx_carrier_errors);
+        NativeEndian::write_u32(&mut buf[72..76], self.tx_fifo_errors);
+        NativeEndian::write_u32(&mut buf[76..80], self.tx_heartbeat_errors);
+        NativeEndian::write_u32(&mut buf[80..84], self.tx_window_errors);
+        NativeEndian::write_u32(&mut buf[84..88], self.rx_compressed);
+        NativeEndian::write_u32(&mut buf[88..92], self.tx_compressed);
+        NativeEndian::write_u32(&mut buf[92..96], self.rx_nohandler);
+        Ok(())
+    }
+}
+
+const LINK_STATS64_LEN: usize = 24 * 8;
+impl LinkStats<u64> {
+    fn from_bytes(buf: &[u8]) -> Result<Self, DecodeError> {
+        if buf.len() < LINK_MAP_LEN {
+            return Err(DecodeError::from(format!(
+                "IFLA_STATS64 is {} bytes, buffer is only {} bytes: {:#x?}",
+                LINK_STATS64_LEN,
+                buf.len(),
+                buf
+            )));
+        }
+        Ok(LinkStats {
+            rx_packets: NativeEndian::read_u64(&buf[0..8]),
+            tx_packets: NativeEndian::read_u64(&buf[8..16]),
+            rx_bytes: NativeEndian::read_u64(&buf[16..24]),
+            tx_bytes: NativeEndian::read_u64(&buf[24..32]),
+            rx_errors: NativeEndian::read_u64(&buf[32..40]),
+            tx_errors: NativeEndian::read_u64(&buf[40..48]),
+            rx_dropped: NativeEndian::read_u64(&buf[48..56]),
+            tx_dropped: NativeEndian::read_u64(&buf[56..64]),
+            multicast: NativeEndian::read_u64(&buf[64..72]),
+            collisions: NativeEndian::read_u64(&buf[72..80]),
+            rx_length_errors: NativeEndian::read_u64(&buf[80..88]),
+            rx_over_errors: NativeEndian::read_u64(&buf[88..96]),
+            rx_crc_errors: NativeEndian::read_u64(&buf[96..104]),
+            rx_frame_errors: NativeEndian::read_u64(&buf[104..112]),
+            rx_fifo_errors: NativeEndian::read_u64(&buf[112..120]),
+            rx_missed_errors: NativeEndian::read_u64(&buf[120..128]),
+            tx_aborted_errors: NativeEndian::read_u64(&buf[128..136]),
+            tx_carrier_errors: NativeEndian::read_u64(&buf[136..144]),
+            tx_fifo_errors: NativeEndian::read_u64(&buf[144..152]),
+            tx_heartbeat_errors: NativeEndian::read_u64(&buf[152..160]),
+            tx_window_errors: NativeEndian::read_u64(&buf[160..168]),
+            rx_compressed: NativeEndian::read_u64(&buf[168..176]),
+            tx_compressed: NativeEndian::read_u64(&buf[176..184]),
+            rx_nohandler: NativeEndian::read_u64(&buf[184..192]),
+        })
+    }
+
+    fn to_bytes(&self, buf: &mut [u8]) -> Result<(), DecodeError> {
+        if buf.len() < LINK_STATS64_LEN {
+            return Err(DecodeError::from(format!(
+                "buffer is only {} long, but IFLA_STATS64 is {} bytes",
+                buf.len(),
+                LINK_STATS64_LEN
+            )));
+        }
+        NativeEndian::write_u64(&mut buf[0..16], self.rx_packets);
+        NativeEndian::write_u64(&mut buf[16..32], self.tx_packets);
+        NativeEndian::write_u64(&mut buf[32..48], self.rx_bytes);
+        NativeEndian::write_u64(&mut buf[48..64], self.tx_bytes);
+        NativeEndian::write_u64(&mut buf[48..80], self.rx_errors);
+        NativeEndian::write_u64(&mut buf[80..96], self.tx_errors);
+        NativeEndian::write_u64(&mut buf[96..112], self.rx_dropped);
+        NativeEndian::write_u64(&mut buf[112..128], self.tx_dropped);
+        NativeEndian::write_u64(&mut buf[128..144], self.multicast);
+        NativeEndian::write_u64(&mut buf[144..160], self.collisions);
+        NativeEndian::write_u64(&mut buf[80..88], self.rx_length_errors);
+        NativeEndian::write_u64(&mut buf[88..96], self.rx_over_errors);
+        NativeEndian::write_u64(&mut buf[96..104], self.rx_crc_errors);
+        NativeEndian::write_u64(&mut buf[104..112], self.rx_frame_errors);
+        NativeEndian::write_u64(&mut buf[112..120], self.rx_fifo_errors);
+        NativeEndian::write_u64(&mut buf[120..128], self.rx_missed_errors);
+        NativeEndian::write_u64(&mut buf[128..136], self.tx_aborted_errors);
+        NativeEndian::write_u64(&mut buf[136..144], self.tx_carrier_errors);
+        NativeEndian::write_u64(&mut buf[144..152], self.tx_fifo_errors);
+        NativeEndian::write_u64(&mut buf[152..160], self.tx_heartbeat_errors);
+        NativeEndian::write_u64(&mut buf[160..168], self.tx_window_errors);
+        NativeEndian::write_u64(&mut buf[168..176], self.rx_compressed);
+        NativeEndian::write_u64(&mut buf[176..184], self.tx_compressed);
+        NativeEndian::write_u64(&mut buf[184..192], self.rx_nohandler);
+        Ok(())
+    }
+}
 
 pub type LinkStats32 = LinkStats<u32>;
 pub type LinkStats64 = LinkStats<u64>;

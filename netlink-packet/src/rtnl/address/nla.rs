@@ -4,7 +4,7 @@ use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
 
 use utils::{parse_string, parse_u32};
-use {DecodeError, DefaultNla, NativeNla, Nla, NlaBuffer, Parseable};
+use {DecodeError, DefaultNla, Nla, NlaBuffer, Parseable};
 
 use constants::*;
 
@@ -70,8 +70,7 @@ impl Nla for AddressNla {
             // u32
             Flags(ref value) => NativeEndian::write_u32(buffer, *value),
 
-            // Native
-            CacheInfo(ref cacheinfo) => cacheinfo.to_bytes(buffer),
+            CacheInfo(ref cacheinfo) => cacheinfo.to_bytes(buffer).expect("check the buffer length before calling emit_value()!"),
 
             // Default
             Other(ref attr) => attr.emit_value(buffer),
@@ -128,4 +127,38 @@ pub struct AddressCacheInfo {
     pub tstamp: i32,
 }
 
-impl NativeNla for AddressCacheInfo {}
+const ADDRESSS_CACHE_INFO_LEN: usize = 4 * 4;
+
+impl AddressCacheInfo {
+    fn from_bytes(buf: &[u8]) -> Result<Self, DecodeError> {
+        if buf.len() < ADDRESSS_CACHE_INFO_LEN {
+            return Err(DecodeError::from(format!(
+                "IFA_CACHEINFO is {} bytes, buffer is only {} bytes: {:#x?}",
+                ADDRESSS_CACHE_INFO_LEN,
+                buf.len(),
+                buf
+            )));
+        }
+        Ok(AddressCacheInfo {
+            ifa_preferred: NativeEndian::read_i32(&buf[0..4]),
+            ifa_valid: NativeEndian::read_i32(&buf[4..8]),
+            cstamp: NativeEndian::read_i32(&buf[8..12]),
+            tstamp: NativeEndian::read_i32(&buf[12..16]),
+        })
+    }
+
+    fn to_bytes(&self, buf: &mut [u8]) -> Result<(), DecodeError> {
+        if buf.len() < ADDRESSS_CACHE_INFO_LEN {
+            return Err(DecodeError::from(format!(
+                "buffer is only {} long, but IFA_CACHEINFO is {} bytes",
+                buf.len(),
+                ADDRESSS_CACHE_INFO_LEN
+            )));
+        }
+        NativeEndian::write_i32(&mut buf[0..4], self.ifa_preferred);
+        NativeEndian::write_i32(&mut buf[4..8], self.ifa_valid);
+        NativeEndian::write_i32(&mut buf[8..12], self.cstamp);
+        NativeEndian::write_i32(&mut buf[12..16], self.tstamp);
+        Ok(())
+    }
+}
