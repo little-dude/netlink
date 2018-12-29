@@ -40,8 +40,8 @@ fn parse_rule() {
     use Parseable;
 
     let buf = RuleBuffer::new_checked(&BYTES[..]).unwrap();
-    let parsed: Rule = buf.parse().unwrap();
-    let expected = Rule {
+    let parsed: RuleMessage = buf.parse().unwrap();
+    let expected = RuleMessage {
         flags: RuleFlags::FilterExit,
         action: RuleAction::Always,
         fields: vec![
@@ -59,7 +59,7 @@ fn parse_rule() {
 #[test]
 fn emit_rule() {
     use Emitable;
-    let rule = Rule {
+    let rule = RuleMessage {
         flags: RuleFlags::FilterExit,
         action: RuleAction::Always,
         fields: vec![
