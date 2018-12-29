@@ -1,5 +1,5 @@
-extern crate netlink_packet;
-extern crate netlink_sys;
+
+
 
 use netlink_packet::constants::{NLM_F_DUMP, NLM_F_REQUEST};
 use netlink_packet::{
