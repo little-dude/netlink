@@ -1,6 +1,6 @@
 use byteorder::{ByteOrder, NativeEndian};
 use std::mem::size_of;
-use {DecodeError, Emitable, Field, Parseable, Rest};
+use crate::{DecodeError, Emitable, Field, Parseable, Rest};
 
 const CODE: Field = 0..4;
 const PAYLOAD: Rest = 4..;

@@ -2,10 +2,10 @@ use futures::{Future, Stream};
 use ipnetwork::IpNetwork;
 use std::net::IpAddr;
 
-use packet::constants::{AF_INET, AF_INET6, NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST};
-use packet::{AddressMessage, AddressNla, NetlinkFlags, NetlinkMessage, RtnlMessage};
+use crate::packet::constants::{AF_INET, AF_INET6, NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST};
+use crate::packet::{AddressMessage, AddressNla, NetlinkFlags, NetlinkMessage, RtnlMessage};
 
-use {Error, ErrorKind, Handle};
+use crate::{Error, ErrorKind, Handle};
 
 lazy_static! {
     // Flags for `ip addr add`

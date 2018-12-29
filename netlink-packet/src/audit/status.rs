@@ -1,6 +1,6 @@
 use byteorder::{ByteOrder, NativeEndian};
 
-use {DecodeError, Emitable, Parseable};
+use crate::{DecodeError, Emitable, Parseable};
 
 pub const AUDIT_STATUS_BUFFER_LEN: usize = 40;
 

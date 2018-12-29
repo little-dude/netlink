@@ -3,8 +3,8 @@ use std::mem::size_of;
 use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
 
-use constants::*;
-use {DecodeError, DefaultNla, Nla, NlaBuffer, Parseable};
+use crate::constants::*;
+use crate::{DecodeError, DefaultNla, Nla, NlaBuffer, Parseable};
 
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct LinkInetDevConf {

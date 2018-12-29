@@ -39,7 +39,7 @@ impl From<ErrorKind> for Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use ErrorKind::*;
+        use crate::ErrorKind::*;
         match self.kind() {
             SocketIo(ref e) => write!(f, "{}: {}", self.description(), e),
             ConnectionClosed => write!(f, "{}", self.description()),
@@ -50,7 +50,7 @@ impl fmt::Display for Error {
 
 impl StdError for Error {
     fn description(&self) -> &str {
-        use ErrorKind::*;
+        use crate::ErrorKind::*;
         match self.kind() {
             SocketIo(_) => "Error while reading from or writing to the netlink socket",
             ConnectionClosed => "The netlink connection is closed",

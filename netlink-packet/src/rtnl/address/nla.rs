@@ -3,10 +3,10 @@ use std::mem::size_of;
 use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
 
-use utils::{parse_string, parse_u32};
-use {DecodeError, DefaultNla, Nla, NlaBuffer, Parseable};
+use crate::utils::{parse_string, parse_u32};
+use crate::{DecodeError, DefaultNla, Nla, NlaBuffer, Parseable};
 
-use constants::*;
+use crate::constants::*;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum AddressNla {

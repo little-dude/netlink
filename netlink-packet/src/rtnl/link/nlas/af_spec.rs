@@ -21,8 +21,8 @@ pub use super::inet6::LinkAfInet6Nla;
 
 use failure::ResultExt;
 
-use constants::*;
-use {DecodeError, DefaultNla, Emitable, Nla, NlaBuffer, NlasIterator, Parseable};
+use crate::constants::*;
+use crate::{DecodeError, DefaultNla, Emitable, Nla, NlaBuffer, NlasIterator, Parseable};
 
 // FIXME: There are many of those that I don't know how to parse. Help welcome.
 #[derive(Clone, Eq, PartialEq, Debug)]

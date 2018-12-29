@@ -2,9 +2,9 @@ use futures::sync::mpsc::{unbounded, UnboundedSender};
 use futures::Stream;
 use netlink_packet::NetlinkMessage;
 
-use errors::{Error, ErrorKind};
+use crate::errors::{Error, ErrorKind};
 use netlink_sys::SocketAddr;
-use Request;
+use crate::Request;
 
 /// A handle to pass requests to a [`Connection`](struct.Connection.html).
 #[derive(Clone, Debug)]

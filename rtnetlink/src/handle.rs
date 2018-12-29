@@ -1,9 +1,9 @@
 use failure::{Fail, ResultExt};
 use futures::Stream;
 use netlink_proto::{ConnectionHandle, SocketAddr};
-use packet::NetlinkMessage;
+use crate::packet::NetlinkMessage;
 
-use {AddressHandle, Error, ErrorKind, LinkHandle};
+use crate::{AddressHandle, Error, ErrorKind, LinkHandle};
 
 lazy_static! {
     static ref KERNEL_UNICAST: SocketAddr = SocketAddr::new(0, 0);

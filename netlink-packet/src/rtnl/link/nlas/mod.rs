@@ -18,9 +18,9 @@ use std::mem::size_of;
 use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
 
-use constants::*;
-use utils::{parse_i32, parse_string, parse_u32, parse_u8};
-use {DecodeError, DefaultNla, Emitable, Nla, NlaBuffer, Parseable};
+use crate::constants::*;
+use crate::utils::{parse_i32, parse_string, parse_u32, parse_u8};
+use crate::{DecodeError, DefaultNla, Emitable, Nla, NlaBuffer, Parseable};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum LinkNla {

@@ -118,21 +118,21 @@ extern crate tokio;
 extern crate tokio_core;
 
 pub extern crate netlink_packet as packet;
-pub use packet::constants;
+pub use crate::packet::constants;
 extern crate netlink_proto;
 pub use netlink_proto::{Connection, Protocol};
 
 mod handle;
-pub use handle::*;
+pub use crate::handle::*;
 
 mod errors;
-pub use errors::*;
+pub use crate::errors::*;
 
 mod link;
-pub use link::*;
+pub use crate::link::*;
 
 mod addr;
-pub use addr::*;
+pub use crate::addr::*;
 
 use std::io;
 

@@ -113,7 +113,7 @@ impl Decoder for NetlinkCodec<NetlinkMessage> {
 
         match NetlinkMessage::from_bytes(&bytes) {
             Ok(packet) => Ok(Some(packet)),
-            Err(mut e) => {
+            Err(e) => {
                 let mut error_string = format!("failed to decode packet {:#x?}", &bytes);
                 for cause in e.causes() {
                     error_string += &format!(": {}", cause);

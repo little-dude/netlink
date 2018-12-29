@@ -1,10 +1,10 @@
 use eui48::MacAddress;
 use futures::{Future, Stream};
 
-use packet::constants::{IFF_UP, NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST};
-use packet::{LinkFlags, LinkMessage, LinkNla, NetlinkFlags, NetlinkMessage, RtnlMessage};
+use crate::packet::constants::{IFF_UP, NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST};
+use crate::packet::{LinkFlags, LinkMessage, LinkNla, NetlinkFlags, NetlinkMessage, RtnlMessage};
 
-use {Error, ErrorKind, Handle};
+use crate::{Error, ErrorKind, Handle};
 
 lazy_static! {
     // Flags for `ip link set`

@@ -1,6 +1,6 @@
 use super::{RouteBuffer, RouteHeader, RouteNla};
 use failure::ResultExt;
-use {DecodeError, Emitable, Parseable};
+use crate::{DecodeError, Emitable, Parseable};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct RouteMessage {

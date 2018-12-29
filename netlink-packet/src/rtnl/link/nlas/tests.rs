@@ -1,5 +1,5 @@
-use constants::IFLA_AF_SPEC;
-use {DecodeError, NlasIterator};
+use crate::constants::IFLA_AF_SPEC;
+use crate::{DecodeError, NlasIterator};
 
 use super::*;
 // https://lists.infradead.org/pipermail/libnl/2015-November/002034.html
