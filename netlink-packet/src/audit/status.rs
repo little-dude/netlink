@@ -1,5 +1,4 @@
-use std::mem::size_of;
-use std::ptr;
+use byteorder::{ByteOrder, NativeEndian};
 
 use {DecodeError, Emitable, Parseable};
 
@@ -129,22 +128,48 @@ impl StatusMessage {
     }
 
     fn from_bytes(buf: &[u8]) -> Result<Self, DecodeError> {
-        if buf.len() != size_of::<Self>() {
-            return Err(format!(
-                "invalid status message, expected length {}, got {}",
-                size_of::<Self>(),
-                buf.len()
-            )
-            .into());
+        if buf.len() < AUDIT_STATUS_BUFFER_LEN {
+            return Err(DecodeError::from(format!(
+                "StatusMessage is {} bytes, buffer is only {} bytes: {:#x?}",
+                AUDIT_STATUS_BUFFER_LEN,
+                buf.len(),
+                buf
+            )));
         }
-        Ok(unsafe { ptr::read(buf.as_ptr() as *const Self) })
+        Ok(StatusMessage {
+            mask: NativeEndian::read_u32(&buf[0..4]),
+            enabled: NativeEndian::read_u32(&buf[4..8]),
+            failure: NativeEndian::read_u32(&buf[8..12]),
+            pid: NativeEndian::read_u32(&buf[12..16]),
+            rate_limiting: NativeEndian::read_u32(&buf[16..20]),
+            backlog_limit: NativeEndian::read_u32(&buf[20..24]),
+            lost: NativeEndian::read_u32(&buf[24..28]),
+            backlog: NativeEndian::read_u32(&buf[28..32]),
+            feature_bitmap: NativeEndian::read_u32(&buf[32..36]),
+            backlog_wait_time: NativeEndian::read_u32(&buf[36..40]),
+        })
+    }
+    fn to_bytes(&self, buf: &mut [u8]) -> Result<(), DecodeError> {
+        if buf.len() < AUDIT_STATUS_BUFFER_LEN {
+            return Err(DecodeError::from(format!(
+                "buffer is only {} long, but StatusMessage is {} bytes",
+                buf.len(),
+                AUDIT_STATUS_BUFFER_LEN
+            )));
+        }
+            NativeEndian::write_u32(&mut buf[0..4], self.mask);
+            NativeEndian::write_u32(&mut buf[4..8], self.enabled);
+            NativeEndian::write_u32(&mut buf[8..12], self.failure);
+            NativeEndian::write_u32(&mut buf[12..16], self.pid);
+            NativeEndian::write_u32(&mut buf[16..20], self.rate_limiting);
+            NativeEndian::write_u32(&mut buf[20..24], self.backlog_limit);
+            NativeEndian::write_u32(&mut buf[24..28], self.lost);
+            NativeEndian::write_u32(&mut buf[28..32], self.backlog);
+            NativeEndian::write_u32(&mut buf[32..36], self.feature_bitmap);
+            NativeEndian::write_u32(&mut buf[36..40], self.backlog_wait_time);
+        Ok(())
     }
 
-    // FIXME: I think this is too risky... I don't know if checking the buffer's length is enough
-    // to guarantee that there's no UB here. And clippy really doesn't like that unsafe anyway.
-    fn to_bytes(&self, buf: &mut [u8]) {
-        unsafe { ptr::write(buf.as_mut_ptr() as *mut Self, self.clone()) }
-    }
 }
 
 impl Emitable for StatusMessage {
@@ -153,7 +178,7 @@ impl Emitable for StatusMessage {
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        self.to_bytes(buffer)
+        self.to_bytes(buffer).expect("check the buffer length before calling emit_value()!")
     }
 }
 
