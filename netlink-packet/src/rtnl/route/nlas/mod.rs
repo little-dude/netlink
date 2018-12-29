@@ -5,9 +5,9 @@ use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
 use std::mem::size_of;
 
-use constants::*;
-use utils::{parse_u16, parse_u32};
-use {DecodeError, DefaultNla, Emitable, Nla, NlaBuffer, Parseable};
+use crate::constants::*;
+use crate::utils::{parse_u16, parse_u32};
+use crate::{DecodeError, DefaultNla, Emitable, Nla, NlaBuffer, Parseable};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct RouteCacheInfo {

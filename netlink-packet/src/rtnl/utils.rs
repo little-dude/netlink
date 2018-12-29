@@ -3,7 +3,7 @@ use std::mem::size_of;
 use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
 
-use DecodeError;
+use crate::DecodeError;
 
 pub fn parse_mac(payload: &[u8]) -> Result<[u8; 6], DecodeError> {
     if payload.len() != 6 {

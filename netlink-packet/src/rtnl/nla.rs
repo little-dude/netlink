@@ -1,8 +1,8 @@
 use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
 
-use constants::{NLA_F_NESTED, NLA_F_NET_BYTEORDER, NLA_TYPE_MASK};
-use {DecodeError, Emitable, Field, Parseable};
+use crate::constants::{NLA_F_NESTED, NLA_F_NET_BYTEORDER, NLA_TYPE_MASK};
+use crate::{DecodeError, Emitable, Field, Parseable};
 
 const LENGTH: Field = 0..2;
 const TYPE: Field = 2..4;

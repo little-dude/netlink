@@ -1,6 +1,6 @@
 // FIXME: should we expose these traits directly? They may be useful, but the `Emitable` trait is
 // a bit tricky since `emit()` can panic. Exposing only `Parseable` seems clumsy.
-use DecodeError;
+use crate::DecodeError;
 
 /// A type that implements `Emitable` can be serialized.
 pub trait Emitable {

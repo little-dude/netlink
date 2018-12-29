@@ -3,10 +3,10 @@ use std::mem::size_of;
 use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
 
-use constants::*;
+use crate::constants::*;
 
-use utils::{parse_ipv6, parse_u32, parse_u8};
-use {DecodeError, DefaultNla, Nla, NlaBuffer, Parseable};
+use crate::utils::{parse_ipv6, parse_u32, parse_u8};
+use crate::{DecodeError, DefaultNla, Nla, NlaBuffer, Parseable};
 
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct LinkInet6Stats {

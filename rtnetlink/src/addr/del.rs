@@ -1,11 +1,11 @@
 use futures::{Future, Stream};
 use ipnetwork::IpNetwork;
 
-use packet::constants::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST};
-use packet::{AddressNla, NetlinkFlags, NetlinkMessage, RtnlMessage};
+use crate::packet::constants::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST};
+use crate::packet::{AddressNla, NetlinkFlags, NetlinkMessage, RtnlMessage};
 
 use super::AddressHandle;
-use {Error, ErrorKind, Handle};
+use crate::{Error, ErrorKind, Handle};
 
 use super::bytes_to_ip_addr;
 

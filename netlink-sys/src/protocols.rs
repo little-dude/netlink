@@ -1,4 +1,4 @@
-use constants::*;
+use crate::constants::*;
 
 /// List of netlink protocols
 pub enum Protocol {

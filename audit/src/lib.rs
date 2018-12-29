@@ -12,18 +12,18 @@ extern crate tokio_core;
 
 pub extern crate netlink_packet as packet;
 pub extern crate netlink_sys;
-pub use packet::constants;
+pub use crate::packet::constants;
 extern crate netlink_proto;
 pub use netlink_proto::{Connection, Protocol};
 
 mod handle;
-pub use handle::*;
+pub use crate::handle::*;
 
 mod errors;
-pub use errors::*;
+pub use crate::errors::*;
 
 use futures::sync::mpsc::UnboundedReceiver;
-use packet::NetlinkMessage;
+use crate::packet::NetlinkMessage;
 
 // pub fn connect_multicast() -> Result<(Connection, Handle), Error> {
 //     connect(Some(netlink_sys::SocketAddr::new(

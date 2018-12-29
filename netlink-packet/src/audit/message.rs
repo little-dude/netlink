@@ -1,7 +1,7 @@
 use failure::ResultExt;
 
-use constants::*;
-use {DecodeError, Emitable, Parseable, RuleBuffer, RuleMessage, StatusMessage};
+use crate::constants::*;
+use crate::{DecodeError, Emitable, Parseable, RuleBuffer, RuleMessage, StatusMessage};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum AuditMessage {

@@ -1,5 +1,5 @@
 use failure::{Backtrace, Context, Fail};
-use packet::NetlinkMessage;
+use crate::packet::NetlinkMessage;
 use std::fmt::{self, Display};
 
 #[derive(Debug)]

@@ -1,7 +1,7 @@
 use failure::ResultExt;
 
 use super::{AddressBuffer, AddressNla};
-use {DecodeError, Emitable, Parseable, ADDRESS_HEADER_LEN};
+use crate::{DecodeError, Emitable, Parseable, ADDRESS_HEADER_LEN};
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct AddressMessage {

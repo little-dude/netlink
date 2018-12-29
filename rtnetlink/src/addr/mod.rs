@@ -1,8 +1,8 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
-use packet::{AddressCacheInfo, AddressHeader, AddressMessage, AddressNla};
+use crate::packet::{AddressCacheInfo, AddressHeader, AddressMessage, AddressNla};
 
-use errors::{Error, ErrorKind};
+use crate::errors::{Error, ErrorKind};
 
 mod handle;
 pub use self::handle::*;

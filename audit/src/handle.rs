@@ -1,15 +1,15 @@
 use failure::Fail;
 use futures::{Future, Stream};
 use netlink_proto::{ConnectionHandle, SocketAddr};
-use packet::constants::{AUDIT_STATUS_ENABLED, AUDIT_STATUS_PID, NLM_F_ACK, NLM_F_REQUEST};
-use packet::{AuditMessage, NetlinkFlags, NetlinkMessage, StatusMessage};
+use crate::packet::constants::{AUDIT_STATUS_ENABLED, AUDIT_STATUS_PID, NLM_F_ACK, NLM_F_REQUEST};
+use crate::packet::{AuditMessage, NetlinkFlags, NetlinkMessage, StatusMessage};
 use std::process;
 
 lazy_static! {
     static ref KERNEL_UNICAST: SocketAddr = SocketAddr::new(0, 0);
 }
 
-use {Error, ErrorKind};
+use crate::{Error, ErrorKind};
 
 #[derive(Clone, Debug)]
 pub struct Handle(ConnectionHandle);
