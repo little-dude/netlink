@@ -1,8 +1,8 @@
 use std::io;
 use std::io::Result;
 
-use futures::{Async, Poll};
 use crate::mio_crate as mio;
+use futures::{Async, Poll};
 use tokio_reactor::PollEvented;
 
 use super::sys;

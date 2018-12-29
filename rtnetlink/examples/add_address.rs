@@ -1,8 +1,3 @@
-
-
-
-
-
 use std::env;
 use std::thread::spawn;
 

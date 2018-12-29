@@ -1,18 +1,11 @@
 #![cfg(any(feature = "audit", feature = "rtnetlink"))]
 
-
-
-
 #[macro_use]
 extern crate futures;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
-
-
-
-
 
 mod codecs;
 pub use crate::codecs::*;

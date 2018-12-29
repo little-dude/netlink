@@ -1,5 +1,5 @@
-use bit_field::BitArray;
 use crate::{Emitable, RuleBuffer, RULE_BUF_MIN_LEN};
+use bit_field::BitArray;
 
 use crate::constants::*;
 

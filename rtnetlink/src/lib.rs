@@ -105,20 +105,13 @@
 
 #![allow(clippy::module_inception)]
 
-
 #[macro_use]
 extern crate lazy_static;
 
-
 use failure;
 
-
-
-
-
-
-pub use netlink_packet as packet;
 pub use crate::packet::constants;
+pub use netlink_packet as packet;
 use netlink_proto;
 pub use netlink_proto::{Connection, Protocol};
 

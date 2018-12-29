@@ -3,8 +3,8 @@ use futures::Stream;
 use netlink_packet::NetlinkMessage;
 
 use crate::errors::{Error, ErrorKind};
-use netlink_sys::SocketAddr;
 use crate::Request;
+use netlink_sys::SocketAddr;
 
 /// A handle to pass requests to a [`Connection`](struct.Connection.html).
 #[derive(Clone, Debug)]

@@ -1,6 +1,6 @@
 use crate::errors::{Error, ErrorKind};
-use eui48::MacAddress;
 use crate::packet::{LinkFlags, LinkLayerType, LinkMessage, LinkNla, LinkState};
+use eui48::MacAddress;
 
 mod handle;
 pub use self::handle::*;

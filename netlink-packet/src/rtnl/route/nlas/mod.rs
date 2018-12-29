@@ -21,7 +21,7 @@ pub struct RouteCacheInfo {
     pub ts_age: u32,
 }
 
-const ROUTE_CACHE_INFO_LEN: usize = 4*8;
+const ROUTE_CACHE_INFO_LEN: usize = 4 * 8;
 
 impl RouteCacheInfo {
     fn from_bytes(buf: &[u8]) -> Result<Self, DecodeError> {
@@ -50,7 +50,7 @@ impl RouteCacheInfo {
             return Err(DecodeError::from(format!(
                 "buffer is only {} long, but RTA_CACHEINFO is {} bytes",
                 buf.len(),
-               ROUTE_CACHE_INFO_LEN,
+                ROUTE_CACHE_INFO_LEN,
             )));
         }
         NativeEndian::write_u32(&mut buf[0..4], self.clntref);
@@ -65,7 +65,6 @@ impl RouteCacheInfo {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct RouteMfcStats {
     pub packets: u64,
@@ -73,7 +72,7 @@ pub struct RouteMfcStats {
     pub wrong_if: u64,
 }
 
-const ROUTE_MFC_STATS_LEN: usize = 3*8;
+const ROUTE_MFC_STATS_LEN: usize = 3 * 8;
 
 impl RouteMfcStats {
     fn from_bytes(buf: &[u8]) -> Result<Self, DecodeError> {
@@ -97,7 +96,7 @@ impl RouteMfcStats {
             return Err(DecodeError::from(format!(
                 "buffer is only {} long, but RTA_CACHEINFO is {} bytes",
                 buf.len(),
-               ROUTE_MFC_STATS_LEN,
+                ROUTE_MFC_STATS_LEN,
             )));
         }
         NativeEndian::write_u64(&mut buf[0..8], self.packets);

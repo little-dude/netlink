@@ -1,7 +1,9 @@
 use crate::constants::*;
 use failure::ResultExt;
 
-use crate::{AddressBuffer, AddressMessage, DecodeError, Emitable, LinkBuffer, LinkMessage, Parseable};
+use crate::{
+    AddressBuffer, AddressMessage, DecodeError, Emitable, LinkBuffer, LinkMessage, Parseable,
+};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum RtnlMessage {

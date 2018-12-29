@@ -1,9 +1,5 @@
 use env_logger;
 
-
-
-
-
 use futures::{Future, Sink, Stream};
 
 use netlink_packet::{LinkHeader, LinkMessage, NetlinkFlags, NetlinkMessage, RtnlMessage};

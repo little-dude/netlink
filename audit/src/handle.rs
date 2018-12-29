@@ -1,8 +1,8 @@
+use crate::packet::constants::{AUDIT_STATUS_ENABLED, AUDIT_STATUS_PID, NLM_F_ACK, NLM_F_REQUEST};
+use crate::packet::{AuditMessage, NetlinkFlags, NetlinkMessage, StatusMessage};
 use failure::Fail;
 use futures::{Future, Stream};
 use netlink_proto::{ConnectionHandle, SocketAddr};
-use crate::packet::constants::{AUDIT_STATUS_ENABLED, AUDIT_STATUS_PID, NLM_F_ACK, NLM_F_REQUEST};
-use crate::packet::{AuditMessage, NetlinkFlags, NetlinkMessage, StatusMessage};
 use std::process;
 
 lazy_static! {
