@@ -7,9 +7,8 @@ use std::mem::size_of;
 
 use constants::*;
 use utils::{parse_u16, parse_u32};
-use {DecodeError, DefaultNla, Emitable, NativeNla, Nla, NlaBuffer, Parseable};
+use {DecodeError, DefaultNla, Emitable, Nla, NlaBuffer, Parseable};
 
-#[repr(C)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct RouteCacheInfo {
     pub clntref: u32,
@@ -22,9 +21,51 @@ pub struct RouteCacheInfo {
     pub ts_age: u32,
 }
 
-impl NativeNla for RouteCacheInfo {}
+const ROUTE_CACHE_INFO_LEN: usize = 4*8;
 
-#[repr(C)]
+impl RouteCacheInfo {
+    fn from_bytes(buf: &[u8]) -> Result<Self, DecodeError> {
+        if buf.len() < ROUTE_CACHE_INFO_LEN {
+            return Err(DecodeError::from(format!(
+                "RTA_CACHEINFO is {} bytes, buffer is only {} bytes: {:#x?}",
+                ROUTE_CACHE_INFO_LEN,
+                buf.len(),
+                buf
+            )));
+        }
+        Ok(RouteCacheInfo {
+            clntref: NativeEndian::read_u32(&buf[0..4]),
+            last_use: NativeEndian::read_u32(&buf[4..8]),
+            expires: NativeEndian::read_u32(&buf[8..12]),
+            error: NativeEndian::read_u32(&buf[12..16]),
+            used: NativeEndian::read_u32(&buf[16..20]),
+            id: NativeEndian::read_u32(&buf[20..24]),
+            ts: NativeEndian::read_u32(&buf[24..28]),
+            ts_age: NativeEndian::read_u32(&buf[28..32]),
+        })
+    }
+
+    fn to_bytes(&self, buf: &mut [u8]) -> Result<(), DecodeError> {
+        if buf.len() < ROUTE_CACHE_INFO_LEN {
+            return Err(DecodeError::from(format!(
+                "buffer is only {} long, but RTA_CACHEINFO is {} bytes",
+                buf.len(),
+               ROUTE_CACHE_INFO_LEN,
+            )));
+        }
+        NativeEndian::write_u32(&mut buf[0..4], self.clntref);
+        NativeEndian::write_u32(&mut buf[4..8], self.last_use);
+        NativeEndian::write_u32(&mut buf[8..12], self.expires);
+        NativeEndian::write_u32(&mut buf[12..16], self.error);
+        NativeEndian::write_u32(&mut buf[16..20], self.used);
+        NativeEndian::write_u32(&mut buf[20..24], self.id);
+        NativeEndian::write_u32(&mut buf[24..28], self.ts);
+        NativeEndian::write_u32(&mut buf[28..32], self.ts_age);
+        Ok(())
+    }
+}
+
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct RouteMfcStats {
     pub packets: u64,
@@ -32,7 +73,39 @@ pub struct RouteMfcStats {
     pub wrong_if: u64,
 }
 
-impl NativeNla for RouteMfcStats {}
+const ROUTE_MFC_STATS_LEN: usize = 3*8;
+
+impl RouteMfcStats {
+    fn from_bytes(buf: &[u8]) -> Result<Self, DecodeError> {
+        if buf.len() < ROUTE_MFC_STATS_LEN {
+            return Err(DecodeError::from(format!(
+                "RTA_MFC_STATS is {} bytes, buffer is only {} bytes: {:#x?}",
+                ROUTE_MFC_STATS_LEN,
+                buf.len(),
+                buf
+            )));
+        }
+        Ok(RouteMfcStats {
+            packets: NativeEndian::read_u64(&buf[0..8]),
+            bytes: NativeEndian::read_u64(&buf[8..16]),
+            wrong_if: NativeEndian::read_u64(&buf[16..24]),
+        })
+    }
+
+    fn to_bytes(&self, buf: &mut [u8]) -> Result<(), DecodeError> {
+        if buf.len() < ROUTE_MFC_STATS_LEN {
+            return Err(DecodeError::from(format!(
+                "buffer is only {} long, but RTA_CACHEINFO is {} bytes",
+                buf.len(),
+               ROUTE_MFC_STATS_LEN,
+            )));
+        }
+        NativeEndian::write_u64(&mut buf[0..8], self.packets);
+        NativeEndian::write_u64(&mut buf[8..16], self.bytes);
+        NativeEndian::write_u64(&mut buf[16..24], self.wrong_if);
+        Ok(())
+    }
+}
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum RouteNla {
@@ -136,8 +209,8 @@ impl Nla for RouteNla {
                 | Table(value)
                 | Mark(value)
                 => NativeEndian::write_u32(buffer, value),
-            CacheInfo(ref cache_info) => cache_info.to_bytes(buffer),
-            MfcStats(ref mfc_stats) => mfc_stats.to_bytes(buffer),
+            CacheInfo(ref cache_info) => cache_info.to_bytes(buffer).expect("check the buffer length before calling emit_value()!"),
+            MfcStats(ref mfc_stats) => mfc_stats.to_bytes(buffer).expect("check the buffer length before calling emit_value()!"),
             Metrics(ref attr) => attr.emit(buffer),
             Other(ref attr) => attr.emit_value(buffer),
         }

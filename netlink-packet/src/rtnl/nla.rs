@@ -1,7 +1,5 @@
 use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
-use std::mem::size_of;
-use std::ptr;
 
 use constants::{NLA_F_NESTED, NLA_F_NET_BYTEORDER, NLA_TYPE_MASK};
 use {DecodeError, Emitable, Field, Parseable};
@@ -262,30 +260,5 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized + 'buffer> Iterator for NlasIterator<&'buf
                 Some(Err(e))
             }
         }
-    }
-}
-
-pub(crate) trait NativeNla
-where
-    Self: Copy,
-{
-    fn from_bytes(buf: &[u8]) -> Result<Self, DecodeError> {
-        // some expected fields might not present in the buffer (issue #3)
-        // or some additional/unexpected fields might be present in the buffer (issue #8)
-        // to avoid parsing errors the input buffer is truncated or padded with 0
-        // to match the size of Self so that parsing cannot fail
-        let mut my_buf = vec![0u8; size_of::<Self>()];
-        if buf.len() > size_of::<Self>() {
-            my_buf.copy_from_slice(&buf[..size_of::<Self>()]);
-        } else {
-            my_buf[..buf.len()].copy_from_slice(buf);
-        }
-        Ok(unsafe { ptr::read(my_buf.as_ptr() as *const Self) })
-    }
-
-    // FIXME: I think this is too risky... I don't know if checking the buffer's length is enough
-    // to guarantee that there's no UB here. And clippy really doesn't like that unsafe anyway.
-    fn to_bytes(&self, buf: &mut [u8]) {
-        unsafe { ptr::write(buf.as_mut_ptr() as *mut Self, *self) }
     }
 }
