@@ -1,6 +1,6 @@
 [package]
 name = "rtnetlink"
-version = "0.0.2"
+version = "0.1.0"
 authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 edition = "2018"
 
@@ -22,13 +22,13 @@ failure = "0.1.4"
 failure_derive = "0.1.4"
 
 [dependencies.netlink-packet]
-version = "0.0"
+version = "0.1"
 default-features = false
 features = ["rtnetlink"]
 path = "../netlink-packet"
 
 [dependencies.netlink-proto]
-version = "0.0"
+version = "0.1"
 default-features = false
 features = ["rtnetlink"]
 path = "../netlink-proto"
