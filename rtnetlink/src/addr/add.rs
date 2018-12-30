@@ -43,27 +43,25 @@ impl AddressAddRequest {
             message.nlas.push(AddressNla::Multicast(address_vec));
         } else if address.is_unspecified() {
             message.nlas.push(AddressNla::Unspec(address_vec));
+        } else if address.is_ipv6() {
+            message.nlas.push(AddressNla::Address(address_vec));
         } else {
-            if address.is_ipv6() {
-                message.nlas.push(AddressNla::Address(address_vec));
+            message.nlas.push(AddressNla::Address(address_vec.clone()));
+
+            // for IPv4 the IFA_LOCAL address can be set to the same value as IFA_ADDRESS
+            message.nlas.push(AddressNla::Local(address_vec));
+
+            // set the IFA_BROADCAST address as well (IPv6 does not support broadcast)
+            if prefix_len == 32 {
+                message
+                    .nlas
+                    .push(AddressNla::Broadcast(vec![0xff, 0xff, 0xff, 0xff]));
             } else {
-                message.nlas.push(AddressNla::Address(address_vec.clone()));
-
-                // for IPv4 the IFA_LOCAL address can be set to the same value as IFA_ADDRESS
-                message.nlas.push(AddressNla::Local(address_vec));
-
-                // set the IFA_BROADCAST address as well (IPv6 does not support broadcast)
-                if prefix_len == 32 {
-                    message
-                        .nlas
-                        .push(AddressNla::Broadcast(vec![0xff, 0xff, 0xff, 0xff]));
-                } else {
-                    let mask = Ipv4Addr::from(!((0xffff_ffff as u32) >> (prefix_len as u32)));
-                    message
-                        .nlas
-                        .push(AddressNla::Broadcast(mask.octets().to_vec()));
-                };
-            }
+                let mask = Ipv4Addr::from(!((0xffff_ffff as u32) >> u32::from(prefix_len)));
+                message
+                    .nlas
+                    .push(AddressNla::Broadcast(mask.octets().to_vec()));
+            };
         }
         AddressAddRequest { handle, message }
     }

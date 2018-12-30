@@ -57,8 +57,8 @@ impl AddressDelRequest {
                         | AddressNla::Multicast(bytes)
                         | AddressNla::Anycast(bytes) => {
                             let is_match = match address {
-                                IpAddr::V4(address) => &bytes[..] == &address.octets()[..],
-                                IpAddr::V6(address) => &bytes[..] == &address.octets()[..],
+                                IpAddr::V4(address) => bytes[..] == address.octets()[..],
+                                IpAddr::V6(address) => bytes[..] == address.octets()[..],
                             };
                             if is_match {
                                 return true;
