@@ -1,4 +1,3 @@
-use eui48::MacAddress;
 use futures::{Future, Stream};
 
 use crate::packet::constants::{IFF_UP, NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST};
@@ -76,9 +75,8 @@ impl LinkSetRequest {
     }
 
     /// Set the hardware address of the link with the given index (equivalent to `ip link set DEV address ADDRESS`)
-    pub fn address(mut self, address: MacAddress) -> Self {
-        self.message
-            .append_nla(LinkNla::Address(Vec::from(address.as_bytes())));
+    pub fn address(mut self, address: Vec<u8>) -> Self {
+        self.message.append_nla(LinkNla::Address(address));
         self
     }
 }

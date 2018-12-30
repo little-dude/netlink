@@ -6,8 +6,10 @@ use ipnetwork::IpNetwork;
 use tokio_core::reactor::Core;
 
 use rtnetlink::new_connection;
+use rtnetlink::packet::LinkNla;
 
 fn main() {
+    // Parse the arguments
     let args: Vec<String> = env::args().collect();
     if args.len() != 3 {
         return usage();
@@ -21,24 +23,47 @@ fn main() {
     // Create a netlink connection, and a handle to send requests via this connection
     let (connection, handle) = new_connection().unwrap();
 
-    // The connection we run in its own thread
+    // Spawn the connection on the event loop
     spawn(move || Core::new().unwrap().run(connection));
 
-    // Get the list of links
-    let links = handle.link().get().execute().collect().wait().unwrap();
-
-    for link in links {
-        // Find the link with the name provided as argument
-        if link.name().unwrap() == link_name {
-            let req = handle.address().add(link.index(), ip);
-            match req.execute().wait() {
-                Ok(()) => println!("done"),
-                Err(e) => eprintln!("error: {}", e),
+    handle
+        // The the "link" handle
+        .link()
+        // Create a "get" request from the link handle. We could tweak the request here, before
+        // calling "execute()"
+        .get()
+        // Turn the request into a runnable future
+        .execute()
+        // The future is a stream of link message. We are interested only in a specific link, so we
+        // filter out the other message.
+        .filter(|link_msg| {
+            for nla in link_msg.nlas() {
+                if let LinkNla::IfName(ref name) = nla {
+                    if name == link_name {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
             }
-            return;
-        }
-    }
-    eprintln!("link {} not found", link_name);
+            return false;
+        })
+        .take(1)
+        .for_each(|link_msg| {
+            handle
+                // Get an "address" handle
+                .address()
+                // Create an "add" request
+                .add(link_msg.header().index(), ip.ip(), ip.prefix())
+                // Turn the request into a future
+                .execute()
+                .and_then(|_| {
+                    println!("done");
+                    Ok(())
+                })
+        })
+        .wait()
+        .unwrap();
 }
 
 fn usage() {

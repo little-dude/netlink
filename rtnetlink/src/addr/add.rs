@@ -1,6 +1,5 @@
 use futures::{Future, Stream};
-use ipnetwork::IpNetwork;
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr};
 
 use crate::packet::constants::{
     AF_INET, AF_INET6, NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST,
@@ -21,39 +20,47 @@ pub struct AddressAddRequest {
 }
 
 impl AddressAddRequest {
-    pub(crate) fn new(handle: Handle, index: u32, net: IpNetwork) -> Self {
+    pub(crate) fn new(handle: Handle, index: u32, address: IpAddr, prefix_len: u8) -> Self {
         let mut message = AddressMessage::default();
-        if net.is_ipv4() {
-            message.header.family = AF_INET as u8
-        } else {
-            message.header.family = AF_INET6 as u8
-        };
-        message.header.prefix_len = net.prefix();
+
+        message.header.prefix_len = prefix_len;
         message.header.index = index;
 
-        let ip = net.ip();
-
-        if ip.is_multicast() {
-            let nla = AddressNla::Multicast(ip_to_vec(ip));
-            message.nlas.push(nla);
-        } else if ip.is_unspecified() {
-            let nla = AddressNla::Unspec(ip_to_vec(ip));
-            message.nlas.push(nla);
-        } else {
-            let nla = AddressNla::Address(ip_to_vec(ip));
-            message.nlas.push(nla);
-
-            // for IPv4 the IFA_LOCAL address can be set to the same value as IFA_ADDRESS
-            if ip.is_ipv4() {
-                let nla = AddressNla::Local(ip_to_vec(ip));
-                message.nlas.push(nla);
+        let address_vec = match address {
+            IpAddr::V4(ipv4) => {
+                message.header.family = AF_INET as u8;
+                ipv4.octets().to_vec()
             }
+            IpAddr::V6(ipv6) => {
+                message.header.family = AF_INET6 as u8;
+                ipv6.octets().to_vec()
+            }
+        };
 
-            // for IPv4 set the IFA_BROADCAST address as well (IPv6 does not support broadcast)
-            if let IpNetwork::V4(n) = net {
-                let bytes = n.broadcast().octets().to_vec();
-                let nla = AddressNla::Broadcast(bytes);
-                message.nlas.push(nla);
+        if address.is_multicast() {
+            message.nlas.push(AddressNla::Multicast(address_vec));
+        } else if address.is_unspecified() {
+            message.nlas.push(AddressNla::Unspec(address_vec));
+        } else {
+            if address.is_ipv6() {
+                message.nlas.push(AddressNla::Address(address_vec));
+            } else {
+                message.nlas.push(AddressNla::Address(address_vec.clone()));
+
+                // for IPv4 the IFA_LOCAL address can be set to the same value as IFA_ADDRESS
+                message.nlas.push(AddressNla::Local(address_vec));
+
+                // set the IFA_BROADCAST address as well (IPv6 does not support broadcast)
+                if prefix_len == 32 {
+                    message
+                        .nlas
+                        .push(AddressNla::Broadcast(vec![0xff, 0xff, 0xff, 0xff]));
+                } else {
+                    let mask = Ipv4Addr::from(!((0xffff_ffff as u32) >> (prefix_len as u32)));
+                    message
+                        .nlas
+                        .push(AddressNla::Broadcast(mask.octets().to_vec()));
+                };
             }
         }
         AddressAddRequest { handle, message }
@@ -79,13 +86,5 @@ impl AddressAddRequest {
     /// Return a mutable reference to the request message.
     pub fn message_mut(&mut self) -> &mut AddressMessage {
         &mut self.message
-    }
-}
-
-// convert an IP address to a Vec<u8>
-fn ip_to_vec(ip: IpAddr) -> Vec<u8> {
-    match ip {
-        IpAddr::V4(i) => i.octets().to_vec(),
-        IpAddr::V6(i) => i.octets().to_vec(),
     }
 }

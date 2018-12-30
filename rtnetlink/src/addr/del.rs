@@ -1,13 +1,11 @@
 use futures::{Future, Stream};
-use ipnetwork::IpNetwork;
+use std::net::IpAddr;
 
 use crate::packet::constants::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST};
 use crate::packet::{AddressNla, NetlinkFlags, NetlinkMessage, RtnlMessage};
 
 use super::AddressHandle;
 use crate::{Error, ErrorKind, Handle};
-
-use super::bytes_to_ip_addr;
 
 lazy_static! {
     // Flags for `ip addr del`
@@ -18,15 +16,17 @@ lazy_static! {
 pub struct AddressDelRequest {
     handle: Handle,
     index: u32,
-    address: IpNetwork,
+    address: IpAddr,
+    prefix_len: u8,
 }
 
 impl AddressDelRequest {
-    pub(crate) fn new(handle: Handle, index: u32, address: IpNetwork) -> Self {
+    pub(crate) fn new(handle: Handle, index: u32, address: IpAddr, prefix_len: u8) -> Self {
         AddressDelRequest {
             handle,
             index,
             address,
+            prefix_len,
         }
     }
 
@@ -36,6 +36,7 @@ impl AddressDelRequest {
             handle,
             index,
             address,
+            prefix_len,
         } = self;
 
         AddressHandle::new(handle.clone())
@@ -45,7 +46,7 @@ impl AddressDelRequest {
                 if msg.header.index != index {
                     return false;
                 }
-                if msg.header.prefix_len != address.prefix() {
+                if msg.header.prefix_len != prefix_len {
                     return false;
                 }
                 for nla in msg.nlas.iter() {
@@ -55,18 +56,15 @@ impl AddressDelRequest {
                         | AddressNla::Local(bytes)
                         | AddressNla::Multicast(bytes)
                         | AddressNla::Anycast(bytes) => {
-                            match bytes_to_ip_addr(&bytes[..]) {
-                                Ok(ip) => {
-                                    if ip == address.ip() {
-                                        return true;
-                                    } else {
-                                        continue;
-                                    }
-                                }
-                                Err(_) => continue,
+                            let is_match = match address {
+                                IpAddr::V4(address) => &bytes[..] == &address.octets()[..],
+                                IpAddr::V6(address) => &bytes[..] == &address.octets()[..],
                             };
+                            if is_match {
+                                return true;
+                            }
                         }
-                        _ => continue,
+                        _ => {}
                     }
                 }
                 false
