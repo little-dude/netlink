@@ -6,6 +6,7 @@ use ipnetwork::IpNetwork;
 use tokio_core::reactor::Core;
 
 use rtnetlink::new_connection;
+use rtnetlink::packet::LinkNla;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -28,14 +29,19 @@ fn main() {
     let links = handle.link().get().execute().collect().wait().unwrap();
 
     for link in links {
-        // Find the link with the name provided as argument
-        if link.name().unwrap() == link_name {
-            let req = handle.address().del(link.index(), ip);
-            match req.execute().wait() {
-                Ok(()) => println!("done"),
-                Err(e) => eprintln!("error: {}", e),
+        for nla in link.nlas() {
+            if let LinkNla::IfName(ref name) = nla {
+                if name == link_name {
+                    let req = handle
+                        .address()
+                        .del(link.header().index(), ip.ip(), ip.prefix());
+                    match req.execute().wait() {
+                        Ok(()) => println!("done"),
+                        Err(e) => eprintln!("error: {}", e),
+                    }
+                    return;
+                }
             }
-            return;
         }
     }
     eprintln!("link {} not found", link_name);

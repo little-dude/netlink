@@ -1,3 +1,6 @@
+//! This example shows how to add an IP address to the given link, with minimal error handling.
+//! You need to be root run this example.
+
 use std::env;
 use std::thread::spawn;
 
@@ -39,14 +42,10 @@ fn main() {
         .filter(|link_msg| {
             for nla in link_msg.nlas() {
                 if let LinkNla::IfName(ref name) = nla {
-                    if name == link_name {
-                        return true;
-                    } else {
-                        return false;
-                    }
+                    return name == link_name;
                 }
             }
-            return false;
+            false
         })
         .take(1)
         .for_each(|link_msg| {
