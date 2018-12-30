@@ -18,10 +18,8 @@ tokio = "0.1.13"
 futures = "0.1.25"
 log = "0.4.6"
 lazy_static = "1.2.0"
-eui48 = "0.4.1"
-failure = "0.1.3"
-failure_derive = "0.1.3"
-ipnetwork = "0.13.1"
+failure = "0.1.4"
+failure_derive = "0.1.4"
 
 [dependencies.netlink-packet]
 version = "0.0"
@@ -37,3 +35,4 @@ path = "../netlink-proto"
 
 [dev-dependencies]
 env_logger = "0.6.0"
+ipnetwork = "0.13.1"
