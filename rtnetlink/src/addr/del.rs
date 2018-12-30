@@ -2,7 +2,7 @@ use futures::{Future, Stream};
 use std::net::IpAddr;
 
 use crate::packet::constants::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST};
-use crate::packet::{AddressNla, NetlinkFlags, NetlinkMessage, RtnlMessage};
+use crate::packet::{AddressNla, NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage};
 
 use super::AddressHandle;
 use crate::{Error, ErrorKind, Handle};
@@ -72,9 +72,9 @@ impl AddressDelRequest {
             .map(move |msg| {
                 let mut req = NetlinkMessage::from(RtnlMessage::DelAddress(msg));
                 req.header_mut().set_flags(*DEL_FLAGS);
-                handle.clone().request(req).for_each(|msg| {
-                    if msg.is_error() {
-                        Err(ErrorKind::NetlinkError(msg).into())
+                handle.clone().request(req).for_each(|message| {
+                    if let NetlinkPayload::Error(ref err_message) = message.payload() {
+                        Err(ErrorKind::NetlinkError(err_message.clone()).into())
                     } else {
                         Ok(())
                     }

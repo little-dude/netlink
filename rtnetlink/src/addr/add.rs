@@ -4,7 +4,9 @@ use std::net::{IpAddr, Ipv4Addr};
 use crate::packet::constants::{
     AF_INET, AF_INET6, NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST,
 };
-use crate::packet::{AddressMessage, AddressNla, NetlinkFlags, NetlinkMessage, RtnlMessage};
+use crate::packet::{
+    AddressMessage, AddressNla, NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage,
+};
 
 use crate::{Error, ErrorKind, Handle};
 
@@ -75,8 +77,8 @@ impl AddressAddRequest {
         let mut req = NetlinkMessage::from(RtnlMessage::NewAddress(message));
         req.header_mut().set_flags(*ADD_FLAGS);
         handle.request(req).for_each(|message| {
-            if message.is_error() {
-                Err(ErrorKind::NetlinkError(message).into())
+            if let NetlinkPayload::Error(ref err_message) = message.payload() {
+                Err(ErrorKind::NetlinkError(err_message.clone()).into())
             } else {
                 Ok(())
             }
