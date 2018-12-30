@@ -3,7 +3,6 @@ use futures::Stream;
 use crate::packet::constants::{NLM_F_DUMP, NLM_F_REQUEST};
 use crate::packet::{LinkMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage};
 
-use super::Link;
 use crate::{Error, ErrorKind, Handle};
 
 lazy_static! {
@@ -23,7 +22,7 @@ impl LinkGetRequest {
     }
 
     /// Execute the request
-    pub fn execute(self) -> impl Stream<Item = Link, Error = Error> {
+    pub fn execute(self) -> impl Stream<Item = LinkMessage, Error = Error> {
         let LinkGetRequest {
             mut handle,
             message,
@@ -33,7 +32,7 @@ impl LinkGetRequest {
         handle.request(req).and_then(move |msg| {
             let (header, payload) = msg.into_parts();
             if let NetlinkPayload::Rtnl(RtnlMessage::NewLink(msg)) = payload {
-                Ok(Link::from_link_message(msg)?)
+                Ok(msg)
             } else {
                 Err(ErrorKind::UnexpectedMessage(NetlinkMessage::new(header, payload)).into())
             }
