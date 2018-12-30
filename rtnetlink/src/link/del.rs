@@ -1,8 +1,7 @@
 use futures::{Future, Stream};
 
 use crate::packet::constants::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST};
-use crate::packet::{LinkMessage, NetlinkFlags, NetlinkMessage, RtnlMessage};
-
+use crate::packet::{LinkMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage};
 use crate::{Error, ErrorKind, Handle};
 
 lazy_static! {
@@ -32,8 +31,8 @@ impl LinkDelRequest {
         let mut req = NetlinkMessage::from(RtnlMessage::DelLink(message));
         req.header_mut().set_flags(*DEL_FLAGS);
         handle.request(req).for_each(|message| {
-            if message.is_error() {
-                Err(ErrorKind::NetlinkError(message).into())
+            if let NetlinkPayload::Error(ref err_message) = message.payload() {
+                Err(ErrorKind::NetlinkError(err_message.clone()).into())
             } else {
                 Ok(())
             }

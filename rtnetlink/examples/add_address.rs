@@ -5,8 +5,8 @@ use futures::{Future, Stream};
 use ipnetwork::IpNetwork;
 use tokio_core::reactor::Core;
 
-use rtnetlink::new_connection;
 use rtnetlink::packet::LinkNla;
+use rtnetlink::{new_connection, ErrorKind};
 
 fn main() {
     // Parse the arguments
@@ -60,6 +60,15 @@ fn main() {
                 .and_then(|_| {
                     println!("done");
                     Ok(())
+                })
+                .or_else(|e| match e.kind() {
+                    // We handle permission denied errors gracefully
+                    ErrorKind::NetlinkError(ref err_msg) if err_msg.code == -1 => {
+                        eprintln!("permission denied!");
+                        Ok(())
+                    }
+                    // but just propagate any other error
+                    _ => Err(e),
                 })
         })
         .wait()
