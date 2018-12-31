@@ -81,6 +81,7 @@
 //! use tokio_core::reactor::Core;
 //!
 //! use rtnetlink::new_connection;
+//! use rtnetlink::packet::LinkNla;
 //!
 //! fn main() {
 //!     let args: Vec<String> = env::args().collect();
@@ -91,13 +92,19 @@
 //!     spawn(move || Core::new().unwrap().run(connection));
 //!
 //!     // Get the list of links
-//!     let links = handle.link().get().execute().wait();
+//!     let links = handle.link().get().execute().collect().wait().unwrap();
 //!
 //!     // Find the link with the name provided as argument, and delete it
 //!     for link in links {
-//!         let link = link.unwrap();
-//!         if link.name().unwrap() == link_name {
-//!             handle.link().del(link.index()).execute().wait();
+//!         for nla in link.nlas() {
+//!             // Find the link with the name provided as argument
+//!             if let LinkNla::IfName(ref name) = nla {
+//!                 if name == link_name {
+//!                     // Set it down
+//!                     handle.link().del(link.header().index()).execute().wait().unwrap();
+//!                     return;
+//!                 }
+//!             }
 //!         }
 //!     }
 //! }

@@ -1,4 +1,4 @@
-use ipnetwork::IpNetwork;
+use std::net::IpAddr;
 
 use super::{AddressAddRequest, AddressDelRequest, AddressFlushRequest, AddressGetRequest};
 
@@ -17,8 +17,8 @@ impl AddressHandle {
     }
 
     /// Add an ip address on an interface (equivalent to `ip addr add`)
-    pub fn add(&self, index: u32, net: IpNetwork) -> AddressAddRequest {
-        AddressAddRequest::new(self.0.clone(), index, net)
+    pub fn add(&self, index: u32, address: IpAddr, prefix_len: u8) -> AddressAddRequest {
+        AddressAddRequest::new(self.0.clone(), index, address, prefix_len)
     }
 
     /// Delete all ip addresses on an interface with the given index (equivalent to `ip addr flush`)
@@ -27,7 +27,7 @@ impl AddressHandle {
     }
 
     /// Delete the given IP address on the interface with the given index
-    pub fn del(self, index: u32, net: IpNetwork) -> AddressDelRequest {
-        AddressDelRequest::new(self.0.clone(), index, net)
+    pub fn del(self, index: u32, address: IpAddr, prefix_len: u8) -> AddressDelRequest {
+        AddressDelRequest::new(self.0.clone(), index, address, prefix_len)
     }
 }

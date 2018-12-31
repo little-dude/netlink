@@ -1,9 +1,10 @@
 use std::thread::spawn;
 
-use futures::{Future, Stream};
+use futures::{future, Future, Stream};
 use tokio_core::reactor::Core;
 
-use rtnetlink::new_connection;
+use rtnetlink::packet::LinkNla;
+use rtnetlink::{new_connection, ErrorKind};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -18,22 +19,48 @@ fn main() {
     // The connection we run in its own thread
     spawn(move || Core::new().unwrap().run(connection));
 
-    // Get the list of links
-    let links = handle.link().get().execute().collect().wait().unwrap();
-
-    for link in links {
-        // Find the link with the name provided as argument
-        if link.name().unwrap() == link_name {
-            // Flush all addresses on the given link
-            let req = handle.address().flush(link.index());
-            match req.execute().wait() {
-                Ok(()) => println!("done"),
-                Err(e) => eprintln!("error: {}", e),
+    handle
+        .link()
+        .get()
+        .execute()
+        // Filter the link to keep the one with the wanted name
+        .filter(|link_msg| {
+            for nla in link_msg.nlas() {
+                if let LinkNla::IfName(ref name) = nla {
+                    return name == link_name;
+                }
             }
-            return;
-        }
-    }
-    eprintln!("link {} not found", link_name);
+            false
+        })
+        // Convert the stream into a future
+        .collect()
+        .map_err(|e| format!("{}", e))
+        // Make sure we found 1 and only 1 link with the given name, and return it
+        .and_then(|mut link_msgs| {
+            if link_msgs.len() > 1 {
+                Err(format!("Found multiple links named {}", link_name))
+            } else if link_msgs.is_empty() {
+                Err(format!("Link {} not found", link_name))
+            } else {
+                Ok(link_msgs.drain(..).next().unwrap())
+            }
+        })
+        // Flush the addresses on the link
+        .and_then(|link_msg| {
+            handle
+                .address()
+                .flush(link_msg.header().index())
+                .execute()
+                .map(|_| println!("done"))
+                .map_err(|e| format!("{}", e))
+        })
+        // Print the potential errors
+        .or_else(|e| {
+            eprintln!("{}", e);
+            Ok(()) as Result<(), String>
+        })
+        .wait()
+        .unwrap();
 }
 
 fn usage() {

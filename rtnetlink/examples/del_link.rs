@@ -5,6 +5,7 @@ use futures::{Future, Stream};
 use tokio_core::reactor::Core;
 
 use rtnetlink::new_connection;
+use rtnetlink::packet::LinkNla;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -20,15 +21,20 @@ fn main() {
     let links = handle.link().get().execute().collect().wait().unwrap();
 
     for link in links {
-        // Find the link with the name provided as argument, and delete it
-        if link.name().unwrap() == link_name {
-            println!("deleting link {}", link_name);
-            let req = handle.link().del(link.index());
-            match req.execute().wait() {
-                Ok(()) => println!("done"),
-                Err(e) => eprintln!("error: {}", e),
+        for nla in link.nlas() {
+            // Find the link with the name provided as argument
+            if let LinkNla::IfName(name) = nla {
+                if name != link_name {
+                    continue;
+                }
+                println!("setting link {} down", link_name);
+                // Set it down
+                match handle.link().del(link.header().index()).execute().wait() {
+                    Ok(()) => println!("done"),
+                    Err(e) => eprintln!("error: {}", e),
+                }
+                return;
             }
-            return;
         }
     }
     eprintln!("link {} not found", link_name);

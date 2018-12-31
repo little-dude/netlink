@@ -1,5 +1,3 @@
-use libc;
-
 mod protocols;
 pub use self::protocols::*;
 
