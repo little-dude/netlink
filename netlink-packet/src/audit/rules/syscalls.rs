@@ -6,11 +6,11 @@ use crate::constants::*;
 use crate::DecodeError;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct RuleMask(pub(crate) Vec<u32>);
+pub struct RuleSyscalls(pub(crate) Vec<u32>);
 
 const BITMASK_BYTES_LEN: usize = AUDIT_BITMASK_SIZE * 4;
 
-impl<'a> TryFrom<&'a [u8]> for RuleMask {
+impl<'a> TryFrom<&'a [u8]> for RuleSyscalls {
     type Error = DecodeError;
 
     fn try_from(slice: &[u8]) -> Result<Self, Self::Error> {
@@ -21,7 +21,7 @@ impl<'a> TryFrom<&'a [u8]> for RuleMask {
                 slice.len()
             )));
         }
-        let mut mask = RuleMask::new_zeroed();
+        let mut mask = RuleSyscalls::new_zeroed();
         let mut word = 0;
         while word < AUDIT_BITMASK_SIZE {
             mask.0[word] = NativeEndian::read_u32(&slice[word * 4..word * 4 + 4]);
@@ -32,13 +32,13 @@ impl<'a> TryFrom<&'a [u8]> for RuleMask {
 }
 
 // FIXME: I'm not 100% sure this implementation is correct wrt to endianness.
-impl RuleMask {
+impl RuleSyscalls {
     pub fn new_zeroed() -> Self {
-        RuleMask(vec![0; AUDIT_BITMASK_SIZE])
+        RuleSyscalls(vec![0; AUDIT_BITMASK_SIZE])
     }
 
     pub fn new_maxed() -> Self {
-        RuleMask(vec![0xffff_ffff; AUDIT_BITMASK_SIZE])
+        RuleSyscalls(vec![0xffff_ffff; AUDIT_BITMASK_SIZE])
     }
 
     /// Unset all the bits

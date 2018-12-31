@@ -3,14 +3,14 @@ use byteorder::{ByteOrder, NativeEndian};
 use crate::constants::*;
 use crate::{Emitable, RuleBuffer, RULE_BUF_MIN_LEN};
 
-use super::{RuleAction, RuleField, RuleFieldFlags, RuleFlags, RuleMask};
+use super::{RuleAction, RuleField, RuleFieldFlags, RuleFlags, RuleSyscalls};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct RuleMessage {
     pub flags: RuleFlags,
     pub action: RuleAction,
     pub fields: Vec<(RuleField, RuleFieldFlags)>,
-    pub mask: RuleMask,
+    pub syscalls: RuleSyscalls,
 }
 
 impl Default for RuleMessage {
@@ -25,7 +25,7 @@ impl RuleMessage {
             flags: RuleFlags::from(0),
             action: RuleAction::from(0),
             fields: Vec::with_capacity(AUDIT_MAX_FIELDS),
-            mask: RuleMask::new_zeroed(),
+            syscalls: RuleSyscalls::new_zeroed(),
         }
     }
 
@@ -79,9 +79,9 @@ impl Emitable for RuleMessage {
         rule_buffer.set_action(self.action.into());
         rule_buffer.set_field_count(self.fields.len() as u32);
         {
-            let mask = rule_buffer.mask_mut();
-            for (i, word) in self.mask.0.iter().enumerate() {
-                NativeEndian::write_u32(&mut mask[i * 4..i * 4 + 4], *word);
+            let syscalls = rule_buffer.syscalls_mut();
+            for (i, word) in self.syscalls.0.iter().enumerate() {
+                NativeEndian::write_u32(&mut syscalls[i * 4..i * 4 + 4], *word);
             }
         }
         rule_buffer.set_buflen(self.compute_string_values_length() as u32);
