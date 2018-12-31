@@ -1,5 +1,3 @@
-use std::convert::TryFrom;
-
 use byteorder::{ByteOrder, NativeEndian};
 
 use crate::constants::*;
@@ -10,10 +8,10 @@ pub struct RuleSyscalls(pub(crate) Vec<u32>);
 
 const BITMASK_BYTES_LEN: usize = AUDIT_BITMASK_SIZE * 4;
 
-impl<'a> TryFrom<&'a [u8]> for RuleSyscalls {
-    type Error = DecodeError;
-
-    fn try_from(slice: &[u8]) -> Result<Self, Self::Error> {
+// FIXME: I'm not 100% sure this implementation is correct wrt to endianness.
+impl RuleSyscalls {
+    // FIXME: this should be a TryFrom when it stabilized...
+    pub fn from_slice(slice: &[u8]) -> Result<Self, DecodeError> {
         if slice.len() != BITMASK_BYTES_LEN {
             return Err(DecodeError::from(format!(
                 "invalid bitmask size: expected {} bytes got {}",
@@ -29,10 +27,7 @@ impl<'a> TryFrom<&'a [u8]> for RuleSyscalls {
         }
         Ok(mask)
     }
-}
 
-// FIXME: I'm not 100% sure this implementation is correct wrt to endianness.
-impl RuleSyscalls {
     pub fn new_zeroed() -> Self {
         RuleSyscalls(vec![0; AUDIT_BITMASK_SIZE])
     }

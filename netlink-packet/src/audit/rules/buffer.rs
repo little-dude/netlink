@@ -1,6 +1,5 @@
 use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
-use std::convert::TryFrom;
 
 use crate::constants::*;
 use crate::{DecodeError, Field, Parseable, RuleField, RuleFieldFlags, RuleMessage, RuleSyscalls};
@@ -173,7 +172,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<RuleMessage> for RuleBuffer<&'a T> {
         let mut rule = RuleMessage::new();
         rule.flags = self.flags().into();
         rule.action = self.action().into();
-        rule.syscalls = RuleSyscalls::try_from(self.syscalls())?;
+        rule.syscalls = RuleSyscalls::from_slice(self.syscalls())?;
 
         let mut offset = 0;
 

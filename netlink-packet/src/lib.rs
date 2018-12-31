@@ -112,7 +112,6 @@
 //!
 //! TODO
 
-#![feature(try_from)]
 #![cfg_attr(rustfmt, rustfmt::skip)]
 #![allow(clippy::new_without_default_derive)]
 
