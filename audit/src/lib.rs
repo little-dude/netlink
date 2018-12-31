@@ -1,29 +1,24 @@
 #![cfg_attr(feature = "cargo-clippy", allow(module_inception))]
 
-extern crate log;
 #[macro_use]
 extern crate lazy_static;
-extern crate bytes;
-extern crate eui48;
-extern crate failure;
-extern crate failure_derive;
-extern crate futures;
-extern crate tokio_core;
 
-pub extern crate netlink_packet as packet;
-pub extern crate netlink_sys;
-pub use packet::constants;
-extern crate netlink_proto;
+use failure;
+
+pub use crate::packet::constants;
+pub use netlink_packet as packet;
+use netlink_proto;
 pub use netlink_proto::{Connection, Protocol};
+pub use netlink_sys;
 
 mod handle;
-pub use handle::*;
+pub use crate::handle::*;
 
 mod errors;
-pub use errors::*;
+pub use crate::errors::*;
 
+use crate::packet::NetlinkMessage;
 use futures::sync::mpsc::UnboundedReceiver;
-use packet::NetlinkMessage;
 
 // pub fn connect_multicast() -> Result<(Connection, Handle), Error> {
 //     connect(Some(netlink_sys::SocketAddr::new(

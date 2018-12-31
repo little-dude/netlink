@@ -1,5 +1,5 @@
 use super::{LinkAddRequest, LinkDelRequest, LinkGetRequest, LinkSetRequest};
-use Handle;
+use crate::Handle;
 
 pub struct LinkHandle(Handle);
 

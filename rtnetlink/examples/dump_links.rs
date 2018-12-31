@@ -1,7 +1,3 @@
-extern crate futures;
-extern crate rtnetlink;
-extern crate tokio_core;
-
 use futures::{Future, Stream};
 use rtnetlink::new_connection;
 use tokio_core::reactor::Core;

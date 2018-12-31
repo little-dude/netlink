@@ -115,15 +115,15 @@
 #![cfg_attr(rustfmt, rustfmt::skip)]
 #![allow(clippy::new_without_default_derive)]
 
-#[cfg(feature = "audit")] extern crate bit_field;
-extern crate byteorder;
-extern crate bytes;
-extern crate core;
-extern crate failure;
-extern crate libc;
+
+
+
+
+
+
 #[macro_use] extern crate log;
 
-extern crate netlink_sys;
+
 pub use netlink_sys::constants;
 
 mod errors;

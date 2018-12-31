@@ -1,38 +1,29 @@
 #![cfg(any(feature = "audit", feature = "rtnetlink"))]
 
-extern crate bytes;
-extern crate core;
-extern crate failure;
 #[macro_use]
 extern crate futures;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
-extern crate tokio_io;
-
-#[cfg(any(feature = "audit", feature = "rtnetlink"))]
-extern crate netlink_packet;
-#[cfg(any(feature = "audit", feature = "rtnetlink"))]
-extern crate netlink_sys;
 
 mod codecs;
-pub use codecs::*;
+pub use crate::codecs::*;
 
 mod framed;
-pub use framed::*;
+pub use crate::framed::*;
 
 mod connection;
-pub use connection::*;
+pub use crate::connection::*;
 
 mod errors;
-pub use errors::*;
+pub use crate::errors::*;
 
 mod handle;
-pub use handle::*;
+pub use crate::handle::*;
 
 mod request;
-pub(crate) use request::Request;
+pub(crate) use crate::request::Request;
 
 use netlink_packet::NetlinkMessage;
 pub use netlink_sys::{Protocol, SocketAddr};

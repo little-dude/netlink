@@ -1,6 +1,6 @@
 use byteorder::{ByteOrder, NativeEndian};
 
-use {DecodeError, Field, Index, NlaBuffer, NlasIterator, Rest};
+use crate::{DecodeError, Field, Index, NlaBuffer, NlasIterator, Rest};
 
 const FAMILY: Index = 0;
 const PREFIX_LEN: Index = 1;

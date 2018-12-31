@@ -43,7 +43,7 @@ impl PartialEq for SocketAddr {
 }
 
 impl fmt::Debug for SocketAddr {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "SocketAddr(nl_family={}, nl_pid={}, nl_groups={})",
@@ -55,7 +55,7 @@ impl fmt::Debug for SocketAddr {
 impl Eq for SocketAddr {}
 
 impl fmt::Display for SocketAddr {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "address family: {}, pid: {}, multicast groups: {})",

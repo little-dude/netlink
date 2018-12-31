@@ -1,5 +1,5 @@
+use crate::{DecodeError, Field, Index, NlaBuffer, NlasIterator, Rest};
 use byteorder::{ByteOrder, NativeEndian};
-use {DecodeError, Field, Index, NlaBuffer, NlasIterator, Rest};
 
 use super::{LinkFlags, LinkLayerType};
 

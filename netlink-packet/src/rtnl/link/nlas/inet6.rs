@@ -3,10 +3,10 @@ use std::mem::size_of;
 use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
 
-use constants::*;
+use crate::constants::*;
 
-use utils::{parse_ipv6, parse_u32, parse_u8};
-use {DecodeError, DefaultNla, Nla, NlaBuffer, Parseable};
+use crate::utils::{parse_ipv6, parse_u32, parse_u8};
+use crate::{DecodeError, DefaultNla, Nla, NlaBuffer, Parseable};
 
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct LinkInet6Stats {
@@ -459,10 +459,18 @@ impl Nla for LinkAfInet6Nla {
         match *self {
             Unspec(ref bytes) => buffer.copy_from_slice(bytes.as_slice()),
             Flags(ref value) => NativeEndian::write_u32(buffer, *value),
-            CacheInfo(ref cache_info) => cache_info.to_bytes(buffer).expect("check the buffer length before calling emit_value()!"),
-            DevConf(ref inet6_dev_conf) => inet6_dev_conf.to_bytes(buffer).expect("check the buffer length before calling emit_value()!"),
-            Stats(ref inet6_stats) => inet6_stats.to_bytes(buffer).expect("check the buffer length before calling emit_value()!"),
-            IcmpStats(ref icmp6_stats) => icmp6_stats.to_bytes(buffer).expect("check the buffer length before calling emit_value()!"),
+            CacheInfo(ref cache_info) => cache_info
+                .to_bytes(buffer)
+                .expect("check the buffer length before calling emit_value()!"),
+            DevConf(ref inet6_dev_conf) => inet6_dev_conf
+                .to_bytes(buffer)
+                .expect("check the buffer length before calling emit_value()!"),
+            Stats(ref inet6_stats) => inet6_stats
+                .to_bytes(buffer)
+                .expect("check the buffer length before calling emit_value()!"),
+            IcmpStats(ref icmp6_stats) => icmp6_stats
+                .to_bytes(buffer)
+                .expect("check the buffer length before calling emit_value()!"),
             Token(ref ipv6) => buffer.copy_from_slice(&ipv6[..]),
             AddrGenMode(value) => buffer[0] = value,
             Other(ref nla) => nla.emit_value(buffer),

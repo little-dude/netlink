@@ -1,5 +1,5 @@
 use super::{NetlinkBuffer, NetlinkFlags, NETLINK_HEADER_LEN};
-use {DecodeError, Emitable, Parseable};
+use crate::{DecodeError, Emitable, Parseable};
 
 /// A Netlink header representation.
 ///
@@ -222,8 +222,8 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NetlinkHeader> for NetlinkBuffer<&'a
 #[cfg(all(test, feature = "rtnetlink"))]
 mod tests {
     use super::*;
+    use crate::constants::*;
     use crate::flags::*;
-    use constants::*;
 
     // a packet captured with tcpdump that was sent when running `ip link show`
     #[rustfmt::skip]

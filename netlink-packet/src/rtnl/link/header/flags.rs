@@ -1,4 +1,4 @@
-use constants::*;
+use crate::constants::*;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct LinkFlags(pub u32);

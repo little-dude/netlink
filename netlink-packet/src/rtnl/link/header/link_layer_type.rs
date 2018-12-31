@@ -1,4 +1,4 @@
-use constants::*;
+use crate::constants::*;
 
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum LinkLayerType {

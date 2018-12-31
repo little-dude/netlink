@@ -1,6 +1,6 @@
 use byteorder::{ByteOrder, NativeEndian};
 
-use {DecodeError, Field, NetlinkFlags, Rest};
+use crate::{DecodeError, Field, NetlinkFlags, Rest};
 
 const LENGTH: Field = 0..4;
 const MESSAGE_TYPE: Field = 4..6;
@@ -332,7 +332,7 @@ impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> NetlinkBuffer<&'a mut T> {
 #[cfg(all(test, feature = "rtnetlink"))]
 mod tests {
     use super::*;
-    use constants::*;
+    use crate::constants::*;
 
     // a packet captured with tcpdump that was sent when running `ip link show`
     #[rustfmt::skip]

@@ -8,7 +8,7 @@ use netlink_packet::NetlinkMessage;
 use netlink_sys::{Protocol, SocketAddr, TokioSocket};
 use std::collections::VecDeque;
 
-use errors::{Error, ErrorKind};
+use crate::errors::{Error, ErrorKind};
 
 use super::codecs::NetlinkCodec;
 use super::framed::NetlinkFramed;

@@ -2,9 +2,9 @@ use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
 use std::mem::size_of;
 
-use constants::*;
-use utils::parse_u32;
-use {DecodeError, DefaultNla, Nla, NlaBuffer, Parseable};
+use crate::constants::*;
+use crate::utils::parse_u32;
+use crate::{DecodeError, DefaultNla, Nla, NlaBuffer, Parseable};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum RouteMetricsNla {

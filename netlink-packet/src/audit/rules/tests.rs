@@ -37,7 +37,7 @@ lazy_static! {
 
 #[test]
 fn parse_rule() {
-    use Parseable;
+    use crate::Parseable;
 
     let buf = RuleBuffer::new_checked(&BYTES[..]).unwrap();
     let parsed: RuleMessage = buf.parse().unwrap();
@@ -58,7 +58,7 @@ fn parse_rule() {
 
 #[test]
 fn emit_rule() {
-    use Emitable;
+    use crate::Emitable;
     let rule = RuleMessage {
         flags: RuleFlags::FilterExit,
         action: RuleAction::Always,

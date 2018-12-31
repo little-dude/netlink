@@ -1,9 +1,9 @@
 use futures::Stream;
 
-use packet::constants::{NLM_F_DUMP, NLM_F_REQUEST};
-use packet::{AddressMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage};
+use crate::packet::constants::{NLM_F_DUMP, NLM_F_REQUEST};
+use crate::packet::{AddressMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage};
 
-use {Error, ErrorKind, Handle};
+use crate::{Error, ErrorKind, Handle};
 
 lazy_static! {
     // Flags for `ip link get`

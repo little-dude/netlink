@@ -1,7 +1,3 @@
-extern crate futures;
-extern crate rtnetlink;
-extern crate tokio_core;
-
 use std::thread::spawn;
 
 use futures::Future;

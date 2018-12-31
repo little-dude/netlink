@@ -2,7 +2,7 @@ use ipnetwork::IpNetwork;
 
 use super::{AddressAddRequest, AddressDelRequest, AddressFlushRequest, AddressGetRequest};
 
-use Handle;
+use crate::Handle;
 
 pub struct AddressHandle(Handle);
 

@@ -1,7 +1,4 @@
-extern crate audit;
-extern crate futures;
-extern crate netlink_sys;
-extern crate tokio_core;
+use netlink_sys;
 
 use audit::new_connection;
 use futures::{Future, Stream};

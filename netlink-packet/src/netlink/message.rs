@@ -1,16 +1,16 @@
-use constants::*;
+use crate::constants::*;
 use failure::ResultExt;
 
-use {
+use crate::{
     AckMessage, DecodeError, Emitable, EncodeError, ErrorBuffer, ErrorMessage, NetlinkBuffer,
     NetlinkHeader, Parseable,
 };
 
 #[cfg(feature = "rtnetlink")]
-use RtnlMessage;
+use crate::RtnlMessage;
 
 #[cfg(feature = "audit")]
-use AuditMessage;
+use crate::AuditMessage;
 
 /// Represent a netlink message.
 ///

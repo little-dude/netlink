@@ -1,4 +1,4 @@
-extern crate libc;
+use libc;
 
 mod protocols;
 pub use self::protocols::*;
@@ -18,8 +18,7 @@ extern crate log;
 #[cfg(feature = "tokio_support")]
 #[macro_use]
 extern crate futures;
-#[cfg(feature = "tokio_support")]
-extern crate tokio_reactor;
+
 #[cfg(feature = "tokio_support")]
 mod tokio;
 #[cfg(feature = "tokio_support")]

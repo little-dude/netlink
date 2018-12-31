@@ -1,7 +1,7 @@
+use crate::{Emitable, RuleBuffer, RULE_BUF_MIN_LEN};
 use bit_field::BitArray;
-use {Emitable, RuleBuffer, RULE_BUF_MIN_LEN};
 
-use constants::*;
+use crate::constants::*;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct RuleMessage {

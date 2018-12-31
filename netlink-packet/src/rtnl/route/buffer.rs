@@ -1,6 +1,6 @@
 use super::header::*;
+use crate::{DecodeError, Field, Index, NlaBuffer, NlasIterator, Rest};
 use byteorder::{ByteOrder, NativeEndian};
-use {DecodeError, Field, Index, NlaBuffer, NlasIterator, Rest};
 
 const ADDRESS_FAMILY: Index = 0;
 const DEST_LENGTH: Index = 1;

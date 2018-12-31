@@ -105,34 +105,27 @@
 
 #![allow(clippy::module_inception)]
 
-extern crate log;
 #[macro_use]
 extern crate lazy_static;
-extern crate bytes;
-extern crate eui48;
-extern crate failure;
-extern crate failure_derive;
-extern crate futures;
-extern crate ipnetwork;
-extern crate tokio;
-extern crate tokio_core;
 
-pub extern crate netlink_packet as packet;
-pub use packet::constants;
-extern crate netlink_proto;
+use failure;
+
+pub use crate::packet::constants;
+pub use netlink_packet as packet;
+use netlink_proto;
 pub use netlink_proto::{Connection, Protocol};
 
 mod handle;
-pub use handle::*;
+pub use crate::handle::*;
 
 mod errors;
-pub use errors::*;
+pub use crate::errors::*;
 
 mod link;
-pub use link::*;
+pub use crate::link::*;
 
 mod addr;
-pub use addr::*;
+pub use crate::addr::*;
 
 use std::io;
 

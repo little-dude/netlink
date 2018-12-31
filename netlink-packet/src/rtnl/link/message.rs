@@ -1,4 +1,4 @@
-use {DecodeError, Emitable, Parseable};
+use crate::{DecodeError, Emitable, Parseable};
 
 use super::{LinkBuffer, LinkHeader, LinkNla};
 
@@ -91,8 +91,8 @@ impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Vec<Result<LinkNla, DecodeErro
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::constants::*;
     use crate::rtnl::link::*;
-    use constants::*;
 
     #[rustfmt::skip]
     static HEADER: [u8; 96] = [

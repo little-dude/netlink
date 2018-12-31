@@ -7,7 +7,7 @@ pub struct EncodeError {
 }
 
 impl Fail for EncodeError {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         self.inner.cause()
     }
 
@@ -17,7 +17,7 @@ impl Fail for EncodeError {
 }
 
 impl Display for EncodeError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.inner, f)
     }
 }
@@ -58,7 +58,7 @@ pub struct DecodeError {
 }
 
 impl Fail for DecodeError {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         self.inner.cause()
     }
 
@@ -68,7 +68,7 @@ impl Fail for DecodeError {
 }
 
 impl Display for DecodeError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.inner, f)
     }
 }
