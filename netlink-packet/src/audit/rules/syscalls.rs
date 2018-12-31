@@ -43,6 +43,16 @@ impl RuleSyscalls {
         self
     }
 
+    /// Return `true` if all the syscalls are set, `false` otherwise
+    pub fn is_all(&self) -> bool {
+        for i in 0..AUDIT_BITMASK_SIZE {
+            if self.0[i] != 0xffff_ffff {
+                return false;
+            }
+        }
+        true
+    }
+
     /// Set all the bits
     pub fn set_all(&mut self) -> &mut Self {
         self.0 = vec![0xffff_ffff; AUDIT_BITMASK_SIZE];
