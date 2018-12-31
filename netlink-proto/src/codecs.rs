@@ -49,11 +49,17 @@ impl Decoder for NetlinkCodec<NetlinkMessage> {
             Ok(buf) => buf.length() as usize,
             #[cfg(feature = "audit")]
             Ok(buf) => {
-                if src.as_ref().len() as isize - buf.length() as isize == 16 {
+                if (src.as_ref().len() as isize - buf.length() as isize) <= 16 {
                     // The audit messages are sometimes truncated, because the length specified in
                     // the header, does not take the header itself into account. To workaround
-                    // this, we tweak the length.
-                    // See also: https://github.com/mozilla/libaudit-go/issues/24
+                    // this, we tweak the length. We've noticed two occurences of truncated
+                    // packets:
+                    //
+                    // - the length of the header is not included (see also:
+                    //   https://github.com/mozilla/libaudit-go/issues/24)
+                    // - some rule message have some padding for alignment (see
+                    //   https://github.com/linux-audit/audit-userspace/issues/78) which is not
+                    //   taken into account in the buffer length.
                     warn!("found what looks like a truncated audit packet");
                     src.as_ref().len()
                 } else {
