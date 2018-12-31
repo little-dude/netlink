@@ -20,13 +20,6 @@ pub use crate::errors::*;
 use crate::packet::NetlinkMessage;
 use futures::sync::mpsc::UnboundedReceiver;
 
-// pub fn connect_multicast() -> Result<(Connection, Handle), Error> {
-//     connect(Some(netlink_sys::SocketAddr::new(
-//         0,
-//         packet::constants::AUDIT_NLGRP_READLOG,
-//     )))
-// }
-
 use std::io;
 
 pub fn new_connection() -> io::Result<(Connection, Handle, UnboundedReceiver<NetlinkMessage>)> {
