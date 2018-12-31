@@ -1,7 +1,9 @@
-use crate::{Emitable, RuleBuffer, RULE_BUF_MIN_LEN};
-use bit_field::BitArray;
+use std::convert::TryFrom;
+
+use byteorder::{ByteOrder, NativeEndian};
 
 use crate::constants::*;
+use crate::{DecodeError, Emitable, RuleBuffer, RULE_BUF_MIN_LEN};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct RuleMessage {
@@ -187,42 +189,72 @@ impl From<RuleFieldFlags> for u32 {
     }
 }
 
-const MASK_LEN: usize = 4 * AUDIT_BITMASK_SIZE;
-
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct RuleMask(pub(crate) Vec<u8>);
+pub struct RuleMask(pub(crate) Vec<u32>);
 
+const BITMASK_BYTES_LEN: usize = AUDIT_BITMASK_SIZE * 4;
+
+impl<'a> TryFrom<&'a [u8]> for RuleMask {
+    type Error = DecodeError;
+
+    fn try_from(slice: &[u8]) -> Result<Self, Self::Error> {
+        if slice.len() != BITMASK_BYTES_LEN {
+            return Err(DecodeError::from(format!(
+                "invalid bitmask size: expected {} bytes got {}",
+                BITMASK_BYTES_LEN,
+                slice.len()
+            )));
+        }
+        let mut mask = RuleMask::new_zeroed();
+        let mut word = 0;
+        while word < AUDIT_BITMASK_SIZE {
+            mask.0[word] = NativeEndian::read_u32(&slice[word * 4..word * 4 + 4]);
+            word += 1;
+        }
+        Ok(mask)
+    }
+}
+
+// FIXME: I'm not 100% sure this implementation is correct wrt to endianness.
 impl RuleMask {
     pub fn new_zeroed() -> Self {
-        RuleMask(vec![0; MASK_LEN])
+        RuleMask(vec![0; AUDIT_BITMASK_SIZE])
     }
 
     pub fn new_maxed() -> Self {
-        RuleMask(vec![0xff; MASK_LEN])
+        RuleMask(vec![0xffff_ffff; AUDIT_BITMASK_SIZE])
     }
 
+    /// Unset all the bits
     pub fn unset_all(&mut self) -> &mut Self {
-        self.0 = vec![0; MASK_LEN];
+        self.0 = vec![0; AUDIT_BITMASK_SIZE];
         self
     }
 
+    /// Set all the bits
     pub fn set_all(&mut self) -> &mut Self {
-        self.0 = vec![0xff; MASK_LEN];
+        self.0 = vec![0xffff_ffff; AUDIT_BITMASK_SIZE];
         self
     }
 
-    pub fn unset(&mut self, syscall: usize) -> &mut Self {
-        self.0.set_bit(MASK_LEN - 1 - syscall, false);
+    /// Unset the bit corresponding to the given syscall
+    pub fn unset(&mut self, syscall: u32) -> &mut Self {
+        let word = (syscall as usize) / 32;
+        self.0[word] &= !(0x0000_0001 << (syscall as usize - word * 32));
         self
     }
 
+    /// Set the bit corresponding to the given syscall
     pub fn set(&mut self, syscall: usize) -> &mut Self {
-        self.0.set_bit(MASK_LEN - 1 - syscall, true);
+        let word = syscall as usize / 32;
+        self.0[word] |= 0x0000_0001 << (syscall as usize - word * 32);
         self
     }
 
+    /// Check if the bit corresponding to the given syscall is set
     pub fn has(&self, syscall: usize) -> bool {
-        self.0.get_bit(MASK_LEN - 1 - syscall)
+        let word = syscall as usize / 32;
+        (self.0[word] >> (syscall as usize - word * 32)) == 1
     }
 }
 
@@ -291,9 +323,12 @@ impl Emitable for RuleMessage {
         rule_buffer.set_flags(self.flags.into());
         rule_buffer.set_action(self.action.into());
         rule_buffer.set_field_count(self.fields.len() as u32);
-        rule_buffer
-            .mask_mut()
-            .copy_from_slice(self.mask.0.as_slice());
+        {
+            let mask = rule_buffer.mask_mut();
+            for (i, word) in self.mask.0.iter().enumerate() {
+                NativeEndian::write_u32(&mut mask[i * 4..i * 4 + 4], *word);
+            }
+        }
         rule_buffer.set_buflen(self.compute_string_values_length() as u32);
 
         let mut buflen = 0;
