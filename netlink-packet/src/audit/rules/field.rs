@@ -34,10 +34,10 @@ pub enum RuleField {
     Arg1(u32),
     Arg2(u32),
     Arg3(u32),
-    Filterkey(u32),
 
     Watch(String),
     Dir(String),
+    Filterkey(String),
 
     SubjUser(String),
     SubjRole(String),

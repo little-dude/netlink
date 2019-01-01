@@ -226,7 +226,6 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<RuleMessage> for RuleBuffer<&'a T> {
                 AUDIT_ARG1 => Arg1(value),
                 AUDIT_ARG2 => Arg2(value),
                 AUDIT_ARG3 => Arg3(value),
-                AUDIT_FILTERKEY => Filterkey(value),
                 _ => {
                     // For all the other fields, the value is a string
                     let str_end = offset + value as usize;
@@ -242,6 +241,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<RuleMessage> for RuleBuffer<&'a T> {
                     match field {
                         AUDIT_WATCH => Watch(s),
                         AUDIT_DIR => Dir(s),
+                        AUDIT_FILTERKEY => Filterkey(s),
                         AUDIT_SUBJ_USER => SubjUser(s),
                         AUDIT_SUBJ_ROLE => SubjRole(s),
                         AUDIT_SUBJ_TYPE => SubjType(s),

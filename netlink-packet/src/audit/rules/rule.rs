@@ -37,6 +37,7 @@ impl RuleMessage {
             match field {
                 Watch(ref s)
                     | Dir(ref s)
+                    | Filterkey(ref s)
                     | SubjUser(ref s)
                     | SubjRole(ref s)
                     | SubjType(ref s)
@@ -97,6 +98,10 @@ impl Emitable for RuleMessage {
                 }
                 Dir(ref s) => {
                     rule_buffer.set_field(i, AUDIT_DIR);
+                    set_str_field(&mut rule_buffer, i, &mut buflen, s);
+                }
+                Filterkey(ref s) => {
+                    rule_buffer.set_field(i, AUDIT_FILTERKEY);
                     set_str_field(&mut rule_buffer, i, &mut buflen, s);
                 }
                 SubjUser(ref s) => {
@@ -265,10 +270,6 @@ impl Emitable for RuleMessage {
                 }
                 Arg3(val) => {
                     rule_buffer.set_field(i, AUDIT_ARG3);
-                    rule_buffer.set_value(i, *val);
-                }
-                Filterkey(val) => {
-                    rule_buffer.set_field(i, AUDIT_FILTERKEY);
                     rule_buffer.set_value(i, *val);
                 }
             }
