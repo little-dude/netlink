@@ -1,7 +1,7 @@
 [package]
 authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 name = "netlink-packet"
-version = "0.0.4"
+version = "0.1.1"
 edition = "2018"
 
 homepage = "https://github.com/little-dude/netlink"
@@ -13,25 +13,12 @@ description = "netlink packet types"
 
 [dependencies]
 failure = "0.1.3"
-failure_derive = "0.1.3"
 byteorder = "1.2.7"
 bytes = "0.4.11"
 libc = "0.2.45"
 log = "0.4.6"
-netlink-sys = { path = "../netlink-sys", version = "0.0" }
 lazy_static = "1.2.0"
-
-[dependencies.eui48]
-optional = true
-version = "0.4.1"
-
-[dependencies.bit_field]
-optional = true
-version = "0.9.0"
-
-[dev-dependencies]
-env_logger = "0.6.0"
-futures = "0.1.25"
+netlink-sys = { path = "../netlink-sys", version = "0.1" }
 
 [features]
 # By default this crate does not does anything useful. You should enable a
@@ -40,7 +27,7 @@ default = []
 # Adds support rtnetlink messages
 rtnetlink = []
 # Adds support audit messages
-audit = ["bit_field"]
+audit = []
 
 [[example]]
 name = "dump_links"
