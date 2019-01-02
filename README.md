@@ -11,30 +11,30 @@ The netlink protocol is _huge_ but the two most widely used subprotocols are
 netlink protocol](https://www.infradead.org/~tgr/libnl/doc/route.html) (see
 `man 7 rtnetlink`).
 
-The project is in its early stages, and I'm currently focusing on the route
-netlink protocol.
+The project is in its early stages, and I'm currently focusing on the route and
+audit netlink protocols.
 
 Documentation
 -------------
 
-- [`netlink_socket`](https://docs.rs/netlink-socket/0.0.2/netlink_socket/)
-- [`rtnetlink`](https://docs.rs/rtnetlink/0.0.2/rtnetlink/)
-- [`iproute2`](https://docs.rs/iproute2/0.0.2/iproute2/)
+- [`rtnetlink`](https://docs.rs/rtnetlink/0.1.0/rtnetlink/)
+- [`audit`](https://docs.rs/rtnetlink/0.1.0/audit/)
 
 Organization
 ------------
 
-- the [`netlink_socket`](./netlink-socket) crate provides netlink sockets.
+- the [`netlink_sys`](./netlink-sys) crate provides netlink sockets.
   Integration with [`mio`](https://github.com/carllerche/mio) and
   [`tokio`](https://github.com/tokio-rs/) is optional.
-- the [`rtnetlink`](./rtnetlink) crate provides types for netlink's [route
-  subprotocol](https://www.infradead.org/~tgr/libnl/doc/route.html) (see `man 7
-  rtnetlink`). Integration with [Tokio](tokio.rs) is optional.
-- the [`iproute2`](./iproute2) crate provides higher level abstractions for the
-  route protocol, like the [`iproute2`](https://en.wikipedia.org/wiki/Iproute2)
-  commands: it leverages the netlink route protocol to offer access to links,
-  addresses, arp tables and route tables. It is fully asynchronous and built on
-  top of [tokio](tokio.rs).
+- the [`netlink_packet`](./netlink-packet) crate defines the netlink messages,
+  and method for serializing and deserializing them.
+- the [`netlink_proto`](./netlink-proto) crate provides the Tokio integration.
+- the [`rtnetlink`](./rtnetlink) crate provides higher level abstraction for
+  the [route protocol](https://www.infradead.org/~tgr/libnl/doc/route.html)
+  (see `man 7 rtnetlink`). This is probably what users want to use, if they
+  want to manipulate IP addresses, route tables, etc.
+- the [`audit`](./audit) crate provides higher level abstractions for the
+  audit protocol.
 
 Other netlink projects in rust
 ------------------------------
