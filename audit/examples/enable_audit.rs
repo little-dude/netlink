@@ -1,8 +1,8 @@
 use netlink_sys;
 
-use std::thread::spawn;
 use audit::new_connection;
 use futures::{Future, Stream};
+use std::thread::spawn;
 use tokio_core::reactor::Core;
 
 fn main() {

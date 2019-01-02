@@ -1,7 +1,6 @@
-use crate::{Parseable, Emitable};
-use crate::constants::*;
 use super::*;
-
+use crate::constants::*;
+use crate::{Emitable, Parseable};
 
 #[test]
 fn parse_rule_1() {
