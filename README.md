@@ -17,8 +17,8 @@ audit netlink protocols.
 Documentation
 -------------
 
-- [`rtnetlink`](https://docs.rs/rtnetlink/0.1.0/rtnetlink/)
-- [`audit`](https://docs.rs/rtnetlink/0.1.0/audit/)
+- [`rtnetlink`](https://docs.rs/rtnetlink/)
+- [`audit`](https://docs.rs/audit)
 
 Organization
 ------------
