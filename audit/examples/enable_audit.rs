@@ -2,6 +2,7 @@ use netlink_sys;
 
 use audit::new_connection;
 use futures::{Future, Stream};
+use std::thread::spawn;
 use tokio_core::reactor::Core;
 
 fn main() {
@@ -12,13 +13,13 @@ fn main() {
         .add_membership(netlink_sys::constants::AUDIT_NLGRP_READLOG)
         .unwrap();
 
-    let mut core = Core::new().unwrap();
-    core.handle().spawn(connection.map_err(|_| ()));
-    core.handle().spawn(handle.enable().map_err(|e| {
-        println!("{:?}", e);
-    }));
-    core.run(messages.for_each(|m| {
-        println!("{:?}", m);
-        Ok(())
-    }));
+    spawn(|| Core::new().unwrap().run(connection));
+    handle.enable_events().wait().unwrap();
+    messages
+        .for_each(|m| {
+            println!("{:?}", m);
+            Ok(())
+        })
+        .wait()
+        .unwrap();
 }

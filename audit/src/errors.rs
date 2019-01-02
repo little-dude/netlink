@@ -1,4 +1,4 @@
-use crate::packet::NetlinkMessage;
+use crate::packet::{ErrorMessage, NetlinkMessage};
 use failure::{Backtrace, Context, Fail};
 use std::fmt::{self, Display};
 
@@ -13,7 +13,7 @@ pub enum ErrorKind {
     UnexpectedMessage(NetlinkMessage),
 
     #[fail(display = "Received a netlink error message {:?}", _0)]
-    NetlinkError(NetlinkMessage),
+    NetlinkError(ErrorMessage),
 
     #[fail(display = "Request failed")]
     RequestFailed,

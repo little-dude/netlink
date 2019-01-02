@@ -1,14 +1,16 @@
-use crate::{Emitable, RuleBuffer, RULE_BUF_MIN_LEN};
-use bit_field::BitArray;
+use byteorder::{ByteOrder, NativeEndian};
 
 use crate::constants::*;
+use crate::{Emitable, RuleBuffer, RULE_BUF_MIN_LEN};
+
+use super::{RuleAction, RuleField, RuleFieldFlags, RuleFlags, RuleSyscalls};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct RuleMessage {
     pub flags: RuleFlags,
     pub action: RuleAction,
     pub fields: Vec<(RuleField, RuleFieldFlags)>,
-    pub mask: RuleMask,
+    pub syscalls: RuleSyscalls,
 }
 
 impl Default for RuleMessage {
@@ -23,7 +25,7 @@ impl RuleMessage {
             flags: RuleFlags::from(0),
             action: RuleAction::from(0),
             fields: Vec::with_capacity(AUDIT_MAX_FIELDS),
-            mask: RuleMask::new_zeroed(),
+            syscalls: RuleSyscalls::new_zeroed(),
         }
     }
 
@@ -35,6 +37,7 @@ impl RuleMessage {
             match field {
                 Watch(ref s)
                     | Dir(ref s)
+                    | Filterkey(ref s)
                     | SubjUser(ref s)
                     | SubjRole(ref s)
                     | SubjType(ref s)
@@ -53,230 +56,15 @@ impl RuleMessage {
     }
 }
 
-#[derive(Copy, Debug, PartialEq, Eq, Clone)]
-pub enum RuleAction {
-    Never,
-    Possible,
-    Always,
-    Unknown(u32),
-}
-
-impl From<u32> for RuleAction {
-    fn from(value: u32) -> Self {
-        use self::RuleAction::*;
-        match value {
-            AUDIT_NEVER => Never,
-            AUDIT_POSSIBLE => Possible,
-            AUDIT_ALWAYS => Always,
-            _ => Unknown(value),
-        }
-    }
-}
-
-impl From<RuleAction> for u32 {
-    fn from(value: RuleAction) -> Self {
-        use self::RuleAction::*;
-        match value {
-            Never => AUDIT_NEVER,
-            Possible => AUDIT_POSSIBLE,
-            Always => AUDIT_ALWAYS,
-            Unknown(value) => value,
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum RuleField {
-    Pid(u32),
-    Uid(u32),
-    Euid(u32),
-    Suid(u32),
-    Fsuid(u32),
-    Gid(u32),
-    Egid(u32),
-    Sgid(u32),
-    Fsgid(u32),
-    Loginuid(u32),
-    Pers(u32),
-    Arch(u32),
-    Msgtype(u32),
-    Ppid(u32),
-    LoginuidSet(u32),
-    Sessionid(u32),
-    Fstype(u32),
-    Devmajor(u32),
-    Devminor(u32),
-    Inode(u32),
-    Exit(u32),
-    Success(u32),
-    Perm(u32),
-    Filetype(u32),
-    ObjUid(u32),
-    ObjGid(u32),
-    FieldCompare(u32),
-    Exe(u32),
-    Arg0(u32),
-    Arg1(u32),
-    Arg2(u32),
-    Arg3(u32),
-    Filterkey(u32),
-
-    Watch(String),
-    Dir(String),
-
-    SubjUser(String),
-    SubjRole(String),
-    SubjType(String),
-    SubjSen(String),
-    SubjClr(String),
-
-    ObjUser(String),
-    ObjRole(String),
-    ObjType(String),
-    ObjLevLow(String),
-    ObjLevHigh(String),
-}
-
-#[derive(Copy, Debug, PartialEq, Eq, Clone)]
-pub enum RuleFieldFlags {
-    BitMask,
-    BitTest,
-    LessThan,
-    GreaterThan,
-    NotEqual,
-    Equal,
-    LessThanOrEqual,
-    GreaterThanOrEqual,
-    None,
-    Unknown(u32),
-}
-
-impl From<u32> for RuleFieldFlags {
-    fn from(value: u32) -> Self {
-        use self::RuleFieldFlags::*;
-        match value {
-            AUDIT_BIT_MASK => BitMask,
-            AUDIT_BIT_TEST => BitTest,
-            AUDIT_LESS_THAN => LessThan,
-            AUDIT_GREATER_THAN => GreaterThan,
-            AUDIT_NOT_EQUAL => NotEqual,
-            AUDIT_EQUAL => Equal,
-            AUDIT_LESS_THAN_OR_EQUAL => LessThanOrEqual,
-            AUDIT_GREATER_THAN_OR_EQUAL => GreaterThanOrEqual,
-            0 => None,
-            _ => Unknown(value),
-        }
-    }
-}
-
-impl From<RuleFieldFlags> for u32 {
-    fn from(value: RuleFieldFlags) -> Self {
-        use self::RuleFieldFlags::*;
-        match value {
-            BitMask => AUDIT_BIT_MASK,
-            BitTest => AUDIT_BIT_TEST,
-            LessThan => AUDIT_LESS_THAN,
-            GreaterThan => AUDIT_GREATER_THAN,
-            NotEqual => AUDIT_NOT_EQUAL,
-            Equal => AUDIT_EQUAL,
-            LessThanOrEqual => AUDIT_LESS_THAN_OR_EQUAL,
-            GreaterThanOrEqual => AUDIT_GREATER_THAN_OR_EQUAL,
-            None => 0,
-            Unknown(value) => value,
-        }
-    }
-}
-
-const MASK_LEN: usize = 4 * AUDIT_BITMASK_SIZE;
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct RuleMask(pub(crate) Vec<u8>);
-
-impl RuleMask {
-    pub fn new_zeroed() -> Self {
-        RuleMask(vec![0; MASK_LEN])
-    }
-
-    pub fn new_maxed() -> Self {
-        RuleMask(vec![0xff; MASK_LEN])
-    }
-
-    pub fn unset_all(&mut self) -> &mut Self {
-        self.0 = vec![0; MASK_LEN];
-        self
-    }
-
-    pub fn set_all(&mut self) -> &mut Self {
-        self.0 = vec![0xff; MASK_LEN];
-        self
-    }
-
-    pub fn unset(&mut self, syscall: usize) -> &mut Self {
-        self.0.set_bit(MASK_LEN - 1 - syscall, false);
-        self
-    }
-
-    pub fn set(&mut self, syscall: usize) -> &mut Self {
-        self.0.set_bit(MASK_LEN - 1 - syscall, true);
-        self
-    }
-
-    pub fn has(&self, syscall: usize) -> bool {
-        self.0.get_bit(MASK_LEN - 1 - syscall)
-    }
-}
-
-#[derive(Copy, Debug, PartialEq, Eq, Clone)]
-pub enum RuleFlags {
-    FilterUser,
-    FilterTask,
-    FilterEntry,
-    FilterWatch,
-    FilterExit,
-    FilterType,
-    FilterFs,
-    NrFilters,
-    FilterPrepend,
-    Unset,
-    Unknown(u32),
-}
-
-impl From<u32> for RuleFlags {
-    fn from(value: u32) -> Self {
-        use self::RuleFlags::*;
-        match value {
-            AUDIT_FILTER_USER => FilterUser,
-            AUDIT_FILTER_TASK => FilterTask,
-            AUDIT_FILTER_ENTRY => FilterEntry,
-            AUDIT_FILTER_WATCH => FilterWatch,
-            AUDIT_FILTER_EXIT => FilterExit,
-            AUDIT_FILTER_TYPE => FilterType,
-            AUDIT_FILTER_FS => FilterFs,
-            AUDIT_NR_FILTERS => NrFilters,
-            AUDIT_FILTER_PREPEND => FilterPrepend,
-            AUDIT_FILTER_UNSET => Unset,
-            _ => Unknown(value),
-        }
-    }
-}
-
-impl From<RuleFlags> for u32 {
-    fn from(value: RuleFlags) -> Self {
-        use self::RuleFlags::*;
-        match value {
-            FilterUser => AUDIT_FILTER_USER,
-            FilterTask => AUDIT_FILTER_TASK,
-            FilterEntry => AUDIT_FILTER_ENTRY,
-            FilterWatch => AUDIT_FILTER_WATCH,
-            FilterExit => AUDIT_FILTER_EXIT,
-            FilterType => AUDIT_FILTER_TYPE,
-            FilterFs => AUDIT_FILTER_FS,
-            NrFilters => AUDIT_NR_FILTERS,
-            FilterPrepend => AUDIT_FILTER_PREPEND,
-            Unset => AUDIT_FILTER_UNSET,
-            Unknown(value) => value,
-        }
-    }
+fn set_str_field<T>(rule_buffer: &mut RuleBuffer<T>, position: usize, buflen: &mut usize, s: &str)
+where
+    T: AsRef<[u8]> + AsMut<[u8]>,
+{
+    // append the string to the strings buffer
+    rule_buffer.buf_mut()[*buflen..*buflen + s.len()].copy_from_slice(s.as_bytes());
+    // set the field's value to the string length
+    rule_buffer.set_value(position, s.len() as u32);
+    *buflen += s.len();
 }
 
 impl Emitable for RuleMessage {
@@ -291,9 +79,12 @@ impl Emitable for RuleMessage {
         rule_buffer.set_flags(self.flags.into());
         rule_buffer.set_action(self.action.into());
         rule_buffer.set_field_count(self.fields.len() as u32);
-        rule_buffer
-            .mask_mut()
-            .copy_from_slice(self.mask.0.as_slice());
+        {
+            let syscalls = rule_buffer.syscalls_mut();
+            for (i, word) in self.syscalls.0.iter().enumerate() {
+                NativeEndian::write_u32(&mut syscalls[i * 4..i * 4 + 4], *word);
+            }
+        }
         rule_buffer.set_buflen(self.compute_string_values_length() as u32);
 
         let mut buflen = 0;
@@ -307,6 +98,10 @@ impl Emitable for RuleMessage {
                 }
                 Dir(ref s) => {
                     rule_buffer.set_field(i, AUDIT_DIR);
+                    set_str_field(&mut rule_buffer, i, &mut buflen, s);
+                }
+                Filterkey(ref s) => {
+                    rule_buffer.set_field(i, AUDIT_FILTERKEY);
                     set_str_field(&mut rule_buffer, i, &mut buflen, s);
                 }
                 SubjUser(ref s) => {
@@ -477,22 +272,7 @@ impl Emitable for RuleMessage {
                     rule_buffer.set_field(i, AUDIT_ARG3);
                     rule_buffer.set_value(i, *val);
                 }
-                Filterkey(val) => {
-                    rule_buffer.set_field(i, AUDIT_FILTERKEY);
-                    rule_buffer.set_value(i, *val);
-                }
             }
         }
     }
-}
-
-fn set_str_field<T>(rule_buffer: &mut RuleBuffer<T>, position: usize, buflen: &mut usize, s: &str)
-where
-    T: AsRef<[u8]> + AsMut<[u8]>,
-{
-    // append the string to the strings buffer
-    rule_buffer.buf_mut()[*buflen..*buflen + s.len()].copy_from_slice(s.as_bytes());
-    // set the field's value to the string length
-    rule_buffer.set_value(position, s.len() as u32);
-    *buflen += s.len();
 }

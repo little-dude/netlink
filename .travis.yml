@@ -1,21 +1,90 @@
 language: rust
-
-# For now we only build on nightly because we have this
-# #![feature(custom_attribute)] that we use to tell rustfmt to ignore some
-# piece of code... This needs to be sorted out though, we can't be a
-# "nightly-only" crate just because of that.
-#
-# rust: [stable, beta, nightly]
-rust: [stable, beta, nightly]
-cache: cargo
-before_script:
-  - bash -c 'if [[ "$TRAVIS_RUST_VERSION" == "nightly" ]] ; then cargo install rustfmt-nightly --force ; fi'
-  - bash -c 'if [[ "$TRAVIS_RUST_VERSION" == "nightly" ]] ; then cargo install clippy --force ; fi'
-script:
-  - bash -c 'if [[ "$TRAVIS_RUST_VERSION" == "nightly" ]] ; then cargo fmt ; fi'
-  - bash -c 'if [[ "$TRAVIS_RUST_VERSION" == "nightly" ]] ; then cargo clippy ; fi'
-  - cargo test --verbose --all
 matrix:
-  allow_failures:
-    - rust: nightly
   fast_finish: true
+  allow_failure:
+      - rust: nightly
+  include:
+    # =====================================================================
+    # Stable
+    # =====================================================================
+    - rust: stable
+      name: netlink-sys
+      script:
+        - cd netlink-sys
+        - cargo test
+        - cargo test --features mio_support
+        - cargo test --features tokio_support
+
+    - rust: stable
+      name: netlink-packet
+      script:
+        - cd netlink-packet
+        - cargo test --features audit
+        - cargo test --features rtnetlink
+
+    - rust: stable
+      name: netlink-proto
+      script:
+        - cd netlink-proto
+        - cargo test --features audit
+        - cargo test --features rtnetlink
+
+    - rust: stable
+      name: rtnetlink
+      script:
+        - cd rtnetlink
+        - cargo test
+
+    - rust: stable
+      name: audit
+      script:
+        - cd audit
+        - cargo test
+
+    # =====================================================================
+    # Nightly
+    # =====================================================================
+
+    - rust: nightly
+      name: nightly netlink-sys
+      before_script:
+        - rustup component add clippy-preview
+      script:
+          - cargo test -Z package-features --package netlink-sys
+          - cargo test -Z package-features --package netlink-sys --features mio_support
+          - cargo test -Z package-features --package netlink-sys --features tokio_support
+          - cargo clippy
+
+    - rust: nightly
+      name: nightly netlink-packet
+      before_script:
+        - rustup component add clippy-preview
+      script:
+          - cargo test -Z package-features --package netlink-packet --features audit
+          - cargo test -Z package-features --package netlink-packet --features rtnetlink
+          - cargo clippy
+
+    - rust: nightly
+      name: nightly netlink-proto
+      before_script:
+        - rustup component add clippy-preview
+      script:
+          - cargo test -Z package-features --package netlink-proto --features audit
+          - cargo test -Z package-features --package netlink-proto --features rtnetlink
+          - cargo clippy
+
+    - rust: nightly
+      name: nightly netlink-proto
+      before_script:
+        - rustup component add clippy-preview
+      script:
+          - cargo test -Z package-features --package rtnetlink
+          - cargo test -Z package-features --package audit
+          - cargo clippy
+
+    - rust: nightly
+      name: rustfmt
+      before_script:
+        - rustup component add rustfmt-preview
+      script:
+          - cargo fmt --all -- --check

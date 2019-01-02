@@ -113,16 +113,8 @@
 //! TODO
 
 #![cfg_attr(rustfmt, rustfmt::skip)]
-#![allow(clippy::new_without_default_derive)]
-
-
-
-
-
-
 
 #[macro_use] extern crate log;
-
 
 pub use netlink_sys::constants;
 

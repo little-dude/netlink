@@ -2,7 +2,7 @@ use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
 
 use crate::constants::*;
-use crate::{DecodeError, Field, Parseable, RuleField, RuleFieldFlags, RuleMask, RuleMessage};
+use crate::{DecodeError, Field, Parseable, RuleField, RuleFieldFlags, RuleMessage, RuleSyscalls};
 
 // FIXME: when const fn are stable, use them, instead of defining a macro
 // const fn u32_array(start: usize, len: usize) -> Field {
@@ -17,8 +17,8 @@ macro_rules! u32_array {
 const FLAGS: Field = 0..4;
 const ACTION: Field = 4..8;
 const FIELD_COUNT: Field = 8..12;
-const MASK: Field = u32_array!(FIELD_COUNT.end, AUDIT_BITMASK_SIZE);
-const FIELDS: Field = u32_array!(MASK.end, AUDIT_MAX_FIELDS);
+const SYSCALLS: Field = u32_array!(FIELD_COUNT.end, AUDIT_BITMASK_SIZE);
+const FIELDS: Field = u32_array!(SYSCALLS.end, AUDIT_MAX_FIELDS);
 const VALUES: Field = u32_array!(FIELDS.end, AUDIT_MAX_FIELDS);
 const FIELD_FLAGS: Field = u32_array!(VALUES.end, AUDIT_MAX_FIELDS);
 const BUFLEN: Field = FIELD_FLAGS.end..FIELD_FLAGS.end + 4;
@@ -85,8 +85,8 @@ impl<T: AsRef<[u8]>> RuleBuffer<T> {
 }
 
 impl<'a, T: AsRef<[u8]> + ?Sized> RuleBuffer<&'a T> {
-    pub fn mask(&self) -> &'a [u8] {
-        &self.buffer.as_ref()[MASK]
+    pub fn syscalls(&self) -> &'a [u8] {
+        &self.buffer.as_ref()[SYSCALLS]
     }
 
     pub fn fields(&self) -> &'a [u8] {
@@ -124,8 +124,8 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> RuleBuffer<T> {
         NativeEndian::write_u32(&mut self.buffer.as_mut()[BUFLEN], value)
     }
 
-    pub fn mask_mut(&mut self) -> &mut [u8] {
-        &mut self.buffer.as_mut()[MASK]
+    pub fn syscalls_mut(&mut self) -> &mut [u8] {
+        &mut self.buffer.as_mut()[SYSCALLS]
     }
 
     pub fn fields_mut(&mut self) -> &mut [u8] {
@@ -172,7 +172,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<RuleMessage> for RuleBuffer<&'a T> {
         let mut rule = RuleMessage::new();
         rule.flags = self.flags().into();
         rule.action = self.action().into();
-        rule.mask = RuleMask(self.mask().to_vec());
+        rule.syscalls = RuleSyscalls::from_slice(self.syscalls())?;
 
         let mut offset = 0;
 
@@ -226,7 +226,6 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<RuleMessage> for RuleBuffer<&'a T> {
                 AUDIT_ARG1 => Arg1(value),
                 AUDIT_ARG2 => Arg2(value),
                 AUDIT_ARG3 => Arg3(value),
-                AUDIT_FILTERKEY => Filterkey(value),
                 _ => {
                     // For all the other fields, the value is a string
                     let str_end = offset + value as usize;
@@ -242,6 +241,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<RuleMessage> for RuleBuffer<&'a T> {
                     match field {
                         AUDIT_WATCH => Watch(s),
                         AUDIT_DIR => Dir(s),
+                        AUDIT_FILTERKEY => Filterkey(s),
                         AUDIT_SUBJ_USER => SubjUser(s),
                         AUDIT_SUBJ_ROLE => SubjRole(s),
                         AUDIT_SUBJ_TYPE => SubjType(s),
