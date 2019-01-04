@@ -2,7 +2,9 @@ use env_logger;
 
 use futures::{Future, Sink, Stream};
 
-use netlink_packet::{LinkHeader, LinkMessage, NetlinkFlags, NetlinkMessage, RtnlMessage};
+use netlink_packet::{
+    Emitable, LinkHeader, LinkMessage, NetlinkFlags, NetlinkMessage, RtnlMessage,
+};
 use netlink_proto::{NetlinkCodec, NetlinkFramed};
 use netlink_sys::constants::{NLM_F_DUMP, NLM_F_REQUEST};
 use netlink_sys::{Protocol, SocketAddr, TokioSocket};
@@ -22,7 +24,7 @@ fn main() {
         .set_sequence_number(1);
     packet.finalize();
     let mut buf = vec![0; packet.header().length() as usize];
-    packet.to_bytes(&mut buf[..]).unwrap();
+    packet.emit(&mut buf[..packet.buffer_len()]);
 
     println!(">>> {:?}", packet);
     let stream = stream.send((packet, SocketAddr::new(0, 0))).wait().unwrap();

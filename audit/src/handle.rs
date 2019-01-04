@@ -75,23 +75,11 @@ impl Handle {
 
     /// Enable receiving audit events
     pub fn enable_events(&mut self) -> impl Future<Item = (), Error = Error> {
-        let mut req = NetlinkMessage::from(AuditMessage::SetStatus(
-            StatusMessage::new()
-                .set_enabled(true)
-                .set_pid(process::id())
-                .set_mask(AUDIT_STATUS_ENABLED | AUDIT_STATUS_PID),
-        ));
-        req.header_mut()
-            .set_flags(NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK));
-        self.acked_request(req)
-    }
-
-    fn set_pid(&mut self) -> impl Future<Item = (), Error = Error> {
-        let mut req = NetlinkMessage::from(AuditMessage::SetStatus(
-            StatusMessage::new()
-                .set_enabled(true)
-                .set_mask(AUDIT_STATUS_ENABLED),
-        ));
+        let mut status = StatusMessage::new();
+        status.enabled = 1;
+        status.pid = process::id();
+        status.mask = AUDIT_STATUS_ENABLED | AUDIT_STATUS_PID;
+        let mut req = NetlinkMessage::from(AuditMessage::SetStatus(status));
         req.header_mut()
             .set_flags(NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK));
         self.acked_request(req)

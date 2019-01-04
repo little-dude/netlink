@@ -1,189 +1,197 @@
 use byteorder::{ByteOrder, NativeEndian};
 
-use crate::{DecodeError, Emitable, Parseable};
+use crate::{DecodeError, Emitable, Field, Parseable};
 
-pub const AUDIT_STATUS_BUFFER_LEN: usize = 40;
+const MASK: Field = 0..4;
+const ENABLED: Field = 4..8;
+const FAILURE: Field = 8..12;
+const PID: Field = 12..16;
+const RATE_LIMITING: Field = 16..20;
+const BACKLOG_LIMIT: Field = 20..24;
+const LOST: Field = 24..28;
+const BACKLOG: Field = 28..32;
+const FEATURE_BITMAP: Field = 32..36;
+const BACKLOG_WAIT_TIME: Field = 36..40;
+pub const STATUS_MESSAGE_LEN: usize = BACKLOG_WAIT_TIME.end;
 
-#[repr(C)]
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct StatusMessage {
     /// Bit mask for valid entries
-    mask: u32,
-    enabled: u32,
+    pub mask: u32,
+    pub enabled: u32,
     /// Failure-to-log action
-    failure: u32,
+    pub failure: u32,
     /// PID of auditd process
-    pid: u32,
+    pub pid: u32,
     /// Message rate limit (per second)
-    rate_limiting: u32,
+    pub rate_limiting: u32,
     /// Waiting messages limit
-    backlog_limit: u32,
+    pub backlog_limit: u32,
     /// Messages lost
-    lost: u32,
+    pub lost: u32,
     /// Messages waiting in queue
-    backlog: u32,
+    pub backlog: u32,
     /// bitmap of kernel audit features
-    feature_bitmap: u32,
+    pub feature_bitmap: u32,
     /// Message queue wait timeout
-    backlog_wait_time: u32,
+    pub backlog_wait_time: u32,
 }
 
 impl StatusMessage {
     pub fn new() -> Self {
-        StatusMessage::default()
+        Default::default()
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct StatusMessageBuffer<T> {
+    buffer: T,
+}
+
+impl<T: AsRef<[u8]>> StatusMessageBuffer<T> {
+    pub fn new(buffer: T) -> StatusMessageBuffer<T> {
+        StatusMessageBuffer { buffer }
+    }
+
+    pub fn new_checked(buffer: T) -> Result<StatusMessageBuffer<T>, DecodeError> {
+        let buf = Self::new(buffer);
+        buf.check_buffer_length()?;
+        Ok(buf)
+    }
+
+    fn check_buffer_length(&self) -> Result<(), DecodeError> {
+        let len = self.buffer.as_ref().len();
+        if len < STATUS_MESSAGE_LEN {
+            return Err(format!(
+                "invalid StatusMessageBuffer buffer: length is {} instead of {}",
+                len, STATUS_MESSAGE_LEN
+            )
+            .into());
+        }
+        Ok(())
+    }
+
+    pub fn into_inner(self) -> T {
+        self.buffer
     }
 
     pub fn mask(&self) -> u32 {
-        self.mask
+        NativeEndian::read_u32(&self.buffer.as_ref()[MASK])
     }
 
-    pub fn enabled(&self) -> bool {
-        self.enabled == 1
+    pub fn enabled(&self) -> u32 {
+        NativeEndian::read_u32(&self.buffer.as_ref()[ENABLED])
     }
 
     pub fn failure(&self) -> u32 {
-        self.failure
+        NativeEndian::read_u32(&self.buffer.as_ref()[FAILURE])
     }
 
     pub fn pid(&self) -> u32 {
-        self.pid
+        NativeEndian::read_u32(&self.buffer.as_ref()[PID])
     }
 
     pub fn rate_limiting(&self) -> u32 {
-        self.rate_limiting
+        NativeEndian::read_u32(&self.buffer.as_ref()[RATE_LIMITING])
     }
 
     pub fn backlog_limit(&self) -> u32 {
-        self.backlog_limit
+        NativeEndian::read_u32(&self.buffer.as_ref()[BACKLOG_LIMIT])
     }
 
     pub fn lost(&self) -> u32 {
-        self.lost
+        NativeEndian::read_u32(&self.buffer.as_ref()[LOST])
     }
 
     pub fn backlog(&self) -> u32 {
-        self.backlog
+        NativeEndian::read_u32(&self.buffer.as_ref()[BACKLOG])
     }
 
     pub fn feature_bitmap(&self) -> u32 {
-        self.feature_bitmap
+        NativeEndian::read_u32(&self.buffer.as_ref()[FEATURE_BITMAP])
     }
 
     pub fn backlog_wait_time(&self) -> u32 {
-        self.backlog_wait_time
+        NativeEndian::read_u32(&self.buffer.as_ref()[BACKLOG_WAIT_TIME])
+    }
+}
+
+impl<T: AsRef<[u8]> + AsMut<[u8]>> StatusMessageBuffer<T> {
+    pub fn set_mask(&mut self, value: u32) {
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[MASK], value.into())
     }
 
-    pub fn set_mask(mut self, value: u32) -> Self {
-        self.mask = value;
-        self
+    pub fn set_enabled(&mut self, value: u32) {
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[ENABLED], value.into())
     }
 
-    pub fn set_enabled(mut self, value: bool) -> Self {
-        if value {
-            self.enabled = 1;
-        } else {
-            self.enabled = 0;
-        }
-        self
+    pub fn set_failure(&mut self, value: u32) {
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[FAILURE], value.into())
     }
 
-    pub fn set_failure(mut self, value: u32) -> Self {
-        self.failure = value;
-        self
+    pub fn set_pid(&mut self, value: u32) {
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[PID], value.into())
     }
 
-    pub fn set_pid(mut self, value: u32) -> Self {
-        self.pid = value;
-        self
+    pub fn set_rate_limiting(&mut self, value: u32) {
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[RATE_LIMITING], value.into())
     }
 
-    pub fn set_rate_limiting(mut self, value: u32) -> Self {
-        self.rate_limiting = value;
-        self
+    pub fn set_backlog_limit(&mut self, value: u32) {
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[BACKLOG_LIMIT], value.into())
     }
 
-    pub fn set_backlog_limit(mut self, value: u32) -> Self {
-        self.backlog_limit = value;
-        self
+    pub fn set_lost(&mut self, value: u32) {
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[LOST], value.into())
     }
 
-    pub fn set_lost(mut self, value: u32) -> Self {
-        self.lost = value;
-        self
+    pub fn set_backlog(&mut self, value: u32) {
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[BACKLOG], value.into())
     }
 
-    pub fn set_backlog(mut self, value: u32) -> Self {
-        self.backlog = value;
-        self
+    pub fn set_feature_bitmap(&mut self, value: u32) {
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[FEATURE_BITMAP], value.into())
     }
 
-    pub fn set_feature_bitmap(mut self, value: u32) -> Self {
-        self.feature_bitmap = value;
-        self
+    pub fn set_backlog_wait_time(&mut self, value: u32) {
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[BACKLOG_WAIT_TIME], value.into())
     }
+}
 
-    pub fn set_backlog_wait_time(mut self, value: u32) -> Self {
-        self.backlog_wait_time = value;
-        self
-    }
-
-    fn from_bytes(buf: &[u8]) -> Result<Self, DecodeError> {
-        if buf.len() < AUDIT_STATUS_BUFFER_LEN {
-            return Err(DecodeError::from(format!(
-                "StatusMessage is {} bytes, buffer is only {} bytes: {:#x?}",
-                AUDIT_STATUS_BUFFER_LEN,
-                buf.len(),
-                buf
-            )));
-        }
+impl<T: AsRef<[u8]>> Parseable<StatusMessage> for StatusMessageBuffer<T> {
+    fn parse(&self) -> Result<StatusMessage, DecodeError> {
+        self.check_buffer_length()?;
         Ok(StatusMessage {
-            mask: NativeEndian::read_u32(&buf[0..4]),
-            enabled: NativeEndian::read_u32(&buf[4..8]),
-            failure: NativeEndian::read_u32(&buf[8..12]),
-            pid: NativeEndian::read_u32(&buf[12..16]),
-            rate_limiting: NativeEndian::read_u32(&buf[16..20]),
-            backlog_limit: NativeEndian::read_u32(&buf[20..24]),
-            lost: NativeEndian::read_u32(&buf[24..28]),
-            backlog: NativeEndian::read_u32(&buf[28..32]),
-            feature_bitmap: NativeEndian::read_u32(&buf[32..36]),
-            backlog_wait_time: NativeEndian::read_u32(&buf[36..40]),
+            mask: self.mask(),
+            enabled: self.enabled(),
+            failure: self.failure(),
+            pid: self.pid(),
+            rate_limiting: self.rate_limiting(),
+            backlog_limit: self.backlog_limit(),
+            lost: self.lost(),
+            backlog: self.backlog(),
+            feature_bitmap: self.feature_bitmap(),
+            backlog_wait_time: self.backlog_wait_time(),
         })
-    }
-    fn to_bytes(&self, buf: &mut [u8]) -> Result<(), DecodeError> {
-        if buf.len() < AUDIT_STATUS_BUFFER_LEN {
-            return Err(DecodeError::from(format!(
-                "buffer is only {} long, but StatusMessage is {} bytes",
-                buf.len(),
-                AUDIT_STATUS_BUFFER_LEN
-            )));
-        }
-        NativeEndian::write_u32(&mut buf[0..4], self.mask);
-        NativeEndian::write_u32(&mut buf[4..8], self.enabled);
-        NativeEndian::write_u32(&mut buf[8..12], self.failure);
-        NativeEndian::write_u32(&mut buf[12..16], self.pid);
-        NativeEndian::write_u32(&mut buf[16..20], self.rate_limiting);
-        NativeEndian::write_u32(&mut buf[20..24], self.backlog_limit);
-        NativeEndian::write_u32(&mut buf[24..28], self.lost);
-        NativeEndian::write_u32(&mut buf[28..32], self.backlog);
-        NativeEndian::write_u32(&mut buf[32..36], self.feature_bitmap);
-        NativeEndian::write_u32(&mut buf[36..40], self.backlog_wait_time);
-        Ok(())
     }
 }
 
 impl Emitable for StatusMessage {
     fn buffer_len(&self) -> usize {
-        AUDIT_STATUS_BUFFER_LEN
+        STATUS_MESSAGE_LEN
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        self.to_bytes(buffer)
-            .expect("check the buffer length before calling emit_value()!")
-    }
-}
-
-impl<T: AsRef<[u8]>> Parseable<StatusMessage> for T {
-    fn parse(&self) -> Result<StatusMessage, DecodeError> {
-        StatusMessage::from_bytes(self.as_ref())
+        let mut buffer = StatusMessageBuffer::new(buffer);
+        buffer.set_mask(self.mask);
+        buffer.set_enabled(self.enabled);
+        buffer.set_failure(self.failure);
+        buffer.set_pid(self.pid);
+        buffer.set_rate_limiting(self.rate_limiting);
+        buffer.set_backlog_limit(self.backlog_limit);
+        buffer.set_lost(self.lost);
+        buffer.set_backlog(self.backlog);
+        buffer.set_feature_bitmap(self.feature_bitmap);
+        buffer.set_backlog_wait_time(self.backlog_wait_time);
     }
 }
