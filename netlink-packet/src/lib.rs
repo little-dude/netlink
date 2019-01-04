@@ -114,7 +114,7 @@
 
 #![cfg_attr(rustfmt, rustfmt::skip)]
 
-#[macro_use] extern crate log;
+#[cfg_attr(feature = "rtnetlink", macro_use)] extern crate log;
 
 pub use netlink_sys::constants;
 
