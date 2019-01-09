@@ -1,10 +1,10 @@
 use std::thread::spawn;
 
-use futures::{future, Future, Stream};
+use futures::{Future, Stream};
 use tokio_core::reactor::Core;
 
+use rtnetlink::new_connection;
 use rtnetlink::packet::LinkNla;
-use rtnetlink::{new_connection, ErrorKind};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();

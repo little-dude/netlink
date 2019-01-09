@@ -5,15 +5,12 @@
 //!
 use std::thread::spawn;
 
-use futures::{Future, Stream};
+use futures::Future;
 use tokio_core::reactor::Core;
 
-use audit::constants::{AUDIT_ARCH_X86_64, NLM_F_DUMP, NLM_F_REQUEST};
+use audit::constants::AUDIT_ARCH_X86_64;
 use audit::new_connection;
-use audit::packet::{
-    AuditMessage, NetlinkFlags, NetlinkMessage, RuleAction, RuleField, RuleFieldFlags, RuleFlags,
-    RuleMessage, RuleSyscalls,
-};
+use audit::packet::{RuleAction, RuleField, RuleFieldFlags, RuleFlags, RuleMessage, RuleSyscalls};
 
 fn main() {
     env_logger::init();
