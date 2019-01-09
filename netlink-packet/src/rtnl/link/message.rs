@@ -1,6 +1,7 @@
-use crate::{DecodeError, Emitable, Parseable};
+use failure::ResultExt;
 
 use super::{LinkBuffer, LinkHeader, LinkNla};
+use crate::{DecodeError, Emitable, Parseable};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct LinkMessage {
@@ -63,32 +64,20 @@ impl Emitable for LinkMessage {
 
 impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<LinkMessage> for LinkBuffer<&'buffer T> {
     fn parse(&self) -> Result<LinkMessage, DecodeError> {
-        let header = self.parse()?;
-
-        let parsed_nlas: Vec<Result<LinkNla, DecodeError>> = self.parse()?;
-        let (valid_nlas, parse_errors): (Vec<_>, Vec<_>) =
-            parsed_nlas.into_iter().partition(Result::is_ok);
-        let nlas = valid_nlas.into_iter().map(Result::unwrap).collect();
-
-        // FIXME: perhaps there should be a way to access the error(s) after the message is ready?
-        for parse_result in parse_errors {
-            warn!(
-                "Failed to parse a Netlink Link message attribute: {}",
-                parse_result.unwrap_err()
-            );
-        }
-
-        Ok(LinkMessage { header, nlas })
+        Ok(LinkMessage {
+            header: self
+                .parse()
+                .context("failed to parse link message header")?,
+            nlas: self.parse().context("failed to parse link message NLAs")?,
+        })
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Vec<Result<LinkNla, DecodeError>>>
-    for LinkBuffer<&'buffer T>
-{
-    fn parse(&self) -> Result<Vec<Result<LinkNla, DecodeError>>, DecodeError> {
+impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Vec<LinkNla>> for LinkBuffer<&'buffer T> {
+    fn parse(&self) -> Result<Vec<LinkNla>, DecodeError> {
         let mut nlas = vec![];
         for nla_buf in self.nlas() {
-            nlas.push(nla_buf.and_then(|nla_buf| nla_buf.parse()));
+            nlas.push(nla_buf?.parse()?);
         }
         Ok(nlas)
     }
