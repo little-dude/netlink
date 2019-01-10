@@ -153,7 +153,7 @@ impl Nla for LinkAfSpecNla {
                 | Ieee802154(ref bytes)
                 | Caif(ref bytes)
                 | Alg(ref bytes)
-                => buffer.copy_from_slice(bytes.as_slice()),
+                => (&mut buffer[..bytes.len()]).copy_from_slice(bytes.as_slice()),
             LinkAfSpecNla::Inet6(ref attrs) => attrs.as_slice().emit(buffer),
             LinkAfSpecNla::Inet(ref attrs) => attrs.as_slice().emit(buffer),
             LinkAfSpecNla::Other(ref nla)  => nla.emit_value(buffer),

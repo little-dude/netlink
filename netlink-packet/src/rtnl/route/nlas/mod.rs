@@ -1,6 +1,12 @@
 mod metrics;
+pub use self::metrics::*;
 
-pub use self::metrics::RouteMetricsNla;
+mod cache_info;
+pub use self::cache_info::*;
+
+mod mfc_stats;
+pub use self::mfc_stats::*;
+
 use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
 use std::mem::size_of;
@@ -8,103 +14,6 @@ use std::mem::size_of;
 use crate::constants::*;
 use crate::utils::{parse_u16, parse_u32};
 use crate::{DecodeError, DefaultNla, Emitable, Nla, NlaBuffer, Parseable};
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub struct RouteCacheInfo {
-    pub clntref: u32,
-    pub last_use: u32,
-    pub expires: u32,
-    pub error: u32,
-    pub used: u32,
-    pub id: u32,
-    pub ts: u32,
-    pub ts_age: u32,
-}
-
-const ROUTE_CACHE_INFO_LEN: usize = 4 * 8;
-
-impl RouteCacheInfo {
-    fn from_bytes(buf: &[u8]) -> Result<Self, DecodeError> {
-        if buf.len() < ROUTE_CACHE_INFO_LEN {
-            return Err(DecodeError::from(format!(
-                "RTA_CACHEINFO is {} bytes, buffer is only {} bytes: {:#x?}",
-                ROUTE_CACHE_INFO_LEN,
-                buf.len(),
-                buf
-            )));
-        }
-        Ok(RouteCacheInfo {
-            clntref: NativeEndian::read_u32(&buf[0..4]),
-            last_use: NativeEndian::read_u32(&buf[4..8]),
-            expires: NativeEndian::read_u32(&buf[8..12]),
-            error: NativeEndian::read_u32(&buf[12..16]),
-            used: NativeEndian::read_u32(&buf[16..20]),
-            id: NativeEndian::read_u32(&buf[20..24]),
-            ts: NativeEndian::read_u32(&buf[24..28]),
-            ts_age: NativeEndian::read_u32(&buf[28..32]),
-        })
-    }
-
-    fn to_bytes(&self, buf: &mut [u8]) -> Result<(), DecodeError> {
-        if buf.len() < ROUTE_CACHE_INFO_LEN {
-            return Err(DecodeError::from(format!(
-                "buffer is only {} long, but RTA_CACHEINFO is {} bytes",
-                buf.len(),
-                ROUTE_CACHE_INFO_LEN,
-            )));
-        }
-        NativeEndian::write_u32(&mut buf[0..4], self.clntref);
-        NativeEndian::write_u32(&mut buf[4..8], self.last_use);
-        NativeEndian::write_u32(&mut buf[8..12], self.expires);
-        NativeEndian::write_u32(&mut buf[12..16], self.error);
-        NativeEndian::write_u32(&mut buf[16..20], self.used);
-        NativeEndian::write_u32(&mut buf[20..24], self.id);
-        NativeEndian::write_u32(&mut buf[24..28], self.ts);
-        NativeEndian::write_u32(&mut buf[28..32], self.ts_age);
-        Ok(())
-    }
-}
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub struct RouteMfcStats {
-    pub packets: u64,
-    pub bytes: u64,
-    pub wrong_if: u64,
-}
-
-const ROUTE_MFC_STATS_LEN: usize = 3 * 8;
-
-impl RouteMfcStats {
-    fn from_bytes(buf: &[u8]) -> Result<Self, DecodeError> {
-        if buf.len() < ROUTE_MFC_STATS_LEN {
-            return Err(DecodeError::from(format!(
-                "RTA_MFC_STATS is {} bytes, buffer is only {} bytes: {:#x?}",
-                ROUTE_MFC_STATS_LEN,
-                buf.len(),
-                buf
-            )));
-        }
-        Ok(RouteMfcStats {
-            packets: NativeEndian::read_u64(&buf[0..8]),
-            bytes: NativeEndian::read_u64(&buf[8..16]),
-            wrong_if: NativeEndian::read_u64(&buf[16..24]),
-        })
-    }
-
-    fn to_bytes(&self, buf: &mut [u8]) -> Result<(), DecodeError> {
-        if buf.len() < ROUTE_MFC_STATS_LEN {
-            return Err(DecodeError::from(format!(
-                "buffer is only {} long, but RTA_CACHEINFO is {} bytes",
-                buf.len(),
-                ROUTE_MFC_STATS_LEN,
-            )));
-        }
-        NativeEndian::write_u64(&mut buf[0..8], self.packets);
-        NativeEndian::write_u64(&mut buf[8..16], self.bytes);
-        NativeEndian::write_u64(&mut buf[16..24], self.wrong_if);
-        Ok(())
-    }
-}
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum RouteNla {
@@ -171,8 +80,8 @@ impl Nla for RouteNla {
                 | Mark(_)
                 => size_of::<u32>(),
 
-            CacheInfo(_) => size_of::<RouteCacheInfo>(),
-            MfcStats(_) => size_of::<RouteMfcStats>(),
+            CacheInfo(_) => ROUTE_CACHE_INFO_LEN,
+            MfcStats(_) => ROUTE_MFC_STATS_LEN,
             Metrics(ref attr) => attr.buffer_len(),
             Other(ref attr) => attr.value_len(),
         }
@@ -208,8 +117,8 @@ impl Nla for RouteNla {
                 | Table(value)
                 | Mark(value)
                 => NativeEndian::write_u32(buffer, value),
-            CacheInfo(ref cache_info) => cache_info.to_bytes(buffer).expect("check the buffer length before calling emit_value()!"),
-            MfcStats(ref mfc_stats) => mfc_stats.to_bytes(buffer).expect("check the buffer length before calling emit_value()!"),
+            CacheInfo(ref cache_info) => cache_info.emit(buffer),
+            MfcStats(ref mfc_stats) => mfc_stats.emit(buffer),
             Metrics(ref attr) => attr.emit(buffer),
             Other(ref attr) => attr.emit_value(buffer),
         }
@@ -284,14 +193,17 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<RouteNla> for NlaBuffer<&'buffe
             RTA_TABLE => Table(parse_u32(payload).context("invalid RTA_TABLE value")?),
             RTA_MARK => Mark(parse_u32(payload).context("invalid RTA_MARK value")?),
             RTA_CACHEINFO => CacheInfo(
-                RouteCacheInfo::from_bytes(payload).context("invalid RTA_CACHEINFO value")?,
+                RouteCacheInfoBuffer::new(payload)
+                    .parse()
+                    .context("invalid RTA_CACHEINFO value")?,
             ),
-            RTA_MFC_STATS => {
-                MfcStats(RouteMfcStats::from_bytes(payload).context("invalid RTA_MFC_STATS value")?)
-            }
+            RTA_MFC_STATS => MfcStats(
+                RouteMfcStatsBuffer::new(payload)
+                    .parse()
+                    .context("invalid RTA_MFC_STATS value")?,
+            ),
             RTA_METRICS => Metrics(
-                NlaBuffer::new_checked(payload)
-                    .context("invalid RTA_METRICS value")?
+                NlaBuffer::new(payload)
                     .parse()
                     .context("invalid RTA_METRICS value")?,
             ),

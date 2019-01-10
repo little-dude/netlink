@@ -6,7 +6,7 @@ use std::marker::PhantomData;
 // These traits need to be in scope for some methods to be called.
 
 use bytes::{BufMut, BytesMut};
-use netlink_packet::{Emitable, NetlinkBuffer, NetlinkMessage};
+use netlink_packet::{Emitable, NetlinkBuffer, NetlinkMessage, Parseable};
 use tokio_io::codec::{Decoder, Encoder};
 
 pub struct NetlinkCodec<T> {
@@ -116,8 +116,10 @@ impl Decoder for NetlinkCodec<NetlinkMessage> {
 
         #[cfg(not(feature = "audit"))]
         let bytes = src.split_to(len);
+        let parsed =
+            <NetlinkBuffer<_> as Parseable<NetlinkMessage>>::parse(&NetlinkBuffer::new(&bytes));
 
-        match NetlinkMessage::from_bytes(&bytes) {
+        match parsed {
             Ok(packet) => Ok(Some(packet)),
             Err(e) => {
                 let mut error_string = format!("failed to decode packet {:#x?}", &bytes);
@@ -135,17 +137,29 @@ impl Encoder for NetlinkCodec<NetlinkMessage> {
     type Item = NetlinkMessage;
     type Error = io::Error;
 
-    fn encode(&mut self, mut msg: Self::Item, buf: &mut BytesMut) -> Result<(), Self::Error> {
+    fn encode(&mut self, msg: Self::Item, buf: &mut BytesMut) -> Result<(), Self::Error> {
         let msg_len = msg.buffer_len();
         // FIXME: we should have a max length for the buffer
         while buf.remaining_mut() < msg_len {
             let new_len = buf.len() + 2048;
             buf.resize(new_len, 0);
         }
+        let size = msg.buffer_len();
+        // bytes_mut() and advance_mut() are unsafe.
+        // TODO/FIXME: comment on why what we do here is safe.
         unsafe {
-            let size = msg
-                .to_bytes(&mut buf.bytes_mut()[..])
-                .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("{}", e)))?;
+            let bytes = buf.bytes_mut();
+            if bytes.len() < size {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!(
+                        "message is {} bytes, but only {} bytes left in the buffer",
+                        size,
+                        bytes.len()
+                    ),
+                ));
+            }
+            msg.emit(&mut buf.bytes_mut()[..size]);
             buf.advance_mut(size);
         }
         Ok(())

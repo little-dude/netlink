@@ -1,10 +1,13 @@
+mod cache_info;
+pub use self::cache_info::*;
+
 use std::mem::size_of;
 
 use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
 
 use crate::utils::{parse_string, parse_u32};
-use crate::{DecodeError, DefaultNla, Nla, NlaBuffer, Parseable};
+use crate::{DecodeError, DefaultNla, Emitable, Nla, NlaBuffer, Parseable};
 
 use crate::constants::*;
 
@@ -42,7 +45,7 @@ impl Nla for AddressNla {
             Flags(_) => size_of::<u32>(),
 
             // Native
-            CacheInfo(_) => size_of::<AddressCacheInfo>(),
+            CacheInfo(_) => ADDRESSS_CACHE_INFO_LEN,
 
             // Defaults
             Other(ref attr)  => attr.value_len(),
@@ -70,7 +73,7 @@ impl Nla for AddressNla {
             // u32
             Flags(ref value) => NativeEndian::write_u32(buffer, *value),
 
-            CacheInfo(ref cacheinfo) => cacheinfo.to_bytes(buffer).expect("check the buffer length before calling emit_value()!"),
+            CacheInfo(ref cacheinfo) => cacheinfo.emit(buffer),
 
             // Default
             Other(ref attr) => attr.emit_value(buffer),
@@ -106,7 +109,9 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<AddressNla> for NlaBuffer<&'buf
             IFA_BROADCAST => Broadcast(payload.to_vec()),
             IFA_ANYCAST => Anycast(payload.to_vec()),
             IFA_CACHEINFO => CacheInfo(
-                AddressCacheInfo::from_bytes(payload).context("invalid IFA_CACHEINFO value")?,
+                AddressCacheInfoBuffer::new(payload)
+                    .parse()
+                    .context("invalid IFA_CACHEINFO value")?,
             ),
             IFA_MULTICAST => Multicast(payload.to_vec()),
             IFA_FLAGS => Flags(parse_u32(payload).context("invalid IFA_FLAGS value")?),
@@ -115,50 +120,5 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<AddressNla> for NlaBuffer<&'buf
                     .context(format!("unknown NLA type {}", kind))?,
             ),
         })
-    }
-}
-
-#[repr(C)]
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
-pub struct AddressCacheInfo {
-    pub ifa_preferred: i32,
-    pub ifa_valid: i32,
-    pub cstamp: i32,
-    pub tstamp: i32,
-}
-
-const ADDRESSS_CACHE_INFO_LEN: usize = 4 * 4;
-
-impl AddressCacheInfo {
-    fn from_bytes(buf: &[u8]) -> Result<Self, DecodeError> {
-        if buf.len() < ADDRESSS_CACHE_INFO_LEN {
-            return Err(DecodeError::from(format!(
-                "IFA_CACHEINFO is {} bytes, buffer is only {} bytes: {:#x?}",
-                ADDRESSS_CACHE_INFO_LEN,
-                buf.len(),
-                buf
-            )));
-        }
-        Ok(AddressCacheInfo {
-            ifa_preferred: NativeEndian::read_i32(&buf[0..4]),
-            ifa_valid: NativeEndian::read_i32(&buf[4..8]),
-            cstamp: NativeEndian::read_i32(&buf[8..12]),
-            tstamp: NativeEndian::read_i32(&buf[12..16]),
-        })
-    }
-
-    fn to_bytes(&self, buf: &mut [u8]) -> Result<(), DecodeError> {
-        if buf.len() < ADDRESSS_CACHE_INFO_LEN {
-            return Err(DecodeError::from(format!(
-                "buffer is only {} long, but IFA_CACHEINFO is {} bytes",
-                buf.len(),
-                ADDRESSS_CACHE_INFO_LEN
-            )));
-        }
-        NativeEndian::write_i32(&mut buf[0..4], self.ifa_preferred);
-        NativeEndian::write_i32(&mut buf[4..8], self.ifa_valid);
-        NativeEndian::write_i32(&mut buf[8..12], self.cstamp);
-        NativeEndian::write_i32(&mut buf[12..16], self.tstamp);
-        Ok(())
     }
 }

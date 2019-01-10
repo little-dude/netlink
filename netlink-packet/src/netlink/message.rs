@@ -2,8 +2,8 @@ use crate::constants::*;
 use failure::ResultExt;
 
 use crate::{
-    AckMessage, DecodeError, Emitable, EncodeError, ErrorBuffer, ErrorMessage, NetlinkBuffer,
-    NetlinkHeader, Parseable,
+    AckMessage, DecodeError, Emitable, ErrorBuffer, ErrorMessage, NetlinkBuffer, NetlinkHeader,
+    Parseable,
 };
 
 #[cfg(feature = "rtnetlink")]
@@ -174,29 +174,6 @@ impl NetlinkMessage {
         &mut self.header
     }
 
-    /// Safely serialize the message. Under the hood, this calls
-    /// [`Emitable::emit()`](trait.Emitable.html#tymethod.emit), but unlike `emit()`, this method
-    /// does not panic if the message is malformed or if the destination buffer is too small.
-    /// Instead, an error is returned.
-    #[allow(clippy::wrong_self_convention)]
-    pub fn to_bytes(&mut self, buffer: &mut [u8]) -> Result<usize, EncodeError> {
-        self.finalize();
-        if self.header().length() as usize > buffer.len() {
-            Err(EncodeError::from("buffer exhausted"))
-        } else {
-            self.emit(buffer);
-            Ok(self.header().length() as usize)
-        }
-    }
-
-    /// Try to parse a message from a buffer
-    pub fn from_bytes(buffer: &[u8]) -> Result<Self, DecodeError> {
-        Ok(NetlinkBuffer::new_checked(&buffer)
-            .context("failed to parse netlink packet")?
-            .parse()
-            .context("failed to parse netlink packet")?)
-    }
-
     /// Check if the payload is a `NLMSG_DONE` message
     /// ([`Rtnl::Done`](enum.NetlinkPayload.html#variant.Done))
     pub fn is_done(&self) -> bool {
@@ -243,9 +220,8 @@ impl NetlinkMessage {
     /// - check the payload type and set the header's message type field accordingly
     ///
     /// If you are not 100% sure the header is correct, this method should be called before calling
-    /// [`Emitable::emit()`](trait.Emitable.html#tymethod.emit) or
-    /// [`to_bytes()`](#method.to_bytes). `emit()` could panic if the header is inconsistent with
-    /// the rest of the message, and `to_bytes()` would return an error.
+    /// [`Emitable::emit()`](trait.Emitable.html#tymethod.emit), as it could panic if the header is
+    /// inconsistent with the rest of the message.
     pub fn finalize(&mut self) {
         *self.header.length_mut() = self.buffer_len() as u32;
         *self.header.message_type_mut() = self.payload.message_type();

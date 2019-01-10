@@ -1,7 +1,9 @@
 use failure::ResultExt;
 
 use crate::constants::*;
-use crate::{DecodeError, Emitable, Parseable, RuleBuffer, RuleMessage, StatusMessage};
+use crate::{
+    DecodeError, Emitable, Parseable, RuleBuffer, RuleMessage, StatusMessage, StatusMessageBuffer,
+};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum AuditMessage {
@@ -92,12 +94,12 @@ impl AuditMessage {
         let message = match message_type {
             AUDIT_GET if buffer.is_empty() => GetStatus(None),
             AUDIT_GET => GetStatus(Some(
-                buffer
+                StatusMessageBuffer::new(buffer)
                     .parse()
                     .context("failed to parse AUDIT_GET message")?,
             )),
             AUDIT_SET => SetStatus(
-                buffer
+                StatusMessageBuffer::new(buffer)
                     .parse()
                     .context("failed to parse AUDIT_SET message")?,
             ),
