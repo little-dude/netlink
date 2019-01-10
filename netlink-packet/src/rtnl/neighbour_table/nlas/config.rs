@@ -97,39 +97,39 @@ impl<T: AsRef<[u8]>> NeighbourTableConfigBuffer<T> {
 
 impl<T: AsRef<[u8]> + AsMut<[u8]>> NeighbourTableConfigBuffer<T> {
     pub fn set_key_len(&mut self, value: u16) {
-        NativeEndian::write_u16(&mut self.buffer.as_mut()[KEY_LEN], value.into())
+        NativeEndian::write_u16(&mut self.buffer.as_mut()[KEY_LEN], value)
     }
 
     pub fn set_entry_size(&mut self, value: u16) {
-        NativeEndian::write_u16(&mut self.buffer.as_mut()[ENTRY_SIZE], value.into())
+        NativeEndian::write_u16(&mut self.buffer.as_mut()[ENTRY_SIZE], value)
     }
 
     pub fn set_entries(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[ENTRIES], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[ENTRIES], value)
     }
 
     pub fn set_last_flush(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[LAST_FLUSH], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[LAST_FLUSH], value)
     }
 
     pub fn set_last_rand(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[LAST_RAND], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[LAST_RAND], value)
     }
 
     pub fn set_hash_rand(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[HASH_RAND], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[HASH_RAND], value)
     }
 
     pub fn set_hash_mask(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[HASH_MASK], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[HASH_MASK], value)
     }
 
     pub fn set_hash_chain_gc(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[HASH_CHAIN_GC], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[HASH_CHAIN_GC], value)
     }
 
     pub fn set_proxy_qlen(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[PROXY_QLEN], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[PROXY_QLEN], value)
     }
 }
 

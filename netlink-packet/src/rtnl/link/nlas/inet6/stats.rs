@@ -256,112 +256,112 @@ impl<T: AsRef<[u8]>> LinkInet6StatsBuffer<T> {
 
 impl<T: AsRef<[u8]> + AsMut<[u8]>> LinkInet6StatsBuffer<T> {
     pub fn set_num(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[NUM], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[NUM], value)
     }
     pub fn set_in_pkts(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_PKTS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_PKTS], value)
     }
     pub fn set_in_octets(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_OCTETS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_OCTETS], value)
     }
     pub fn set_in_delivers(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_DELIVERS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_DELIVERS], value)
     }
     pub fn set_out_forw_datagrams(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_FORW_DATAGRAMS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_FORW_DATAGRAMS], value)
     }
     pub fn set_out_pkts(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_PKTS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_PKTS], value)
     }
     pub fn set_out_octets(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_OCTETS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_OCTETS], value)
     }
     pub fn set_in_hdr_errors(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_HDR_ERRORS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_HDR_ERRORS], value)
     }
     pub fn set_in_too_big_errors(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_TOO_BIG_ERRORS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_TOO_BIG_ERRORS], value)
     }
     pub fn set_in_no_routes(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_NO_ROUTES], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_NO_ROUTES], value)
     }
     pub fn set_in_addr_errors(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_ADDR_ERRORS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_ADDR_ERRORS], value)
     }
     pub fn set_in_unknown_protos(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_UNKNOWN_PROTOS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_UNKNOWN_PROTOS], value)
     }
     pub fn set_in_truncated_pkts(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_TRUNCATED_PKTS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_TRUNCATED_PKTS], value)
     }
     pub fn set_in_discards(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_DISCARDS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_DISCARDS], value)
     }
     pub fn set_out_discards(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_DISCARDS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_DISCARDS], value)
     }
     pub fn set_out_no_routes(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_NO_ROUTES], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_NO_ROUTES], value)
     }
     pub fn set_reasm_timeout(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[REASM_TIMEOUT], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[REASM_TIMEOUT], value)
     }
     pub fn set_reasm_reqds(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[REASM_REQDS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[REASM_REQDS], value)
     }
     pub fn set_reasm_oks(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[REASM_OKS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[REASM_OKS], value)
     }
     pub fn set_reasm_fails(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[REASM_FAILS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[REASM_FAILS], value)
     }
     pub fn set_frag_oks(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[FRAG_OKS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[FRAG_OKS], value)
     }
     pub fn set_frag_fails(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[FRAG_FAILS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[FRAG_FAILS], value)
     }
     pub fn set_frag_creates(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[FRAG_CREATES], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[FRAG_CREATES], value)
     }
     pub fn set_in_mcast_pkts(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_MCAST_PKTS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_MCAST_PKTS], value)
     }
     pub fn set_out_mcast_pkts(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_MCAST_PKTS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_MCAST_PKTS], value)
     }
     pub fn set_in_bcast_pkts(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_BCAST_PKTS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_BCAST_PKTS], value)
     }
     pub fn set_out_bcast_pkts(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_BCAST_PKTS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_BCAST_PKTS], value)
     }
     pub fn set_in_mcast_octets(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_MCAST_OCTETS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_MCAST_OCTETS], value)
     }
     pub fn set_out_mcast_octets(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_MCAST_OCTETS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_MCAST_OCTETS], value)
     }
     pub fn set_in_bcast_octets(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_BCAST_OCTETS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_BCAST_OCTETS], value)
     }
     pub fn set_out_bcast_octets(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_BCAST_OCTETS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_BCAST_OCTETS], value)
     }
     pub fn set_in_csum_errors(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_CSUM_ERRORS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_CSUM_ERRORS], value)
     }
     pub fn set_in_no_ect_pkts(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_NO_ECT_PKTS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_NO_ECT_PKTS], value)
     }
     pub fn set_in_ect1_pkts(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_ECT1_PKTS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_ECT1_PKTS], value)
     }
     pub fn set_in_ect0_pkts(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_ECT0_PKTS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_ECT0_PKTS], value)
     }
     pub fn set_in_ce_pkts(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_CE_PKTS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_CE_PKTS], value)
     }
 }
 

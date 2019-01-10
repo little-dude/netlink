@@ -102,49 +102,43 @@ impl<T: AsRef<[u8]>> NeighbourTableStatsBuffer<T> {
 
 impl<T: AsRef<[u8]> + AsMut<[u8]>> NeighbourTableStatsBuffer<T> {
     pub fn set_allocs(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[ALLOCS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[ALLOCS], value)
     }
 
     pub fn set_destroys(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[DESTROYS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[DESTROYS], value)
     }
 
     pub fn set_hash_grows(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[HASH_GROWS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[HASH_GROWS], value)
     }
 
     pub fn set_res_failed(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[RES_FAILED], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[RES_FAILED], value)
     }
 
     pub fn set_lookups(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[LOOKUPS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[LOOKUPS], value)
     }
 
     pub fn set_hits(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[HITS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[HITS], value)
     }
 
     pub fn set_multicast_probes_received(&mut self, value: u64) {
-        NativeEndian::write_u64(
-            &mut self.buffer.as_mut()[MULTICAST_PROBES_RECEIVED],
-            value.into(),
-        )
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[MULTICAST_PROBES_RECEIVED], value)
     }
 
     pub fn set_unicast_probes_received(&mut self, value: u64) {
-        NativeEndian::write_u64(
-            &mut self.buffer.as_mut()[UNICAST_PROBES_RECEIVED],
-            value.into(),
-        )
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[UNICAST_PROBES_RECEIVED], value)
     }
 
     pub fn set_periodic_gc_runs(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[PERIODIC_GC_RUNS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[PERIODIC_GC_RUNS], value)
     }
 
     pub fn set_forced_gc_runs(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[FORCED_GC_RUNS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[FORCED_GC_RUNS], value)
     }
 }
 

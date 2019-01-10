@@ -289,237 +289,219 @@ impl<T: AsRef<[u8]>> LinkInet6DevConfBuffer<T> {
 
 impl<T: AsRef<[u8]> + AsMut<[u8]>> LinkInet6DevConfBuffer<T> {
     pub fn set_forwarding(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[FORWARDING], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[FORWARDING], value)
     }
 
     pub fn set_hoplimit(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[HOPLIMIT], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[HOPLIMIT], value)
     }
 
     pub fn set_mtu6(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[MTU6], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[MTU6], value)
     }
 
     pub fn set_accept_ra(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_RA], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_RA], value)
     }
 
     pub fn set_accept_redirects(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_REDIRECTS], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_REDIRECTS], value)
     }
 
     pub fn set_autoconf(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[AUTOCONF], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[AUTOCONF], value)
     }
 
     pub fn set_dad_transmits(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[DAD_TRANSMITS], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[DAD_TRANSMITS], value)
     }
 
     pub fn set_rtr_solicits(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[RTR_SOLICITS], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[RTR_SOLICITS], value)
     }
 
     pub fn set_rtr_solicit_interval(&mut self, value: i32) {
-        NativeEndian::write_i32(
-            &mut self.buffer.as_mut()[RTR_SOLICIT_INTERVAL],
-            value.into(),
-        )
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[RTR_SOLICIT_INTERVAL], value)
     }
 
     pub fn set_rtr_solicit_delay(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[RTR_SOLICIT_DELAY], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[RTR_SOLICIT_DELAY], value)
     }
 
     pub fn set_use_tempaddr(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[USE_TEMPADDR], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[USE_TEMPADDR], value)
     }
 
     pub fn set_temp_valid_lft(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[TEMP_VALID_LFT], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[TEMP_VALID_LFT], value)
     }
 
     pub fn set_temp_prefered_lft(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[TEMP_PREFERED_LFT], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[TEMP_PREFERED_LFT], value)
     }
 
     pub fn set_regen_max_retry(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[REGEN_MAX_RETRY], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[REGEN_MAX_RETRY], value)
     }
 
     pub fn set_max_desync_factor(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[MAX_DESYNC_FACTOR], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[MAX_DESYNC_FACTOR], value)
     }
 
     pub fn set_max_addresses(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[MAX_ADDRESSES], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[MAX_ADDRESSES], value)
     }
 
     pub fn set_force_mld_version(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[FORCE_MLD_VERSION], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[FORCE_MLD_VERSION], value)
     }
 
     pub fn set_accept_ra_defrtr(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_RA_DEFRTR], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_RA_DEFRTR], value)
     }
 
     pub fn set_accept_ra_pinfo(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_RA_PINFO], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_RA_PINFO], value)
     }
 
     pub fn set_accept_ra_rtr_pref(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_RA_RTR_PREF], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_RA_RTR_PREF], value)
     }
 
     pub fn set_rtr_probe_interval(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[RTR_PROBE_INTERVAL], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[RTR_PROBE_INTERVAL], value)
     }
 
     pub fn set_accept_ra_rt_info_max_plen(&mut self, value: i32) {
-        NativeEndian::write_i32(
-            &mut self.buffer.as_mut()[ACCEPT_RA_RT_INFO_MAX_PLEN],
-            value.into(),
-        )
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_RA_RT_INFO_MAX_PLEN], value)
     }
 
     pub fn set_proxy_ndp(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[PROXY_NDP], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[PROXY_NDP], value)
     }
 
     pub fn set_optimistic_dad(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[OPTIMISTIC_DAD], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[OPTIMISTIC_DAD], value)
     }
 
     pub fn set_accept_source_route(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_SOURCE_ROUTE], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_SOURCE_ROUTE], value)
     }
 
     pub fn set_mc_forwarding(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[MC_FORWARDING], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[MC_FORWARDING], value)
     }
 
     pub fn set_disable_ipv6(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[DISABLE_IPV6], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[DISABLE_IPV6], value)
     }
 
     pub fn set_accept_dad(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_DAD], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_DAD], value)
     }
 
     pub fn set_force_tllao(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[FORCE_TLLAO], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[FORCE_TLLAO], value)
     }
 
     pub fn set_ndisc_notify(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[NDISC_NOTIFY], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[NDISC_NOTIFY], value)
     }
 
     pub fn set_mldv1_unsolicited_report_interval(&mut self, value: i32) {
         NativeEndian::write_i32(
             &mut self.buffer.as_mut()[MLDV1_UNSOLICITED_REPORT_INTERVAL],
-            value.into(),
+            value,
         )
     }
 
     pub fn set_mldv2_unsolicited_report_interval(&mut self, value: i32) {
         NativeEndian::write_i32(
             &mut self.buffer.as_mut()[MLDV2_UNSOLICITED_REPORT_INTERVAL],
-            value.into(),
+            value,
         )
     }
 
     pub fn set_suppress_frag_ndisc(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[SUPPRESS_FRAG_NDISC], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[SUPPRESS_FRAG_NDISC], value)
     }
 
     pub fn set_accept_ra_from_local(&mut self, value: i32) {
-        NativeEndian::write_i32(
-            &mut self.buffer.as_mut()[ACCEPT_RA_FROM_LOCAL],
-            value.into(),
-        )
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_RA_FROM_LOCAL], value)
     }
 
     pub fn set_use_optimistic(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[USE_OPTIMISTIC], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[USE_OPTIMISTIC], value)
     }
 
     pub fn set_accept_ra_mtu(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_RA_MTU], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_RA_MTU], value)
     }
 
     pub fn set_stable_secret(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[STABLE_SECRET], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[STABLE_SECRET], value)
     }
 
     pub fn set_use_oif_addrs_only(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[USE_OIF_ADDRS_ONLY], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[USE_OIF_ADDRS_ONLY], value)
     }
 
     pub fn set_accept_ra_min_hop_limit(&mut self, value: i32) {
-        NativeEndian::write_i32(
-            &mut self.buffer.as_mut()[ACCEPT_RA_MIN_HOP_LIMIT],
-            value.into(),
-        )
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_RA_MIN_HOP_LIMIT], value)
     }
 
     pub fn set_ignore_routes_with_linkdown(&mut self, value: i32) {
         NativeEndian::write_i32(
             &mut self.buffer.as_mut()[IGNORE_ROUTES_WITH_LINKDOWN],
-            value.into(),
+            value,
         )
     }
 
     pub fn set_drop_unicast_in_l2_multicast(&mut self, value: i32) {
         NativeEndian::write_i32(
             &mut self.buffer.as_mut()[DROP_UNICAST_IN_L2_MULTICAST],
-            value.into(),
+            value,
         )
     }
 
     pub fn set_drop_unsolicited_na(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[DROP_UNSOLICITED_NA], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[DROP_UNSOLICITED_NA], value)
     }
 
     pub fn set_keep_addr_on_down(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[KEEP_ADDR_ON_DOWN], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[KEEP_ADDR_ON_DOWN], value)
     }
 
     pub fn set_rtr_solicit_max_interval(&mut self, value: i32) {
-        NativeEndian::write_i32(
-            &mut self.buffer.as_mut()[RTR_SOLICIT_MAX_INTERVAL],
-            value.into(),
-        )
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[RTR_SOLICIT_MAX_INTERVAL], value)
     }
 
     pub fn set_seg6_enabled(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[SEG6_ENABLED], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[SEG6_ENABLED], value)
     }
 
     pub fn set_seg6_require_hmac(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[SEG6_REQUIRE_HMAC], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[SEG6_REQUIRE_HMAC], value)
     }
 
     pub fn set_enhanced_dad(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[ENHANCED_DAD], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ENHANCED_DAD], value)
     }
 
     pub fn set_addr_gen_mode(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[ADDR_GEN_MODE], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ADDR_GEN_MODE], value)
     }
 
     pub fn set_disable_policy(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[DISABLE_POLICY], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[DISABLE_POLICY], value)
     }
 
     pub fn set_accept_ra_rt_info_min_plen(&mut self, value: i32) {
-        NativeEndian::write_i32(
-            &mut self.buffer.as_mut()[ACCEPT_RA_RT_INFO_MIN_PLEN],
-            value.into(),
-        )
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_RA_RT_INFO_MIN_PLEN], value)
     }
 
     pub fn set_ndisc_tclass(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[NDISC_TCLASS], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[NDISC_TCLASS], value)
     }
 }
 

@@ -68,19 +68,19 @@ impl<T: AsRef<[u8]>> AddressCacheInfoBuffer<T> {
 
 impl<T: AsRef<[u8]> + AsMut<[u8]>> AddressCacheInfoBuffer<T> {
     pub fn set_ifa_preferred(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[IFA_PREFERRED], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[IFA_PREFERRED], value)
     }
 
     pub fn set_ifa_valid(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[IFA_VALID], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[IFA_VALID], value)
     }
 
     pub fn set_cstamp(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[CSTAMP], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[CSTAMP], value)
     }
 
     pub fn set_tstamp(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[TSTAMP], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[TSTAMP], value)
     }
 }
 

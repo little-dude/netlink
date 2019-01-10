@@ -67,19 +67,19 @@ impl<T: AsRef<[u8]>> NeighbourCacheInfoBuffer<T> {
 
 impl<T: AsRef<[u8]> + AsMut<[u8]>> NeighbourCacheInfoBuffer<T> {
     pub fn set_confirmed(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[CONFIRMED], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[CONFIRMED], value)
     }
 
     pub fn set_used(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[USED], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[USED], value)
     }
 
     pub fn set_updated(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[UPDATED], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[UPDATED], value)
     }
 
     pub fn set_refcnt(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[REFCNT], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[REFCNT], value)
     }
 }
 

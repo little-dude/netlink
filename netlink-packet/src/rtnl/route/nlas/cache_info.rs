@@ -92,35 +92,35 @@ impl<T: AsRef<[u8]>> RouteCacheInfoBuffer<T> {
 
 impl<T: AsRef<[u8]> + AsMut<[u8]>> RouteCacheInfoBuffer<T> {
     pub fn set_clntref(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[CLNTREF], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[CLNTREF], value)
     }
 
     pub fn set_last_use(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[LAST_USE], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[LAST_USE], value)
     }
 
     pub fn set_expires(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[EXPIRES], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[EXPIRES], value)
     }
 
     pub fn set_error(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[ERROR], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[ERROR], value)
     }
 
     pub fn set_used(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[USED], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[USED], value)
     }
 
     pub fn set_id(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[ID], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[ID], value)
     }
 
     pub fn set_ts(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[TS], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[TS], value)
     }
 
     pub fn set_ts_age(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[TS_AGE], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[TS_AGE], value)
     }
 }
 

@@ -8,6 +8,12 @@ pub struct LinkMessage {
     nlas: Vec<LinkNla>,
 }
 
+impl Default for LinkMessage {
+    fn default() -> Self {
+        LinkMessage::new()
+    }
+}
+
 impl LinkMessage {
     pub fn new() -> Self {
         LinkMessage::from_parts(LinkHeader::new(), vec![])

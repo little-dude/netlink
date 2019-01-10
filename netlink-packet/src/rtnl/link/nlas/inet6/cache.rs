@@ -66,19 +66,19 @@ impl<T: AsRef<[u8]>> LinkInet6CacheInfoBuffer<T> {
 
 impl<T: AsRef<[u8]> + AsMut<[u8]>> LinkInet6CacheInfoBuffer<T> {
     pub fn set_max_reasm_len(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[MAX_REASM_LEN], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[MAX_REASM_LEN], value)
     }
 
     pub fn set_tstamp(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[TSTAMP], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[TSTAMP], value)
     }
 
     pub fn set_reachable_time(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[REACHABLE_TIME], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[REACHABLE_TIME], value)
     }
 
     pub fn set_retrans_time(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[RETRANS_TIME], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[RETRANS_TIME], value)
     }
 }
 
