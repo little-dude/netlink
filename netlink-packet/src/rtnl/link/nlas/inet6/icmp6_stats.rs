@@ -76,27 +76,27 @@ impl<T: AsRef<[u8]>> LinkIcmp6StatsBuffer<T> {
 
 impl<T: AsRef<[u8]> + AsMut<[u8]>> LinkIcmp6StatsBuffer<T> {
     pub fn set_num(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[NUM], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[NUM], value)
     }
 
     pub fn set_in_msgs(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_MSGS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_MSGS], value)
     }
 
     pub fn set_in_errors(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_ERRORS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_ERRORS], value)
     }
 
     pub fn set_out_msgs(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_MSGS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_MSGS], value)
     }
 
     pub fn set_out_errors(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_ERRORS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_ERRORS], value)
     }
 
     pub fn set_csum_errors(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[CSUM_ERRORS], value.into())
+        NativeEndian::write_i64(&mut self.buffer.as_mut()[CSUM_ERRORS], value)
     }
 }
 

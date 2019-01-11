@@ -80,19 +80,19 @@ impl<T: AsRef<[u8]>> LinkMapBuffer<T> {
 
 impl<T: AsRef<[u8]> + AsMut<[u8]>> LinkMapBuffer<T> {
     pub fn set_memory_start(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[MEMORY_START], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[MEMORY_START], value)
     }
 
     pub fn set_memory_end(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[MEMORY_END], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[MEMORY_END], value)
     }
 
     pub fn set_base_address(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[BASE_ADDRESS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[BASE_ADDRESS], value)
     }
 
     pub fn set_irq(&mut self, value: u16) {
-        NativeEndian::write_u16(&mut self.buffer.as_mut()[IRQ], value.into())
+        NativeEndian::write_u16(&mut self.buffer.as_mut()[IRQ], value)
     }
 
     pub fn set_dma(&mut self, value: u8) {

@@ -210,99 +210,99 @@ impl<T: AsRef<[u8]>> LinkStats64Buffer<T> {
 
 impl<T: AsRef<[u8]> + AsMut<[u8]>> LinkStats64Buffer<T> {
     pub fn set_rx_packets(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_PACKETS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_PACKETS], value)
     }
 
     pub fn set_tx_packets(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[TX_PACKETS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[TX_PACKETS], value)
     }
 
     pub fn set_rx_bytes(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_BYTES], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_BYTES], value)
     }
 
     pub fn set_tx_bytes(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[TX_BYTES], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[TX_BYTES], value)
     }
 
     pub fn set_rx_errors(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_ERRORS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_ERRORS], value)
     }
 
     pub fn set_tx_errors(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[TX_ERRORS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[TX_ERRORS], value)
     }
 
     pub fn set_rx_dropped(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_DROPPED], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_DROPPED], value)
     }
 
     pub fn set_tx_dropped(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[TX_DROPPED], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[TX_DROPPED], value)
     }
 
     pub fn set_multicast(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[MULTICAST], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[MULTICAST], value)
     }
 
     pub fn set_collisions(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[COLLISIONS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[COLLISIONS], value)
     }
 
     pub fn set_rx_length_errors(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_LENGTH_ERRORS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_LENGTH_ERRORS], value)
     }
 
     pub fn set_rx_over_errors(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_OVER_ERRORS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_OVER_ERRORS], value)
     }
 
     pub fn set_rx_crc_errors(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_CRC_ERRORS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_CRC_ERRORS], value)
     }
 
     pub fn set_rx_frame_errors(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_FRAME_ERRORS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_FRAME_ERRORS], value)
     }
 
     pub fn set_rx_fifo_errors(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_FIFO_ERRORS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_FIFO_ERRORS], value)
     }
 
     pub fn set_rx_missed_errors(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_MISSED_ERRORS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_MISSED_ERRORS], value)
     }
 
     pub fn set_tx_aborted_errors(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[TX_ABORTED_ERRORS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[TX_ABORTED_ERRORS], value)
     }
 
     pub fn set_tx_carrier_errors(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[TX_CARRIER_ERRORS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[TX_CARRIER_ERRORS], value)
     }
 
     pub fn set_tx_fifo_errors(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[TX_FIFO_ERRORS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[TX_FIFO_ERRORS], value)
     }
 
     pub fn set_tx_heartbeat_errors(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[TX_HEARTBEAT_ERRORS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[TX_HEARTBEAT_ERRORS], value)
     }
 
     pub fn set_tx_window_errors(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[TX_WINDOW_ERRORS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[TX_WINDOW_ERRORS], value)
     }
 
     pub fn set_rx_compressed(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_COMPRESSED], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_COMPRESSED], value)
     }
 
     pub fn set_tx_compressed(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[TX_COMPRESSED], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[TX_COMPRESSED], value)
     }
 
     pub fn set_rx_nohandler(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_NOHANDLER], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[RX_NOHANDLER], value)
     }
 }
 

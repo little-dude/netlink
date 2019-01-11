@@ -61,15 +61,15 @@ impl<T: AsRef<[u8]>> RouteMfcStatsBuffer<T> {
 
 impl<T: AsRef<[u8]> + AsMut<[u8]>> RouteMfcStatsBuffer<T> {
     pub fn set_packets(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[PACKETS], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[PACKETS], value)
     }
 
     pub fn set_bytes(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[BYTES], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[BYTES], value)
     }
 
     pub fn set_wrong_if(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[WRONG_IF], value.into())
+        NativeEndian::write_u64(&mut self.buffer.as_mut()[WRONG_IF], value)
     }
 }
 

@@ -230,139 +230,139 @@ impl<T: AsRef<[u8]>> LinkInetDevConfBuffer<T> {
 
 impl<T: AsRef<[u8]> + AsMut<[u8]>> LinkInetDevConfBuffer<T> {
     pub fn set_forwarding(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[FORWARDING], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[FORWARDING], value)
     }
 
     pub fn set_mc_forwarding(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[MC_FORWARDING], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[MC_FORWARDING], value)
     }
 
     pub fn set_proxy_arp(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[PROXY_ARP], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[PROXY_ARP], value)
     }
 
     pub fn set_accept_redirects(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_REDIRECTS], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_REDIRECTS], value)
     }
 
     pub fn set_secure_redirects(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[SECURE_REDIRECTS], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[SECURE_REDIRECTS], value)
     }
 
     pub fn set_send_redirects(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[SEND_REDIRECTS], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[SEND_REDIRECTS], value)
     }
 
     pub fn set_shared_media(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[SHARED_MEDIA], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[SHARED_MEDIA], value)
     }
 
     pub fn set_rp_filter(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[RP_FILTER], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[RP_FILTER], value)
     }
 
     pub fn set_accept_source_route(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_SOURCE_ROUTE], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_SOURCE_ROUTE], value)
     }
 
     pub fn set_bootp_relay(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[BOOTP_RELAY], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[BOOTP_RELAY], value)
     }
 
     pub fn set_log_martians(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[LOG_MARTIANS], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[LOG_MARTIANS], value)
     }
 
     pub fn set_tag(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[TAG], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[TAG], value)
     }
 
     pub fn set_arpfilter(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[ARPFILTER], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ARPFILTER], value)
     }
 
     pub fn set_medium_id(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[MEDIUM_ID], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[MEDIUM_ID], value)
     }
 
     pub fn set_noxfrm(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[NOXFRM], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[NOXFRM], value)
     }
 
     pub fn set_nopolicy(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[NOPOLICY], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[NOPOLICY], value)
     }
 
     pub fn set_force_igmp_version(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[FORCE_IGMP_VERSION], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[FORCE_IGMP_VERSION], value)
     }
 
     pub fn set_arp_announce(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[ARP_ANNOUNCE], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ARP_ANNOUNCE], value)
     }
 
     pub fn set_arp_ignore(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[ARP_IGNORE], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ARP_IGNORE], value)
     }
 
     pub fn set_promote_secondaries(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[PROMOTE_SECONDARIES], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[PROMOTE_SECONDARIES], value)
     }
 
     pub fn set_arp_accept(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[ARP_ACCEPT], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ARP_ACCEPT], value)
     }
 
     pub fn set_arp_notify(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[ARP_NOTIFY], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ARP_NOTIFY], value)
     }
 
     pub fn set_accept_local(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_LOCAL], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ACCEPT_LOCAL], value)
     }
 
     pub fn set_src_vmark(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[SRC_VMARK], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[SRC_VMARK], value)
     }
 
     pub fn set_proxy_arp_pvlan(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[PROXY_ARP_PVLAN], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[PROXY_ARP_PVLAN], value)
     }
 
     pub fn set_route_localnet(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[ROUTE_LOCALNET], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[ROUTE_LOCALNET], value)
     }
 
     pub fn set_igmpv2_unsolicited_report_interval(&mut self, value: i32) {
         NativeEndian::write_i32(
             &mut self.buffer.as_mut()[IGMPV2_UNSOLICITED_REPORT_INTERVAL],
-            value.into(),
+            value,
         )
     }
 
     pub fn set_igmpv3_unsolicited_report_interval(&mut self, value: i32) {
         NativeEndian::write_i32(
             &mut self.buffer.as_mut()[IGMPV3_UNSOLICITED_REPORT_INTERVAL],
-            value.into(),
+            value,
         )
     }
 
     pub fn set_ignore_routes_with_linkdown(&mut self, value: i32) {
         NativeEndian::write_i32(
             &mut self.buffer.as_mut()[IGNORE_ROUTES_WITH_LINKDOWN],
-            value.into(),
+            value,
         )
     }
 
     pub fn set_drop_unicast_in_l2_multicast(&mut self, value: i32) {
         NativeEndian::write_i32(
             &mut self.buffer.as_mut()[DROP_UNICAST_IN_L2_MULTICAST],
-            value.into(),
+            value,
         )
     }
 
     pub fn set_drop_gratuitous_arp(&mut self, value: i32) {
-        NativeEndian::write_i32(&mut self.buffer.as_mut()[DROP_GRATUITOUS_ARP], value.into())
+        NativeEndian::write_i32(&mut self.buffer.as_mut()[DROP_GRATUITOUS_ARP], value)
     }
 }
 

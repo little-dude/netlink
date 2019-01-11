@@ -118,43 +118,43 @@ impl<T: AsRef<[u8]>> StatusMessageBuffer<T> {
 
 impl<T: AsRef<[u8]> + AsMut<[u8]>> StatusMessageBuffer<T> {
     pub fn set_mask(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[MASK], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[MASK], value)
     }
 
     pub fn set_enabled(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[ENABLED], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[ENABLED], value)
     }
 
     pub fn set_failure(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[FAILURE], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[FAILURE], value)
     }
 
     pub fn set_pid(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[PID], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[PID], value)
     }
 
     pub fn set_rate_limiting(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[RATE_LIMITING], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[RATE_LIMITING], value)
     }
 
     pub fn set_backlog_limit(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[BACKLOG_LIMIT], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[BACKLOG_LIMIT], value)
     }
 
     pub fn set_lost(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[LOST], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[LOST], value)
     }
 
     pub fn set_backlog(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[BACKLOG], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[BACKLOG], value)
     }
 
     pub fn set_feature_bitmap(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[FEATURE_BITMAP], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[FEATURE_BITMAP], value)
     }
 
     pub fn set_backlog_wait_time(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[BACKLOG_WAIT_TIME], value.into())
+        NativeEndian::write_u32(&mut self.buffer.as_mut()[BACKLOG_WAIT_TIME], value)
     }
 }
 
