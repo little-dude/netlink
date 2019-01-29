@@ -27,6 +27,25 @@ impl<T: AsRef<[u8]>> TcBuffer<T> {
         self.buffer
     }
 
+    pub fn new_checked(buffer: T) -> Result<TcBuffer<T>, DecodeError> {
+        let packet = Self::new(buffer);
+        packet.check_buffer_length()?;
+        Ok(packet)
+    }
+
+    fn check_buffer_length(&self) -> Result<(), DecodeError> {
+        let len = self.buffer.as_ref().len();
+        if len < TC_HEADER_LEN {
+            Err(format!(
+                "invalid TcBuffer: length is {} but TcBuffer are at least {} bytes",
+                len, TC_HEADER_LEN
+            )
+            .into())
+        } else {
+            Ok(())
+        }
+    }
+
     pub fn family(&self) -> u8 {
         let data = self.buffer.as_ref();
         data[FAMILY]

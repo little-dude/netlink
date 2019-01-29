@@ -4,7 +4,8 @@ use failure::ResultExt;
 use crate::{
     AddressBuffer, AddressHeader, AddressMessage, DecodeError, Emitable, LinkBuffer, LinkHeader,
     LinkMessage, NeighbourBuffer, NeighbourMessage, NeighbourTableBuffer, NeighbourTableMessage,
-    Parseable, RouteBuffer, RouteHeader, RouteMessage, TcBuffer, TcMessage, NsIdMessage, NsIdBuffer,
+    NsIdBuffer, NsIdMessage, Parseable, RouteBuffer, RouteHeader, RouteMessage, TcBuffer,
+    TcMessage,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -416,7 +417,8 @@ impl RtnlMessage {
             RTM_NEWQDISC | RTM_DELQDISC | RTM_GETQDISC |
             RTM_NEWTCLASS | RTM_DELTCLASS | RTM_GETTCLASS |
             RTM_NEWTFILTER | RTM_DELTFILTER | RTM_GETTFILTER => {
-                let msg: TcMessage = TcBuffer::new(&buffer)
+                let msg: TcMessage = TcBuffer::new_checked(&buffer)
+                    .context("invalid tc message")?
                     .parse()
                     .context("invalid tc message")?;
                 match message_type {
