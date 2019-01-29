@@ -393,7 +393,11 @@ impl RtnlMessage {
                     // HACK: iproute2 sends invalid RTM_GETROUTE message, where the header is
                     // limited to the interface family (1 byte) and 3 bytes of padding.
                     Err(e) => {
-                        if buffer.len() == 4 && message_type == RTM_GETROUTE {
+                        // Not only does iproute2 sends invalid messages, it's also inconsistent in
+                        // doing so: for link and address messages, the length advertised in the
+                        // netlink header includes the 3 bytes of padding but it does not seem to
+                        // be the case for the route message, hence the buffer.len() == 1 check.
+                        if (buffer.len() == 4 || buffer.len() == 1) && message_type == RTM_GETROUTE {
                             let mut msg = RouteMessage {
                                 header: RouteHeader::new(),
                                 nlas: vec![],
