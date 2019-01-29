@@ -308,7 +308,6 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> LinkStatsBuffer<T> {
 
 impl<T: AsRef<[u8]>> Parseable<LinkStats> for LinkStatsBuffer<T> {
     fn parse(&self) -> Result<LinkStats, DecodeError> {
-        self.check_buffer_length()?;
         Ok(LinkStats {
             rx_packets: self.rx_packets(),
             tx_packets: self.tx_packets(),

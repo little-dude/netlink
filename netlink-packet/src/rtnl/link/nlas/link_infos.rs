@@ -1,5 +1,5 @@
 use crate::constants::*;
-use crate::rtnl::{LinkBuffer, LinkHeader, LinkMessage, LinkNla};
+use crate::rtnl::{LinkBuffer, LinkMessage};
 use crate::utils::{parse_mac, parse_string, parse_u16, parse_u32, parse_u64, parse_u8};
 use crate::{DecodeError, DefaultNla, Emitable, Nla, NlaBuffer, NlasIterator, Parseable};
 use byteorder::{ByteOrder, NativeEndian};
@@ -126,27 +126,12 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<Vec<LinkInfo>> for NlaBuffer<&'
                             LinkInfoKind::Tun => LinkInfoData::Tun(payload.to_vec()),
                             LinkInfoKind::Nlmon => LinkInfoData::Nlmon(payload.to_vec()),
                             LinkInfoKind::Veth => {
-                                let buffer = LinkBuffer::new(&payload);
-                                let header =
-                                    <LinkBuffer<_> as Parseable<LinkHeader>>::parse(&buffer)
+                                let buffer = LinkBuffer::new_checked(&payload)
+                                    .context("failed to parse veth link info")?;
+                                let link_message =
+                                    <LinkBuffer<_> as Parseable<LinkMessage>>::parse(&buffer)
                                         .context("failed to parse veth link info")?;
-
-                                let parsed_nlas =
-                                    <LinkBuffer<_> as Parseable<
-                                        Vec<Result<LinkNla, DecodeError>>,
-                                    >>::parse(&buffer)?;
-                                let (valid_nlas, parse_errors): (Vec<_>, Vec<_>) =
-                                    parsed_nlas.into_iter().partition(Result::is_ok);
-                                let nlas = valid_nlas.into_iter().map(Result::unwrap).collect();
-
-                                for parse_result in parse_errors {
-                                    warn!(
-                                        "Failed to parse a Netlink Link attribute: {}",
-                                        parse_result.unwrap_err()
-                                    );
-                                }
-
-                                LinkInfoData::Veth(LinkMessage::from_parts(header, nlas))
+                                LinkInfoData::Veth(link_message)
                             }
                             LinkInfoKind::Vxlan => LinkInfoData::Vxlan(payload.to_vec()),
                             LinkInfoKind::Bond => LinkInfoData::Bond(payload.to_vec()),

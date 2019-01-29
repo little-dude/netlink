@@ -176,7 +176,7 @@ fn get_nlas() -> impl Iterator<Item = Result<NlaBuffer<&'static [u8]>, DecodeErr
 }
 
 lazy_static! {
-    static ref PARSED_AF_INET6: LinkAfSpecNla = LinkAfSpecNla::Inet6(vec![
+    static ref PARSED_AF_INET6: LinkAfSpecInetNla = LinkAfSpecInetNla::Inet6(vec![
         LinkAfInet6Nla::Flags(2147483648),
         LinkAfInet6Nla::CacheInfo(LinkInet6CacheInfo {
             max_reasm_len: 65535,
@@ -289,8 +289,8 @@ lazy_static! {
 }
 
 lazy_static! {
-    static ref PARSED_AF_INET: LinkAfSpecNla =
-        LinkAfSpecNla::Inet(vec![LinkAfInetNla::DevConf(LinkInetDevConf {
+    static ref PARSED_AF_INET: LinkAfSpecInetNla =
+        LinkAfSpecInetNla::Inet(vec![LinkAfInetNla::DevConf(LinkInetDevConf {
             forwarding: 1,
             mc_forwarding: 0,
             proxy_arp: 0,
@@ -343,7 +343,7 @@ fn parse_af_inet() {
     assert_eq!(inet_buf.value().len(), 128);
 
     // parsing check
-    let parsed: LinkAfSpecNla = inet_buf.parse().unwrap();
+    let parsed: LinkAfSpecInetNla = inet_buf.parse().unwrap();
     assert_eq!(parsed, *PARSED_AF_INET);
 }
 
@@ -397,7 +397,7 @@ fn parse_af_inet6() {
     assert_eq!(inet6_buf.length(), 612);
     assert_eq!(inet6_buf.kind(), AF_INET6);
     assert_eq!(inet6_buf.value().len(), 608);
-    let parsed: LinkAfSpecNla = inet6_buf.parse().unwrap();
+    let parsed: LinkAfSpecInetNla = inet6_buf.parse().unwrap();
 
     assert_eq!(parsed, *PARSED_AF_INET6);
 

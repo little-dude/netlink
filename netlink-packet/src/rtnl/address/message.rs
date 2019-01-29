@@ -18,6 +18,12 @@ pub struct AddressHeader {
     pub index: u32,
 }
 
+impl AddressHeader {
+    pub fn new() -> Self {
+        Default::default()
+    }
+}
+
 impl Emitable for AddressHeader {
     fn buffer_len(&self) -> usize {
         ADDRESS_HEADER_LEN

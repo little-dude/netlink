@@ -109,7 +109,8 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<AddressNla> for NlaBuffer<&'buf
             IFA_BROADCAST => Broadcast(payload.to_vec()),
             IFA_ANYCAST => Anycast(payload.to_vec()),
             IFA_CACHEINFO => CacheInfo(
-                AddressCacheInfoBuffer::new(payload)
+                AddressCacheInfoBuffer::new_checked(payload)
+                    .context("invalid IFA_CACHEINFO value")?
                     .parse()
                     .context("invalid IFA_CACHEINFO value")?,
             ),

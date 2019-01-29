@@ -507,7 +507,6 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> LinkInet6DevConfBuffer<T> {
 
 impl<T: AsRef<[u8]>> Parseable<LinkInet6DevConf> for LinkInet6DevConfBuffer<T> {
     fn parse(&self) -> Result<LinkInet6DevConf, DecodeError> {
-        self.check_buffer_length()?;
         Ok(LinkInet6DevConf {
             forwarding: self.forwarding(),
             hoplimit: self.hoplimit(),

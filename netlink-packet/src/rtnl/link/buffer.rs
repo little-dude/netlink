@@ -3,7 +3,7 @@ use byteorder::{ByteOrder, NativeEndian};
 
 use super::{LinkFlags, LinkLayerType};
 
-const ADDRESS_FAMILY: Index = 0;
+const INTERFACE_FAMILY: Index = 0;
 const RESERVED_1: Index = 1;
 const LINK_LAYER_TYPE: Field = 2..4;
 const LINK_INDEX: Field = 4..8;
@@ -28,10 +28,29 @@ impl<T: AsRef<[u8]>> LinkBuffer<T> {
         self.buffer
     }
 
-    /// Return the address family field
-    pub fn address_family(&self) -> u8 {
+    pub fn new_checked(buffer: T) -> Result<LinkBuffer<T>, DecodeError> {
+        let packet = Self::new(buffer);
+        packet.check_buffer_length()?;
+        Ok(packet)
+    }
+
+    fn check_buffer_length(&self) -> Result<(), DecodeError> {
+        let len = self.buffer.as_ref().len();
+        if len < LINK_HEADER_LEN {
+            Err(format!(
+                "invalid LinkBuffer: length is {} but LinkBuffer are at least {} bytes",
+                len, LINK_HEADER_LEN
+            )
+            .into())
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Return the interface family field
+    pub fn interface_family(&self) -> u8 {
         let data = self.buffer.as_ref();
-        data[ADDRESS_FAMILY]
+        data[INTERFACE_FAMILY]
     }
 
     /// Return the link layer type field
@@ -86,10 +105,10 @@ impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> LinkBuffer<&'a mut T> {
 }
 
 impl<T: AsRef<[u8]> + AsMut<[u8]>> LinkBuffer<T> {
-    /// set the address family field
-    pub fn set_address_family(&mut self, value: u8) {
+    /// set the interface family field
+    pub fn set_interface_family(&mut self, value: u8) {
         let data = self.buffer.as_mut();
-        data[ADDRESS_FAMILY] = value
+        data[INTERFACE_FAMILY] = value
     }
 
     pub fn set_reserved_1(&mut self, value: u8) {

@@ -96,12 +96,12 @@
 //!
 //!     // Find the link with the name provided as argument, and delete it
 //!     for link in links {
-//!         for nla in link.nlas() {
+//!         for nla in &link.nlas {
 //!             // Find the link with the name provided as argument
 //!             if let LinkNla::IfName(ref name) = nla {
 //!                 if name == link_name {
 //!                     // Set it down
-//!                     handle.link().del(link.header().index()).execute().wait().unwrap();
+//!                     handle.link().del(link.header.index).execute().wait().unwrap();
 //!                     return;
 //!                 }
 //!             }

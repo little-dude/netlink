@@ -75,7 +75,6 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> RouteMfcStatsBuffer<T> {
 
 impl<T: AsRef<[u8]>> Parseable<RouteMfcStats> for RouteMfcStatsBuffer<T> {
     fn parse(&self) -> Result<RouteMfcStats, DecodeError> {
-        self.check_buffer_length()?;
         Ok(RouteMfcStats {
             packets: self.packets(),
             bytes: self.bytes(),

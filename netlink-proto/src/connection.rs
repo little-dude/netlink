@@ -70,7 +70,7 @@ impl Connection {
 
     fn prepare_message(&mut self, message: &mut NetlinkMessage) {
         self.sequence_id += 1;
-        message.header_mut().set_sequence_number(self.sequence_id);
+        message.header.sequence_number = self.sequence_id;
         message.finalize();
     }
 
@@ -124,13 +124,13 @@ impl Connection {
     }
 
     fn handle_message(&mut self, message: NetlinkMessage, source: SocketAddr) {
-        let seq = message.header().sequence_number();
+        let seq = message.header.sequence_number;
         let mut close_chan = false;
 
         debug!("handling message {}", seq);
 
         if let Some(tx) = self.pending_requests.get_mut(&(source, seq)) {
-            if !message.header().flags().has_multipart() {
+            if !message.header.flags.has_multipart() {
                 trace!("not a multipart message");
                 close_chan = true;
             }
@@ -147,7 +147,7 @@ impl Connection {
                 let _ = tx.unbounded_send(message);
                 close_chan = true;
             } else if message.is_ack() {
-                trace!("got ack for message {}", message.header().sequence_number());
+                trace!("got ack for message {}", message.header.sequence_number);
                 // FIXME: we could set `close_chan = true` and not forward the ACK to the handle,
                 // if we assume receiving an ACK means we won't receive other messages for that
                 // request. But I'm not sure whether that's the case.

@@ -193,17 +193,20 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<RouteNla> for NlaBuffer<&'buffe
             RTA_TABLE => Table(parse_u32(payload).context("invalid RTA_TABLE value")?),
             RTA_MARK => Mark(parse_u32(payload).context("invalid RTA_MARK value")?),
             RTA_CACHEINFO => CacheInfo(
-                RouteCacheInfoBuffer::new(payload)
+                RouteCacheInfoBuffer::new_checked(payload)
+                    .context("invalid RTA_CACHEINFO value")?
                     .parse()
                     .context("invalid RTA_CACHEINFO value")?,
             ),
             RTA_MFC_STATS => MfcStats(
-                RouteMfcStatsBuffer::new(payload)
+                RouteMfcStatsBuffer::new_checked(payload)
+                    .context("invalid RTA_MFC_STATS value")?
                     .parse()
                     .context("invalid RTA_MFC_STATS value")?,
             ),
             RTA_METRICS => Metrics(
-                NlaBuffer::new(payload)
+                NlaBuffer::new_checked(payload)
+                    .context("invalid RTA_METRICS value")?
                     .parse()
                     .context("invalid RTA_METRICS value")?,
             ),

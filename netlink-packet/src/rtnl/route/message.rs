@@ -30,9 +30,6 @@ impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<RouteMessage> for RouteBuffer<
     }
 }
 
-// FIXME: we should make it possible to provide a "best effort" parsing method. Right now, if we
-// fail on a single nla, we return an error. Maybe we could have another impl that returns
-// Vec<Result<RouteNla>>.
 impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Vec<RouteNla>> for RouteBuffer<&'buffer T> {
     fn parse(&self) -> Result<Vec<RouteNla>, DecodeError> {
         let mut nlas = vec![];

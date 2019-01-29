@@ -4,8 +4,8 @@ pub use self::inet::*;
 mod inet6;
 pub use self::inet6::*;
 
-mod af_spec;
-pub use self::af_spec::*;
+mod af_spec_inet;
+pub use self::af_spec_inet::*;
 
 mod link_infos;
 pub use self::link_infos::*;
@@ -29,7 +29,10 @@ use failure::ResultExt;
 
 use crate::constants::*;
 use crate::utils::{parse_i32, parse_string, parse_u32, parse_u8};
-use crate::{DecodeError, DefaultNla, Emitable, Nla, NlaBuffer, Parseable};
+use crate::{
+    DecodeError, DefaultNla, Emitable, Nla, NlaBuffer, NlasIterator, Parseable,
+    ParseableParametrized,
+};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum LinkNla {
@@ -94,8 +97,11 @@ pub enum LinkNla {
     Stats(LinkStats),
     Stats64(LinkStats64),
     Map(LinkMap),
-    // AF_SPEC
-    AfSpec(LinkAfSpecNla),
+    // AF_SPEC (the type of af_spec depends on the interface family of the message)
+    AfSpecInet(Vec<LinkAfSpecInetNla>),
+    // AfSpecBridge(Vec<LinkAfSpecBridgeNla>),
+    AfSpecBridge(Vec<u8>),
+    AfSpecUnknown(Vec<u8>),
     Other(DefaultNla),
 }
 
@@ -126,6 +132,8 @@ impl Nla for LinkNla {
                 | NewIfIndex(ref bytes)
                 | Address(ref bytes)
                 | Broadcast(ref bytes)
+                | AfSpecUnknown(ref bytes)
+                | AfSpecBridge(ref bytes)
                 => bytes.len(),
 
             // strings: +1 because we need to append a nul byte
@@ -165,7 +173,8 @@ impl Nla for LinkNla {
             Stats(_) => LINK_STATS_LEN,
             Stats64(_) => LINK_STATS64_LEN,
             LinkInfo(ref nlas) => nlas.as_slice().buffer_len(),
-            AfSpec(ref af_spec) => af_spec.buffer_len(),
+            AfSpecInet(ref nlas) => nlas.as_slice().buffer_len(),
+            // AfSpecBridge(ref nlas) => nlas.as_slice().buffer_len(),
             Other(ref attr)  => attr.value_len(),
         }
     }
@@ -198,6 +207,8 @@ impl Nla for LinkNla {
                 // a separate type for them
                 | Address(ref bytes)
                 | Broadcast(ref bytes)
+                | AfSpecUnknown(ref bytes)
+                | AfSpecBridge(ref bytes)
                 => buffer.copy_from_slice(bytes.as_slice()),
 
             // String
@@ -241,10 +252,8 @@ impl Nla for LinkNla {
             Stats(ref stats) => stats.emit(buffer),
             Stats64(ref stats64) => stats64.emit(buffer),
             LinkInfo(ref nlas) => nlas.as_slice().emit(buffer),
-            // This is not supposed to fail, because the buffer length has normally been checked
-            // before cally this method. If that fails, there's a bug in out code that needs to be
-            // fixed.
-            AfSpec(ref af_spec) => af_spec.emit(buffer),
+            AfSpecInet(ref nlas) => nlas.as_slice().emit(buffer),
+            // AfSpecBridge(ref nlas) => nlas.as_slice().emit(buffer),
             // default nlas
             Other(ref attr) => attr.emit_value(buffer),
         }
@@ -309,14 +318,16 @@ impl Nla for LinkNla {
             Map(_) => IFLA_MAP,
             Stats(_) => IFLA_STATS,
             Stats64(_) => IFLA_STATS64,
-            AfSpec(_) => IFLA_AF_SPEC,
+            AfSpecInet(_) | AfSpecBridge(_) | AfSpecUnknown(_) => IFLA_AF_SPEC,
             Other(ref attr) => attr.kind(),
         }
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkNla> for NlaBuffer<&'buffer T> {
-    fn parse(&self) -> Result<LinkNla, DecodeError> {
+impl<'buffer, T: AsRef<[u8]> + ?Sized> ParseableParametrized<LinkNla, u16>
+    for NlaBuffer<&'buffer T>
+{
+    fn parse_with_param(&self, interface_family: u16) -> Result<LinkNla, DecodeError> {
         use self::LinkNla::*;
         let payload = self.value();
         Ok(match self.kind() {
@@ -400,25 +411,37 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkNla> for NlaBuffer<&'buffer
                     .context("invalid IFLA_OPERSTATE value")?
                     .into(),
             ),
-            IFLA_MAP => Map(LinkMapBuffer::new(payload)
+            IFLA_MAP => Map(LinkMapBuffer::new_checked(payload)
+                .context("invalid IFLA_MAP value")?
                 .parse()
                 .context("invalid IFLA_MAP value")?),
             IFLA_STATS => Stats(
-                LinkStatsBuffer::new(payload)
+                LinkStatsBuffer::new_checked(payload)
+                    .context("invalid IFLA_STATS value")?
                     .parse()
                     .context("invalid IFLA_STATS value")?,
             ),
             IFLA_STATS64 => Stats64(
-                LinkStats64Buffer::new(payload)
+                LinkStats64Buffer::new_checked(payload)
+                    .context("invalid IFLA_STATS64 value")?
                     .parse()
                     .context("invalid IFLA_STATS64 value")?,
             ),
-            IFLA_AF_SPEC => AfSpec(
-                NlaBuffer::new_checked(payload)
-                    .context("invalid IFLA_AF_SPEC value")?
-                    .parse()
-                    .context("invalid IFLA_AF_SPEC value")?,
-            ),
+            IFLA_AF_SPEC => match interface_family as u16 {
+                AF_INET | AF_INET6 | AF_UNSPEC => {
+                    let mut nlas = vec![];
+                    for nla in NlasIterator::new(payload) {
+                        let nla = nla.context("invalid IFLA_AF_SPEC value")?;
+                        nlas.push(
+                            <dyn Parseable<LinkAfSpecInetNla>>::parse(&nla)
+                                .context("invalid IFLA_AF_SPEC value")?,
+                        );
+                    }
+                    AfSpecInet(nlas)
+                }
+                AF_BRIDGE => AfSpecBridge(payload.to_vec()),
+                _ => AfSpecUnknown(payload.to_vec()),
+            },
 
             IFLA_LINKINFO => LinkInfo(
                 NlaBuffer::new_checked(payload)

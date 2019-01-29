@@ -106,7 +106,6 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> LinkMapBuffer<T> {
 
 impl<T: AsRef<[u8]>> Parseable<LinkMap> for LinkMapBuffer<T> {
     fn parse(&self) -> Result<LinkMap, DecodeError> {
-        self.check_buffer_length()?;
         Ok(LinkMap {
             memory_start: self.memory_start(),
             memory_end: self.memory_end(),

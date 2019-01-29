@@ -87,22 +87,26 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkAfInet6Nla> for NlaBuffer<&
                 Flags(parse_u32(payload).context("invalid IFLA_INET6_FLAGS value")?)
             }
             IFLA_INET6_CACHEINFO => CacheInfo(
-                LinkInet6CacheInfoBuffer::new(payload)
+                LinkInet6CacheInfoBuffer::new_checked(payload)
+                    .context("invalid IFLA_INET6_CACHEINFO value")?
                     .parse()
                     .context("invalid IFLA_INET6_CACHEINFO value")?,
             ),
             IFLA_INET6_CONF => DevConf(Box::new(
-                LinkInet6DevConfBuffer::new(payload)
+                LinkInet6DevConfBuffer::new_checked(payload)
+                    .context("invalid IFLA_INET6_CONF value")?
                     .parse()
                     .context("invalid IFLA_INET6_CONF value")?,
             )),
             IFLA_INET6_STATS => Stats(Box::new(
-                LinkInet6StatsBuffer::new(payload)
+                LinkInet6StatsBuffer::new_checked(payload)
+                    .context("invalid IFLA_INET6_STATS value")?
                     .parse()
                     .context("invalid IFLA_INET6_STATS value")?,
             )),
             IFLA_INET6_ICMP6STATS => IcmpStats(
-                LinkIcmp6StatsBuffer::new(payload)
+                LinkIcmp6StatsBuffer::new_checked(payload)
+                    .context("invalid IFLA_INET6_ICMP6STATS value")?
                     .parse()
                     .context("invalid IFLA_INET6_ICMP6STATS value")?,
             ),

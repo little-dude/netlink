@@ -86,7 +86,6 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> AddressCacheInfoBuffer<T> {
 
 impl<T: AsRef<[u8]>> Parseable<AddressCacheInfo> for AddressCacheInfoBuffer<T> {
     fn parse(&self) -> Result<AddressCacheInfo, DecodeError> {
-        self.check_buffer_length()?;
         Ok(AddressCacheInfo {
             ifa_preferred: self.ifa_preferred(),
             ifa_valid: self.ifa_valid(),

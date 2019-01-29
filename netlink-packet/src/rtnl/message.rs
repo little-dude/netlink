@@ -2,8 +2,9 @@ use crate::constants::*;
 use failure::ResultExt;
 
 use crate::{
-    AddressBuffer, AddressMessage, DecodeError, Emitable, LinkBuffer, LinkMessage, NeighbourBuffer,
-    NeighbourMessage, NeighbourTableBuffer, NeighbourTableMessage, Parseable,
+    AddressBuffer, AddressHeader, AddressMessage, DecodeError, Emitable, LinkBuffer, LinkHeader,
+    LinkMessage, NeighbourBuffer, NeighbourMessage, NeighbourTableBuffer, NeighbourTableMessage,
+    Parseable, RouteBuffer, RouteHeader, RouteMessage,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -21,6 +22,9 @@ pub enum RtnlMessage {
     NewNeighbourTable(NeighbourTableMessage),
     GetNeighbourTable(NeighbourTableMessage),
     SetNeighbourTable(NeighbourTableMessage),
+    NewRoute(RouteMessage),
+    DelRoute(RouteMessage),
+    GetRoute(RouteMessage),
 }
 
 impl RtnlMessage {
@@ -88,8 +92,24 @@ impl RtnlMessage {
         }
     }
 
+    pub fn is_new_route(&self) -> bool {
+        if let RtnlMessage::NewRoute(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn is_new_neighbour(&self) -> bool {
         if let RtnlMessage::NewNeighbour(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_get_route(&self) -> bool {
+        if let RtnlMessage::GetRoute(_) = *self {
             true
         } else {
             false
@@ -128,6 +148,14 @@ impl RtnlMessage {
         }
     }
 
+    pub fn is_del_route(&self) -> bool {
+        if let RtnlMessage::DelRoute(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn message_type(&self) -> u16 {
         use self::RtnlMessage::*;
 
@@ -145,6 +173,9 @@ impl RtnlMessage {
             GetNeighbourTable(_) => RTM_GETNEIGHTBL,
             NewNeighbourTable(_) => RTM_NEWNEIGHTBL,
             SetNeighbourTable(_) => RTM_SETNEIGHTBL,
+            NewRoute(_) => RTM_NEWROUTE,
+            DelRoute(_) => RTM_DELROUTE,
+            GetRoute(_) => RTM_GETROUTE,
         }
     }
 
@@ -153,9 +184,23 @@ impl RtnlMessage {
         let message = match message_type {
             // Link messages
             RTM_NEWLINK | RTM_GETLINK | RTM_DELLINK | RTM_SETLINK => {
-                let msg: LinkMessage = LinkBuffer::new(&buffer)
-                    .parse()
-                    .context("invalid link message")?;
+                let msg: LinkMessage = match LinkBuffer::new_checked(&buffer) {
+                    Ok(buf) => buf.parse().context("invalid link message")?,
+                    // HACK: iproute2 sends invalid RTM_GETLINK message, where the header is
+                    // limited to the interface family (1 byte) and 3 bytes of padding.
+                    Err(e) => {
+                        if buffer.len() == 4 && message_type == RTM_GETLINK {
+                            let mut msg = LinkMessage {
+                                header: LinkHeader::new(),
+                                nlas: vec![],
+                            };
+                            msg.header.interface_family = buffer[0];
+                            msg
+                        } else {
+                            return Err(e);
+                        }
+                    }
+                };
                 match message_type {
                     RTM_NEWLINK => NewLink(msg),
                     RTM_GETLINK => GetLink(msg),
@@ -164,11 +209,26 @@ impl RtnlMessage {
                     _ => unreachable!(),
                 }
             }
+
             // Address messages
             RTM_NEWADDR | RTM_GETADDR | RTM_DELADDR => {
-                let msg: AddressMessage = AddressBuffer::new(&buffer)
-                    .parse()
-                    .context("invalid address message")?;
+                let msg: AddressMessage = match AddressBuffer::new_checked(&buffer) {
+                    Ok(buf) => buf.parse().context("invalid link message")?,
+                    // HACK: iproute2 sends invalid RTM_GETADDR message, where the header is
+                    // limited to the interface family (1 byte) and 3 bytes of padding.
+                    Err(e) => {
+                        if buffer.len() == 4 && message_type == RTM_GETADDR {
+                            let mut msg = AddressMessage {
+                                header: AddressHeader::new(),
+                                nlas: vec![],
+                            };
+                            msg.header.family = buffer[0];
+                            msg
+                        } else {
+                            return Err(e);
+                        }
+                    }
+                };
                 match message_type {
                     RTM_NEWADDR => NewAddress(msg),
                     RTM_GETADDR => GetAddress(msg),
@@ -176,6 +236,7 @@ impl RtnlMessage {
                     _ => unreachable!(),
                 }
             }
+
             // Neighbour messages
             RTM_NEWNEIGH | RTM_GETNEIGH | RTM_DELNEIGH => {
                 let msg: NeighbourMessage = NeighbourBuffer::new(&buffer)
@@ -200,6 +261,34 @@ impl RtnlMessage {
                     _ => unreachable!(),
                 }
             }
+
+            // Route messages
+            RTM_NEWROUTE | RTM_GETROUTE | RTM_DELROUTE => {
+                let msg: RouteMessage = match RouteBuffer::new_checked(&buffer) {
+                    Ok(buf) => buf.parse().context("invalid route message")?,
+                    // HACK: iproute2 sends invalid RTM_GETROUTE message, where the header is
+                    // limited to the interface family (1 byte) and 3 bytes of padding.
+                    Err(e) => {
+                        if buffer.len() == 4 && message_type == RTM_GETROUTE {
+                            let mut msg = RouteMessage {
+                                header: RouteHeader::new(),
+                                nlas: vec![],
+                            };
+                            msg.header.address_family = buffer[0];
+                            msg
+                        } else {
+                            return Err(e);
+                        }
+                    }
+                };
+                match message_type {
+                    RTM_NEWROUTE => NewRoute(msg),
+                    RTM_GETROUTE => GetRoute(msg),
+                    RTM_DELROUTE => DelRoute(msg),
+                    _ => unreachable!(),
+                }
+            }
+
             _ => return Err(format!("Unknown message type: {}", message_type).into()),
         };
         Ok(message)
@@ -231,6 +320,11 @@ impl Emitable for RtnlMessage {
             | GetNeighbourTable(ref msg)
             | SetNeighbourTable(ref msg)
             => msg.buffer_len(),
+
+            | NewRoute(ref msg)
+            | DelRoute(ref msg)
+            | GetRoute(ref msg)
+            => msg.buffer_len()
         }
     }
 
@@ -258,6 +352,11 @@ impl Emitable for RtnlMessage {
             | NewNeighbourTable(ref msg)
             | SetNeighbourTable(ref msg)
             => msg.emit(buffer),
+
+            | NewRoute(ref msg)
+            | DelRoute(ref msg)
+            | GetRoute(ref msg)
+            => msg.emit(buffer)
         }
     }
 }

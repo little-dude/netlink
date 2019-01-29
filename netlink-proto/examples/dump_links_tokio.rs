@@ -18,12 +18,10 @@ fn main() {
 
     let mut packet: NetlinkMessage =
         RtnlMessage::GetLink(LinkMessage::from_parts(LinkHeader::new(), vec![])).into();
-    packet
-        .header_mut()
-        .set_flags(NetlinkFlags::from(NLM_F_DUMP | NLM_F_REQUEST))
-        .set_sequence_number(1);
+    packet.header.flags = NetlinkFlags::from(NLM_F_DUMP | NLM_F_REQUEST);
+    packet.header.sequence_number = 1;
     packet.finalize();
-    let mut buf = vec![0; packet.header().length() as usize];
+    let mut buf = vec![0; packet.header.length as usize];
     packet.emit(&mut buf[..packet.buffer_len()]);
 
     println!(">>> {:?}", packet);

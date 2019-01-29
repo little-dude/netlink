@@ -29,12 +29,12 @@ fn main() {
     let links = handle.link().get().execute().collect().wait().unwrap();
 
     for link in links {
-        for nla in link.nlas() {
+        for nla in link.nlas {
             if let LinkNla::IfName(ref name) = nla {
                 if name == link_name {
                     let req = handle
                         .address()
-                        .del(link.header().index(), ip.ip(), ip.prefix());
+                        .del(link.header.index, ip.ip(), ip.prefix());
                     match req.execute().wait() {
                         Ok(()) => println!("done"),
                         Err(e) => eprintln!("error: {}", e),
