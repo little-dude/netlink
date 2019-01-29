@@ -153,10 +153,23 @@ impl RtnlMessage {
         let message = match message_type {
             // Link messages
             RTM_NEWLINK | RTM_GETLINK | RTM_DELLINK | RTM_SETLINK => {
-                let msg: LinkMessage = LinkBuffer::new_checked(&buffer)
-                    .context("invalid link message")?
-                    .parse()
-                    .context("invalid link message")?;
+                let msg: LinkMessage = match LinkBuffer::new_checked(&buffer) {
+                    Ok(buf) => buf.parse().context("invalid link message")?,
+                    // HACK: iproute2 sends invalid RTM_GETLINK message, where the header is
+                    // limited to the interface family (1 byte) and 3 bytes of padding.
+                    Err(e) => {
+                        if buffer.len() == 4 && message_type == RTM_GETLINK {
+                            let mut msg = LinkMessage {
+                                header: LinkHeader::new(),
+                                nlas: vec![],
+                            };
+                            msg.header.interface_family = buffer[0];
+                            msg
+                        } else {
+                            return Err(e);
+                        }
+                    }
+                };
                 match message_type {
                     RTM_NEWLINK => NewLink(msg),
                     RTM_GETLINK => GetLink(msg),
@@ -167,10 +180,23 @@ impl RtnlMessage {
             }
             // Address messages
             RTM_NEWADDR | RTM_GETADDR | RTM_DELADDR => {
-                let msg: AddressMessage = AddressBuffer::new_checked(&buffer)
-                    .context("invalid address message")?
-                    .parse()
-                    .context("invalid address message")?;
+                let msg: AddressMessage = match AddressBuffer::new_checked(&buffer) {
+                    Ok(buf) => buf.parse().context("invalid link message")?,
+                    // HACK: iproute2 sends invalid RTM_GETADDR message, where the header is
+                    // limited to the interface family (1 byte) and 3 bytes of padding.
+                    Err(e) => {
+                        if buffer.len() == 4 && message_type == RTM_GETADDR {
+                            let mut msg = AddressMessage {
+                                header: AddressHeader::new(),
+                                nlas: vec![],
+                            };
+                            msg.header.family = buffer[0];
+                            msg
+                        } else {
+                            return Err(e);
+                        }
+                    }
+                };
                 match message_type {
                     RTM_NEWADDR => NewAddress(msg),
                     RTM_GETADDR => GetAddress(msg),
