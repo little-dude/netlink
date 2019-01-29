@@ -4,7 +4,7 @@ use failure::ResultExt;
 use crate::{
     AddressBuffer, AddressHeader, AddressMessage, DecodeError, Emitable, LinkBuffer, LinkHeader,
     LinkMessage, NeighbourBuffer, NeighbourMessage, NeighbourTableBuffer, NeighbourTableMessage,
-    Parseable, RouteBuffer, RouteHeader, RouteMessage, TcBuffer, TcMessage,
+    Parseable, RouteBuffer, RouteHeader, RouteMessage, TcBuffer, TcMessage, NsIdMessage, NsIdBuffer,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -34,6 +34,9 @@ pub enum RtnlMessage {
     NewTrafficFilter(TcMessage),
     DelTrafficFilter(TcMessage),
     GetTrafficFilter(TcMessage),
+    NewNsId(NsIdMessage),
+    DelNsId(NsIdMessage),
+    GetNsId(NsIdMessage),
 }
 
 impl RtnlMessage {
@@ -237,6 +240,30 @@ impl RtnlMessage {
         }
     }
 
+    pub fn is_new_nsid(&self) -> bool {
+        if let RtnlMessage::NewNsId(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_get_nsid(&self) -> bool {
+        if let RtnlMessage::GetNsId(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_del_nsid(&self) -> bool {
+        if let RtnlMessage::DelNsId(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn message_type(&self) -> u16 {
         use self::RtnlMessage::*;
 
@@ -266,6 +293,9 @@ impl RtnlMessage {
             NewTrafficFilter(_) => RTM_NEWTFILTER,
             DelTrafficFilter(_) => RTM_DELTFILTER,
             GetTrafficFilter(_) => RTM_GETTFILTER,
+            GetNsId(_) => RTM_GETNSID,
+            NewNsId(_) => RTM_NEWNSID,
+            DelNsId(_) => RTM_DELNSID,
         }
     }
 
@@ -403,6 +433,20 @@ impl RtnlMessage {
                 }
             }
 
+            // ND ID Messages
+            RTM_NEWNSID | RTM_GETNSID | RTM_DELNSID => {
+                let msg: NsIdMessage = NsIdBuffer::new_checked(&buffer)
+                    .context("invalid nsid message")?
+                    .parse()
+                    .context("invalid nsid message")?;
+                match message_type {
+                    RTM_NEWNSID => NewNsId(msg),
+                    RTM_DELNSID => DelNsId(msg),
+                    RTM_GETNSID => GetNsId(msg),
+                    _ => unreachable!(),
+                }
+            }
+
             _ => return Err(format!("Unknown message type: {}", message_type).into()),
         };
         Ok(message)
@@ -449,6 +493,11 @@ impl Emitable for RtnlMessage {
             | NewTrafficFilter(ref msg)
             | DelTrafficFilter(ref msg)
             | GetTrafficFilter(ref msg)
+            => msg.buffer_len(),
+
+            | NewNsId(ref msg)
+            | DelNsId(ref msg)
+            | GetNsId(ref msg)
             => msg.buffer_len()
         }
     }
@@ -492,7 +541,12 @@ impl Emitable for RtnlMessage {
             | NewTrafficFilter(ref msg)
             | DelTrafficFilter(ref msg)
             | GetTrafficFilter(ref msg)
-            => msg.emit(buffer)
+            => msg.emit(buffer),
+
+            | NewNsId(ref msg)
+            | DelNsId(ref msg)
+            | GetNsId(ref msg)
+            => msg.emit(buffer),
         }
     }
 }

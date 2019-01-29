@@ -323,6 +323,11 @@ pub const IFLA_BR_MCAST_STATS_ENABLED: u16 = 42;
 pub const IFLA_BR_MCAST_IGMP_VERSION: u16 = 43;
 pub const IFLA_BR_MCAST_MLD_VERSION: u16 = 44;
 
+pub const NETNSA_NONE: u16 = 0;
+pub const NETNSA_NSID: u16 = 1;
+pub const NETNSA_PID: u16 = 2;
+pub const NETNSA_FD: u16 = 3;
+
 pub const ARPHRD_NETROM: u16 = 0;
 pub const ARPHRD_ETHER: u16 = 1;
 pub const ARPHRD_EETHER: u16 = 2;
