@@ -12,6 +12,9 @@ use crate::RtnlMessage;
 #[cfg(feature = "audit")]
 use crate::AuditMessage;
 
+#[cfg(feature = "sock_diag")]
+use crate::SockDiagMessage;
+
 /// Represent a netlink message.
 ///
 /// A netlink message is made of a header (represented by
@@ -28,7 +31,7 @@ use crate::AuditMessage;
 /// |                           sequence number                         |    |
 /// +----------------+----------------+----------------+----------------+    |
 /// |                   port number (formerly known as PID)             |   /
-/// +----------------+----------------+----------------+----------------+   
+/// +----------------+----------------+----------------+----------------+
 /// |                               payload                             |   \
 /// |                          (variable length)                        |    |  NetlinkPayload
 /// |                                                                   |    |
@@ -52,7 +55,9 @@ pub enum NetlinkPayload {
     Rtnl(RtnlMessage),
     #[cfg(feature = "audit")]
     Audit(AuditMessage),
-    #[cfg(not(any(feature = "rtnetlink", feature = "audit")))]
+    #[cfg(feature = "sock_diag")]
+    SockDiag(SockDiagMessage),
+    #[cfg(not(any(feature = "rtnetlink", feature = "audit", feature = "sock_diag")))]
     #[doc(hidden)]
     __Default,
 }
@@ -70,7 +75,9 @@ impl NetlinkPayload {
             Rtnl(ref msg) => msg.message_type(),
             #[cfg(feature = "audit")]
             Audit(ref msg) => msg.message_type(),
-            #[cfg(not(any(feature = "rtnetlink", feature = "audit")))]
+            #[cfg(feature = "sock_diag")]
+            SockDiag(ref msg) => msg.message_type(),
+            #[cfg(not(any(feature = "rtnetlink", feature = "audit", feature = "sock_diag")))]
             _ => 0,
         }
     }
@@ -87,6 +94,15 @@ impl NetlinkPayload {
     #[cfg(feature = "audit")]
     pub fn is_audit(&self) -> bool {
         if let NetlinkPayload::Audit(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    #[cfg(feature = "sock_diag")]
+    pub fn is_sock_diag(&self) -> bool {
+        if let NetlinkPayload::SockDiag(_) = *self {
             true
         } else {
             false
@@ -146,6 +162,13 @@ impl From<RtnlMessage> for NetlinkMessage {
 impl From<AuditMessage> for NetlinkMessage {
     fn from(msg: AuditMessage) -> Self {
         NetlinkMessage::from(NetlinkPayload::Audit(msg))
+    }
+}
+
+#[cfg(feature = "sock_diag")]
+impl From<SockDiagMessage> for NetlinkMessage {
+    fn from(msg: SockDiagMessage) -> Self {
+        NetlinkMessage::from(NetlinkPayload::SockDiag(msg))
     }
 }
 
@@ -258,7 +281,12 @@ impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<NetlinkMessage> for NetlinkBuf
                 NetlinkPayload::Audit(AuditMessage::parse(message_type, &self.payload())?)
             }
 
-            #[cfg(not(any(feature = "rtnetlink", feature = "audit")))]
+            #[cfg(feature = "sock_diag")]
+            message_type => {
+                NetlinkPayload::SockDiag(SockDiagMessage::parse(message_type, &self.payload())?)
+            }
+
+            #[cfg(not(any(feature = "rtnetlink", feature = "audit", feature = "sock_diag")))]
             _ => __Default,
         };
         Ok(NetlinkMessage { header, payload })
@@ -280,7 +308,10 @@ impl Emitable for NetlinkMessage {
             #[cfg(feature = "audit")]
             Audit(ref msg) => msg.buffer_len(),
 
-            #[cfg(not(any(feature = "rtnetlink", feature = "audit")))]
+            #[cfg(feature = "sock_diag")]
+            SockDiag(ref msg) => msg.buffer_len(),
+
+            #[cfg(not(any(feature = "rtnetlink", feature = "audit", feature = "sock_diag")))]
             __Default => 0,
         };
 
@@ -305,7 +336,10 @@ impl Emitable for NetlinkMessage {
             #[cfg(feature = "audit")]
             Audit(ref msg) => msg.emit(buffer),
 
-            #[cfg(not(any(feature = "rtnetlink", feature = "audit")))]
+            #[cfg(feature = "sock_diag")]
+            SockDiag(ref msg) => msg.emit(buffer),
+
+            #[cfg(not(any(feature = "rtnetlink", feature = "audit", feature = "sock_diag")))]
             __Default => {}
         }
     }

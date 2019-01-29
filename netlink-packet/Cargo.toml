@@ -18,7 +18,13 @@ bytes = "0.4.11"
 libc = "0.2.45"
 log = "0.4.6"
 lazy_static = "1.2.0"
+bitflags = "1.0"
+
 netlink-sys = { path = "../netlink-sys", version = "0.1" }
+
+[dev-dependencies]
+pretty_env_logger = "0.3"
+structopt = "0.2"
 
 [features]
 # By default this crate does not does anything useful. You should enable a
@@ -28,7 +34,13 @@ default = []
 rtnetlink = []
 # Adds support audit messages
 audit = []
+# Adds support sock_diag messages
+sock_diag = []
 
 [[example]]
 name = "dump_links"
 required-features = ["rtnetlink"]
+
+[[example]]
+name = "netstat"
+required-features = ["sock_diag"]

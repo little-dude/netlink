@@ -114,7 +114,9 @@
 
 #![cfg_attr(rustfmt, rustfmt::skip)]
 
-#[cfg_attr(feature = "rtnetlink", macro_use)] extern crate log;
+#[cfg_attr(any(feature = "rtnetlink", feature = "sock_diag"), macro_use)] extern crate log;
+
+#[macro_use] extern crate bitflags;
 
 pub use netlink_sys::constants;
 
@@ -141,6 +143,11 @@ pub use self::rtnl::*;
 mod audit;
 #[cfg(feature = "audit")]
 pub use self::audit::*;
+
+#[cfg(feature = "sock_diag")]
+pub mod sock_diag;
+#[cfg(feature = "sock_diag")]
+pub use self::sock_diag::*;
 
 mod netlink;
 pub use self::netlink::*;
