@@ -6,7 +6,7 @@ pub use self::link_layer_type::*;
 use super::{LinkBuffer, LINK_HEADER_LEN};
 use crate::{DecodeError, Emitable, Parseable};
 
-/// High level representation of `RTM_GETLINK`, `RTM_SETLINK`, `RTM_NEWLINK` and `RTM_DELLING`
+/// High level representation of `RTM_GETLINK`, `RTM_SETLINK`, `RTM_NEWLINK` and `RTM_DELLINK`
 /// messages headers.
 ///
 /// These headers have the following structure:
