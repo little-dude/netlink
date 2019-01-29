@@ -4,9 +4,8 @@ extern crate log;
 use structopt::StructOpt;
 
 use netlink_packet::{
-    constants::{NLM_F_DUMP, NLM_F_REQUEST},
     sock_diag::{Extension, InetDiagRequest, SockDiagMessage, TcpStates},
-    Emitable, NetlinkBuffer, NetlinkFlags, NetlinkMessage, NetlinkPayload, Parseable,
+    Emitable, NetlinkBuffer, NetlinkMessage, NetlinkPayload, Parseable,
 };
 use netlink_sys::{Protocol, Socket, SocketAddr};
 
@@ -28,6 +27,10 @@ fn main() {
 
     debug!("parsed options: {:?}", opts);
 
+    let mut socket = Socket::new(Protocol::SockDiag).unwrap();
+    let _port_number = socket.bind_auto().unwrap().port_number();
+    socket.connect(&SocketAddr::new(0, 0)).unwrap();
+
     let families = [libc::AF_INET, libc::AF_INET6];
     let protocols = [libc::IPPROTO_TCP, libc::IPPROTO_UDP];
 
@@ -37,10 +40,6 @@ fn main() {
         }
 
         for family in &families {
-            let mut socket = Socket::new(Protocol::SockDiag).unwrap();
-            let _port_number = socket.bind_auto().unwrap().port_number();
-            socket.connect(&SocketAddr::new(0, 0)).unwrap();
-
             let mut req = InetDiagRequest::new(*family as u8, *protocol as u8);
 
             match *protocol {
@@ -65,13 +64,11 @@ fn main() {
 
             let mut packet: NetlinkMessage = SockDiagMessage::InetDiag(req).into();
 
-            packet
-                .header_mut()
-                .set_flags(NetlinkFlags::from(NLM_F_DUMP | NLM_F_REQUEST))
-                .set_sequence_number(1);
+            packet.header.flags.set_dump().set_request();
+            packet.header.sequence_number = 1;
             packet.finalize();
 
-            let mut buf = vec![0; packet.header().length() as usize];
+            let mut buf = vec![0; packet.header.length as usize];
 
             assert!(buf.len() == packet.buffer_len());
             packet.emit(&mut buf[..]);
@@ -103,8 +100,8 @@ fn main() {
 
                     trace!("<<< {:?}", rx_packet);
 
-                    match rx_packet.payload() {
-                        NetlinkPayload::SockDiag(SockDiagMessage::InetSocks(sock)) => {
+                    match rx_packet.payload {
+                        NetlinkPayload::SockDiag(SockDiagMessage::InetSocks(ref sock)) => {
                             let is_ipv6 = sock.family == libc::AF_INET6 as u8;
                             let bind_any = if is_ipv6 { "[::]:*" } else { "0.0.0.0:*" };
 
@@ -135,17 +132,17 @@ fn main() {
                                 },
                             )
                         }
-                        NetlinkPayload::SockDiag(SockDiagMessage::UnixSocks(sock)) => {}
+                        NetlinkPayload::SockDiag(SockDiagMessage::UnixSocks(_)) => {}
                         _ => {}
                     }
 
-                    if *rx_packet.payload() == NetlinkPayload::Done {
+                    if rx_packet.payload == NetlinkPayload::Done {
                         trace!("Done!");
                         break 'next;
                     }
 
-                    offset += rx_packet.header().length() as usize;
-                    if offset == size || rx_packet.header().length() == 0 {
+                    offset += rx_packet.header.length as usize;
+                    if offset == size || rx_packet.header.length == 0 {
                         offset = 0;
                         break;
                     }
