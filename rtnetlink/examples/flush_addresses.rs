@@ -25,7 +25,7 @@ fn main() {
         .execute()
         // Filter the link to keep the one with the wanted name
         .filter(|link_msg| {
-            for nla in link_msg.nlas() {
+            for nla in &link_msg.nlas {
                 if let LinkNla::IfName(ref name) = nla {
                     return name == link_name;
                 }
@@ -49,7 +49,7 @@ fn main() {
         .and_then(|link_msg| {
             handle
                 .address()
-                .flush(link_msg.header().index())
+                .flush(link_msg.header.index)
                 .execute()
                 .map(|_| println!("done"))
                 .map_err(|e| format!("{}", e))

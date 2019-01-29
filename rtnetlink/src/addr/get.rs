@@ -27,7 +27,7 @@ impl AddressGetRequest {
             message,
         } = self;
         let mut req = NetlinkMessage::from(RtnlMessage::GetAddress(message));
-        req.header_mut().set_flags(*GET_FLAGS);
+        req.header.flags = *GET_FLAGS;
         handle.request(req).and_then(move |msg| {
             let (header, payload) = msg.into_parts();
             if let NetlinkPayload::Rtnl(RtnlMessage::NewAddress(msg)) = payload {

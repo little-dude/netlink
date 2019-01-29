@@ -5,8 +5,8 @@ use crate::{DecodeError, Emitable, Parseable};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct LinkMessage {
-    header: LinkHeader,
-    nlas: Vec<LinkNla>,
+    pub header: LinkHeader,
+    pub nlas: Vec<LinkNla>,
 }
 
 impl Default for LinkMessage {
@@ -22,26 +22,6 @@ impl LinkMessage {
 
     pub fn into_parts(self) -> (LinkHeader, Vec<LinkNla>) {
         (self.header, self.nlas)
-    }
-
-    pub fn header_mut(&mut self) -> &mut LinkHeader {
-        &mut self.header
-    }
-
-    pub fn header(&self) -> &LinkHeader {
-        &self.header
-    }
-
-    pub fn nlas(&self) -> &[LinkNla] {
-        self.nlas.as_slice()
-    }
-
-    pub fn nlas_mut(&mut self) -> &mut Vec<LinkNla> {
-        &mut self.nlas
-    }
-
-    pub fn append_nla(&mut self, nla: LinkNla) {
-        self.nlas.push(nla)
     }
 
     pub fn from_parts(header: LinkHeader, nlas: Vec<LinkNla>) -> Self {
@@ -236,12 +216,9 @@ mod test {
     #[test]
     fn emit() {
         let mut header = LinkHeader::new();
-        header
-            .set_link_layer_type(LinkLayerType::Loopback)
-            .set_index(1)
-            .set_flags(LinkFlags::from(
-                IFF_UP | IFF_LOOPBACK | IFF_RUNNING | IFF_LOWER_UP,
-            ));
+        header.link_layer_type = LinkLayerType::Loopback;
+        header.index = 1;
+        header.flags = LinkFlags::from(IFF_UP | IFF_LOOPBACK | IFF_RUNNING | IFF_LOWER_UP);
 
         let nlas = vec![
             LinkNla::IfName("lo".into()),

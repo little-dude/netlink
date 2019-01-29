@@ -21,15 +21,15 @@ fn main() {
     let links = handle.link().get().execute().collect().wait().unwrap();
 
     for link in links {
-        for nla in link.nlas() {
+        for nla in &link.nlas {
             // Find the link with the name provided as argument
-            if let LinkNla::IfName(name) = nla {
+            if let LinkNla::IfName(ref name) = nla {
                 if name != link_name {
                     continue;
                 }
                 println!("setting link {} down", link_name);
                 // Set it down
-                match handle.link().del(link.header().index()).execute().wait() {
+                match handle.link().del(link.header.index).execute().wait() {
                     Ok(()) => println!("done"),
                     Err(e) => eprintln!("error: {}", e),
                 }

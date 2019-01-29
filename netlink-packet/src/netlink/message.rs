@@ -37,8 +37,8 @@ use crate::AuditMessage;
 /// ```
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct NetlinkMessage {
-    header: NetlinkHeader,
-    payload: NetlinkPayload,
+    pub header: NetlinkHeader,
+    pub payload: NetlinkPayload,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -158,60 +158,44 @@ impl NetlinkMessage {
         (self.header, self.payload)
     }
 
-    pub fn payload(&self) -> &NetlinkPayload {
-        &self.payload
-    }
-
-    pub fn payload_mut(&mut self) -> &mut NetlinkPayload {
-        &mut self.payload
-    }
-
-    pub fn header(&self) -> &NetlinkHeader {
-        &self.header
-    }
-
-    pub fn header_mut(&mut self) -> &mut NetlinkHeader {
-        &mut self.header
-    }
-
     /// Check if the payload is a `NLMSG_DONE` message
     /// ([`Rtnl::Done`](enum.NetlinkPayload.html#variant.Done))
     pub fn is_done(&self) -> bool {
-        self.payload().is_done()
+        self.payload.is_done()
     }
 
     /// Check if the payload is a `NLMSG_NOOP` message
     /// ([`Rtnl::Noop`](enum.NetlinkPayload.html#variant.Noop))
     pub fn is_noop(&self) -> bool {
-        self.payload().is_noop()
+        self.payload.is_noop()
     }
 
     /// Check if the payload is a `NLMSG_OVERRUN` message
     /// ([`Rtnl::Overrun`](enum.NetlinkPayload.html#variant.Overrun))
     pub fn is_overrun(&self) -> bool {
-        self.payload().is_overrun()
+        self.payload.is_overrun()
     }
 
     /// Check if the payload is a `NLMSG_ERROR` message with a negative error code
     /// ([`Rtnl::Error`](enum.NetlinkPayload.html#variant.Error))
     pub fn is_error(&self) -> bool {
-        self.payload().is_error()
+        self.payload.is_error()
     }
 
     /// Check if the payload is a `NLMSG_ERROR` message with a non-negative error code
     /// ([`Rtnl::Ack`](enum.NetlinkPayload.html#variant.Ack))
     pub fn is_ack(&self) -> bool {
-        self.payload().is_ack()
+        self.payload.is_ack()
     }
 
     #[cfg(feature = "rtnetlink")]
     pub fn is_rtnl(&self) -> bool {
-        self.payload().is_rtnl()
+        self.payload.is_rtnl()
     }
 
     #[cfg(feature = "audit")]
     pub fn is_audit(&self) -> bool {
-        self.payload().is_audit()
+        self.payload.is_audit()
     }
 
     /// Ensure the header (`NetlinkHeader`) is consistent with the payload (`NetlinkPayload`):
@@ -223,8 +207,8 @@ impl NetlinkMessage {
     /// [`Emitable::emit()`](trait.Emitable.html#tymethod.emit), as it could panic if the header is
     /// inconsistent with the rest of the message.
     pub fn finalize(&mut self) {
-        *self.header.length_mut() = self.buffer_len() as u32;
-        *self.header.message_type_mut() = self.payload.message_type();
+        self.header.length = self.buffer_len() as u32;
+        self.header.message_type = self.payload.message_type();
     }
 }
 
@@ -234,7 +218,7 @@ impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<NetlinkMessage> for NetlinkBuf
         let header = <Self as Parseable<NetlinkHeader>>::parse(self)
             .context("failed to parse netlink header")?;
 
-        let payload = match header.message_type() {
+        let payload = match header.message_type {
             NLMSG_ERROR => {
                 let msg: ErrorMessage = ErrorBuffer::new(&self.payload())
                     .parse()
@@ -292,7 +276,7 @@ impl Emitable for NetlinkMessage {
 
         self.header.emit(buffer);
 
-        let buffer = &mut buffer[self.header.buffer_len()..self.header.length() as usize];
+        let buffer = &mut buffer[self.header.buffer_len()..self.header.length as usize];
         match self.payload {
             Noop | Done => {}
             Overrun(ref bytes) => buffer.copy_from_slice(bytes),

@@ -73,9 +73,9 @@ impl AddressAddRequest {
             message,
         } = self;
         let mut req = NetlinkMessage::from(RtnlMessage::NewAddress(message));
-        req.header_mut().set_flags(*ADD_FLAGS);
+        req.header.flags = *ADD_FLAGS;
         handle.request(req).for_each(|message| {
-            if let NetlinkPayload::Error(ref err_message) = message.payload() {
+            if let NetlinkPayload::Error(ref err_message) = message.payload {
                 Err(ErrorKind::NetlinkError(err_message.clone()).into())
             } else {
                 Ok(())

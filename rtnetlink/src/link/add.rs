@@ -25,9 +25,10 @@ pub struct LinkAddRequest {
 
 impl LinkAddRequest {
     pub(crate) fn new(handle: Handle) -> Self {
-        let mut message = LinkMessage::new();
-        message.header_mut();
-        LinkAddRequest { handle, message }
+        LinkAddRequest {
+            handle,
+            message: LinkMessage::new(),
+        }
     }
 
     /// Execute the request.
@@ -37,9 +38,9 @@ impl LinkAddRequest {
             message,
         } = self;
         let mut req = NetlinkMessage::from(RtnlMessage::NewLink(message));
-        req.header_mut().set_flags(*ADD_FLAGS);
+        req.header.flags = *ADD_FLAGS;
         handle.request(req).for_each(|message| {
-            if let NetlinkPayload::Error(ref err_message) = message.payload() {
+            if let NetlinkPayload::Error(ref err_message) = message.payload {
                 Err(ErrorKind::NetlinkError(err_message.clone()).into())
             } else {
                 Ok(())
@@ -75,8 +76,8 @@ impl LinkAddRequest {
     ///     let link_id = 6;
     ///     let mut request = handle.link().add().vlan("my-vlan-itf".into(), link_id, vlan_id);
     ///     // unset the IFF_UP flag before sending the request
-    ///     request.message_mut().header_mut().flags_mut().unset_up();
-    ///     request.message_mut().header_mut().change_mask_mut().unset_up();
+    ///     request.message_mut().header.flags.unset_up();
+    ///     request.message_mut().header.change_mask.unset_up();
     ///     // send the request
     ///     request.execute().wait().unwrap();
     /// }
@@ -94,7 +95,7 @@ impl LinkAddRequest {
     /// kThis is equivalent to `ip link add NAME1 type veth peer name NAME2`.
     pub fn veth(self, name: String, peer_name: String) -> Self {
         let mut peer = LinkMessage::new();
-        peer.nlas_mut().push(LinkNla::IfName(peer_name));
+        peer.nlas.push(LinkNla::IfName(peer_name));
 
         self.name(name)
             .link_info(LinkInfoKind::Veth, Some(LinkInfoData::Veth(peer)))
@@ -115,10 +116,8 @@ impl LinkAddRequest {
     }
 
     fn up(mut self) -> Self {
-        self.message_mut()
-            .header_mut()
-            .set_flags(LinkFlags::from(IFF_UP))
-            .set_change_mask(LinkFlags::from(IFF_UP));
+        self.message.header.flags = LinkFlags::from(IFF_UP);
+        self.message.header.change_mask = LinkFlags::from(IFF_UP);
         self
     }
 
@@ -131,12 +130,12 @@ impl LinkAddRequest {
     }
 
     fn name(mut self, name: String) -> Self {
-        self.message.append_nla(LinkNla::IfName(name));
+        self.message.nlas.push(LinkNla::IfName(name));
         self
     }
 
     fn append_nla(mut self, nla: LinkNla) -> Self {
-        self.message.nlas_mut().push(nla);
+        self.message.nlas.push(nla);
         self
     }
 }

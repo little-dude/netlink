@@ -12,12 +12,10 @@ fn main() {
 
     let mut packet: NetlinkMessage =
         RtnlMessage::GetLink(LinkMessage::from_parts(LinkHeader::new(), vec![])).into();
-    packet
-        .header_mut()
-        .set_flags(NetlinkFlags::from(NLM_F_DUMP | NLM_F_REQUEST))
-        .set_sequence_number(1);
+    packet.header.flags = NetlinkFlags::from(NLM_F_DUMP | NLM_F_REQUEST);
+    packet.header.sequence_number = 1;
     packet.finalize();
-    let mut buf = vec![0; packet.header().length() as usize];
+    let mut buf = vec![0; packet.header.length as usize];
 
     // Before calling emit, it is important to check that the buffer in which we're emitting is big
     // enough for the packet, other `emit()` panics.
@@ -51,13 +49,13 @@ fn main() {
 
             println!("<<< {:?}", rx_packet);
 
-            if *rx_packet.payload() == NetlinkPayload::Done {
+            if rx_packet.payload == NetlinkPayload::Done {
                 println!("Done!");
                 return;
             }
 
-            offset += rx_packet.header().length() as usize;
-            if offset == size || rx_packet.header().length() == 0 {
+            offset += rx_packet.header.length as usize;
+            if offset == size || rx_packet.header.length == 0 {
                 offset = 0;
                 break;
             }

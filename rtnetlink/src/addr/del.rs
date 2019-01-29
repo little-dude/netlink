@@ -71,9 +71,9 @@ impl AddressDelRequest {
             })
             .map(move |msg| {
                 let mut req = NetlinkMessage::from(RtnlMessage::DelAddress(msg));
-                req.header_mut().set_flags(*DEL_FLAGS);
+                req.header.flags = *DEL_FLAGS;
                 handle.clone().request(req).for_each(|message| {
-                    if let NetlinkPayload::Error(ref err_message) = message.payload() {
+                    if let NetlinkPayload::Error(ref err_message) = message.payload {
                         Err(ErrorKind::NetlinkError(err_message.clone()).into())
                     } else {
                         Ok(())

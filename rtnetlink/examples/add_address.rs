@@ -40,7 +40,7 @@ fn main() {
         // The future is a stream of link message. We are interested only in a specific link, so we
         // filter out the other message.
         .filter(|link_msg| {
-            for nla in link_msg.nlas() {
+            for nla in &link_msg.nlas {
                 if let LinkNla::IfName(ref name) = nla {
                     return name == link_name;
                 }
@@ -53,7 +53,7 @@ fn main() {
                 // Get an "address" handle
                 .address()
                 // Create an "add" request
-                .add(link_msg.header().index(), ip.ip(), ip.prefix())
+                .add(link_msg.header.index, ip.ip(), ip.prefix())
                 // Turn the request into a future
                 .execute()
                 .and_then(|_| {

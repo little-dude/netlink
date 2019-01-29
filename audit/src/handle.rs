@@ -51,17 +51,15 @@ impl Handle {
     /// Add the given rule
     pub fn add_rule(&mut self, rule: RuleMessage) -> impl Future<Item = (), Error = Error> {
         let mut req = NetlinkMessage::from(AuditMessage::AddRule(rule));
-        req.header_mut().set_flags(NetlinkFlags::from(
-            NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE,
-        ));
+        req.header.flags =
+            NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
         self.acked_request(req)
     }
 
     /// List the current rules
     pub fn list_rules(&mut self) -> impl Stream<Item = RuleMessage, Error = Error> {
         let mut req = NetlinkMessage::from(AuditMessage::ListRules(None));
-        req.header_mut()
-            .set_flags(NetlinkFlags::from(NLM_F_REQUEST | NLM_F_DUMP));
+        req.header.flags = NetlinkFlags::from(NLM_F_REQUEST | NLM_F_DUMP);
 
         self.request(req).and_then(|nl_msg| {
             let (header, payload) = nl_msg.into_parts();
@@ -80,8 +78,7 @@ impl Handle {
         status.pid = process::id();
         status.mask = AUDIT_STATUS_ENABLED | AUDIT_STATUS_PID;
         let mut req = NetlinkMessage::from(AuditMessage::SetStatus(status));
-        req.header_mut()
-            .set_flags(NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK));
+        req.header.flags = NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK);
         self.acked_request(req)
     }
 }
