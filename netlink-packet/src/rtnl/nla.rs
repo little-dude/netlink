@@ -61,7 +61,13 @@ impl<T: AsRef<[u8]>> NlaBuffer<T> {
         self.buffer
     }
 
-    fn as_mut(&mut self) -> &mut T {
+    /// Return a reference to the underlying buffer
+    pub fn inner(&mut self) -> &T {
+        &self.buffer
+    }
+
+    /// Return a mutable reference to the underlying buffer
+    pub fn inner_mut(&mut self) -> &mut T {
         &mut self.buffer
     }
 
@@ -190,7 +196,7 @@ impl<T: Nla> Emitable for T {
         // add the padding. this is a bit ugly, not sure how to make it better
         let padding = (4 - self.value_len() % 4) % 4;
         for i in 0..padding {
-            buffer.as_mut()[4 + self.value_len() + i] = 0;
+            buffer.inner_mut()[4 + self.value_len() + i] = 0;
         }
     }
 }
