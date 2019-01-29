@@ -32,3 +32,17 @@ audit = []
 [[example]]
 name = "dump_links"
 required-features = ["rtnetlink"]
+
+[dev-dependencies]
+criterion = "0.2"
+pcap-file = "*"
+
+[[bench]]
+name = "link_message"
+harness = false
+required-features = ["rtnetlink"]
+
+[[bench]]
+name = "rtnetlink_dump"
+harness = false
+required-features = ["rtnetlink"]
