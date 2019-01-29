@@ -1,21 +1,3 @@
-// IFLA_AF_SPEC
-//
-// Contains nested nlas for address family specific nlas. Each address family may
-// create a nla with the address family number as type and create its own nla structure
-// in it.
-//
-// [IFLA_AF_SPEC] = {
-//     [AF_INET] = {
-//         [IFLA_INET_CONF] = ...,
-//     },
-//     [AF_INET6] = {
-//         [IFLA_INET6_FLAGS] = ...,
-//         [IFLA_INET6_CONF] = ...,
-//     }
-//     [AF_XXX] = { ... },
-//     ...
-// }
-
 pub use super::inet::LinkAfInetNla;
 pub use super::inet6::LinkAfInet6Nla;
 
@@ -24,9 +6,8 @@ use failure::ResultExt;
 use crate::constants::*;
 use crate::{DecodeError, DefaultNla, Emitable, Nla, NlaBuffer, NlasIterator, Parseable};
 
-// FIXME: There are many of those that I don't know how to parse. Help welcome.
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub enum LinkAfSpecNla {
+pub enum LinkAfSpecInetNla {
     Unspec(Vec<u8>),
     Unix(Vec<u8>),
     Ax25(Vec<u8>),
@@ -67,10 +48,10 @@ pub enum LinkAfSpecNla {
     Other(DefaultNla),
 }
 
-impl Nla for LinkAfSpecNla {
+impl Nla for LinkAfSpecInetNla {
     #[rustfmt::skip]
     fn value_len(&self) -> usize {
-        use self::LinkAfSpecNla::*;
+        use self::LinkAfSpecInetNla::*;
         match *self {
             Unspec(ref bytes)
                 | Unix(ref bytes)
@@ -108,15 +89,15 @@ impl Nla for LinkAfSpecNla {
                 | Caif(ref bytes)
                 | Alg(ref bytes)
                 => bytes.len(),
-            Inet6(ref af_inet6) => af_inet6.as_slice().buffer_len(),
-            Inet(ref af_inet) =>  af_inet.as_slice().buffer_len(),
+            Inet6(ref nlas) => nlas.as_slice().buffer_len(),
+            Inet(ref nlas) =>  nlas.as_slice().buffer_len(),
             Other(ref nla) => nla.value_len(),
         }
     }
 
     #[rustfmt::skip]
     fn emit_value(&self, buffer: &mut [u8]) {
-        use self::LinkAfSpecNla::*;
+        use self::LinkAfSpecInetNla::*;
         match *self {
             Unspec(ref bytes)
                 | Unix(ref bytes)
@@ -154,14 +135,14 @@ impl Nla for LinkAfSpecNla {
                 | Caif(ref bytes)
                 | Alg(ref bytes)
                 => (&mut buffer[..bytes.len()]).copy_from_slice(bytes.as_slice()),
-            LinkAfSpecNla::Inet6(ref attrs) => attrs.as_slice().emit(buffer),
-            LinkAfSpecNla::Inet(ref attrs) => attrs.as_slice().emit(buffer),
-            LinkAfSpecNla::Other(ref nla)  => nla.emit_value(buffer),
+            Inet6(ref nlas) => nlas.as_slice().emit(buffer),
+            Inet(ref nlas) => nlas.as_slice().emit(buffer),
+            Other(ref nla)  => nla.emit_value(buffer),
         }
     }
 
     fn kind(&self) -> u16 {
-        use self::LinkAfSpecNla::*;
+        use self::LinkAfSpecInetNla::*;
         match *self {
             Inet(_) => AF_INET,
             Unspec(_) => AF_UNSPEC,
@@ -205,9 +186,9 @@ impl Nla for LinkAfSpecNla {
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkAfSpecNla> for NlaBuffer<&'buffer T> {
-    fn parse(&self) -> Result<LinkAfSpecNla, DecodeError> {
-        use self::LinkAfSpecNla::*;
+impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkAfSpecInetNla> for NlaBuffer<&'buffer T> {
+    fn parse(&self) -> Result<LinkAfSpecInetNla, DecodeError> {
+        use self::LinkAfSpecInetNla::*;
         let payload = self.value();
         Ok(match self.kind() {
             AF_UNSPEC => Unspec(payload.to_vec()),
@@ -267,7 +248,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkAfSpecNla> for NlaBuffer<&'
             AF_IEEE802154 => Ieee802154(payload.to_vec()),
             AF_CAIF => Caif(payload.to_vec()),
             AF_ALG => Alg(payload.to_vec()),
-            kind => LinkAfSpecNla::Other(
+            kind => Other(
                 <Self as Parseable<DefaultNla>>::parse(self)
                     .context(format!("Unknown NLA type {}", kind))?,
             ),

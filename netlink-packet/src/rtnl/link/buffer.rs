@@ -3,7 +3,7 @@ use byteorder::{ByteOrder, NativeEndian};
 
 use super::{LinkFlags, LinkLayerType};
 
-const ADDRESS_FAMILY: Index = 0;
+const INTERFACE_FAMILY: Index = 0;
 const RESERVED_1: Index = 1;
 const LINK_LAYER_TYPE: Field = 2..4;
 const LINK_INDEX: Field = 4..8;
@@ -47,10 +47,10 @@ impl<T: AsRef<[u8]>> LinkBuffer<T> {
         }
     }
 
-    /// Return the address family field
-    pub fn address_family(&self) -> u8 {
+    /// Return the interface family field
+    pub fn interface_family(&self) -> u8 {
         let data = self.buffer.as_ref();
-        data[ADDRESS_FAMILY]
+        data[INTERFACE_FAMILY]
     }
 
     /// Return the link layer type field
@@ -105,10 +105,10 @@ impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> LinkBuffer<&'a mut T> {
 }
 
 impl<T: AsRef<[u8]> + AsMut<[u8]>> LinkBuffer<T> {
-    /// set the address family field
-    pub fn set_address_family(&mut self, value: u8) {
+    /// set the interface family field
+    pub fn set_interface_family(&mut self, value: u8) {
         let data = self.buffer.as_mut();
-        data[ADDRESS_FAMILY] = value
+        data[INTERFACE_FAMILY] = value
     }
 
     pub fn set_reserved_1(&mut self, value: u8) {

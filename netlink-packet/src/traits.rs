@@ -24,3 +24,10 @@ pub trait Parseable<T> {
     /// Deserialize the current type.
     fn parse(&self) -> Result<T, DecodeError>;
 }
+
+/// A `Parseable` type can be used to deserialize data into the target type `T` for which it is
+/// implemented.
+pub trait ParseableParametrized<T, P> {
+    /// Deserialize the current type.
+    fn parse_with_param(&self, params: P) -> Result<T, DecodeError>;
+}

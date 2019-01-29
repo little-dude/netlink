@@ -128,13 +128,10 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<Vec<LinkInfo>> for NlaBuffer<&'
                             LinkInfoKind::Veth => {
                                 let buffer = LinkBuffer::new_checked(&payload)
                                     .context("failed to parse veth link info")?;
-                                let header =
-                                    <LinkBuffer<_> as Parseable<LinkHeader>>::parse(&buffer)
+                                let link_message =
+                                    <LinkBuffer<_> as Parseable<LinkMessage>>::parse(&buffer)
                                         .context("failed to parse veth link info")?;
-                                let nlas =
-                                    <LinkBuffer<_> as Parseable<Vec<LinkNla>>>::parse(&buffer)
-                                        .context("failed to parse veth link info")?;
-                                LinkInfoData::Veth(LinkMessage::from_parts(header, nlas))
+                                LinkInfoData::Veth(link_message)
                             }
                             LinkInfoKind::Vxlan => LinkInfoData::Vxlan(payload.to_vec()),
                             LinkInfoKind::Bond => LinkInfoData::Bond(payload.to_vec()),

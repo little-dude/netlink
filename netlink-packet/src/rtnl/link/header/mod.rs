@@ -14,7 +14,7 @@ use crate::{DecodeError, Emitable, Parseable};
 /// ```no_rust
 /// 0                8                16              24               32
 /// +----------------+----------------+----------------+----------------+
-/// | address family |    reserved    |         link layer type         |
+/// |interface family|    reserved    |         link layer type         |
 /// +----------------+----------------+----------------+----------------+
 /// |                             link index                            |
 /// +----------------+----------------+----------------+----------------+
@@ -35,7 +35,7 @@ use crate::{DecodeError, Emitable, Parseable};
 ///
 /// fn main() {
 ///     let mut hdr = LinkHeader::new();
-///     assert_eq!(hdr.address_family, 0u8);
+///     assert_eq!(hdr.interface_family, 0u8);
 ///     assert_eq!(hdr.link_layer_type, LinkLayerType::Ether);
 ///     assert_eq!(hdr.flags, LinkFlags::new());
 ///     assert_eq!(hdr.change_mask, LinkFlags::new());
@@ -49,7 +49,7 @@ use crate::{DecodeError, Emitable, Parseable};
 ///
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct LinkHeader {
-    pub address_family: u8,
+    pub interface_family: u8,
     pub index: u32,
     pub link_layer_type: LinkLayerType,
     pub flags: LinkFlags,
@@ -65,14 +65,14 @@ impl Default for LinkHeader {
 impl LinkHeader {
     /// Create a new `LinkHeader`:
     ///
-    /// - address family defaults to `AF_UNSPEC` (0)
+    /// - interface family defaults to `AF_UNSPEC` (0)
     /// - the link layer type defaults to `ARPHRD_ETHER` ([`LinkLayerType::Ether`](enum.LinkLayerType.html))
     /// - the linx index defaults to 0
     /// - the flags default to 0 ([`LinkFlags::new()`](struct.LinkFlags.html#method.new))
     /// - the change master default to 0 ([`LinkFlags::new()`](struct.LinkFlags.html#method.new))
     pub fn new() -> Self {
         LinkHeader {
-            address_family: 0, // AF_UNSPEC
+            interface_family: 0, // AF_UNSPEC
             link_layer_type: LinkLayerType::Ether,
             flags: LinkFlags::new(),
             change_mask: LinkFlags::new(),
@@ -88,7 +88,7 @@ impl Emitable for LinkHeader {
 
     fn emit(&self, buffer: &mut [u8]) {
         let mut packet = LinkBuffer::new(buffer);
-        packet.set_address_family(self.address_family);
+        packet.set_interface_family(self.interface_family);
         packet.set_link_index(self.index);
         packet.set_change_mask(self.change_mask);
         packet.set_link_layer_type(self.link_layer_type);
@@ -99,7 +99,7 @@ impl Emitable for LinkHeader {
 impl<T: AsRef<[u8]>> Parseable<LinkHeader> for LinkBuffer<T> {
     fn parse(&self) -> Result<LinkHeader, DecodeError> {
         Ok(LinkHeader {
-            address_family: self.address_family(),
+            interface_family: self.interface_family(),
             link_layer_type: self.link_layer_type(),
             index: self.link_index(),
             change_mask: self.change_mask(),
