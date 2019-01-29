@@ -1,10 +1,17 @@
-use crate::{DecodeError, Emitable, Parseable};
-
 use crate::constants::*;
+use crate::{DecodeError, Emitable, Parseable};
 
 use super::buffer::{RouteBuffer, ROUTE_HEADER_LEN};
 
 /// Route type
+///
+/// ```rust
+/// # extern crate netlink_packet;
+/// # use netlink_packet::RouteKind;
+/// #
+/// # fn main() {
+/// assert_eq!(RouteKind::default(), RouteKind::Unspec);
+/// # }
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum RouteKind {
     /// Unknown route
@@ -32,6 +39,12 @@ pub enum RouteKind {
     /// Refer to an external resolver (not implemented)
     Xresolve,
     Unknown(u8),
+}
+
+impl Default for RouteKind {
+    fn default() -> Self {
+        RouteKind::Unspec
+    }
 }
 
 impl From<RouteKind> for u8 {
@@ -76,7 +89,15 @@ impl From<u8> for RouteKind {
     }
 }
 
-/// Route origin
+/// Route origin.
+///
+/// ```rust
+/// # extern crate netlink_packet;
+/// # use netlink_packet::RouteProtocol;
+/// #
+/// # fn main() {
+/// assert_eq!(RouteProtocol::default(), RouteProtocol::Unspec);
+/// # }
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum RouteProtocol {
     /// Unknown
@@ -101,6 +122,12 @@ pub enum RouteProtocol {
     Mrouted,
     Babel,
     Unknown(u8),
+}
+
+impl Default for RouteProtocol {
+    fn default() -> Self {
+        RouteProtocol::Unspec
+    }
 }
 
 impl From<RouteProtocol> for u8 {
@@ -154,6 +181,14 @@ impl From<u8> for RouteProtocol {
 }
 
 /// Distance to the destination
+///
+/// ```rust
+/// # extern crate netlink_packet;
+/// # use netlink_packet::RouteScope;
+/// #
+/// # fn main() {
+/// assert_eq!(RouteScope::default(), RouteScope::Universe);
+/// # }
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum RouteScope {
     /// Global route
@@ -167,6 +202,12 @@ pub enum RouteScope {
     /// Destination doesn't exist
     Nowhere,
     Unknown(u8),
+}
+
+impl Default for RouteScope {
+    fn default() -> Self {
+        RouteScope::Universe
+    }
 }
 
 impl From<RouteScope> for u8 {
@@ -198,6 +239,14 @@ impl From<u8> for RouteScope {
 }
 
 /// Routing table
+///
+/// ```rust
+/// # extern crate netlink_packet;
+/// # use netlink_packet::RouteTable;
+/// #
+/// # fn main() {
+/// assert_eq!(RouteTable::default(), RouteTable::Unspec);
+/// # }
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum RouteTable {
     Unspec,
@@ -206,6 +255,12 @@ pub enum RouteTable {
     Main,
     Local,
     Unknown(u8),
+}
+
+impl Default for RouteTable {
+    fn default() -> Self {
+        RouteTable::Unspec
+    }
 }
 
 impl From<RouteTable> for u8 {
@@ -236,7 +291,7 @@ impl From<u8> for RouteTable {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone, Default)]
 pub struct RouteFlags(u32);
 
 impl From<u32> for RouteFlags {
@@ -251,16 +306,10 @@ impl From<RouteFlags> for u32 {
     }
 }
 
-impl Default for RouteFlags {
-    fn default() -> Self {
-        RouteFlags::new()
-    }
-}
-
 impl RouteFlags {
     /// Create a new empty flags field (no flag is set)
     pub fn new() -> Self {
-        RouteFlags(0)
+        Self::default()
     }
 
     /// Check whether the`RTM_F_NOTIFY` flag is set. If this flag is set and the route changes, a
@@ -327,7 +376,49 @@ impl RouteFlags {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+/// High level representation of `RTM_GETROUTE`, `RTM_ADDROUTE`, `RTM_DELROUTE`
+/// messages headers.
+///
+/// These headers have the following structure:
+///
+/// ```no_rust
+/// 0                8                16              24               32
+/// +----------------+----------------+----------------+----------------+
+/// | address family | dest. length   | source length  |      tos       |
+/// +----------------+----------------+----------------+----------------+
+/// |     table      |   protocol     |      scope     | type (kind)    |
+/// +----------------+----------------+----------------+----------------+
+/// |                               flags                               |
+/// +----------------+----------------+----------------+----------------+
+/// ```
+///
+/// # Example
+///
+/// ```rust
+/// extern crate netlink_packet;
+/// use netlink_packet::{RouteHeader, RouteFlags, RouteProtocol, RouteTable, RouteScope, RouteKind};
+///
+/// fn main() {
+///     let mut hdr = RouteHeader::new();
+///     assert_eq!(hdr.address_family, 0u8);
+///     assert_eq!(hdr.destination_length, 0u8);
+///     assert_eq!(hdr.source_length, 0u8);
+///     assert_eq!(hdr.tos, 0u8);
+///     assert_eq!(hdr.table, RouteTable::Unspec);
+///     assert_eq!(hdr.protocol, RouteProtocol::Unspec);
+///     assert_eq!(hdr.scope, RouteScope::Universe);
+///     assert_eq!(hdr.kind, RouteKind::Unspec);
+///     assert_eq!(u32::from(hdr.flags), 0u32);
+///
+///     hdr.destination_length = 8;
+///     hdr.table = RouteTable::Default;
+///     hdr.protocol = RouteProtocol::Kernel;
+///     hdr.scope = RouteScope::Nowhere;
+///
+///     // ...
+/// }
+/// ```
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Default)]
 pub struct RouteHeader {
     /// Address family of the route
     pub address_family: u8,
@@ -348,6 +439,12 @@ pub struct RouteHeader {
     pub kind: RouteKind,
 
     pub flags: RouteFlags,
+}
+
+impl RouteHeader {
+    pub fn new() -> Self {
+        Default::default()
+    }
 }
 
 impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<RouteHeader> for RouteBuffer<&'a T> {

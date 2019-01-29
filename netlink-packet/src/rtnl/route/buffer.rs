@@ -25,6 +25,25 @@ impl<T: AsRef<[u8]>> RouteBuffer<T> {
         RouteBuffer { buffer }
     }
 
+    pub fn new_checked(buffer: T) -> Result<Self, DecodeError> {
+        let packet = Self::new(buffer);
+        packet.check_buffer_length()?;
+        Ok(packet)
+    }
+
+    fn check_buffer_length(&self) -> Result<(), DecodeError> {
+        let len = self.buffer.as_ref().len();
+        if len < ROUTE_HEADER_LEN {
+            Err(format!(
+                "invalid RouteBuffer: length is {} but RouteBuffer are at least {} bytes",
+                len, ROUTE_HEADER_LEN
+            )
+            .into())
+        } else {
+            Ok(())
+        }
+    }
+
     /// Consume the packet, returning the underlying buffer.
     pub fn into_inner(self) -> T {
         self.buffer

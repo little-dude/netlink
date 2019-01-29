@@ -1,5 +1,5 @@
 use crate::constants::*;
-use crate::rtnl::{LinkBuffer, LinkHeader, LinkMessage, LinkNla};
+use crate::rtnl::{LinkBuffer, LinkMessage};
 use crate::utils::{parse_mac, parse_string, parse_u16, parse_u32, parse_u64, parse_u8};
 use crate::{DecodeError, DefaultNla, Emitable, Nla, NlaBuffer, NlasIterator, Parseable};
 use byteorder::{ByteOrder, NativeEndian};
