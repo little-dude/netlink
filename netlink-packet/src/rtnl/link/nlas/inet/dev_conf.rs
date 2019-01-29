@@ -368,7 +368,6 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> LinkInetDevConfBuffer<T> {
 
 impl<T: AsRef<[u8]>> Parseable<LinkInetDevConf> for LinkInetDevConfBuffer<T> {
     fn parse(&self) -> Result<LinkInetDevConf, DecodeError> {
-        self.check_buffer_length()?;
         Ok(LinkInetDevConf {
             forwarding: self.forwarding(),
             mc_forwarding: self.mc_forwarding(),

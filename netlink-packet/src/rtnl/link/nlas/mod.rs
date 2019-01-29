@@ -400,16 +400,19 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkNla> for NlaBuffer<&'buffer
                     .context("invalid IFLA_OPERSTATE value")?
                     .into(),
             ),
-            IFLA_MAP => Map(LinkMapBuffer::new(payload)
+            IFLA_MAP => Map(LinkMapBuffer::new_checked(payload)
+                .context("invalid IFLA_MAP value")?
                 .parse()
                 .context("invalid IFLA_MAP value")?),
             IFLA_STATS => Stats(
-                LinkStatsBuffer::new(payload)
+                LinkStatsBuffer::new_checked(payload)
+                    .context("invalid IFLA_STATS value")?
                     .parse()
                     .context("invalid IFLA_STATS value")?,
             ),
             IFLA_STATS64 => Stats64(
-                LinkStats64Buffer::new(payload)
+                LinkStats64Buffer::new_checked(payload)
+                    .context("invalid IFLA_STATS64 value")?
                     .parse()
                     .context("invalid IFLA_STATS64 value")?,
             ),

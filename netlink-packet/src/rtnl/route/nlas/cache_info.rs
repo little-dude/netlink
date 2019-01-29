@@ -126,7 +126,6 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> RouteCacheInfoBuffer<T> {
 
 impl<T: AsRef<[u8]>> Parseable<RouteCacheInfo> for RouteCacheInfoBuffer<T> {
     fn parse(&self) -> Result<RouteCacheInfo, DecodeError> {
-        self.check_buffer_length()?;
         Ok(RouteCacheInfo {
             clntref: self.clntref(),
             last_use: self.last_use(),

@@ -153,7 +153,8 @@ impl RtnlMessage {
         let message = match message_type {
             // Link messages
             RTM_NEWLINK | RTM_GETLINK | RTM_DELLINK | RTM_SETLINK => {
-                let msg: LinkMessage = LinkBuffer::new(&buffer)
+                let msg: LinkMessage = LinkBuffer::new_checked(&buffer)
+                    .context("invalid link message")?
                     .parse()
                     .context("invalid link message")?;
                 match message_type {
@@ -166,7 +167,8 @@ impl RtnlMessage {
             }
             // Address messages
             RTM_NEWADDR | RTM_GETADDR | RTM_DELADDR => {
-                let msg: AddressMessage = AddressBuffer::new(&buffer)
+                let msg: AddressMessage = AddressBuffer::new_checked(&buffer)
+                    .context("invalid address message")?
                     .parse()
                     .context("invalid address message")?;
                 match message_type {

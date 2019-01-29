@@ -160,7 +160,6 @@ impl Nla for DefaultNla {
 
 impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<DefaultNla> for NlaBuffer<&'buffer T> {
     fn parse(&self) -> Result<DefaultNla, DecodeError> {
-        self.check_buffer_length()?;
         Ok(DefaultNla {
             kind: self.kind(),
             value: self.value().to_vec(),

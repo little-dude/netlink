@@ -84,7 +84,6 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> LinkInet6CacheInfoBuffer<T> {
 
 impl<T: AsRef<[u8]>> Parseable<LinkInet6CacheInfo> for LinkInet6CacheInfoBuffer<T> {
     fn parse(&self) -> Result<LinkInet6CacheInfo, DecodeError> {
-        self.check_buffer_length()?;
         Ok(LinkInet6CacheInfo {
             max_reasm_len: self.max_reasm_len(),
             tstamp: self.tstamp(),

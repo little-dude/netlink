@@ -17,12 +17,31 @@ pub struct AddressBuffer<T> {
 }
 
 impl<T: AsRef<[u8]>> AddressBuffer<T> {
-    pub fn new(buffer: T) -> AddressBuffer<T> {
+    pub fn new(buffer: T) -> Self {
         AddressBuffer { buffer }
     }
 
     pub fn into_inner(self) -> T {
         self.buffer
+    }
+
+    pub fn new_checked(buffer: T) -> Result<Self, DecodeError> {
+        let packet = Self::new(buffer);
+        packet.check_buffer_length()?;
+        Ok(packet)
+    }
+
+    fn check_buffer_length(&self) -> Result<(), DecodeError> {
+        let len = self.buffer.as_ref().len();
+        if len < ADDRESS_HEADER_LEN {
+            Err(format!(
+                "invalid AddressBuffer: length is {} but AddressBuffer are at least {} bytes",
+                len, ADDRESS_HEADER_LEN
+            )
+            .into())
+        } else {
+            Ok(())
+        }
     }
 
     pub fn family(&self) -> u8 {

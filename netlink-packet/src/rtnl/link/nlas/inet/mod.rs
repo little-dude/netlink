@@ -46,13 +46,12 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkAfInetNla> for NlaBuffer<&'
     fn parse(&self) -> Result<LinkAfInetNla, DecodeError> {
         use self::LinkAfInetNla::*;
 
-        self.check_buffer_length()?;
-
         let payload = self.value();
         Ok(match self.kind() {
             IFLA_INET_UNSPEC => Unspec(payload.to_vec()),
             IFLA_INET_CONF => DevConf(
-                LinkInetDevConfBuffer::new(payload)
+                LinkInetDevConfBuffer::new_checked(payload)
+                    .context("invalid IFLA_INET_CONF value")?
                     .parse()
                     .context("invalid IFLA_INET_CONF value")?,
             ),

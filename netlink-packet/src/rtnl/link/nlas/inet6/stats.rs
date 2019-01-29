@@ -367,7 +367,6 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> LinkInet6StatsBuffer<T> {
 
 impl<T: AsRef<[u8]>> Parseable<LinkInet6Stats> for LinkInet6StatsBuffer<T> {
     fn parse(&self) -> Result<LinkInet6Stats, DecodeError> {
-        self.check_buffer_length()?;
         Ok(LinkInet6Stats {
             num: self.num(),
             in_pkts: self.in_pkts(),

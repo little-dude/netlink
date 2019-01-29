@@ -28,6 +28,25 @@ impl<T: AsRef<[u8]>> LinkBuffer<T> {
         self.buffer
     }
 
+    pub fn new_checked(buffer: T) -> Result<LinkBuffer<T>, DecodeError> {
+        let packet = Self::new(buffer);
+        packet.check_buffer_length()?;
+        Ok(packet)
+    }
+
+    fn check_buffer_length(&self) -> Result<(), DecodeError> {
+        let len = self.buffer.as_ref().len();
+        if len < LINK_HEADER_LEN {
+            Err(format!(
+                "invalid LinkBuffer: length is {} but LinkBuffer are at least {} bytes",
+                len, LINK_HEADER_LEN
+            )
+            .into())
+        } else {
+            Ok(())
+        }
+    }
+
     /// Return the address family field
     pub fn address_family(&self) -> u8 {
         let data = self.buffer.as_ref();
