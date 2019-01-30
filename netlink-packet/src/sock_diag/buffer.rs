@@ -6,7 +6,10 @@ use std::time::Duration;
 
 use byteorder::{ByteOrder, NativeEndian, NetworkEndian};
 
-use crate::sock_diag::inet_diag::{extension, extension::*, tcp_state, tcp_state::*, TCPF_ALL};
+use crate::sock_diag::{
+    inet_diag::{extension, extension::*, tcp_state, tcp_state::*},
+    unix_diag::{attribute, show::*, unix_diag_rqlen, unix_diag_vfs, unix_state},
+};
 use crate::{DecodeError, Field, Rest};
 
 const fn array_of<T>(start: usize, len: usize) -> Field {
@@ -23,26 +26,40 @@ const IDIAG_ID_SIZE: usize = IDIAG_COOKIE.end;
 
 const INET_DIAG_NOCOOKIE: u64 = !0;
 
-const SDIAG_REQ_FAMILY: usize = 0;
-const SDIAG_REQ_PROTOCOL: usize = 1;
+const SDIAG_FAMILY: usize = 0;
+const SDIAG_PROTOCOL: usize = 1;
 const IDIAG_REQ_EXT: usize = 2;
 const IDIAG_REQ_STATES: Field = 4..8;
 const IDIAG_REQ_ID: Field = 8..56;
 const IDIAG_REQ_SIZE: usize = IDIAG_REQ_ID.end;
 const IDIAG_REQ_ATTRIBUTES: Rest = IDIAG_REQ_SIZE..;
 
-const IDIAG_RES_FAMILY: usize = 0;
-const IDIAG_RES_STATE: usize = 1;
-const IDIAG_RES_TIMER: usize = 2;
-const IDIAG_RES_RETRANS: usize = 3;
-const IDIAG_RES_ID: Field = 4..52;
-const IDIAG_RES_EXPIRES: Field = 52..56;
-const IDIAG_RES_RQUEUE: Field = 56..60;
-const IDIAG_RES_WQUEUE: Field = 60..64;
-const IDIAG_RES_UID: Field = 64..68;
-const IDIAG_RES_INODE: Field = 68..72;
-const IDIAG_RES_SIZE: usize = IDIAG_RES_INODE.end;
-const IDIAG_RES_ATTRIBUTES: Rest = IDIAG_RES_SIZE..;
+const IDIAG_MSG_FAMILY: usize = 0;
+const IDIAG_MSG_STATE: usize = 1;
+const IDIAG_MSG_TIMER: usize = 2;
+const IDIAG_MSG_RETRANS: usize = 3;
+const IDIAG_MSG_ID: Field = 4..52;
+const IDIAG_MSG_EXPIRES: Field = 52..56;
+const IDIAG_MSG_RQUEUE: Field = 56..60;
+const IDIAG_MSG_WQUEUE: Field = 60..64;
+const IDIAG_MSG_UID: Field = 64..68;
+const IDIAG_MSG_INODE: Field = 68..72;
+const IDIAG_MSG_SIZE: usize = IDIAG_MSG_INODE.end;
+const IDIAG_MSG_ATTRIBUTES: Rest = IDIAG_MSG_SIZE..;
+
+const UDIAG_REQ_STATES: Field = 4..8;
+const UDIAG_REQ_INO: Field = 8..12;
+const UDIAG_REQ_SHOW: Field = 12..16;
+const UDIAG_REQ_COOKIE: Field = array_of::<u32>(16, 2);
+const UDIAG_REQ_SIZE: usize = UDIAG_REQ_COOKIE.end;
+
+const UDIAG_MSG_FAMILY: usize = 0;
+const UDIAG_MSG_TYPE: usize = 1;
+const UDIAG_MSG_STATE: usize = 2;
+const UDIAG_MSG_INO: Field = 4..8;
+const UDIAG_MSG_COOKIE: Field = array_of::<u32>(8, 2);
+const UDIAG_MSG_SIZE: usize = UDIAG_MSG_COOKIE.end;
+const UDIAG_MSG_ATTRIBUTES: Rest = UDIAG_MSG_SIZE..;
 
 pub type TcpState = tcp_state;
 
@@ -59,13 +76,25 @@ bitflags! {
         const LastAck = 1 << TCP_LAST_ACK as u8;
         const Listen = 1 << TCP_LISTEN as u8;
         const Closing = 1 << TCP_CLOSING as u8;
-        const All = TCPF_ALL;
     }
 }
 
 impl Default for TcpStates {
     fn default() -> Self {
-        TcpStates::All
+        TcpStates::all()
+    }
+}
+
+bitflags! {
+    pub struct UnixStates: u32 {
+        const Established = 1 << TCP_ESTABLISHED as u8;
+        const Listen = 1 << TCP_LISTEN as u8;
+    }
+}
+
+impl Default for UnixStates {
+    fn default() -> Self {
+        UnixStates::all()
     }
 }
 
@@ -85,6 +114,17 @@ bitflags! {
 impl Default for Extension {
     fn default() -> Self {
         Extension::empty()
+    }
+}
+
+bitflags! {
+    pub struct Show: u32 {
+        const Name = UDIAG_SHOW_NAME as u32;
+        const Vfs = UDIAG_SHOW_VFS as u32;
+        const Peer = UDIAG_SHOW_PEER as u32;
+        const Icons = UDIAG_SHOW_ICONS as u32;
+        const RecvQueueLen = UDIAG_SHOW_RQLEN as u32;
+        const MemInfo = UDIAG_SHOW_MEMINFO as u32;
     }
 }
 
@@ -219,8 +259,9 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> SocketIdBuffer<T> {
         NativeEndian::write_u32(&mut data[IDIAG_IF], intf)
     }
 
-    pub fn set_cookie(&mut self, cookie: u64) {
+    pub fn set_cookie(&mut self, cookie: Option<u64>) {
         let data = self.buffer.as_mut();
+        let cookie = cookie.unwrap_or(INET_DIAG_NOCOOKIE);
         let cookie = [cookie as u32, (cookie >> 32) as u32];
         NativeEndian::write_u32_into(&cookie[..], &mut data[IDIAG_COOKIE]);
     }
@@ -244,11 +285,11 @@ impl<T> InetDiagReqV2Buffer<T> {
 impl<T: AsRef<[u8]>> InetDiagReqV2Buffer<T> {
     pub fn family(&self) -> u8 {
         let data = self.buffer.as_ref();
-        data[SDIAG_REQ_FAMILY]
+        data[SDIAG_FAMILY]
     }
     pub fn protocol(&self) -> u8 {
         let data = self.buffer.as_ref();
-        data[SDIAG_REQ_PROTOCOL]
+        data[SDIAG_PROTOCOL]
     }
     pub fn extensions(&self) -> Extension {
         let data = self.buffer.as_ref();
@@ -268,12 +309,12 @@ impl<T: AsRef<[u8]>> InetDiagReqV2Buffer<T> {
 impl<T: AsRef<[u8]> + AsMut<[u8]>> InetDiagReqV2Buffer<T> {
     pub fn set_family(&mut self, family: u8) {
         let data = self.buffer.as_mut();
-        data[SDIAG_REQ_FAMILY] = family
+        data[SDIAG_FAMILY] = family
     }
 
     pub fn set_protocol(&mut self, protocol: u8) {
         let data = self.buffer.as_mut();
-        data[SDIAG_REQ_PROTOCOL] = protocol
+        data[SDIAG_PROTOCOL] = protocol
     }
 
     pub fn set_extensions(&mut self, ext: Extension) {
@@ -303,7 +344,7 @@ impl<T> InetDiagMsgBuffer<T> {
     }
 
     pub const fn len() -> usize {
-        IDIAG_RES_SIZE
+        IDIAG_MSG_SIZE
     }
 }
 
@@ -314,12 +355,12 @@ impl<T: AsRef<[u8]>> InetDiagMsgBuffer<T> {
         Ok(packet)
     }
 
-    pub(crate) fn check_len(&self) -> Result<(), DecodeError> {
+    fn check_len(&self) -> Result<(), DecodeError> {
         let len = self.buffer.as_ref().len();
-        if len < IDIAG_RES_SIZE {
+        if len < IDIAG_MSG_SIZE {
             Err(format!(
                 "buffer size is {}, whereas a rule buffer is at least {} long",
-                len, IDIAG_RES_SIZE
+                len, IDIAG_MSG_SIZE
             )
             .into())
         } else {
@@ -329,32 +370,32 @@ impl<T: AsRef<[u8]>> InetDiagMsgBuffer<T> {
 
     pub fn family(&self) -> u8 {
         let data = self.buffer.as_ref();
-        data[IDIAG_RES_FAMILY]
+        data[IDIAG_MSG_FAMILY]
     }
 
     pub fn state(&self) -> tcp_state {
         let data = self.buffer.as_ref();
-        unsafe { mem::transmute(data[IDIAG_RES_STATE]) }
+        tcp_state::from(data[IDIAG_MSG_STATE])
     }
 
     pub fn timer(&self) -> u8 {
         let data = self.buffer.as_ref();
-        data[IDIAG_RES_TIMER]
+        data[IDIAG_MSG_TIMER]
     }
 
     pub fn retrans(&self) -> u8 {
         let data = self.buffer.as_ref();
-        data[IDIAG_RES_RETRANS]
+        data[IDIAG_MSG_RETRANS]
     }
 
     pub fn id(&self) -> SocketIdBuffer<&[u8]> {
         let data = self.buffer.as_ref();
-        SocketIdBuffer::new(&data[IDIAG_RES_ID])
+        SocketIdBuffer::new(&data[IDIAG_MSG_ID])
     }
 
     pub fn expires(&self) -> Option<Duration> {
         let data = self.buffer.as_ref();
-        let expires = NativeEndian::read_u32(&data[IDIAG_RES_EXPIRES]);
+        let expires = NativeEndian::read_u32(&data[IDIAG_MSG_EXPIRES]);
         if expires == 0 {
             None
         } else {
@@ -364,79 +405,79 @@ impl<T: AsRef<[u8]>> InetDiagMsgBuffer<T> {
 
     pub fn rqueue(&self) -> u32 {
         let data = self.buffer.as_ref();
-        NativeEndian::read_u32(&data[IDIAG_RES_RQUEUE])
+        NativeEndian::read_u32(&data[IDIAG_MSG_RQUEUE])
     }
 
     pub fn wqueue(&self) -> u32 {
         let data = self.buffer.as_ref();
-        NativeEndian::read_u32(&data[IDIAG_RES_WQUEUE])
+        NativeEndian::read_u32(&data[IDIAG_MSG_WQUEUE])
     }
 
     pub fn uid(&self) -> u32 {
         let data = self.buffer.as_ref();
-        NativeEndian::read_u32(&data[IDIAG_RES_UID])
+        NativeEndian::read_u32(&data[IDIAG_MSG_UID])
     }
 
     pub fn inode(&self) -> u32 {
         let data = self.buffer.as_ref();
-        NativeEndian::read_u32(&data[IDIAG_RES_INODE])
+        NativeEndian::read_u32(&data[IDIAG_MSG_INODE])
     }
 
     pub fn attrs(&self) -> RtaIterator<&[u8]> {
         let data = self.buffer.as_ref();
-        RtaIterator::new(&data[IDIAG_RES_ATTRIBUTES])
+        RtaIterator::new(&data[IDIAG_MSG_ATTRIBUTES])
     }
 }
 
 impl<T: AsRef<[u8]> + AsMut<[u8]>> InetDiagMsgBuffer<T> {
     pub fn set_family(&mut self, family: u8) {
         let data = self.buffer.as_mut();
-        data[IDIAG_RES_FAMILY] = family
+        data[IDIAG_MSG_FAMILY] = family
     }
 
     pub fn set_state(&mut self, state: TcpState) {
         let data = self.buffer.as_mut();
-        data[IDIAG_RES_STATE] = state as u8
+        data[IDIAG_MSG_STATE] = state as u8
     }
 
     pub fn set_timer(&mut self, timer: u8) {
         let data = self.buffer.as_mut();
-        data[IDIAG_RES_TIMER] = timer
+        data[IDIAG_MSG_TIMER] = timer
     }
 
     pub fn set_retrans(&mut self, retrans: u8) {
         let data = self.buffer.as_mut();
-        data[IDIAG_RES_RETRANS] = retrans
+        data[IDIAG_MSG_RETRANS] = retrans
     }
 
     pub fn id_mut(&mut self) -> SocketIdBuffer<&mut [u8]> {
         let data = self.buffer.as_mut();
-        SocketIdBuffer::new(&mut data[IDIAG_RES_ID])
+        SocketIdBuffer::new(&mut data[IDIAG_MSG_ID])
     }
 
     pub fn set_expires(&mut self, expires: u32) {
         let data = self.buffer.as_mut();
-        NativeEndian::write_u32(&mut data[IDIAG_RES_EXPIRES], expires)
+        NativeEndian::write_u32(&mut data[IDIAG_MSG_EXPIRES], expires)
     }
 
     pub fn set_rqueue(&mut self, rqueue: u32) {
         let data = self.buffer.as_mut();
-        NativeEndian::write_u32(&mut data[IDIAG_RES_RQUEUE], rqueue)
+        NativeEndian::write_u32(&mut data[IDIAG_MSG_RQUEUE], rqueue)
     }
 
     pub fn set_wqueue(&mut self, wqueue: u32) {
         let data = self.buffer.as_mut();
-        NativeEndian::write_u32(&mut data[IDIAG_RES_WQUEUE], wqueue)
+        NativeEndian::write_u32(&mut data[IDIAG_MSG_WQUEUE], wqueue)
     }
 
     pub fn set_uid(&mut self, uid: u32) {
         let data = self.buffer.as_mut();
-        NativeEndian::write_u32(&mut data[IDIAG_RES_UID], uid)
+        NativeEndian::write_u32(&mut data[IDIAG_MSG_UID], uid)
     }
 
     pub fn set_inode(&mut self, inode: u32) {
         let data = self.buffer.as_mut();
-        NativeEndian::write_u32(&mut data[IDIAG_RES_INODE], inode)
+        NativeEndian::write_u32(&mut data[IDIAG_MSG_INODE], inode)
     }
 }
 
@@ -461,8 +502,8 @@ const RTA_HDR_LEN: usize = mem::size_of::<u16>() * 2;
 const RTA_LENGTH: Field = 0..2;
 const RTA_TYPE: Field = 2..4;
 
-impl<T: AsRef<[u8]> + ?Sized> Iterator for RtaIterator<&T> {
-    type Item = Result<InetDiagAttr, DecodeError>;
+impl<'buffer, T: AsRef<[u8]> + ?Sized + 'buffer> Iterator for RtaIterator<&'buffer T> {
+    type Item = (u16, &'buffer [u8]);
 
     fn next(&mut self) -> Option<Self::Item> {
         // rtattr are aligned on 4 bytes boundaries, so we make sure we ignore any potential padding.
@@ -479,7 +520,7 @@ impl<T: AsRef<[u8]> + ?Sized> Iterator for RtaIterator<&T> {
 
         let data = &data[self.position..];
         let len = NativeEndian::read_u16(&data[RTA_LENGTH]) as usize;
-        let ty = unsafe { mem::transmute(NativeEndian::read_u16(&data[RTA_TYPE])) };
+        let ty = NativeEndian::read_u16(&data[RTA_TYPE]);
 
         if len >= data.len() {
             return None;
@@ -497,7 +538,7 @@ impl<T: AsRef<[u8]> + ?Sized> Iterator for RtaIterator<&T> {
 
         self.position += len;
 
-        Some(InetDiagAttr::parse(ty, payload))
+        Some((ty, payload))
     }
 }
 
@@ -677,6 +718,198 @@ const RCV_SHUTDOWN: u8 = 1;
 const SEND_SHUTDOWN: u8 = 2;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct UnixDiagBuffer<T> {
+pub struct UnixDiagReqBuffer<T> {
     buffer: T,
+}
+
+impl<T> UnixDiagReqBuffer<T> {
+    pub fn new(buffer: T) -> UnixDiagReqBuffer<T> {
+        UnixDiagReqBuffer { buffer }
+    }
+
+    pub const fn len() -> usize {
+        UDIAG_REQ_SIZE
+    }
+}
+
+impl<T: AsRef<[u8]>> UnixDiagReqBuffer<T> {
+    pub fn family(&self) -> u8 {
+        let data = self.buffer.as_ref();
+        data[SDIAG_FAMILY]
+    }
+    pub fn protocol(&self) -> u8 {
+        let data = self.buffer.as_ref();
+        data[SDIAG_PROTOCOL]
+    }
+    pub fn states(&self) -> UnixStates {
+        let data = self.buffer.as_ref();
+        UnixStates::from_bits_truncate(NativeEndian::read_u32(&data[UDIAG_REQ_STATES]))
+    }
+    pub fn inode(&self) -> u32 {
+        let data = self.buffer.as_ref();
+        NativeEndian::read_u32(&data[UDIAG_REQ_INO])
+    }
+    pub fn show(&self) -> Show {
+        let data = self.buffer.as_ref();
+        Show::from_bits_truncate(NativeEndian::read_u32(&data[UDIAG_REQ_SHOW]))
+    }
+    pub fn cookie(&self) -> Option<u64> {
+        let data = self.buffer.as_ref();
+        let mut cookie = [0u32; 2];
+        NativeEndian::read_u32_into(&data[UDIAG_REQ_COOKIE], &mut cookie);
+        let cookie = u64::from(cookie[0]) + u64::from(cookie[1]) << 32;
+
+        if cookie == INET_DIAG_NOCOOKIE {
+            None
+        } else {
+            Some(cookie)
+        }
+    }
+}
+
+impl<T: AsRef<[u8]> + AsMut<[u8]>> UnixDiagReqBuffer<T> {
+    pub fn set_family(&mut self, family: u8) {
+        let data = self.buffer.as_mut();
+        data[SDIAG_FAMILY] = family;
+    }
+    pub fn set_protocol(&mut self, protocol: u8) {
+        let data = self.buffer.as_mut();
+        data[SDIAG_PROTOCOL] = protocol
+    }
+    pub fn set_states(&mut self, states: UnixStates) {
+        let data = self.buffer.as_mut();
+        NativeEndian::write_u32(&mut data[UDIAG_REQ_STATES], states.bits())
+    }
+    pub fn set_inode(&mut self, inode: u32) {
+        let data = self.buffer.as_mut();
+        NativeEndian::write_u32(&mut data[UDIAG_REQ_INO], inode)
+    }
+    pub fn set_show(&mut self, show: Show) {
+        let data = self.buffer.as_mut();
+        NativeEndian::write_u32(&mut data[UDIAG_REQ_SHOW], show.bits())
+    }
+    pub fn set_cookie(&mut self, cookie: Option<u64>) {
+        let data = self.buffer.as_mut();
+        let cookie = cookie.unwrap_or(INET_DIAG_NOCOOKIE);
+        let cookie = [cookie as u32, (cookie >> 32) as u32];
+        NativeEndian::write_u32_into(&cookie[..], &mut data[UDIAG_REQ_COOKIE]);
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct UnixDiagMsgBuffer<T> {
+    buffer: T,
+}
+
+impl<T> UnixDiagMsgBuffer<T> {
+    pub fn new(buffer: T) -> UnixDiagMsgBuffer<T> {
+        UnixDiagMsgBuffer { buffer }
+    }
+
+    pub const fn len() -> usize {
+        UDIAG_MSG_SIZE
+    }
+}
+
+impl<T: AsRef<[u8]>> UnixDiagMsgBuffer<T> {
+    pub fn new_checked(buffer: T) -> Result<Self, DecodeError> {
+        let packet = Self::new(buffer);
+        packet.check_len()?;
+        Ok(packet)
+    }
+
+    fn check_len(&self) -> Result<(), DecodeError> {
+        let len = self.buffer.as_ref().len();
+        if len < UDIAG_MSG_SIZE {
+            Err(format!(
+                "buffer size is {}, whereas a rule buffer is at least {} long",
+                len, UDIAG_MSG_SIZE
+            )
+            .into())
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn family(&self) -> u8 {
+        let data = self.buffer.as_ref();
+        data[UDIAG_MSG_FAMILY]
+    }
+    pub fn ty(&self) -> u8 {
+        let data = self.buffer.as_ref();
+        data[UDIAG_MSG_TYPE]
+    }
+    pub fn state(&self) -> unix_state {
+        let data = self.buffer.as_ref();
+        unix_state::from(data[UDIAG_MSG_STATE])
+    }
+    pub fn inode(&self) -> u32 {
+        let data = self.buffer.as_ref();
+        NativeEndian::read_u32(&data[UDIAG_MSG_INO])
+    }
+    pub fn cookie(&self) -> Option<u64> {
+        let data = self.buffer.as_ref();
+        let mut cookie = [0u32; 2];
+        NativeEndian::read_u32_into(&data[UDIAG_MSG_COOKIE], &mut cookie);
+        let cookie = u64::from(cookie[0]) + u64::from(cookie[1]) << 32;
+
+        if cookie == INET_DIAG_NOCOOKIE {
+            None
+        } else {
+            Some(cookie)
+        }
+    }
+    pub fn attrs(&self) -> RtaIterator<&[u8]> {
+        let data = self.buffer.as_ref();
+        RtaIterator::new(&data[UDIAG_MSG_ATTRIBUTES])
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum UnixDiagAttr {
+    Name(String),
+    Vfs(unix_diag_vfs),
+    Peer(u32),
+    Icons(Vec<u32>),
+    RecvQueueLen(unix_diag_rqlen),
+    MemInfo(SkMemInfo),
+    Shutdown(Shutdown),
+    Other(attribute, Vec<u8>),
+}
+
+impl UnixDiagAttr {
+    pub fn parse(ty: attribute, payload: &[u8]) -> Result<Self, DecodeError> {
+        use attribute::*;
+
+        Ok(match ty {
+            UNIX_DIAG_NAME => UnixDiagAttr::Name(unsafe {
+                CStr::from_bytes_with_nul_unchecked(payload)
+                    .to_string_lossy()
+                    .into_owned()
+            }),
+            UNIX_DIAG_VFS if payload.len() >= 8 => UnixDiagAttr::Vfs(unix_diag_vfs {
+                udiag_vfs_ino: NativeEndian::read_u32(&payload[0..4]),
+                udiag_vfs_dev: NativeEndian::read_u32(&payload[4..8]),
+            }),
+            UNIX_DIAG_PEER if payload.len() >= 4 => {
+                UnixDiagAttr::Peer(NativeEndian::read_u32(payload))
+            }
+            UNIX_DIAG_ICONS => {
+                let mut icons = vec![0; payload.len() / 4];
+                NativeEndian::read_u32_into(&payload[..icons.len() * 4], icons.as_mut_slice());
+                UnixDiagAttr::Icons(icons)
+            }
+            UNIX_DIAG_RQLEN if payload.len() >= 8 => UnixDiagAttr::RecvQueueLen(unix_diag_rqlen {
+                udiag_rqueue: NativeEndian::read_u32(&payload[0..4]),
+                udiag_wqueue: NativeEndian::read_u32(&payload[4..8]),
+            }),
+            UNIX_DIAG_MEMINFO if payload.len() > mem::size_of::<SkMemInfo>() => {
+                UnixDiagAttr::MemInfo(SkMemInfo::parse(payload))
+            }
+            UNIX_DIAG_SHUTDOWN if payload.len() >= 1 => {
+                UnixDiagAttr::Shutdown(Shutdown::from_bits_truncate(payload[0] & SHUTDOWN_MASK))
+            }
+            _ => UnixDiagAttr::Other(ty, payload.to_vec()),
+        })
+    }
 }

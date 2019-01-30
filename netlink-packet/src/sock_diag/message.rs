@@ -2,14 +2,16 @@ use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6};
 use std::time::Duration;
 
 use failure::ResultExt;
-use netlink_sys::constants::{AF_INET, AF_INET6};
+use netlink_sys::constants::{AF_INET, AF_INET6, AF_UNIX};
 
 use crate::sock_diag::{
     buffer::{
-        Extension, InetDiagAttr, InetDiagMsgBuffer, InetDiagReqV2Buffer, TcpStates, UnixDiagBuffer,
+        Extension, InetDiagAttr, InetDiagMsgBuffer, InetDiagReqV2Buffer, Show, TcpStates,
+        UnixDiagAttr, UnixDiagMsgBuffer, UnixDiagReqBuffer, UnixStates,
     },
     inet_diag::{extension, tcp_state},
     sock_diag::SOCK_DIAG_BY_FAMILY,
+    unix_diag::unix_state,
 };
 use crate::{DecodeError, Emitable, Parseable};
 
@@ -46,17 +48,21 @@ impl Emitable for SockDiagMessage {
 impl SockDiagMessage {
     pub(crate) fn parse(message_type: u16, buffer: &[u8]) -> Result<Self, DecodeError> {
         match message_type {
-            SOCK_DIAG_BY_FAMILY
-                if buffer.first() == Some(&(AF_INET as u8))
-                    || buffer.first() == Some(&(AF_INET6 as u8)) =>
-            {
-                Ok(SockDiagMessage::InetSocks(
+            SOCK_DIAG_BY_FAMILY if !buffer.is_empty() => match *buffer.first().unwrap() as u16 {
+                AF_INET | AF_INET6 => Ok(SockDiagMessage::InetSocks(
                     InetDiagMsgBuffer::new_checked(buffer)
                         .context("failed to parse SOCK_DIAG_BY_FAMILY message")?
                         .parse()
                         .context("failed to parse SOCK_DIAG_BY_FAMILY message")?,
-                ))
-            }
+                )),
+                AF_UNIX => Ok(SockDiagMessage::UnixSocks(
+                    UnixDiagMsgBuffer::new_checked(buffer)
+                        .context("failed to parse SOCK_DIAG_BY_FAMILY message")?
+                        .parse()
+                        .context("failed to parse SOCK_DIAG_BY_FAMILY message")?,
+                )),
+                family => Err(format!("Unknown message family: {}", family).into()),
+            },
             _ => Err(format!("Unknown message type: {}", message_type).into()),
         }
     }
@@ -91,13 +97,17 @@ pub fn inet6(protocol: u8) -> InetDiagRequest {
     InetDiagRequest::new(AF_INET6 as u8, protocol)
 }
 
+pub fn unix() -> UnixDiagRequest {
+    UnixDiagRequest::new()
+}
+
 impl InetDiagRequest {
     pub fn new(family: u8, protocol: u8) -> InetDiagRequest {
         InetDiagRequest {
             family,
             protocol,
             extensions: Extension::empty(),
-            states: TcpStates::All,
+            states: TcpStates::all(),
             id: SockId::default(),
         }
     }
@@ -143,9 +153,7 @@ impl Emitable for InetDiagRequest {
             id.set_dst_addr(addr)
         }
         id.set_interface(self.id.interface);
-        if let Some(cookie) = self.id.cookie {
-            id.set_cookie(cookie)
-        }
+        id.set_cookie(self.id.cookie);
     }
 }
 
@@ -211,7 +219,10 @@ impl<T: AsRef<[u8]>> Parseable<InetDiagResponse> for InetDiagMsgBuffer<T> {
             _ => (None, None),
         };
 
-        let attrs = self.attrs().collect::<Result<Vec<_>, DecodeError>>()?;
+        let attrs = self
+            .attrs()
+            .map(|(ty, payload)| InetDiagAttr::parse(ty.into(), payload))
+            .collect::<Result<Vec<_>, DecodeError>>()?;
 
         Ok(InetDiagResponse {
             family,
@@ -235,23 +246,69 @@ impl<T: AsRef<[u8]>> Parseable<InetDiagResponse> for InetDiagMsgBuffer<T> {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct UnixDiagRequest {}
+pub struct UnixDiagRequest {
+    pub family: u8,
+    pub protocol: u8,
+    pub states: UnixStates,
+    pub inode: u32,
+    pub show: Show,
+    pub cookie: Option<u64>,
+}
+
+impl UnixDiagRequest {
+    pub fn new() -> Self {
+        UnixDiagRequest {
+            family: AF_UNIX as u8,
+            protocol: 0,
+            states: UnixStates::all(),
+            inode: 0,
+            show: Show::Name | Show::Peer,
+            cookie: None,
+        }
+    }
+}
 
 impl Emitable for UnixDiagRequest {
     fn buffer_len(&self) -> usize {
-        unimplemented!()
+        UnixDiagReqBuffer::<()>::len()
     }
 
     fn emit(&self, buf: &mut [u8]) {
-        unimplemented!()
+        let mut req = UnixDiagReqBuffer::new(buf);
+
+        req.set_family(self.family);
+        req.set_protocol(self.protocol);
+        req.set_states(self.states);
+        req.set_inode(self.inode);
+        req.set_show(self.show);
+        req.set_cookie(self.cookie)
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct UnixDiagResponse {}
+pub struct UnixDiagResponse {
+    pub family: u8,
+    pub ty: u8,
+    pub state: unix_state,
+    pub inode: u32,
+    pub cookie: Option<u64>,
+    pub attrs: Vec<UnixDiagAttr>,
+}
 
-impl<T: AsRef<[u8]>> Parseable<UnixDiagResponse> for UnixDiagBuffer<T> {
+impl<T: AsRef<[u8]>> Parseable<UnixDiagResponse> for UnixDiagMsgBuffer<T> {
     fn parse(&self) -> Result<UnixDiagResponse, DecodeError> {
-        unimplemented!()
+        let attrs = self
+            .attrs()
+            .map(|(ty, payload)| UnixDiagAttr::parse(ty.into(), payload))
+            .collect::<Result<Vec<_>, DecodeError>>()?;
+
+        Ok(UnixDiagResponse {
+            family: self.family(),
+            ty: self.ty(),
+            state: self.state(),
+            inode: self.inode(),
+            cookie: self.cookie(),
+            attrs,
+        })
     }
 }

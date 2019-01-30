@@ -1,6 +1,6 @@
 #![allow(non_camel_case_types)]
 
-use std::fmt;
+use std::mem;
 
 /* Just some random number */
 pub const TCPDIAG_GETSOCK: isize = 18;
@@ -27,7 +27,14 @@ pub enum tcp_state {
 
 pub const TCPF_ALL: u32 = 0xFFF;
 
+impl From<u8> for tcp_state {
+    fn from(v: u8) -> Self {
+        unsafe { mem::transmute(v) }
+    }
+}
+
 /* Socket identity */
+#[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct inet_diag_sockid {
     pub idiag_sport: u16,
@@ -42,6 +49,7 @@ pub const INET_DIAG_NOCOOKIE: u64 = !0u64;
 
 /* Request structure */
 
+#[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct inet_diag_req {
     pub idiag_family: u8, /* Family of addresses. */
@@ -55,6 +63,7 @@ pub struct inet_diag_req {
     pub idiag_dbs: u32,    /* Tables to dump (NI) */
 }
 
+#[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct inet_diag_req_v2 {
     pub sdiag_family: u8,
@@ -73,6 +82,7 @@ pub struct inet_diag_req_v2 {
  * structure definition as an alias for struct
  * @inet_diag_req_v2.
  */
+#[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct inet_diag_req_raw {
     pub sdiag_family: u8,
@@ -95,6 +105,7 @@ pub const INET_DIAG_REQ_MAX: u16 = inet_diag_attr::INET_DIAG_REQ_BYTECODE as u16
  * to offset cc+"yes" or to offset cc+"no". "yes" is supposed to be
  * length of the command and its arguments.
  */
+#[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct inet_diag_bc_op {
     pub code: u8,
@@ -119,6 +130,7 @@ pub enum byte_code {
     INET_DIAG_BC_D_EQ,
 }
 
+#[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct inet_diag_hostcond {
     pub family: u8,
@@ -127,6 +139,7 @@ pub struct inet_diag_hostcond {
     pub addr: [u32; 0],
 }
 
+#[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct inet_diag_markcond {
     pub mark: u32,
@@ -135,6 +148,7 @@ pub struct inet_diag_markcond {
 
 /* Base info structure. It contains socket identity (addrs/ports/cookie)
  * and, alas, the information shown by netstat. */
+#[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct inet_diag_msg {
     pub idiag_family: u8,
@@ -180,8 +194,14 @@ pub enum extension {
 
 pub const INET_DIAG_MAX: u16 = extension::__INET_DIAG_MAX as u16 - 1;
 
-/* INET_DIAG_MEM */
+impl From<u16> for extension {
+    fn from(v: u16) -> Self {
+        unsafe { mem::transmute(v) }
+    }
+}
 
+/* INET_DIAG_MEM */
+#[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct inet_diag_meminfo {
     pub idiag_rmem: u32,
@@ -191,7 +211,7 @@ pub struct inet_diag_meminfo {
 }
 
 /* INET_DIAG_VEGASINFO */
-
+#[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct tcpvegas_info {
     pub tcpv_enabled: u32,
@@ -201,7 +221,7 @@ pub struct tcpvegas_info {
 }
 
 /* INET_DIAG_DCTCPINFO */
-
+#[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct tcp_dctcp_info {
     pub dctcp_enabled: u16,
@@ -212,7 +232,7 @@ pub struct tcp_dctcp_info {
 }
 
 /* INET_DIAG_BBRINFO */
-
+#[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct tcp_bbr_info {
     /* u64 bw: max-filtered BW (app throughput) estimate in Byte per sec: */
@@ -223,6 +243,7 @@ pub struct tcp_bbr_info {
     pub bbr_cwnd_gain: u32,   /* cwnd gain shifted left 8 bits */
 }
 
+#[repr(C)]
 #[derive(Clone, Copy)]
 pub union tcp_cc_info {
     pub vegas: tcpvegas_info,

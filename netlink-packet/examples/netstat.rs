@@ -1,10 +1,14 @@
 #[macro_use]
 extern crate log;
 
+use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+
 use structopt::StructOpt;
 
 use netlink_packet::{
-    sock_diag::{Extension, InetDiagRequest, SockDiagMessage, TcpStates},
+    sock_diag::{
+        Extension, InetDiagRequest, Show, SockDiagMessage, TcpStates, UnixDiagAttr, UnixDiagRequest,
+    },
     Emitable, NetlinkBuffer, NetlinkMessage, NetlinkPayload, Parseable,
 };
 use netlink_sys::{Protocol, Socket, SocketAddr};
@@ -34,11 +38,16 @@ fn main() {
     let families = [libc::AF_INET, libc::AF_INET6];
     let protocols = [libc::IPPROTO_TCP, libc::IPPROTO_UDP];
 
-    for protocol in &protocols {
-        if *protocol == libc::IPPROTO_TCP {
-            println!("Proto Recv-Q Send-Q Local Address           Foreign Address         State")
-        }
+    if opts.all {
+        println!("Active Internet connections (servers and established)")
+    } else if opts.listening {
+        println!("Active Internet connections (only servers)")
+    } else {
+        println!("Active Internet connections (w/o servers)")
+    }
+    println!("Proto Recv-Q Send-Q Local Address           Foreign Address         State");
 
+    for protocol in &protocols {
         for family in &families {
             let mut req = InetDiagRequest::new(*family as u8, *protocol as u8);
 
@@ -47,7 +56,7 @@ fn main() {
                     req.extensions |= Extension::Info;
 
                     if opts.all {
-                        req.states = TcpStates::All;
+                        req.states = TcpStates::all();
                     } else if opts.listening {
                         req.states = TcpStates::Listen;
                     } else {
@@ -62,91 +71,139 @@ fn main() {
                 _ => {}
             }
 
-            let mut packet: NetlinkMessage = SockDiagMessage::InetDiag(req).into();
+            dump_connections(&socket, SockDiagMessage::InetDiag(req));
+        }
+    }
 
-            packet.header.flags.set_dump().set_request();
-            packet.header.sequence_number = 1;
-            packet.finalize();
+    if opts.all {
+        println!("Active UNIX domain sockets (servers and established)")
+    } else if opts.listening {
+        println!("Active UNIX domain sockets (only servers)")
+    } else {
+        println!("Active UNIX domain sockets (w/o servers)")
+    }
+    println!("Proto Type       State        I-Node   Path");
 
-            let mut buf = vec![0; packet.header.length as usize];
+    let mut req = UnixDiagRequest::new();
 
-            assert!(buf.len() == packet.buffer_len());
-            packet.emit(&mut buf[..]);
+    req.show |= Show::Icons;
 
-            trace!(">>> {:?}", packet);
-            socket.send(&buf[..], 0).unwrap();
+    dump_connections(&socket, SockDiagMessage::UnixDiag(req));
+}
 
-            let mut receive_buffer = vec![0; 4096];
-            let mut offset = 0;
+static SEQUENCE_NUMBER: AtomicUsize = ATOMIC_USIZE_INIT;
 
-            // we set the NLM_F_DUMP flag so we expect a multipart rx_packet in response.
-            'next: loop {
-                let size = socket.recv(&mut receive_buffer[..], 0).unwrap();
+fn dump_connections(socket: &Socket, msg: SockDiagMessage) {
+    let protocol = if let SockDiagMessage::InetDiag(InetDiagRequest { protocol, .. }) = msg {
+        protocol as i32
+    } else {
+        0
+    };
 
-                loop {
-                    let bytes = &receive_buffer[offset..];
-                    // Note that we're parsing a NetlinkBuffer<&&[u8]>, NOT a NetlinkBuffer<&[u8]> here.
-                    // This is important because Parseable<NetlinkMessage> is only implemented for
-                    // NetlinkBuffer<&'buffer T>, where T implements AsRef<[u8] + 'buffer. This is not
-                    // particularly user friendly, but this is a low level library anyway.
-                    //
-                    // Note also that the same could be written more explicitely with:
-                    //
-                    // let rx_packet =
-                    //     <NetlinkBuffer<_> as Parseable<NetlinkMessage>>::parse(NetlinkBuffer::new(&bytes))
-                    //         .unwrap();
-                    //
-                    let rx_packet: NetlinkMessage = NetlinkBuffer::new(&bytes).parse().unwrap();
+    let mut packet: NetlinkMessage = msg.into();
 
-                    trace!("<<< {:?}", rx_packet);
+    packet.header.flags.set_dump().set_request();
+    packet.header.sequence_number = SEQUENCE_NUMBER.fetch_add(1, Ordering::SeqCst) as u32;
+    packet.finalize();
 
-                    match rx_packet.payload {
-                        NetlinkPayload::SockDiag(SockDiagMessage::InetSocks(ref sock)) => {
-                            let is_ipv6 = sock.family == libc::AF_INET6 as u8;
-                            let bind_any = if is_ipv6 { "[::]:*" } else { "0.0.0.0:*" };
+    let mut buf = vec![0; packet.header.length as usize];
 
-                            println!(
-                                "{}{}\t{:>4}   {:>4} {:<24}{:<24}{}",
-                                match *protocol {
-                                    libc::IPPROTO_TCP => "tcp",
-                                    libc::IPPROTO_UDP => "udp",
-                                    _ => "raw",
-                                },
-                                if is_ipv6 { "6" } else { "" },
-                                sock.rqueue,
-                                sock.wqueue,
-                                if let Some(addr) = sock.id.src {
-                                    addr.to_string()
-                                } else {
-                                    bind_any.to_owned()
-                                },
-                                if let Some(addr) = sock.id.dst {
-                                    addr.to_string()
-                                } else {
-                                    bind_any.to_owned()
-                                },
-                                if *protocol == libc::IPPROTO_TCP {
-                                    format!("{:?}", sock.state).split_off("TCP_".len())
-                                } else {
-                                    String::new()
-                                },
-                            )
-                        }
-                        NetlinkPayload::SockDiag(SockDiagMessage::UnixSocks(_)) => {}
-                        _ => {}
-                    }
+    assert!(buf.len() == packet.buffer_len());
+    packet.emit(&mut buf[..]);
 
-                    if rx_packet.payload == NetlinkPayload::Done {
-                        trace!("Done!");
-                        break 'next;
-                    }
+    trace!(">>> {:?}", packet);
+    socket.send(&buf[..], 0).unwrap();
 
-                    offset += rx_packet.header.length as usize;
-                    if offset == size || rx_packet.header.length == 0 {
-                        offset = 0;
-                        break;
-                    }
+    let mut receive_buffer = vec![0; 4096];
+    let mut offset = 0;
+
+    // we set the NLM_F_DUMP flag so we expect a multipart rx_packet in response.
+    'next: loop {
+        let size = socket.recv(&mut receive_buffer[..], 0).unwrap();
+
+        loop {
+            let bytes = &receive_buffer[offset..];
+            // Note that we're parsing a NetlinkBuffer<&&[u8]>, NOT a NetlinkBuffer<&[u8]> here.
+            // This is important because Parseable<NetlinkMessage> is only implemented for
+            // NetlinkBuffer<&'buffer T>, where T implements AsRef<[u8] + 'buffer. This is not
+            // particularly user friendly, but this is a low level library anyway.
+            //
+            // Note also that the same could be written more explicitely with:
+            //
+            // let rx_packet =
+            //     <NetlinkBuffer<_> as Parseable<NetlinkMessage>>::parse(NetlinkBuffer::new(&bytes))
+            //         .unwrap();
+            //
+            let rx_packet: NetlinkMessage = NetlinkBuffer::new(&bytes).parse().unwrap();
+
+            trace!("<<< {:?}", rx_packet);
+
+            match rx_packet.payload {
+                NetlinkPayload::SockDiag(SockDiagMessage::InetSocks(ref sock)) => {
+                    let is_ipv6 = sock.family == libc::AF_INET6 as u8;
+                    let bind_any = if is_ipv6 { "[::]:*" } else { "0.0.0.0:*" };
+
+                    println!(
+                        "{}{}\t{:>4}   {:>4} {:<24}{:<24}{}",
+                        match protocol {
+                            libc::IPPROTO_TCP => "tcp",
+                            libc::IPPROTO_UDP => "udp",
+                            _ => "raw",
+                        },
+                        if is_ipv6 { "6" } else { "" },
+                        sock.rqueue,
+                        sock.wqueue,
+                        if let Some(addr) = sock.id.src {
+                            addr.to_string()
+                        } else {
+                            bind_any.to_owned()
+                        },
+                        if let Some(addr) = sock.id.dst {
+                            addr.to_string()
+                        } else {
+                            bind_any.to_owned()
+                        },
+                        if protocol == libc::IPPROTO_TCP {
+                            format!("{:?}", sock.state).split_off("TCP_".len())
+                        } else {
+                            String::new()
+                        },
+                    )
                 }
+                NetlinkPayload::SockDiag(SockDiagMessage::UnixSocks(ref sock)) => println!(
+                    "unix  {:<10} {:<12} {:<8} {}",
+                    match sock.ty as i32 {
+                        libc::SOCK_RAW => "RAW",
+                        libc::SOCK_DGRAM => "DGRAM",
+                        libc::SOCK_PACKET => "PACKET",
+                        libc::SOCK_STREAM => "STREAM",
+                        libc::SOCK_SEQPACKET => "SEQPACKET",
+                        _ => "UNKNOWN",
+                    },
+                    format!("{:?}", sock.state),
+                    sock.inode,
+                    sock.attrs
+                        .iter()
+                        .flat_map(|attr| if let UnixDiagAttr::Name(name) = attr {
+                            Some(name.as_str())
+                        } else {
+                            None
+                        })
+                        .next()
+                        .unwrap_or_default(),
+                ),
+                _ => {}
+            }
+
+            if rx_packet.payload == NetlinkPayload::Done {
+                trace!("Done!");
+                break 'next;
+            }
+
+            offset += rx_packet.header.length as usize;
+            if offset == size || rx_packet.header.length == 0 {
+                offset = 0;
+                break;
             }
         }
     }
