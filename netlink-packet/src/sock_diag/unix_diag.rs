@@ -19,12 +19,18 @@ pub struct unix_diag_req {
 #[repr(u32)]
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum show {
-    UDIAG_SHOW_NAME = 0x00000001,    /* show name (not path) */
-    UDIAG_SHOW_VFS = 0x00000002,     /* show VFS inode info */
-    UDIAG_SHOW_PEER = 0x00000004,    /* show peer socket info */
-    UDIAG_SHOW_ICONS = 0x00000008,   /* show pending connections */
-    UDIAG_SHOW_RQLEN = 0x00000010,   /* show skb receive queue len */
-    UDIAG_SHOW_MEMINFO = 0x00000020, /* show memory info of a socket */
+    /// show name (not path)
+    UDIAG_SHOW_NAME = 0x00000001,
+    /// show VFS inode info
+    UDIAG_SHOW_VFS = 0x00000002,
+    /// show peer socket info
+    UDIAG_SHOW_PEER = 0x00000004,
+    /// show pending connections
+    UDIAG_SHOW_ICONS = 0x00000008,
+    /// show skb receive queue len
+    UDIAG_SHOW_RQLEN = 0x00000010,
+    /// show memory info of a socket
+    UDIAG_SHOW_MEMINFO = 0x00000020,
 }
 
 #[repr(C)]
@@ -55,7 +61,6 @@ impl From<u8> for unix_state {
 #[repr(u16)]
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum attribute {
-    /* UNIX_DIAG_NONE, standard nl API requires this attribute!  */
     UNIX_DIAG_NAME,
     UNIX_DIAG_VFS,
     UNIX_DIAG_PEER,
