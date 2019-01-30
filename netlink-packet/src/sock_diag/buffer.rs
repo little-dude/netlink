@@ -649,12 +649,12 @@ impl<T: AsRef<[u8]>> Parseable<TcpInfo> for T {
         let data = self.as_ref();
 
         if data.len() >= mem::size_of::<TcpInfo>() {
-            unsafe {
-                Ok(NonNull::new_unchecked(data.as_ptr() as *mut u8)
+            Ok(unsafe {
+                NonNull::new_unchecked(data.as_ptr() as *mut u8)
                     .cast::<TcpInfo>()
                     .as_ptr()
-                    .read())
-            }
+                    .read()
+            })
         } else {
             Err(format!(
                 "buffer size is {}, whereas a buffer is at least {} long",
@@ -670,11 +670,20 @@ impl<T: AsRef<[u8]>> Parseable<SkMemInfo> for T {
     fn parse(&self) -> Result<SkMemInfo, DecodeError> {
         let data = self.as_ref();
 
-        unsafe {
-            Ok(NonNull::new_unchecked(data.as_ptr() as *mut u8)
-                .cast::<SkMemInfo>()
-                .as_ptr()
-                .read())
+        if data.len() >= mem::size_of::<SkMemInfo>() {
+            Ok(unsafe {
+                NonNull::new_unchecked(data.as_ptr() as *mut u8)
+                    .cast::<SkMemInfo>()
+                    .as_ptr()
+                    .read()
+            })
+        } else {
+            Err(format!(
+                "buffer size is {}, whereas a buffer is at least {} long",
+                data.len(),
+                mem::size_of::<SkMemInfo>()
+            )
+            .into())
         }
     }
 }
