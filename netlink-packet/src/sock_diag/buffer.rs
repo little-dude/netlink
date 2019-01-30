@@ -545,7 +545,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized + 'buffer> Iterator for RtaIterator<&'buff
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum InetDiagAttr {
     MemInfo(MemInfo),
-    Info(TcpInfo),
+    Info(Box<TcpInfo>),
     Conf(String),
     Tos(u8),
     TClass(u8),
@@ -567,7 +567,7 @@ impl<T: AsRef<[u8]>> ParseableParametrized<InetDiagAttr, extension> for T {
                 InetDiagAttr::MemInfo(MemInfo::parse(payload))
             }
             INET_DIAG_INFO if payload.len() >= mem::size_of::<TcpInfo>() => {
-                InetDiagAttr::Info(TcpInfo::parse(payload))
+                InetDiagAttr::Info(Box::new(TcpInfo::parse(payload)))
             }
             INET_DIAG_CONG => InetDiagAttr::Conf(unsafe {
                 CStr::from_bytes_with_nul_unchecked(payload)
