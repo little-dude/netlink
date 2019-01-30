@@ -21,6 +21,7 @@ matrix:
         - cd netlink-packet
         - cargo test --features audit
         - cargo test --features rtnetlink
+        - cargo test --features sock_diag
 
     - rust: stable
       name: netlink-proto
@@ -28,6 +29,7 @@ matrix:
         - cd netlink-proto
         - cargo test --features audit
         - cargo test --features rtnetlink
+        - cargo test --features sock_diag
 
     - rust: stable
       name: rtnetlink
@@ -62,6 +64,7 @@ matrix:
       script:
           - cargo test -Z package-features --package netlink-packet --features audit
           - cargo test -Z package-features --package netlink-packet --features rtnetlink
+          - cargo test -Z package-features --package netlink-packet --features sock_diag
           - cargo clippy
 
     - rust: nightly
@@ -71,6 +74,7 @@ matrix:
       script:
           - cargo test -Z package-features --package netlink-proto --features audit
           - cargo test -Z package-features --package netlink-proto --features rtnetlink
+          - cargo test -Z package-features --package netlink-packet --features sock_diag
           - cargo clippy
 
     - rust: nightly
@@ -80,6 +84,7 @@ matrix:
       script:
           - cargo test -Z package-features --package rtnetlink
           - cargo test -Z package-features --package audit
+          - cargo test -Z package-features --package sock_diag
           - cargo clippy
 
     - rust: nightly
