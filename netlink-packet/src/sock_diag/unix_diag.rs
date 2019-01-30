@@ -1,8 +1,9 @@
+//! for UNIX domain sockets
 #![allow(non_camel_case_types)]
 
 use std::mem;
 
-use crate::sock_diag::tcp_state::*;
+use crate::sock_diag::TcpState::*;
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -20,22 +21,22 @@ pub struct unix_diag_req {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum show {
     /// show name (not path)
-    UDIAG_SHOW_NAME = 0x00000001,
+    UDIAG_SHOW_NAME = 0x0000_0001,
     /// show VFS inode info
-    UDIAG_SHOW_VFS = 0x00000002,
+    UDIAG_SHOW_VFS = 0x0000_0002,
     /// show peer socket info
-    UDIAG_SHOW_PEER = 0x00000004,
+    UDIAG_SHOW_PEER = 0x0000_0004,
     /// show pending connections
-    UDIAG_SHOW_ICONS = 0x00000008,
+    UDIAG_SHOW_ICONS = 0x0000_0008,
     /// show skb receive queue len
-    UDIAG_SHOW_RQLEN = 0x00000010,
+    UDIAG_SHOW_RQLEN = 0x0000_0010,
     /// show memory info of a socket
-    UDIAG_SHOW_MEMINFO = 0x00000020,
+    UDIAG_SHOW_MEMINFO = 0x0000_0020,
 }
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, Clone)]
-struct unix_diag_msg {
+pub struct unix_diag_msg {
     pub udiag_family: u8,
     pub udiag_type: u8,
     pub udiag_state: u8,

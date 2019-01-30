@@ -1,16 +1,20 @@
 use std::ffi::CStr;
 use std::mem;
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
-use std::ptr;
+use std::ptr::NonNull;
 use std::time::Duration;
 
 use byteorder::{ByteOrder, NativeEndian, NetworkEndian};
 
 use crate::sock_diag::{
-    inet_diag::{extension, extension::*, tcp_state, tcp_state::*},
-    unix_diag::{attribute, show::*, unix_diag_rqlen, unix_diag_vfs, unix_state},
+    unix_diag::{show::*, unix_diag_rqlen, unix_diag_vfs},
+    Attribute, Extension,
+    Extension::*,
+    MemInfo, SkMemInfo, TcpInfo, TcpState,
+    TcpState::*,
+    UnixState,
 };
-use crate::{DecodeError, Field, ParseableParametrized, Rest};
+use crate::{DecodeError, Field, Parseable, ParseableParametrized, Rest};
 
 const fn array_of<T>(start: usize, len: usize) -> Field {
     start..(start + mem::size_of::<T>() * len)
@@ -61,21 +65,20 @@ const UDIAG_MSG_COOKIE: Field = array_of::<u32>(8, 2);
 const UDIAG_MSG_SIZE: usize = UDIAG_MSG_COOKIE.end;
 const UDIAG_MSG_ATTRIBUTES: Rest = UDIAG_MSG_SIZE..;
 
-pub type TcpState = tcp_state;
-
 bitflags! {
+    /// This is a bit mask that defines a filter of TCP socket states.
     pub struct TcpStates: u32 {
-        const Established = 1 << TCP_ESTABLISHED as u8;
-        const SynSent = 1 <<TCP_SYN_SENT as u8;
-        const SynRecv = 1 << TCP_SYN_RECV as u8;
-        const FinWait1 = 1 << TCP_FIN_WAIT1 as u8;
-        const FinWait2 = 1 << TCP_FIN_WAIT2 as u8;
-        const TimeWait = 1 << TCP_TIME_WAIT as u8;
-        const Close = 1 << TCP_CLOSE as u8;
-        const CloseWait = 1 << TCP_CLOSE_WAIT as u8;
-        const LastAck = 1 << TCP_LAST_ACK as u8;
-        const Listen = 1 << TCP_LISTEN as u8;
-        const Closing = 1 << TCP_CLOSING as u8;
+        const ESTABLISHED = 1 << TCP_ESTABLISHED as u8;
+        const SYN_SENT = 1 <<TCP_SYN_SENT as u8;
+        const SYN_RECV = 1 << TCP_SYN_RECV as u8;
+        const FIN_WAIT1 = 1 << TCP_FIN_WAIT1 as u8;
+        const FIN_WAIT2 = 1 << TCP_FIN_WAIT2 as u8;
+        const TIME_WAIT = 1 << TCP_TIME_WAIT as u8;
+        const CLOSE = 1 << TCP_CLOSE as u8;
+        const CLOSE_WAIT = 1 << TCP_CLOSE_WAIT as u8;
+        const LAST_ACK = 1 << TCP_LAST_ACK as u8;
+        const LISTEN = 1 << TCP_LISTEN as u8;
+        const CLOSING = 1 << TCP_CLOSING as u8;
     }
 }
 
@@ -86,9 +89,10 @@ impl Default for TcpStates {
 }
 
 bitflags! {
+    /// This is a bit mask that defines a filter of UNIX sockets states.
     pub struct UnixStates: u32 {
-        const Established = 1 << TCP_ESTABLISHED as u8;
-        const Listen = 1 << TCP_LISTEN as u8;
+        const ESTABLISHED = 1 << TCP_ESTABLISHED as u8;
+        const LISTEN = 1 << TCP_LISTEN as u8;
     }
 }
 
@@ -99,32 +103,40 @@ impl Default for UnixStates {
 }
 
 bitflags! {
-    pub struct Extension: u8 {
-        const MemInfo = 1 << (INET_DIAG_MEMINFO as u16 - 1);
-        const Info = 1 << (INET_DIAG_INFO as u16 - 1);
-        const VegasInfo = 1 << (INET_DIAG_VEGASINFO as u16 - 1);
-        const Conf = 1 << (INET_DIAG_CONG as u16 - 1);
-        const ToS = 1 << (INET_DIAG_TOS as u16 - 1);
-        const TClass = 1 << (INET_DIAG_TCLASS as u16 - 1);
-        const SkMemInfo = 1 << (INET_DIAG_SKMEMINFO as u16 - 1);
-        const Shutdown = 1 << (INET_DIAG_SHUTDOWN as u16 - 1);
+    /// This is a set of flags defining what kind of extended information to report.
+    pub struct Extensions: u8 {
+        const MEMINFO = 1 << (INET_DIAG_MEMINFO as u16 - 1);
+        const INFO = 1 << (INET_DIAG_INFO as u16 - 1);
+        const VEGASINFO = 1 << (INET_DIAG_VEGASINFO as u16 - 1);
+        const CONF = 1 << (INET_DIAG_CONG as u16 - 1);
+        const TOS = 1 << (INET_DIAG_TOS as u16 - 1);
+        const TCLASS = 1 << (INET_DIAG_TCLASS as u16 - 1);
+        const SKMEMINFO = 1 << (INET_DIAG_SKMEMINFO as u16 - 1);
+        const SHUTDOWN = 1 << (INET_DIAG_SHUTDOWN as u16 - 1);
     }
 }
 
-impl Default for Extension {
+impl Default for Extensions {
     fn default() -> Self {
-        Extension::empty()
+        Extensions::empty()
     }
 }
 
 bitflags! {
+    ///  This is a set of flags defining what kind of information to report.
     pub struct Show: u32 {
-        const Name = UDIAG_SHOW_NAME as u32;
-        const Vfs = UDIAG_SHOW_VFS as u32;
-        const Peer = UDIAG_SHOW_PEER as u32;
-        const Icons = UDIAG_SHOW_ICONS as u32;
-        const RecvQueueLen = UDIAG_SHOW_RQLEN as u32;
-        const MemInfo = UDIAG_SHOW_MEMINFO as u32;
+        /// show name (not path)
+        const NAME = UDIAG_SHOW_NAME as u32;
+        /// show VFS inode info
+        const VFS = UDIAG_SHOW_VFS as u32;
+        /// show peer socket info
+        const PEER = UDIAG_SHOW_PEER as u32;
+        /// show pending connections
+        const ICONS = UDIAG_SHOW_ICONS as u32;
+        /// show skb receive queue len
+        const RQLEN = UDIAG_SHOW_RQLEN as u32;
+        /// show memory info of a socket
+        const MEMINFO = UDIAG_SHOW_MEMINFO as u32;
     }
 }
 
@@ -187,7 +199,7 @@ impl<T: AsRef<[u8]>> SocketIdBuffer<T> {
         let data = self.buffer.as_ref();
         let mut cookie = [0u32; 2];
         NativeEndian::read_u32_into(&data[IDIAG_COOKIE], &mut cookie);
-        let cookie = u64::from(cookie[0]) + u64::from(cookie[1]) << 32;
+        let cookie = u64::from(cookie[0]) + (u64::from(cookie[1]) << 32);
 
         if cookie == INET_DIAG_NOCOOKIE {
             None
@@ -291,9 +303,9 @@ impl<T: AsRef<[u8]>> InetDiagReqV2Buffer<T> {
         let data = self.buffer.as_ref();
         data[SDIAG_PROTOCOL]
     }
-    pub fn extensions(&self) -> Extension {
+    pub fn extensions(&self) -> Extensions {
         let data = self.buffer.as_ref();
-        Extension::from_bits_truncate(data[IDIAG_REQ_EXT])
+        Extensions::from_bits_truncate(data[IDIAG_REQ_EXT])
     }
     pub fn states(&self) -> TcpStates {
         let data = self.buffer.as_ref();
@@ -317,7 +329,7 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> InetDiagReqV2Buffer<T> {
         data[SDIAG_PROTOCOL] = protocol
     }
 
-    pub fn set_extensions(&mut self, ext: Extension) {
+    pub fn set_extensions(&mut self, ext: Extensions) {
         let data = self.buffer.as_mut();
         data[IDIAG_REQ_EXT] = ext.bits()
     }
@@ -373,9 +385,9 @@ impl<T: AsRef<[u8]>> InetDiagMsgBuffer<T> {
         data[IDIAG_MSG_FAMILY]
     }
 
-    pub fn state(&self) -> tcp_state {
+    pub fn state(&self) -> TcpState {
         let data = self.buffer.as_ref();
-        tcp_state::from(data[IDIAG_MSG_STATE])
+        TcpState::from(data[IDIAG_MSG_STATE])
     }
 
     pub fn timer(&self) -> u8 {
@@ -399,7 +411,7 @@ impl<T: AsRef<[u8]>> InetDiagMsgBuffer<T> {
         if expires == 0 {
             None
         } else {
-            Some(Duration::from_millis(expires as u64))
+            Some(Duration::from_millis(u64::from(expires)))
         }
     }
 
@@ -542,48 +554,63 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized + 'buffer> Iterator for RtaIterator<&'buff
     }
 }
 
+/// The socket extended information
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum InetDiagAttr {
+    /// the memory information of the socket.
     MemInfo(MemInfo),
+    /// the TCP information
     Info(Box<TcpInfo>),
+    /// the congestion control algorithm used
     Conf(String),
+    /// the TOS of the socket.
     Tos(u8),
+    /// the TClass of the socket.
     TClass(u8),
+    /// socket memory information
     SkMemInfo(SkMemInfo),
+    /// shutdown states
     Shutdown(Shutdown),
+    /// The protocol
     Protocol(u8),
+    /// The socket is IPv6 only
     SkV6Only(bool),
+    /// The mark of the socket.
     Mark(u32),
+    /// The class ID of the socket.
     ClassId(u32),
-    Other(extension, Vec<u8>),
+    /// other attribute
+    Other(Extension, Vec<u8>),
 }
 
-impl<T: AsRef<[u8]>> ParseableParametrized<InetDiagAttr, extension> for T {
-    fn parse_with_param(&self, ty: extension) -> Result<InetDiagAttr, DecodeError> {
+impl<T: AsRef<[u8]>> ParseableParametrized<InetDiagAttr, Extension> for T {
+    fn parse_with_param(&self, ty: Extension) -> Result<InetDiagAttr, DecodeError> {
+        use Extension::*;
+
         let payload = self.as_ref();
 
         Ok(match ty {
             INET_DIAG_MEMINFO if payload.len() >= mem::size_of::<MemInfo>() => {
-                InetDiagAttr::MemInfo(MemInfo::parse(payload))
+                InetDiagAttr::MemInfo(payload.parse()?)
             }
             INET_DIAG_INFO if payload.len() >= mem::size_of::<TcpInfo>() => {
-                InetDiagAttr::Info(Box::new(TcpInfo::parse(payload)))
+                InetDiagAttr::Info(Box::new(payload.parse()?))
             }
             INET_DIAG_CONG => InetDiagAttr::Conf(unsafe {
                 CStr::from_bytes_with_nul_unchecked(payload)
                     .to_string_lossy()
                     .into_owned()
             }),
-            INET_DIAG_TOS if payload.len() >= 1 => InetDiagAttr::Tos(payload[0]),
-            INET_DIAG_TCLASS if payload.len() >= 1 => InetDiagAttr::TClass(payload[0]),
+            INET_DIAG_TOS if !payload.is_empty() => InetDiagAttr::Tos(payload[0]),
+            INET_DIAG_TCLASS if !payload.is_empty() => InetDiagAttr::TClass(payload[0]),
             INET_DIAG_SKMEMINFO if payload.len() > mem::size_of::<SkMemInfo>() => {
-                InetDiagAttr::SkMemInfo(SkMemInfo::parse(payload))
+                InetDiagAttr::SkMemInfo(payload.parse()?)
             }
-            INET_DIAG_SHUTDOWN if payload.len() >= 1 => {
+            INET_DIAG_SHUTDOWN if !payload.is_empty() => {
                 InetDiagAttr::Shutdown(Shutdown::from_bits_truncate(payload[0] & SHUTDOWN_MASK))
             }
-            INET_DIAG_PROTOCOL if payload.len() >= 1 => InetDiagAttr::Protocol(payload[0]),
-            INET_DIAG_SKV6ONLY if payload.len() >= 1 => InetDiagAttr::SkV6Only(payload[0] != 0),
+            INET_DIAG_PROTOCOL if !payload.is_empty() => InetDiagAttr::Protocol(payload[0]),
+            INET_DIAG_SKV6ONLY if !payload.is_empty() => InetDiagAttr::SkV6Only(payload[0] != 0),
             INET_DIAG_MARK if payload.len() >= 4 => {
                 InetDiagAttr::Mark(NativeEndian::read_u32(payload))
             }
@@ -595,123 +622,69 @@ impl<T: AsRef<[u8]>> ParseableParametrized<InetDiagAttr, extension> for T {
     }
 }
 
-#[repr(C)]
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct MemInfo {
-    pub rmem: u32,
-    pub wmem: u32,
-    pub fmem: u32,
-    pub tmem: u32,
-}
+impl<T: AsRef<[u8]>> Parseable<MemInfo> for T {
+    fn parse(&self) -> Result<MemInfo, DecodeError> {
+        let data = self.as_ref();
 
-impl MemInfo {
-    pub fn parse(data: &[u8]) -> Self {
-        unsafe { ptr::read(data.as_ptr() as *const MemInfo) }
+        if data.len() >= mem::size_of::<MemInfo>() {
+            Ok(unsafe {
+                NonNull::new_unchecked(data.as_ptr() as *mut u8)
+                    .cast::<MemInfo>()
+                    .as_ptr()
+                    .read()
+            })
+        } else {
+            Err(format!(
+                "buffer size is {}, whereas a buffer is at least {} long",
+                data.len(),
+                mem::size_of::<MemInfo>()
+            )
+            .into())
+        }
     }
 }
 
-#[repr(C)]
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct TcpInfo {
-    pub tcpi_state: u8,
-    pub tcpi_ca_state: u8,
-    pub tcpi_retransmits: u8,
-    pub tcpi_probes: u8,
-    pub tcpi_backoff: u8,
-    pub tcpi_options: u8,
-    pub tcpi_wscale: u8,
-    pub tcpi_delivery_rate_app_limited: u8,
+impl<T: AsRef<[u8]>> Parseable<TcpInfo> for T {
+    fn parse(&self) -> Result<TcpInfo, DecodeError> {
+        let data = self.as_ref();
 
-    pub tcpi_rto: u32,
-    pub tcpi_ato: u32,
-    pub tcpi_snd_mss: u32,
-    pub tcpi_rcv_mss: u32,
-
-    pub tcpi_unacked: u32,
-    pub tcpi_sacked: u32,
-    pub tcpi_lost: u32,
-    pub tcpi_retrans: u32,
-    pub tcpi_fackets: u32,
-
-    // Times.
-    pub tcpi_last_data_sent: u32,
-    pub tcpi_last_ack_sent: u32,
-    pub tcpi_last_data_recv: u32,
-    pub tcpi_last_ack_recv: u32,
-
-    // Metrics.
-    pub tcpi_pmtu: u32,
-    pub tcpi_rcv_ssthresh: u32,
-    pub tcpi_rtt: u32,
-    pub tcpi_rttvar: u32,
-    pub tcpi_snd_ssthresh: u32,
-    pub tcpi_snd_cwnd: u32,
-    pub tcpi_advmss: u32,
-    pub tcpi_reordering: u32,
-
-    pub tcpi_rcv_rtt: u32,
-    pub tcpi_rcv_space: u32,
-
-    pub tcpi_total_retrans: u32,
-
-    pub tcpi_pacing_rate: u64,
-    pub tcpi_max_pacing_rate: u64,
-    pub tcpi_bytes_acked: u64,    // RFC4898 tcpEStatsAppHCThruOctetsAcked
-    pub tcpi_bytes_received: u64, // RFC4898 tcpEStatsAppHCThruOctetsReceived
-    pub tcpi_segs_out: u32,       // RFC4898 tcpEStatsPerfSegsOut
-    pub tcpi_segs_in: u32,        // RFC4898 tcpEStatsPerfSegsIn
-
-    pub tcpi_notsent_bytes: u32,
-    pub tcpi_min_rtt: u32,
-    pub tcpi_data_segs_in: u32,  // RFC4898 tcpEStatsDataSegsIn
-    pub tcpi_data_segs_out: u32, // RFC4898 tcpEStatsDataSegsOut
-
-    pub tcpi_delivery_rate: u64,
-
-    pub tcpi_busy_time: u64,      // Time (usec) busy sending data
-    pub tcpi_rwnd_limited: u64,   // Time (usec) limited by receive window
-    pub tcpi_sndbuf_limited: u64, // Time (usec) limited by send buffer
-
-    pub tcpi_delivered: u32,
-    pub tcpi_delivered_ce: u32,
-
-    pub tcpi_bytes_sent: u64,    // RFC4898 tcpEStatsPerfHCDataOctetsOut
-    pub tcpi_bytes_retrans: u64, // RFC4898 tcpEStatsPerfOctetsRetrans
-    pub tcpi_dsack_dups: u32,    // RFC4898 tcpEStatsStackDSACKDups
-    pub tcpi_reord_seen: u32,    // reordering events seen
-}
-
-impl TcpInfo {
-    pub fn parse(data: &[u8]) -> Self {
-        unsafe { ptr::read(data.as_ptr() as *const TcpInfo) }
+        if data.len() >= mem::size_of::<TcpInfo>() {
+            unsafe {
+                Ok(NonNull::new_unchecked(data.as_ptr() as *mut u8)
+                    .cast::<TcpInfo>()
+                    .as_ptr()
+                    .read())
+            }
+        } else {
+            Err(format!(
+                "buffer size is {}, whereas a buffer is at least {} long",
+                data.len(),
+                mem::size_of::<TcpInfo>()
+            )
+            .into())
+        }
     }
 }
 
-#[repr(C)]
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct SkMemInfo {
-    pub rmem_alloc: u32,
-    pub recvbuf: u32,
-    pub wmem_alloc: u32,
-    pub sndbuf: u32,
-    pub fwd_alloc: u32,
-    pub wmem_queued: u32,
-    pub optmem: u32,
-    pub backlog: u32,
-    pub drops: u32,
-}
+impl<T: AsRef<[u8]>> Parseable<SkMemInfo> for T {
+    fn parse(&self) -> Result<SkMemInfo, DecodeError> {
+        let data = self.as_ref();
 
-impl SkMemInfo {
-    pub fn parse(data: &[u8]) -> Self {
-        unsafe { ptr::read(data.as_ptr() as *const SkMemInfo) }
+        unsafe {
+            Ok(NonNull::new_unchecked(data.as_ptr() as *mut u8)
+                .cast::<SkMemInfo>()
+                .as_ptr()
+                .read())
+        }
     }
 }
 
 bitflags! {
+    /// The shutdown state
     pub struct Shutdown: u8 {
-        const None = 0;
-        const Recv = RCV_SHUTDOWN;
-        const Send = SEND_SHUTDOWN;
+        const NONE = 0;
+        const RECV = RCV_SHUTDOWN;
+        const SEND = SEND_SHUTDOWN;
     }
 }
 
@@ -759,7 +732,7 @@ impl<T: AsRef<[u8]>> UnixDiagReqBuffer<T> {
         let data = self.buffer.as_ref();
         let mut cookie = [0u32; 2];
         NativeEndian::read_u32_into(&data[UDIAG_REQ_COOKIE], &mut cookie);
-        let cookie = u64::from(cookie[0]) + u64::from(cookie[1]) << 32;
+        let cookie = u64::from(cookie[0]) + (u64::from(cookie[1]) << 32);
 
         if cookie == INET_DIAG_NOCOOKIE {
             None
@@ -841,9 +814,9 @@ impl<T: AsRef<[u8]>> UnixDiagMsgBuffer<T> {
         let data = self.buffer.as_ref();
         data[UDIAG_MSG_TYPE]
     }
-    pub fn state(&self) -> unix_state {
+    pub fn state(&self) -> UnixState {
         let data = self.buffer.as_ref();
-        unix_state::from(data[UDIAG_MSG_STATE])
+        UnixState::from(data[UDIAG_MSG_STATE])
     }
     pub fn inode(&self) -> u32 {
         let data = self.buffer.as_ref();
@@ -853,7 +826,7 @@ impl<T: AsRef<[u8]>> UnixDiagMsgBuffer<T> {
         let data = self.buffer.as_ref();
         let mut cookie = [0u32; 2];
         NativeEndian::read_u32_into(&data[UDIAG_MSG_COOKIE], &mut cookie);
-        let cookie = u64::from(cookie[0]) + u64::from(cookie[1]) << 32;
+        let cookie = u64::from(cookie[0]) + (u64::from(cookie[1]) << 32);
 
         if cookie == INET_DIAG_NOCOOKIE {
             None
@@ -867,21 +840,30 @@ impl<T: AsRef<[u8]>> UnixDiagMsgBuffer<T> {
     }
 }
 
+/// UNIX socket information
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum UnixDiagAttr {
+    /// name (not path)
     Name(String),
+    /// VFS inode info
     Vfs(unix_diag_vfs),
+    /// peer socket info
     Peer(u32),
+    /// pending connections
     Icons(Vec<u32>),
+    /// skb receive queue len
     RecvQueueLen(unix_diag_rqlen),
+    /// memory info of a socket
     MemInfo(SkMemInfo),
+    /// shutdown states
     Shutdown(Shutdown),
-    Other(attribute, Vec<u8>),
+    /// other attribute
+    Other(Attribute, Vec<u8>),
 }
 
-impl<T: AsRef<[u8]>> ParseableParametrized<UnixDiagAttr, attribute> for T {
-    fn parse_with_param(&self, ty: attribute) -> Result<UnixDiagAttr, DecodeError> {
-        use attribute::*;
+impl<T: AsRef<[u8]>> ParseableParametrized<UnixDiagAttr, Attribute> for T {
+    fn parse_with_param(&self, ty: Attribute) -> Result<UnixDiagAttr, DecodeError> {
+        use Attribute::*;
 
         let payload = self.as_ref();
 
@@ -908,9 +890,9 @@ impl<T: AsRef<[u8]>> ParseableParametrized<UnixDiagAttr, attribute> for T {
                 udiag_wqueue: NativeEndian::read_u32(&payload[4..8]),
             }),
             UNIX_DIAG_MEMINFO if payload.len() > mem::size_of::<SkMemInfo>() => {
-                UnixDiagAttr::MemInfo(SkMemInfo::parse(payload))
+                UnixDiagAttr::MemInfo(payload.parse()?)
             }
-            UNIX_DIAG_SHUTDOWN if payload.len() >= 1 => {
+            UNIX_DIAG_SHUTDOWN if !payload.is_empty() => {
                 UnixDiagAttr::Shutdown(Shutdown::from_bits_truncate(payload[0] & SHUTDOWN_MASK))
             }
             _ => UnixDiagAttr::Other(ty, payload.to_vec()),

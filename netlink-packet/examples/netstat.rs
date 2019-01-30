@@ -7,7 +7,8 @@ use structopt::StructOpt;
 
 use netlink_packet::{
     sock_diag::{
-        Extension, InetDiagRequest, Show, SockDiagMessage, TcpStates, UnixDiagAttr, UnixDiagRequest,
+        Extensions, InetDiagRequest, Show, SockDiagMessage, TcpStates, UnixDiagAttr,
+        UnixDiagRequest,
     },
     Emitable, NetlinkBuffer, NetlinkMessage, NetlinkPayload, Parseable,
 };
@@ -53,14 +54,14 @@ fn main() {
 
             match *protocol {
                 libc::IPPROTO_TCP => {
-                    req.extensions |= Extension::Info;
+                    req.extensions |= Extensions::INFO;
 
                     if opts.all {
                         req.states = TcpStates::all();
                     } else if opts.listening {
-                        req.states = TcpStates::Listen;
+                        req.states = TcpStates::LISTEN;
                     } else {
-                        req.states = TcpStates::Established;
+                        req.states = TcpStates::ESTABLISHED;
                     }
                 }
                 libc::IPPROTO_UDP => {
@@ -84,9 +85,9 @@ fn main() {
     }
     println!("Proto Type       State        I-Node   Path");
 
-    let mut req = UnixDiagRequest::new();
+    let mut req = UnixDiagRequest::default();
 
-    req.show |= Show::Icons;
+    req.show |= Show::ICONS;
 
     dump_connections(&socket, SockDiagMessage::UnixDiag(req));
 }
