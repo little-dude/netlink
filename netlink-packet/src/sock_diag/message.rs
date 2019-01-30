@@ -7,7 +7,7 @@ use netlink_sys::constants::{AF_INET, AF_INET6, AF_UNIX};
 
 use crate::sock_diag::{
     buffer::{
-        Extensions, InetDiagAttr, InetDiagMsgBuffer, InetDiagReqV2Buffer, Show, TcpStates,
+        Extensions, InetDiagAttr, InetDiagMsgBuffer, InetDiagReqV2Buffer, Show, TcpStates, Timer,
         UnixDiagAttr, UnixDiagMsgBuffer, UnixDiagReqBuffer, UnixStates,
     },
     sock_diag::SOCK_DIAG_BY_FAMILY,
@@ -189,8 +189,8 @@ pub struct InetDiagResponse {
     pub state: TcpState,
     /// For TCP sockets, this field describes the type of timer
     /// that is currently active for the socket.
-    pub timer: u8,
-    pub retrans: u8,
+    pub timer: Option<Timer>,
+    /// The socket ID object.
     pub id: SockId,
     /// For TCP sockets that have an active timer, this field describes its expiration time.
     pub expires: Option<Duration>,
@@ -263,7 +263,6 @@ impl<T: AsRef<[u8]>> Parseable<InetDiagResponse> for InetDiagMsgBuffer<T> {
             family,
             state: self.state(),
             timer: self.timer(),
-            retrans: self.retrans(),
             id: SockId {
                 src,
                 dst,

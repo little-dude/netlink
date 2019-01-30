@@ -35,6 +35,6 @@ pub use self::sock_diag::sk_meminfo as SkMemInfo;
 pub use self::unix_diag::{attribute as Attribute, unix_state as UnixState};
 
 pub use self::buffer::{
-    Extensions, InetDiagAttr, Show, Shutdown, TcpStates, UnixDiagAttr, UnixStates,
+    Extensions, InetDiagAttr, Show, Shutdown, TcpStates, Timer, UnixDiagAttr, UnixStates,
 };
 pub use self::message::*;

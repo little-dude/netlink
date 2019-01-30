@@ -88,6 +88,19 @@ impl Default for TcpStates {
     }
 }
 
+/// The type of timer that is currently active for the TCP socket.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Timer {
+    /// a retransmit timer
+    Retransmit(u8),
+    /// a keep-alive timer
+    KeepAlive(u8),
+    /// a TIME_WAIT timer
+    TimeWait,
+    /// a zero window probe timer
+    Probe(u8),
+}
+
 bitflags! {
     /// This is a bit mask that defines a filter of UNIX sockets states.
     pub struct UnixStates: u32 {
@@ -390,14 +403,15 @@ impl<T: AsRef<[u8]>> InetDiagMsgBuffer<T> {
         TcpState::from(data[IDIAG_MSG_STATE])
     }
 
-    pub fn timer(&self) -> u8 {
+    pub fn timer(&self) -> Option<Timer> {
         let data = self.buffer.as_ref();
-        data[IDIAG_MSG_TIMER]
-    }
-
-    pub fn retrans(&self) -> u8 {
-        let data = self.buffer.as_ref();
-        data[IDIAG_MSG_RETRANS]
+        match data[IDIAG_MSG_TIMER] {
+            1 => Some(Timer::Retransmit(data[IDIAG_MSG_RETRANS])),
+            2 => Some(Timer::KeepAlive(data[IDIAG_MSG_RETRANS])),
+            3 => Some(Timer::TimeWait),
+            4 => Some(Timer::Probe(data[IDIAG_MSG_RETRANS])),
+            _ => None,
+        }
     }
 
     pub fn id(&self) -> SocketIdBuffer<&[u8]> {
