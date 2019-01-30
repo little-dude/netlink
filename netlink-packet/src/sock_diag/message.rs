@@ -2,6 +2,7 @@ use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6};
 use std::time::Duration;
 
 use failure::ResultExt;
+
 use netlink_sys::constants::{AF_INET, AF_INET6, AF_UNIX};
 
 use crate::sock_diag::{
@@ -13,7 +14,7 @@ use crate::sock_diag::{
     sock_diag::SOCK_DIAG_BY_FAMILY,
     unix_diag::unix_state,
 };
-use crate::{DecodeError, Emitable, Parseable};
+use crate::{DecodeError, Emitable, Parseable, ParseableParametrized};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum SockDiagMessage {
@@ -221,7 +222,7 @@ impl<T: AsRef<[u8]>> Parseable<InetDiagResponse> for InetDiagMsgBuffer<T> {
 
         let attrs = self
             .attrs()
-            .map(|(ty, payload)| InetDiagAttr::parse(ty.into(), payload))
+            .map(|(ty, payload)| payload.parse_with_param(ty.into()))
             .collect::<Result<Vec<_>, DecodeError>>()?;
 
         Ok(InetDiagResponse {
@@ -299,7 +300,7 @@ impl<T: AsRef<[u8]>> Parseable<UnixDiagResponse> for UnixDiagMsgBuffer<T> {
     fn parse(&self) -> Result<UnixDiagResponse, DecodeError> {
         let attrs = self
             .attrs()
-            .map(|(ty, payload)| UnixDiagAttr::parse(ty.into(), payload))
+            .map(|(ty, payload)| payload.parse_with_param(ty.into()))
             .collect::<Result<Vec<_>, DecodeError>>()?;
 
         Ok(UnixDiagResponse {

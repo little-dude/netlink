@@ -10,7 +10,7 @@ use crate::sock_diag::{
     inet_diag::{extension, extension::*, tcp_state, tcp_state::*},
     unix_diag::{attribute, show::*, unix_diag_rqlen, unix_diag_vfs, unix_state},
 };
-use crate::{DecodeError, Field, Rest};
+use crate::{DecodeError, Field, ParseableParametrized, Rest};
 
 const fn array_of<T>(start: usize, len: usize) -> Field {
     start..(start + mem::size_of::<T>() * len)
@@ -558,8 +558,10 @@ pub enum InetDiagAttr {
     Other(extension, Vec<u8>),
 }
 
-impl InetDiagAttr {
-    pub fn parse(ty: extension, payload: &[u8]) -> Result<Self, DecodeError> {
+impl<T: AsRef<[u8]>> ParseableParametrized<InetDiagAttr, extension> for T {
+    fn parse_with_param(&self, ty: extension) -> Result<InetDiagAttr, DecodeError> {
+        let payload = self.as_ref();
+
         Ok(match ty {
             INET_DIAG_MEMINFO if payload.len() >= mem::size_of::<MemInfo>() => {
                 InetDiagAttr::MemInfo(MemInfo::parse(payload))
@@ -877,9 +879,11 @@ pub enum UnixDiagAttr {
     Other(attribute, Vec<u8>),
 }
 
-impl UnixDiagAttr {
-    pub fn parse(ty: attribute, payload: &[u8]) -> Result<Self, DecodeError> {
+impl<T: AsRef<[u8]>> ParseableParametrized<UnixDiagAttr, attribute> for T {
+    fn parse_with_param(&self, ty: attribute) -> Result<UnixDiagAttr, DecodeError> {
         use attribute::*;
+
+        let payload = self.as_ref();
 
         Ok(match ty {
             UNIX_DIAG_NAME => UnixDiagAttr::Name(unsafe {
