@@ -20,6 +20,24 @@ impl<T: AsRef<[u8]>> NeighbourTableBuffer<T> {
         self.buffer
     }
 
+    pub fn new_checked(buffer: T) -> Result<Self, DecodeError> {
+        let packet = Self::new(buffer);
+        packet.check_buffer_length()?;
+        Ok(packet)
+    }
+
+    fn check_buffer_length(&self) -> Result<(), DecodeError> {
+        let len = self.buffer.as_ref().len();
+        if len < NEIGHBOUR_TABLE_HEADER_LEN {
+            Err(format!(
+                "invalid NeighbourTableBuffer: length is {} but NeighbourTableBuffer are at least {} bytes",
+                len, NEIGHBOUR_TABLE_HEADER_LEN
+            )
+            .into())
+        } else {
+            Ok(())
+        }
+    }
     pub fn family(&self) -> u8 {
         let data = self.buffer.as_ref();
         data[FAMILY]
