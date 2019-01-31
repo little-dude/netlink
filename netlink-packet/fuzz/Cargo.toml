@@ -24,3 +24,4 @@ path = "fuzz_targets/netlink.rs"
 [features]
 rtnetlink = ["netlink-packet/rtnetlink"]
 audit = ["netlink-packet/audit"]
+sock_diag = ["netlink-packet/sock_diag"]
