@@ -50,7 +50,7 @@ impl SockDiagMessage {
     pub(crate) fn parse(message_type: u16, buffer: &[u8]) -> Result<Self, DecodeError> {
         match message_type {
             SOCK_DIAG_BY_FAMILY if !buffer.is_empty() => {
-                match u16::from(*buffer.first().unwrap()) {
+                match u16::from(buffer[0]) {
                     AF_INET | AF_INET6 => Ok(SockDiagMessage::InetSocks(
                         InetDiagMsgBuffer::new_checked(buffer)
                             .context("failed to parse SOCK_DIAG_BY_FAMILY message")?

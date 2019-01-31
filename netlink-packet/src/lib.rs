@@ -116,6 +116,7 @@
 
 #[cfg_attr(any(feature = "rtnetlink", feature = "sock_diag"), macro_use)] extern crate log;
 
+#[cfg(feature = "sock_diag")]
 #[macro_use] extern crate bitflags;
 
 pub use netlink_sys::constants;
