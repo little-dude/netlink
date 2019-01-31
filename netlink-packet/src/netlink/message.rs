@@ -243,7 +243,8 @@ impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<NetlinkMessage> for NetlinkBuf
 
         let payload = match header.message_type {
             NLMSG_ERROR => {
-                let msg: ErrorMessage = ErrorBuffer::new(&self.payload())
+                let msg: ErrorMessage = ErrorBuffer::new_checked(&self.payload())
+                    .context("failed to parse NLMSG_ERROR")?
                     .parse()
                     .context("failed to parse NLMSG_ERROR")?;
                 if msg.code >= 0 {
@@ -326,5 +327,36 @@ impl Emitable for NetlinkMessage {
             #[cfg(not(any(feature = "rtnetlink", feature = "audit", feature = "sock_diag")))]
             __Default => {}
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::{NetlinkBuffer, NetlinkMessage, Parseable};
+
+    #[test]
+    fn fuzz_bug_1() {
+        let data = vec![
+            0x10, 0x00, 0x00, 0x00, // length = 16
+            0x40, 0x00, // message type = 64 (neighbour table message)
+            0x00, 0x3d, // flags
+            0x00, 0x00, // seq number
+            0xe9, 0xc8, 0x50, 0x00, // port id
+            0x0, 0x50, // invalid neighbour table message
+        ];
+        let _ = <NetlinkBuffer<_> as Parseable<NetlinkMessage>>::parse(&NetlinkBuffer::new(&data));
+    }
+
+    #[test]
+    fn fuzz_bug_2() {
+        let data = vec![
+            0x10, 0x00, 0x00, 0x00, // length = 16
+            0x02, 0x00, // message type = 2 (error message)
+            0x00, 0xc3, // flags
+            0xff, 0xf7, // seq number
+            0xcc, 0xc8, 0x50, 0x00, // port id
+            0x00, 0x00, // invalid (error message)
+        ];
+        let _ = <NetlinkBuffer<_> as Parseable<NetlinkMessage>>::parse(&NetlinkBuffer::new(&data));
     }
 }

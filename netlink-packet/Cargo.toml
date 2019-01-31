@@ -26,6 +26,8 @@ netlink-sys = { path = "../netlink-sys", version = "0.1" }
 [dev-dependencies]
 pretty_env_logger = "0.3"
 structopt = "0.2"
+criterion = "0.2"
+pcap-file = "*"
 
 [features]
 # By default this crate does not does anything useful. You should enable a
@@ -45,3 +47,13 @@ required-features = ["rtnetlink"]
 [[example]]
 name = "netstat"
 required-features = ["sock_diag"]
+
+[[bench]]
+name = "link_message"
+harness = false
+required-features = ["rtnetlink"]
+
+[[bench]]
+name = "rtnetlink_dump"
+harness = false
+required-features = ["rtnetlink"]

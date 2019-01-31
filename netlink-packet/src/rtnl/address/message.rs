@@ -78,9 +78,6 @@ impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<AddressMessage> for AddressBuf
     }
 }
 
-// FIXME: we should make it possible to provide a "best effort" parsing method. Right now, if we
-// fail on a single nla, we return an error. Maybe we could have another impl that returns
-// Vec<Result<Address>>.
 impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Vec<AddressNla>> for AddressBuffer<&'buffer T> {
     fn parse(&self) -> Result<Vec<AddressNla>, DecodeError> {
         let mut nlas = vec![];
