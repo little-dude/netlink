@@ -74,7 +74,7 @@ matrix:
       script:
           - cargo test -Z package-features --package netlink-proto --features audit
           - cargo test -Z package-features --package netlink-proto --features rtnetlink
-          - cargo test -Z package-features --package netlink-packet --features sock_diag
+          - cargo test -Z package-features --package netlink-proto --features sock_diag
           - cargo clippy
 
     - rust: nightly
