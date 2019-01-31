@@ -25,6 +25,7 @@ pub mod sock_diag;
 pub mod unix_diag;
 
 mod buffer;
+mod bytecode;
 mod message;
 
 pub use self::inet_diag::{

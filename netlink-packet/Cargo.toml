@@ -21,6 +21,8 @@ lazy_static = "1.2.0"
 
 bitflags = { version = "1.0", optional = true }
 try_from = { version = "0.3", optional = true }
+nom = { version = "4.2", optional = true, features = ["verbose-errors"] }
+pnet_datalink = { version = "0.21", optional = true }
 
 netlink-sys = { path = "../netlink-sys", version = "0.1" }
 
@@ -29,6 +31,7 @@ pretty_env_logger = "0.3"
 structopt = "0.2"
 criterion = "0.2"
 pcap-file = "*"
+matches = "0.1"
 
 [features]
 # By default this crate does not does anything useful. You should enable a
@@ -39,7 +42,7 @@ rtnetlink = []
 # Adds support audit messages
 audit = []
 # Adds support sock_diag messages
-sock_diag = ["bitflags", "try_from"]
+sock_diag = ["bitflags", "try_from", "nom", "pnet_datalink"]
 
 [[example]]
 name = "dump_links"

@@ -49,23 +49,21 @@ impl Emitable for SockDiagMessage {
 impl SockDiagMessage {
     pub(crate) fn parse(message_type: u16, buffer: &[u8]) -> Result<Self, DecodeError> {
         match message_type {
-            SOCK_DIAG_BY_FAMILY if !buffer.is_empty() => {
-                match u16::from(buffer[0]) {
-                    AF_INET | AF_INET6 => Ok(SockDiagMessage::InetSocks(
-                        InetDiagMsgBuffer::new_checked(buffer)
-                            .context("failed to parse SOCK_DIAG_BY_FAMILY message")?
-                            .parse()
-                            .context("failed to parse SOCK_DIAG_BY_FAMILY message")?,
-                    )),
-                    AF_UNIX => Ok(SockDiagMessage::UnixSocks(
-                        UnixDiagMsgBuffer::new_checked(buffer)
-                            .context("failed to parse SOCK_DIAG_BY_FAMILY message")?
-                            .parse()
-                            .context("failed to parse SOCK_DIAG_BY_FAMILY message")?,
-                    )),
-                    family => Err(format!("Unknown message family: {}", family).into()),
-                }
-            }
+            SOCK_DIAG_BY_FAMILY if !buffer.is_empty() => match u16::from(buffer[0]) {
+                AF_INET | AF_INET6 => Ok(SockDiagMessage::InetSocks(
+                    InetDiagMsgBuffer::new_checked(buffer)
+                        .context("failed to parse SOCK_DIAG_BY_FAMILY message")?
+                        .parse()
+                        .context("failed to parse SOCK_DIAG_BY_FAMILY message")?,
+                )),
+                AF_UNIX => Ok(SockDiagMessage::UnixSocks(
+                    UnixDiagMsgBuffer::new_checked(buffer)
+                        .context("failed to parse SOCK_DIAG_BY_FAMILY message")?
+                        .parse()
+                        .context("failed to parse SOCK_DIAG_BY_FAMILY message")?,
+                )),
+                family => Err(format!("Unknown message family: {}", family).into()),
+            },
             _ => Err(format!("Unknown message type: {}", message_type).into()),
         }
     }
