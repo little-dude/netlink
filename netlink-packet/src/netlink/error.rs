@@ -4,6 +4,7 @@ use std::mem::size_of;
 
 const CODE: Field = 0..4;
 const PAYLOAD: Rest = 4..;
+const ERROR_HEADER_LEN: usize = PAYLOAD.start;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct ErrorBuffer<T> {
@@ -19,6 +20,26 @@ impl<T: AsRef<[u8]>> ErrorBuffer<T> {
     pub fn into_inner(self) -> T {
         self.buffer
     }
+
+    pub fn new_checked(buffer: T) -> Result<Self, DecodeError> {
+        let packet = Self::new(buffer);
+        packet.check_buffer_length()?;
+        Ok(packet)
+    }
+
+    fn check_buffer_length(&self) -> Result<(), DecodeError> {
+        let len = self.buffer.as_ref().len();
+        if len < ERROR_HEADER_LEN {
+            Err(format!(
+                "invalid ErrorBuffer: length is {} but ErrorBuffer are at least {} bytes",
+                len, ERROR_HEADER_LEN
+            )
+            .into())
+        } else {
+            Ok(())
+        }
+    }
+
 
     /// Return the error code
     pub fn code(&self) -> i32 {

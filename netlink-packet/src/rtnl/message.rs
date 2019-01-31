@@ -362,7 +362,8 @@ impl RtnlMessage {
 
             // Neighbour messages
             RTM_NEWNEIGH | RTM_GETNEIGH | RTM_DELNEIGH => {
-                let msg: NeighbourMessage = NeighbourBuffer::new(&buffer)
+                let msg: NeighbourMessage = NeighbourBuffer::new_checked(&buffer)
+                    .context("invalid neighbour message")?
                     .parse()
                     .context("invalid neighbour message")?;
                 match message_type {
@@ -375,7 +376,8 @@ impl RtnlMessage {
 
             // Neighbour table messages
             RTM_NEWNEIGHTBL | RTM_GETNEIGHTBL | RTM_SETNEIGHTBL => {
-                let msg: NeighbourTableMessage = NeighbourTableBuffer::new(&buffer)
+                let msg: NeighbourTableMessage = NeighbourTableBuffer::new_checked(&buffer)
+                    .context("invalid neighbour table message")?
                     .parse()
                     .context("invalid neighbour table message")?;
                 match message_type {
