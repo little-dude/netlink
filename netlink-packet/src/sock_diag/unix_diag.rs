@@ -53,11 +53,7 @@ pub enum unix_state {
     LISTEN = TCP_LISTEN as u8,
 }
 
-impl From<u8> for unix_state {
-    fn from(v: u8) -> Self {
-        unsafe { mem::transmute(v) }
-    }
-}
+pub const UNIX_STATE_MAX: u8 = unix_state::LISTEN as u8;
 
 #[repr(u16)]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -74,12 +70,6 @@ pub enum attribute {
 }
 
 pub const UNIX_DIAG_MAX: u16 = attribute::__UNIX_DIAG_MAX as u16 - 1;
-
-impl From<u16> for attribute {
-    fn from(v: u16) -> Self {
-        unsafe { mem::transmute(v) }
-    }
-}
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, Clone)]

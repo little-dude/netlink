@@ -5,9 +5,11 @@ use std::ptr::NonNull;
 use std::time::Duration;
 
 use byteorder::{ByteOrder, NativeEndian, NetworkEndian};
+use try_from::TryFrom;
 
 use crate::sock_diag::{
-    unix_diag::{show::*, unix_diag_rqlen, unix_diag_vfs},
+    inet_diag::{INET_DIAG_MAX, TCP_STATE_MAX},
+    unix_diag::{show::*, unix_diag_rqlen, unix_diag_vfs, UNIX_DIAG_MAX, UNIX_STATE_MAX},
     Attribute, Extension,
     Extension::*,
     MemInfo, SkMemInfo, TcpInfo, TcpState,
@@ -65,6 +67,18 @@ const UDIAG_MSG_COOKIE: Field = array_of::<u32>(8, 2);
 const UDIAG_MSG_SIZE: usize = UDIAG_MSG_COOKIE.end;
 const UDIAG_MSG_ATTRIBUTES: Rest = UDIAG_MSG_SIZE..;
 
+impl TryFrom<u8> for TcpState {
+    type Err = DecodeError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Err> {
+        if 0 < value && value <= TCP_STATE_MAX {
+            Ok(unsafe { mem::transmute(value) })
+        } else {
+            Err(format!("contains unknown state: {}", value).into())
+        }
+    }
+}
+
 bitflags! {
     /// This is a bit mask that defines a filter of TCP socket states.
     pub struct TcpStates: u32 {
@@ -101,6 +115,18 @@ pub enum Timer {
     Probe(u8),
 }
 
+impl TryFrom<u8> for UnixState {
+    type Err = DecodeError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Err> {
+        if value <= UNIX_STATE_MAX {
+            Ok(unsafe { mem::transmute(value) })
+        } else {
+            Err(format!("unknown UNIX state: {}", value).into())
+        }
+    }
+}
+
 bitflags! {
     /// This is a bit mask that defines a filter of UNIX sockets states.
     pub struct UnixStates: u32 {
@@ -112,6 +138,18 @@ bitflags! {
 impl Default for UnixStates {
     fn default() -> Self {
         UnixStates::all()
+    }
+}
+
+impl TryFrom<u16> for Extension {
+    type Err = DecodeError;
+
+    fn try_from(value: u16) -> Result<Self, Self::Err> {
+        if value <= INET_DIAG_MAX {
+            Ok(unsafe { mem::transmute(value) })
+        } else {
+            Err(format!("unknown extension: {}", value).into())
+        }
     }
 }
 
@@ -150,6 +188,18 @@ bitflags! {
         const RQLEN = UDIAG_SHOW_RQLEN as u32;
         /// show memory info of a socket
         const MEMINFO = UDIAG_SHOW_MEMINFO as u32;
+    }
+}
+
+impl TryFrom<u16> for Attribute {
+    type Err = DecodeError;
+
+    fn try_from(value: u16) -> Result<Self, Self::Err> {
+        if value <= UNIX_DIAG_MAX {
+            Ok(unsafe { mem::transmute(value) })
+        } else {
+            Err(format!("unknown UNIX attribute: {}", value).into())
+        }
     }
 }
 
@@ -398,9 +448,9 @@ impl<T: AsRef<[u8]>> InetDiagMsgBuffer<T> {
         data[IDIAG_MSG_FAMILY]
     }
 
-    pub fn state(&self) -> TcpState {
+    pub fn state(&self) -> Result<TcpState, DecodeError> {
         let data = self.buffer.as_ref();
-        TcpState::from(data[IDIAG_MSG_STATE])
+        TcpState::try_from(data[IDIAG_MSG_STATE])
     }
 
     pub fn timer(&self) -> Option<Timer> {
@@ -837,9 +887,9 @@ impl<T: AsRef<[u8]>> UnixDiagMsgBuffer<T> {
         let data = self.buffer.as_ref();
         data[UDIAG_MSG_TYPE]
     }
-    pub fn state(&self) -> UnixState {
+    pub fn state(&self) -> Result<UnixState, DecodeError> {
         let data = self.buffer.as_ref();
-        UnixState::from(data[UDIAG_MSG_STATE])
+        UnixState::try_from(data[UDIAG_MSG_STATE])
     }
     pub fn inode(&self) -> u32 {
         let data = self.buffer.as_ref();

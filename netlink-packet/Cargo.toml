@@ -19,6 +19,7 @@ libc = "0.2.45"
 log = "0.4.6"
 lazy_static = "1.2.0"
 bitflags = "1.0"
+try_from = "0.3"
 
 netlink-sys = { path = "../netlink-sys", version = "0.1" }
 

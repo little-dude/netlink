@@ -25,13 +25,9 @@ pub enum tcp_state {
     TCP_CLOSING,
 }
 
-pub const TCPF_ALL: u32 = 0xFFF;
+pub const TCP_STATE_MAX: u8 = tcp_state::TCP_CLOSING as u8;
 
-impl From<u8> for tcp_state {
-    fn from(v: u8) -> Self {
-        unsafe { mem::transmute(v) }
-    }
-}
+pub const TCPF_ALL: u32 = 0xFFF;
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -254,16 +250,11 @@ pub enum extension {
     INET_DIAG_BBRINFO,
     INET_DIAG_CLASS_ID,
     INET_DIAG_MD5SIG,
+
     __INET_DIAG_MAX,
 }
 
-pub const INET_DIAG_MAX: u16 = extension::__INET_DIAG_MAX as u16 - 1;
-
-impl From<u16> for extension {
-    fn from(v: u16) -> Self {
-        unsafe { mem::transmute(v) }
-    }
-}
+pub const INET_DIAG_MAX: u16 = extension::INET_DIAG_MD5SIG as u16 - 1;
 
 /// INET_DIAG_MEM *
 #[repr(C)]
