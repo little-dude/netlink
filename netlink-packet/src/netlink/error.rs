@@ -40,7 +40,6 @@ impl<T: AsRef<[u8]>> ErrorBuffer<T> {
         }
     }
 
-
     /// Return the error code
     pub fn code(&self) -> i32 {
         let data = self.buffer.as_ref();
