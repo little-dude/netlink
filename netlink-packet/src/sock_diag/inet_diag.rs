@@ -1,8 +1,6 @@
 //! for IPv4 and IPv6 sockets
 #![allow(non_camel_case_types)]
 
-use std::mem;
-
 pub const TCPDIAG_GETSOCK: isize = 18;
 pub const DCCPDIAG_GETSOCK: isize = 19;
 

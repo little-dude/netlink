@@ -1,8 +1,6 @@
 //! for UNIX domain sockets
 #![allow(non_camel_case_types)]
 
-use std::mem;
-
 use crate::sock_diag::TcpState::*;
 
 #[repr(C)]
