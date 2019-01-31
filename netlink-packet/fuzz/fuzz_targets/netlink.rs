@@ -9,7 +9,7 @@ use netlink_packet::{NetlinkBuffer, NetlinkMessage, Parseable};
 #[rustfmt::skip]
 fuzz_target!(|data: &[u8]| {
     if let Ok(buf) = NetlinkBuffer::new_checked(&data) {
-        <NetlinkBuffer<_> as Parseable<NetlinkMessage>>::parse(&buf);
+        let _ = <NetlinkBuffer<_> as Parseable<NetlinkMessage>>::parse(&buf);
     }
 });
 
@@ -17,6 +17,6 @@ fuzz_target!(|data: &[u8]| {
 #[rustfmt::skip]
 fuzz_target!(|data: &[u8]| {
     if let Ok(buf) = NetlinkBuffer::new_checked(&data) {
-        <NetlinkBuffer<_> as Parseable<NetlinkMessage>>::parse(&buf);
+        let _ = <NetlinkBuffer<_> as Parseable<NetlinkMessage>>::parse(&buf);
     }
 });
