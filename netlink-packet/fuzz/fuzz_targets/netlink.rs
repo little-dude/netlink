@@ -20,3 +20,11 @@ fuzz_target!(|data: &[u8]| {
         let _ = <NetlinkBuffer<_> as Parseable<NetlinkMessage>>::parse(&buf);
     }
 });
+
+#[cfg(feature = "sock_diag")]
+#[rustfmt::skip]
+fuzz_target!(|data: &[u8]| {
+    if let Ok(buf) = NetlinkBuffer::new_checked(&data) {
+        let _ = <NetlinkBuffer<_> as Parseable<NetlinkMessage>>::parse(&buf);
+    }
+});

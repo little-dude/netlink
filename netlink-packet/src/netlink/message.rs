@@ -334,6 +334,7 @@ impl Emitable for NetlinkMessage {
 mod test {
     use super::{NetlinkBuffer, NetlinkMessage, Parseable};
 
+    #[cfg(feature = "rtnetlink")]
     #[test]
     fn fuzz_bug_1() {
         let data = vec![
@@ -342,11 +343,12 @@ mod test {
             0x00, 0x3d, // flags
             0x00, 0x00, // seq number
             0xe9, 0xc8, 0x50, 0x00, // port id
-            0x0, 0x50, // invalid neighbour table message
+            0x00, 0x50, // invalid neighbour table message
         ];
         let _ = <NetlinkBuffer<_> as Parseable<NetlinkMessage>>::parse(&NetlinkBuffer::new(&data));
     }
 
+    #[cfg(feature = "rtnetlink")]
     #[test]
     fn fuzz_bug_2() {
         let data = vec![
@@ -356,6 +358,18 @@ mod test {
             0xff, 0xf7, // seq number
             0xcc, 0xc8, 0x50, 0x00, // port id
             0x00, 0x00, // invalid (error message)
+        ];
+        let _ = <NetlinkBuffer<_> as Parseable<NetlinkMessage>>::parse(&NetlinkBuffer::new(&data));
+    }
+
+    #[cfg(feature = "sock_diag")]
+    #[test]
+    fn fuzz_bug_3() {
+        let data = vec![
+            0x26, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x10, 0x11, 0x00, 0x00, 0xff, 0xff,
+            0xff, 0x18, 0x01, 0xff, 0x00, 0x00, 0x00, 0x10, 0xff, 0x11, 0xff, 0xff, 0xff, 0xff,
+            0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x18,
+            0x00, 0x1d,
         ];
         let _ = <NetlinkBuffer<_> as Parseable<NetlinkMessage>>::parse(&NetlinkBuffer::new(&data));
     }
