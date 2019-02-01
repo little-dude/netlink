@@ -1,4 +1,3 @@
-//! for IPv4 and IPv6 sockets
 #![allow(non_camel_case_types)]
 
 pub const TCPDIAG_GETSOCK: isize = 18;
@@ -6,20 +5,38 @@ pub const DCCPDIAG_GETSOCK: isize = 19;
 
 pub const INET_DIAG_GETSOCK_MAX: isize = 24;
 
-// Kernel TCP states. /include/net/tcp_states.h
+/// Kernel TCP states.
+///
+/// /include/net/tcp_states.h
 #[repr(u8)]
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum tcp_state {
+    /// (both server and client) represents an open connection, data received can be delivered to the user.
+    /// The normal state for the data transfer phase of the connection.
     TCP_ESTABLISHED = 1,
+    /// (client) represents waiting for a matching connection request after having sent a connection request.
     TCP_SYN_SENT,
+    /// (server) represents waiting for a confirming connection request acknowledgment
+    /// after having both received and sent a connection request.
     TCP_SYN_RECV,
+    /// (both server and client) represents waiting for a connection termination request from the remote TCP,
+    /// or an acknowledgment of the connection termination request previously sent.
     TCP_FIN_WAIT1,
+    /// (both server and client) represents waiting for a connection termination request from the remote TCP.
     TCP_FIN_WAIT2,
+    /// (either server or client) represents waiting for enough time to pass to be sure
+    /// the remote TCP received the acknowledgment of its connection termination request.
     TCP_TIME_WAIT,
+    /// (both server and client) represents no connection state at all.
     TCP_CLOSE,
+    /// (both server and client) represents waiting for a connection termination request from the local user.
     TCP_CLOSE_WAIT,
+    /// (both server and client) represents waiting for an acknowledgment of the connection termination request
+    /// previously sent to the remote TCP (which includes an acknowledgment of its connection termination request).
     TCP_LAST_ACK,
+    /// (server) represents waiting for a connection request from any remote TCP and port.
     TCP_LISTEN,
+    /// (both server and client) represents waiting for a connection termination request acknowledgment from the remote TCP.
     TCP_CLOSING,
 }
 
@@ -254,7 +271,7 @@ pub enum extension {
 
 pub const INET_DIAG_MAX: u16 = extension::INET_DIAG_MD5SIG as u16 - 1;
 
-/// INET_DIAG_MEM *
+/// INET_DIAG_MEM
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct inet_diag_meminfo {

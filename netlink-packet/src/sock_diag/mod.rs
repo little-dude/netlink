@@ -20,22 +20,22 @@
 //! same set of sockets that is available via `/proc/net/unix`,
 //! `/proc/net/tcp`, `/proc/net/udp`, and so on.
 //!
-pub mod inet_diag;
-pub mod sock_diag;
-pub mod unix_diag;
+pub mod inet;
+pub mod sock;
+pub mod unix;
 
 mod buffer;
-mod bytecode;
 mod message;
 
-pub use self::inet_diag::{
-    extension as Extension, inet_diag_meminfo as MemInfo, tcp_info as TcpInfo,
-    tcp_state as TcpState,
+pub use self::inet::{
+    inet, inet6, Attr as InetDiagAttr, Extension, Extensions, MemInfo, Request as InetDiagRequest,
+    Response as InetDiagResponse, TcpInfo, TcpState, TcpStates, Timer,
 };
-pub use self::sock_diag::sk_meminfo as SkMemInfo;
-pub use self::unix_diag::{attribute as Attribute, unix_state as UnixState};
+pub use self::sock::SkMemInfo;
+pub use self::unix::{
+    unix, Attr as UnixDiagAttr, Attribute, Request as UnixDiagRequest,
+    Response as UnixDiagResponse, Show, UnixState, UnixStates,
+};
 
-pub use self::buffer::{
-    Extensions, InetDiagAttr, Show, Shutdown, TcpStates, Timer, UnixDiagAttr, UnixStates,
-};
-pub use self::message::*;
+pub use self::buffer::Shutdown;
+pub use self::message::Message as SockDiagMessage;

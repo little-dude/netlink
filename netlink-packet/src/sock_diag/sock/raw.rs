@@ -1,4 +1,3 @@
-//! obtaining information about sockets
 #![allow(non_camel_case_types)]
 
 pub const SOCK_DIAG_BY_FAMILY: u16 = 20;
@@ -25,6 +24,7 @@ pub enum sk_meminfo_vars {
     SK_MEMINFO_VARS,
 }
 
+/// Socket memory information
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct sk_meminfo {
