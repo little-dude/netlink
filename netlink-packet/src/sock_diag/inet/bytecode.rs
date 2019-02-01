@@ -175,9 +175,9 @@ mod parse {
         buf.push(0);
         CStr::from_bytes_with_nul(&buf)
             .ok()
-            .and_then(|s| unsafe { libc::getservbyname(s.as_ptr(), ptr::null()) })
+            .map(|s| unsafe { libc::getservbyname(s.as_ptr(), ptr::null()) })
             .and_then(ptr::NonNull::new)
-            .map(|servent| unsafe { servent.as_ref().s_port as u16 })
+            .map(|servent| unsafe { (servent.as_ref().s_port as u16).to_be() })
     }
     named!(port_dir<CompleteStr, Dir>, alt_complete!(
         tag!("port")  => { |_| Any } |
@@ -352,9 +352,9 @@ mod parse {
         fn parse_expr() {
             for (s, node) in vec![
                 ("port 80", Port(Any, Eq, 80)),
-                ("(port 80)", Port(Any, Eq, 80)),
+                ("(port http)", Port(Any, Eq, 80)),
                 ("!(port 80)", Unary(Not, Box::new(Port(Any, Eq, 80)))),
-                ("not port 80", Unary(Not, Box::new(Port(Any, Eq, 80)))),
+                ("not port https", Unary(Not, Box::new(Port(Any, Eq, 443)))),
                 ("not (port 80)", Unary(Not, Box::new(Port(Any, Eq, 80)))),
                 (
                     "(port 80) && (port 8080)",
