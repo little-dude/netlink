@@ -598,7 +598,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized + 'buffer> Iterator for RtaIterator<&'buff
         let len = NativeEndian::read_u16(&data[RTA_LENGTH]) as usize;
         let ty = NativeEndian::read_u16(&data[RTA_TYPE]);
 
-        if len >= data.len() {
+        if len < RTA_HDR_LEN || len >= data.len() {
             return None;
         }
 
