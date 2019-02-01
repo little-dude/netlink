@@ -4,7 +4,7 @@ mod ast {
     #[derive(Clone, Debug, PartialEq)]
     pub enum Node {
         Addr(Dir, IpAddr, Option<u32>, Option<u32>),
-        Port(Dir, CompOp, u32),
+        Port(Dir, CompOp, u16),
         Nop,
         Auto,
         IfIndex(u32),
@@ -43,8 +43,10 @@ mod ast {
 }
 
 mod parse {
+    use std::ffi::CStr;
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
     use std::ops::Deref;
+    use std::ptr;
     use std::str::FromStr;
 
     use nom::{types::CompleteStr, *};
@@ -84,10 +86,10 @@ mod parse {
     named!(not<CompleteStr, UnaryOp>, map!(alt_complete!(tag!("!") | tag!("not")), |_| Not));
 
     named!(comp_op<CompleteStr, CompOp>, alt_complete!(eq | ne | ge | le | gt | lt));
-    named!(eq<CompleteStr, CompOp>, map!(alt_complete!(tag!("==") | tag!("eq")), |_| Eq));
-    named!(ne<CompleteStr, CompOp>, map!(alt_complete!(tag!("!=") | tag!("ne")), |_| Ne));
-    named!(ge<CompleteStr, CompOp>, map!(alt_complete!(tag!(">=") | tag!("ge")), |_| Ge));
-    named!(le<CompleteStr, CompOp>, map!(alt_complete!(tag!("<=") | tag!("le")), |_| Le));
+    named!(eq<CompleteStr, CompOp>, map!(alt_complete!(tag!("==") | tag!("=") | tag!("eq")), |_| Eq));
+    named!(ne<CompleteStr, CompOp>, map!(alt_complete!(tag!("!=") | tag!("ne") | tag!("neq")), |_| Ne));
+    named!(ge<CompleteStr, CompOp>, map!(alt_complete!(tag!(">=") | tag!("ge") | tag!("geq")), |_| Ge));
+    named!(le<CompleteStr, CompOp>, map!(alt_complete!(tag!("<=") | tag!("le") | tag!("leq")), |_| Le));
     named!(gt<CompleteStr, CompOp>, map!(alt_complete!(tag!(">") | tag!("gt")), |_| Gt));
     named!(lt<CompleteStr, CompOp>, map!(alt_complete!(tag!("<") | tag!("lt")), |_| Lt));
 
@@ -102,8 +104,8 @@ mod parse {
     ));
 
     named!(logical_op<CompleteStr, LogicalOp>, alt_complete!(and | or));
-    named!(and<CompleteStr, LogicalOp>, map!(alt_complete!(tag!("&&") | tag!("and")), |_| And));
-    named!(or<CompleteStr, LogicalOp>, map!(alt_complete!(tag!("||") | tag!("or")), |_| Or));
+    named!(and<CompleteStr, LogicalOp>, map!(alt_complete!(tag!("and") | tag!("&&") | tag!("&")), |_| And));
+    named!(or<CompleteStr, LogicalOp>, map!(alt_complete!(tag!("or") | tag!("||") | tag!("|")), |_| Or));
 
     named!(addr<CompleteStr, Node>, do_parse!(
         dir: addr_dir >> multispace >>
@@ -163,11 +165,20 @@ mod parse {
     named!(port<CompleteStr, Node>, do_parse!(
         port: port_dir >> multispace >>
         op: opt!(terminated!(comp_op, multispace)) >>
-        n: num >>
+        n: alt_complete!(map!(num, |n| n as u16) | map_opt!(name, resolve_servname)) >>
         (
             Port(port, op.unwrap_or(Eq), n)
         )
     ));
+    fn resolve_servname<'a, T: Deref<Target = &'a str> + 'a>(name: T) -> Option<u16> {
+        let mut buf = name.as_bytes().to_vec();
+        buf.push(0);
+        CStr::from_bytes_with_nul(&buf)
+            .ok()
+            .and_then(|s| unsafe { libc::getservbyname(s.as_ptr(), ptr::null()) })
+            .and_then(ptr::NonNull::new)
+            .map(|servent| unsafe { servent.as_ref().s_port as u16 })
+    }
     named!(port_dir<CompleteStr, Dir>, alt_complete!(
         tag!("port")  => { |_| Any } |
         tag!("sport") => { |_| Src } |
@@ -176,13 +187,13 @@ mod parse {
         tuple!(tag!("dst"), multispace, tag!("port")) => { |_| Dst }
     ));
 
-    named!(auto<CompleteStr, Node>, map!(tag!("auto"), |_| Auto));
+    named!(auto<CompleteStr, Node>, map!(alt_complete!(tag!("autobound") | tag!("auto")), |_| Auto));
     named!(nop<CompleteStr, Node>, map!(alt_complete!(tag!("nop") | tag!("()")), |_| Nop));
     named!(ifindex<CompleteStr, Node>, map!(
         alt_complete!(
             do_parse!(tag!("ifindex") >> multispace >> n: num >> (n)) |
             do_parse!(tag!("ifname") >> multispace >> n: map_opt!(name, resolve_ifname) >> (n)) |
-            do_parse!(tag!("on") >> multispace >> n: alt_complete!(num | map_opt!(name, resolve_ifname) ) >> (n))
+            do_parse!(tag!("dev") >> multispace >> n: alt_complete!(num | map_opt!(name, resolve_ifname) ) >> (n))
         ),
         IfIndex
     ));
@@ -193,9 +204,9 @@ mod parse {
             .map(|intf| intf.index)
     }
     named!(mark<CompleteStr, Node>, do_parse!(
-        tag!("mark") >> multispace >>
-        mask: opt!(complete!(terminated!(num, multispace))) >>
+        alt_complete!(tag!("fwmark") | tag!("mark")) >> multispace >>
         mark: num >>
+        mask: opt!(complete!(preceded!(tuple!(multispace0, tag!("/"), multispace0), num))) >>
         (
             Mark(mask, mark)
         )
@@ -226,6 +237,7 @@ mod parse {
 
         #[test]
         fn parse_cond() {
+            assert_eq!(auto(CompleteStr("autobound")), Ok((EMPTY, Auto)));
             assert_eq!(auto(CompleteStr("auto")), Ok((EMPTY, Auto)));
 
             assert_eq!(nop(CompleteStr("nop")), Ok((EMPTY, Nop)));
@@ -233,12 +245,12 @@ mod parse {
 
             assert_eq!(ifindex(CompleteStr("ifindex 2")), Ok((EMPTY, IfIndex(2))));
             assert_matches!(ifindex(CompleteStr("ifname lo")), Ok((EMPTY, IfIndex(_))));
-            assert_eq!(ifindex(CompleteStr("on 2")), Ok((EMPTY, IfIndex(2))));
-            assert_matches!(ifindex(CompleteStr("on lo")), Ok((EMPTY, IfIndex(_))));
+            assert_eq!(ifindex(CompleteStr("dev 2")), Ok((EMPTY, IfIndex(2))));
+            assert_matches!(ifindex(CompleteStr("dev lo")), Ok((EMPTY, IfIndex(_))));
 
             assert_eq!(mark(CompleteStr("mark 7")), Ok((EMPTY, Mark(None, 7))));
             assert_eq!(
-                mark(CompleteStr("mark 0xF 7")),
+                mark(CompleteStr("fwmark 7/0xF")),
                 Ok((EMPTY, Mark(Some(0xF), 7)))
             );
         }
