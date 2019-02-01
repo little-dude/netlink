@@ -31,10 +31,10 @@ impl LinkGetRequest {
         req.header.flags = *GET_FLAGS;
         handle.request(req).and_then(move |msg| {
             let (header, payload) = msg.into_parts();
-            if let NetlinkPayload::Rtnl(RtnlMessage::NewLink(msg)) = payload {
-                Ok(msg)
-            } else {
-                Err(ErrorKind::UnexpectedMessage(NetlinkMessage::new(header, payload)).into())
+            match payload {
+                NetlinkPayload::Rtnl(RtnlMessage::NewLink(msg)) => Ok(msg),
+                NetlinkPayload::Error(err) => Err(ErrorKind::NetlinkError(err).into()),
+                _ => Err(ErrorKind::UnexpectedMessage(NetlinkMessage::new(header, payload)).into()),
             }
         })
     }
