@@ -2,6 +2,7 @@ use std::ffi::CStr;
 use std::mem;
 
 use byteorder::{ByteOrder, NativeEndian};
+use failure::ResultExt;
 use try_from::TryFrom;
 
 use crate::sock_diag::{
@@ -260,11 +261,13 @@ impl<T: AsRef<[u8]>> ParseableParametrized<Attr, Attribute> for T {
         let payload = self.as_ref();
 
         Ok(match ty {
-            UNIX_DIAG_NAME => Attr::Name(unsafe {
-                CStr::from_bytes_with_nul_unchecked(payload)
-                    .to_string_lossy()
-                    .into_owned()
-            }),
+            UNIX_DIAG_NAME => Attr::Name(
+                CStr::from_bytes_with_nul(payload)
+                    .context("invalid name")?
+                    .to_str()
+                    .context("invalid name")?
+                    .to_owned(),
+            ),
             UNIX_DIAG_VFS if payload.len() >= 8 => Attr::Vfs(unix_diag_vfs {
                 udiag_vfs_ino: NativeEndian::read_u32(&payload[0..4]),
                 udiag_vfs_dev: NativeEndian::read_u32(&payload[4..8]),
