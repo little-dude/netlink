@@ -261,27 +261,33 @@ impl<T: AsRef<[u8]>> ParseableParametrized<Attr, Attribute> for T {
         let payload = self.as_ref();
 
         Ok(match ty {
-            UNIX_DIAG_NAME => Attr::Name(
+            UNIX_DIAG_NAME if !payload.is_empty() => Attr::Name(
                 CStr::from_bytes_with_nul(payload)
                     .context("invalid name")?
                     .to_str()
                     .context("invalid name")?
                     .to_owned(),
             ),
-            UNIX_DIAG_VFS if payload.len() >= 8 => Attr::Vfs(unix_diag_vfs {
-                udiag_vfs_ino: NativeEndian::read_u32(&payload[0..4]),
-                udiag_vfs_dev: NativeEndian::read_u32(&payload[4..8]),
-            }),
-            UNIX_DIAG_PEER if payload.len() >= 4 => Attr::Peer(NativeEndian::read_u32(payload)),
+            UNIX_DIAG_VFS if payload.len() >= mem::size_of::<[u32; 2]>() => {
+                Attr::Vfs(unix_diag_vfs {
+                    udiag_vfs_ino: NativeEndian::read_u32(&payload[0..4]),
+                    udiag_vfs_dev: NativeEndian::read_u32(&payload[4..8]),
+                })
+            }
+            UNIX_DIAG_PEER if payload.len() >= mem::size_of::<u32>() => {
+                Attr::Peer(NativeEndian::read_u32(payload))
+            }
             UNIX_DIAG_ICONS => {
                 let mut icons = vec![0; payload.len() / 4];
                 NativeEndian::read_u32_into(&payload[..icons.len() * 4], icons.as_mut_slice());
                 Attr::Icons(icons)
             }
-            UNIX_DIAG_RQLEN if payload.len() >= 8 => Attr::RecvQueueLen(unix_diag_rqlen {
-                udiag_rqueue: NativeEndian::read_u32(&payload[0..4]),
-                udiag_wqueue: NativeEndian::read_u32(&payload[4..8]),
-            }),
+            UNIX_DIAG_RQLEN if payload.len() >= mem::size_of::<[u32; 2]>() => {
+                Attr::RecvQueueLen(unix_diag_rqlen {
+                    udiag_rqueue: NativeEndian::read_u32(&payload[0..4]),
+                    udiag_wqueue: NativeEndian::read_u32(&payload[4..8]),
+                })
+            }
             UNIX_DIAG_MEMINFO if payload.len() > mem::size_of::<SkMemInfo>() => {
                 Attr::MemInfo(payload.parse()?)
             }

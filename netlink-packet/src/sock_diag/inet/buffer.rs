@@ -5,6 +5,7 @@ use std::ptr::NonNull;
 use std::time::Duration;
 
 use byteorder::{ByteOrder, NativeEndian, NetworkEndian};
+use failure::ResultExt;
 use try_from::TryFrom;
 
 use crate::sock_diag::{
@@ -582,14 +583,16 @@ impl<T: AsRef<[u8]>> ParseableParametrized<Attr, Extension> for T {
             INET_DIAG_INFO if payload.len() >= mem::size_of::<TcpInfo>() => {
                 Attr::Info(Box::new(payload.parse()?))
             }
-            INET_DIAG_CONG => Attr::Conf(unsafe {
-                CStr::from_bytes_with_nul_unchecked(payload)
-                    .to_string_lossy()
-                    .into_owned()
-            }),
+            INET_DIAG_CONG if !payload.is_empty() => Attr::Conf(
+                CStr::from_bytes_with_nul(payload)
+                    .context("invalid name")?
+                    .to_str()
+                    .context("invalid name")?
+                    .to_owned(),
+            ),
             INET_DIAG_TOS if !payload.is_empty() => Attr::Tos(payload[0]),
             INET_DIAG_TCLASS if !payload.is_empty() => Attr::TClass(payload[0]),
-            INET_DIAG_SKMEMINFO if payload.len() > mem::size_of::<SkMemInfo>() => {
+            INET_DIAG_SKMEMINFO if payload.len() >= mem::size_of::<SkMemInfo>() => {
                 Attr::SkMemInfo(payload.parse()?)
             }
             INET_DIAG_SHUTDOWN if !payload.is_empty() => {
@@ -597,8 +600,10 @@ impl<T: AsRef<[u8]>> ParseableParametrized<Attr, Extension> for T {
             }
             INET_DIAG_PROTOCOL if !payload.is_empty() => Attr::Protocol(payload[0]),
             INET_DIAG_SKV6ONLY if !payload.is_empty() => Attr::SkV6Only(payload[0] != 0),
-            INET_DIAG_MARK if payload.len() >= 4 => Attr::Mark(NativeEndian::read_u32(payload)),
-            INET_DIAG_CLASS_ID if payload.len() >= 4 => {
+            INET_DIAG_MARK if payload.len() >= mem::size_of::<u32>() => {
+                Attr::Mark(NativeEndian::read_u32(payload))
+            }
+            INET_DIAG_CLASS_ID if payload.len() >= mem::size_of::<u32>() => {
                 Attr::ClassId(NativeEndian::read_u32(payload))
             }
             _ => Attr::Other(ty, payload.to_vec()),

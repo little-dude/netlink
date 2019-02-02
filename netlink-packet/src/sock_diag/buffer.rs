@@ -44,11 +44,16 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized + 'buffer> Iterator for RtaIterator<&'buff
 
         let data = self.buffer.as_ref();
 
-        if self.position >= data.len() || data.len() < RTA_HDR_LEN {
+        if self.position >= data.len() {
             return None;
         }
 
         let data = &data[self.position..];
+
+        if data.len() < RTA_HDR_LEN {
+            return None;
+        }
+
         let len = NativeEndian::read_u16(&data[RTA_LENGTH]) as usize;
         let ty = NativeEndian::read_u16(&data[RTA_TYPE]);
 
