@@ -26,13 +26,11 @@ pub enum LogicalOp {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
-    Nop,
     Auto,
     Addr(Dir, IpAddr, Option<u8>, Option<u16>),
     Port(Dir, CompOp, u16),
     IfIndex(u32),
     Mark(u32, Option<u32>),
-    Jump(u16),
     Unary(UnaryOp, Box<Expr>),
     Logical(Box<Expr>, LogicalOp, Box<Expr>),
 }
@@ -94,7 +92,6 @@ mod display {
             use Expr::*;
 
             match self {
-                Nop => "nop".fmt(f),
                 Auto => "autobound".fmt(f),
                 Addr(dir, addr, prefix_len, port) => {
                     let with_ipv6_addr_and_port = if let IpAddr::V6(_) = addr {
@@ -133,7 +130,6 @@ mod display {
                         write!(f, "fwmark {}", mark)
                     }
                 }
-                Jump(off) => write!(f, "jump {}", off),
                 Unary(op, expr) => write!(f, "{} ({})", op, expr),
                 Logical(lhs, op, rhs) => write!(f, "{} {} {}", lhs, op, rhs),
             }

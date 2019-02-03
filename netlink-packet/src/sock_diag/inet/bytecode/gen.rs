@@ -16,7 +16,7 @@ use crate::{
 impl Emitable for Expr {
     fn buffer_len(&self) -> usize {
         match self {
-            Nop | Auto => BC_OP_MIN_SIZE,
+            Auto => BC_OP_MIN_SIZE,
             IfIndex(_) => BC_OP_MIN_SIZE + mem::size_of::<u32>(),
             Mark(..) => BC_OP_MIN_SIZE + mem::size_of::<[u32; 2]>(),
             Port(..) => BC_OP_MIN_SIZE * 2,
@@ -28,8 +28,6 @@ impl Emitable for Expr {
                         IpAddr::V6(_) => IPV6_ADDR_LEN,
                     }
             }
-            Jump(_) => BC_OP_MIN_SIZE,
-
             Unary(UnaryOp::Not, node) => node.buffer_len() + BC_OP_MIN_SIZE,
             Logical(lhs, LogicalOp::Or, rhs) => {
                 lhs.buffer_len() + BC_OP_MIN_SIZE + rhs.buffer_len()
@@ -42,12 +40,8 @@ impl Emitable for Expr {
         debug_assert!(buffer.len() >= self.buffer_len());
 
         let mut buf = ByteCodeBuffer::new(buffer);
-        let mut offset = BC_OP_MIN_SIZE as u16;
 
         match self {
-            Nop => {
-                buf.set_code(INET_DIAG_BC_NOP);
-            }
             Auto => {
                 buf.set_code(INET_DIAG_BC_AUTO);
             }
@@ -95,19 +89,14 @@ impl Emitable for Expr {
                 host_cond.set_port(port.unwrap_or(u16::max_value()));
                 host_cond.set_addr(addr);
             }
-            Jump(off) => {
-                buf.set_code(INET_DIAG_BC_JMP);
-
-                offset = *off;
-            }
-
             Unary(UnaryOp::Not, node) => {
                 let buffer = buf.into_inner();
 
                 let (left, right) = buffer.split_at_mut(node.buffer_len());
 
                 node.emit(left);
-                Jump(BC_OP_MIN_SIZE as u16).emit(right);
+
+                ByteCodeBuffer::new(right).set_jump(BC_OP_MIN_SIZE as u16);
 
                 return;
             }
@@ -118,10 +107,9 @@ impl Emitable for Expr {
 
                 lhs.emit(left);
 
-                let jmp = Jump(rhs.buffer_len() as u16);
-                let (left, right) = right.split_at_mut(jmp.buffer_len());
+                let (left, right) = right.split_at_mut(BC_OP_MIN_SIZE);
 
-                jmp.emit(left);
+                ByteCodeBuffer::new(left).set_jump(rhs.buffer_len() as u16);
                 rhs.emit(right);
 
                 return;
@@ -164,7 +152,7 @@ impl Emitable for Expr {
         let len = self.buffer_len();
 
         buf.set_yes(len as u8);
-        buf.set_no(len as u16 + offset);
+        buf.set_no((len + BC_OP_MIN_SIZE) as u16);
     }
 }
 
@@ -210,12 +198,6 @@ mod tests {
 
     #[test]
     fn simple() {
-        assert_eq!(Nop.buffer_len(), BC_OP_MIN_SIZE);
-        assert_eq!(
-            unsafe { *Nop.emitted().as_raw().as_ref() },
-            op!(INET_DIAG_BC_NOP, 4, 8)
-        );
-
         assert_eq!(Auto.buffer_len(), BC_OP_MIN_SIZE);
         assert_eq!(
             unsafe { *Auto.emitted().as_raw().as_ref() },
@@ -303,18 +285,6 @@ mod tests {
         assert_eq!(host.prefix_len(), 128);
         assert_eq!(host.port(), 443);
         assert_eq!(host.addr(), Some(Ipv6Addr::LOCALHOST.into()));
-    }
-
-    #[test]
-    fn jump() {
-        let jump = Jump(8);
-        assert_eq!(jump.buffer_len(), BC_OP_MIN_SIZE);
-
-        let buf = jump.emitted();
-        assert_eq!(
-            unsafe { *buf.as_raw().as_ref() },
-            op!(INET_DIAG_BC_JMP, 4, 12)
-        );
     }
 
     #[test]

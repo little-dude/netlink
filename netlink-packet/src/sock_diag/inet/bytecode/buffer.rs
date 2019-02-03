@@ -173,6 +173,12 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> ByteCodeBuffer<T> {
         NativeEndian::write_u16(&mut data[BC_OP_NO], no);
     }
 
+    pub fn set_jump(&mut self, off: u16) {
+        self.set_code(INET_DIAG_BC_JMP);
+        self.set_yes(BC_OP_MIN_SIZE as u8);
+        self.set_no(BC_OP_MIN_SIZE as u16 + off);
+    }
+
     pub fn cond_mut(&mut self) -> &mut [u8] {
         let data = self.buf.as_mut();
         &mut data[BC_OP_COND]

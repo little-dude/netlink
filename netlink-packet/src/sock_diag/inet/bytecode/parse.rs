@@ -34,7 +34,6 @@ named!(expr<CompleteStr, Expr>, call!(logical));
 named!(expr1<CompleteStr, Expr>, alt_complete!(
         addr |
         port |
-        nop |
         auto |
         ifindex |
         mark |
@@ -185,7 +184,6 @@ named!(port_dir<CompleteStr, Option<Dir>>, alt_complete!(
     ));
 
 named!(auto<CompleteStr, Expr>, map!(alt_complete!(tag!("autobound") | tag!("auto")), |_| Auto));
-named!(nop<CompleteStr, Expr>, map!(alt_complete!(tag!("nop") | tag!("()")), |_| Nop));
 named!(ifindex<CompleteStr, Expr>, map!(
         alt_complete!(
             do_parse!(tag!("ifindex") >> multispace >> n: num >> (n)) |
@@ -236,9 +234,6 @@ mod tests {
     fn parse_cond() {
         assert_eq!(auto(CompleteStr("autobound")), Ok((EMPTY, Auto)));
         assert_eq!(auto(CompleteStr("auto")), Ok((EMPTY, Auto)));
-
-        assert_eq!(nop(CompleteStr("nop")), Ok((EMPTY, Nop)));
-        assert_eq!(nop(CompleteStr("()")), Ok((EMPTY, Nop)));
 
         assert_eq!(ifindex(CompleteStr("ifindex 2")), Ok((EMPTY, IfIndex(2))));
         assert_matches!(ifindex(CompleteStr("ifname lo")), Ok((EMPTY, IfIndex(_))));
