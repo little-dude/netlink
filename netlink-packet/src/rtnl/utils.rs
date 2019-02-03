@@ -31,7 +31,13 @@ pub fn parse_string(payload: &[u8]) -> Result<String, DecodeError> {
     if payload.is_empty() {
         return Ok(String::new());
     }
-    let s = String::from_utf8(payload[..payload.len() - 1].to_vec()).context("invalid string")?;
+    // iproute2 is a bit inconstent with null-terminated strings.
+    let slice = if payload[payload.len() - 1] == 0 {
+        &payload[..payload.len() - 1]
+    } else {
+        &payload[..payload.len()]
+    };
+    let s = String::from_utf8(slice.to_vec()).context("invalid string")?;
     Ok(s)
 }
 
