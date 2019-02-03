@@ -4,13 +4,14 @@ use std::ops::Deref;
 use std::ptr::NonNull;
 
 use byteorder::{ByteOrder, NativeEndian};
+use try_from::TryFrom;
 
 use crate::inet::raw::{
     byte_code, byte_code::*, inet_diag_bc_op, inet_diag_hostcond, inet_diag_markcond,
 };
 use crate::{
     constants::{AF_INET, AF_INET6},
-    Field, Rest,
+    DecodeError, Field, Rest,
 };
 
 const BC_OP_CODE: usize = 0;
@@ -32,6 +33,20 @@ const MARKCOND_MARK: Field = 0..4;
 const MARKCOND_MASK: Field = 4..8;
 pub const MARKCOND_SIZE: usize = MARKCOND_MASK.end;
 
+pub type ByteCode = byte_code;
+
+impl TryFrom<u8> for ByteCode {
+    type Err = DecodeError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Err> {
+        if value <= Self::max_value() {
+            Ok(unsafe { mem::transmute(value) })
+        } else {
+            Err(format!("unknown bytecode: {}", value).into())
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct ByteCodeBuffer<T> {
     buf: T,
@@ -52,6 +67,49 @@ impl<T> ByteCodeBuffer<T> {
 
     pub fn into_inner(self) -> T {
         self.buf
+    }
+}
+
+impl<'a, T: AsRef<[u8]>> IntoIterator for &'a ByteCodeBuffer<T> {
+    type Item = ByteCodeBuffer<&'a [u8]>;
+    type IntoIter = ByteCodeIter<&'a [u8]>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        ByteCodeIter::new(self.as_ref())
+    }
+}
+
+pub struct ByteCodeIter<T> {
+    buf: T,
+}
+
+impl<T> ByteCodeIter<T> {
+    pub fn new(buf: T) -> Self {
+        Self { buf }
+    }
+}
+
+impl<'a> Iterator for ByteCodeIter<&'a [u8]> {
+    type Item = ByteCodeBuffer<&'a [u8]>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.buf.len() >= BC_OP_MIN_SIZE && ByteCode::try_from(self.buf[0]).is_ok() {
+            let yes = self.buf[1];
+
+            let buf = if usize::from(yes) < self.buf.len() {
+                let (buf, rest) = self.buf.split_at(yes as usize);
+                self.buf = rest;
+                buf
+            } else {
+                let buf = self.buf;
+                self.buf = &[];
+                buf
+            };
+
+            Some(ByteCodeBuffer::new(buf))
+        } else {
+            None
+        }
     }
 }
 

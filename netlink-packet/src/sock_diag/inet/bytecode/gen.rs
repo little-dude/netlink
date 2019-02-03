@@ -92,7 +92,7 @@ impl Emitable for Expr {
                         host_cond.set_prefix_len(prefix_len.unwrap_or(IPV6_ADDR_LEN as u8 * 8))
                     }
                 }
-                host_cond.set_port(port.unwrap_or_default());
+                host_cond.set_port(port.unwrap_or(u16::max_value()));
                 host_cond.set_addr(addr);
             }
             Jump(off) => {
@@ -174,7 +174,7 @@ mod tests {
 
     use crate::sock_diag::inet::{
         bytecode::{
-            ast::{CompOp::*, Dir::*, Expr::*},
+            ast::{CompOp::*, Dir::*, Expr::*, LogicalOp::*, UnaryOp::*},
             buffer::*,
         },
         raw::{byte_code::*, inet_diag_bc_op},
@@ -303,5 +303,75 @@ mod tests {
         assert_eq!(host.prefix_len(), 128);
         assert_eq!(host.port(), 443);
         assert_eq!(host.addr(), Some(Ipv6Addr::LOCALHOST.into()));
+    }
+
+    #[test]
+    fn jump() {
+        let jump = Jump(8);
+        assert_eq!(jump.buffer_len(), BC_OP_MIN_SIZE);
+
+        let buf = jump.emitted();
+        assert_eq!(
+            unsafe { *buf.as_raw().as_ref() },
+            op!(INET_DIAG_BC_JMP, 4, 12)
+        );
+    }
+
+    #[test]
+    fn not() {
+        let not = Unary(Not, Box::new(Port(Src, Eq, 80)));
+        assert_eq!(not.buffer_len(), BC_OP_MIN_SIZE * 3);
+
+        let buf = not.emitted();
+        assert_eq!(buf.port(), 80);
+
+        assert_eq!(
+            ByteCodeIter::new(buf.as_slice())
+                .map(|buf| unsafe { buf.as_raw().as_ptr().read() })
+                .collect::<Vec<_>>(),
+            vec![op!(INET_DIAG_BC_S_EQ, 8, 12), op!(INET_DIAG_BC_JMP, 4, 8)]
+        );
+    }
+
+    #[test]
+    fn or() {
+        let or = Logical(
+            Box::new(Port(Dst, Eq, 80)),
+            Or,
+            Box::new(Port(Dst, Eq, 443)),
+        );
+        assert_eq!(or.buffer_len(), BC_OP_MIN_SIZE * 5);
+
+        let buf = or.emitted();
+
+        assert_eq!(
+            ByteCodeIter::new(buf.as_slice())
+                .map(|buf| unsafe { buf.as_raw().as_ptr().read() })
+                .collect::<Vec<_>>(),
+            vec![
+                op!(INET_DIAG_BC_D_EQ, 8, 12),
+                op!(INET_DIAG_BC_JMP, 4, 12),
+                op!(INET_DIAG_BC_D_EQ, 8, 12)
+            ]
+        );
+    }
+
+    #[test]
+    fn and() {
+        let and = Logical(
+            Box::new(Port(Dst, Eq, 80)),
+            And,
+            Box::new(Port(Dst, Eq, 443)),
+        );
+        assert_eq!(and.buffer_len(), BC_OP_MIN_SIZE * 4);
+
+        let buf = and.emitted();
+
+        assert_eq!(
+            ByteCodeIter::new(buf.as_slice())
+                .map(|buf| unsafe { buf.as_raw().as_ptr().read() })
+                .collect::<Vec<_>>(),
+            vec![op!(INET_DIAG_BC_D_EQ, 8, 20), op!(INET_DIAG_BC_D_EQ, 8, 12)]
+        );
     }
 }
