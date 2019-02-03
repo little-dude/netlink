@@ -10,7 +10,6 @@ use try_from::TryFrom;
 
 use crate::sock_diag::{
     buffer::{array_of, RtaIterator, SDIAG_FAMILY, SDIAG_PROTOCOL},
-    inet::raw::{INET_DIAG_MAX, TCP_STATE_MAX},
     Extension,
     Extension::*,
     MemInfo, Shutdown, SkMemInfo, TcpInfo, TcpState,
@@ -51,7 +50,7 @@ impl TryFrom<u16> for Extension {
     type Err = DecodeError;
 
     fn try_from(value: u16) -> Result<Self, Self::Err> {
-        if value <= INET_DIAG_MAX {
+        if value <= Self::max_value() {
             Ok(unsafe { mem::transmute(value) })
         } else {
             Err(format!("unknown extension: {}", value).into())
@@ -96,7 +95,7 @@ impl TryFrom<u8> for TcpState {
     type Err = DecodeError;
 
     fn try_from(value: u8) -> Result<Self, Self::Err> {
-        if 0 < value && value <= TCP_STATE_MAX {
+        if Self::min_value() <= value && value <= Self::max_value() {
             Ok(unsafe { mem::transmute(value) })
         } else {
             Err(format!("contains unknown state: {}", value).into())

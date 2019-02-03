@@ -8,7 +8,7 @@ use try_from::TryFrom;
 use crate::sock_diag::{
     buffer::{array_of, RtaIterator, SDIAG_FAMILY, SDIAG_PROTOCOL},
     inet::INET_DIAG_NOCOOKIE,
-    unix::raw::{show::*, unix_diag_rqlen, unix_diag_vfs, UNIX_DIAG_MAX, UNIX_STATE_MAX},
+    unix::raw::{show::*, unix_diag_rqlen, unix_diag_vfs},
     Attribute, Shutdown, SkMemInfo,
     TcpState::*,
     UnixState,
@@ -33,7 +33,7 @@ impl TryFrom<u8> for UnixState {
     type Err = DecodeError;
 
     fn try_from(value: u8) -> Result<Self, Self::Err> {
-        if value <= UNIX_STATE_MAX {
+        if value <= Self::max_value() {
             Ok(unsafe { mem::transmute(value) })
         } else {
             Err(format!("unknown UNIX state: {}", value).into())
@@ -77,7 +77,7 @@ impl TryFrom<u16> for Attribute {
     type Err = DecodeError;
 
     fn try_from(value: u16) -> Result<Self, Self::Err> {
-        if value <= UNIX_DIAG_MAX {
+        if value <= Self::max_value() {
             Ok(unsafe { mem::transmute(value) })
         } else {
             Err(format!("unknown UNIX attribute: {}", value).into())

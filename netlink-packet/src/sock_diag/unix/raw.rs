@@ -50,7 +50,11 @@ pub enum unix_state {
     LISTEN = TCP_LISTEN as u8,
 }
 
-pub const UNIX_STATE_MAX: u8 = unix_state::LISTEN as u8;
+impl unix_state {
+    pub fn max_value() -> u8 {
+        unix_state::LISTEN as u8
+    }
+}
 
 #[repr(u16)]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -62,11 +66,13 @@ pub enum attribute {
     UNIX_DIAG_RQLEN,
     UNIX_DIAG_MEMINFO,
     UNIX_DIAG_SHUTDOWN,
-
-    __UNIX_DIAG_MAX,
 }
 
-pub const UNIX_DIAG_MAX: u16 = attribute::__UNIX_DIAG_MAX as u16 - 1;
+impl attribute {
+    pub fn max_value() -> u16 {
+        attribute::UNIX_DIAG_SHUTDOWN as u16
+    }
+}
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, Clone)]

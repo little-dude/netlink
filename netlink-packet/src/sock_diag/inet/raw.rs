@@ -40,7 +40,14 @@ pub enum tcp_state {
     TCP_CLOSING,
 }
 
-pub const TCP_STATE_MAX: u8 = tcp_state::TCP_CLOSING as u8;
+impl tcp_state {
+    pub fn min_value() -> u8 {
+        tcp_state::TCP_ESTABLISHED as u8
+    }
+    pub fn max_value() -> u8 {
+        tcp_state::TCP_CLOSING as u8
+    }
+}
 
 pub const TCPF_ALL: u32 = 0xFFF;
 
@@ -176,7 +183,12 @@ pub enum inet_diag_attr {
     INET_DIAG_REQ_NONE,
     INET_DIAG_REQ_BYTECODE,
 }
-pub const INET_DIAG_REQ_MAX: u16 = inet_diag_attr::INET_DIAG_REQ_BYTECODE as u16;
+
+impl inet_diag_attr {
+    pub fn max_value() -> u16 {
+        inet_diag_attr::INET_DIAG_REQ_BYTECODE as u16
+    }
+}
 
 /// Bytecode is sequence of 4 byte commands followed by variable arguments.
 /// All the commands identified by "code" are conditional jumps forward:
@@ -205,6 +217,12 @@ pub enum byte_code {
     INET_DIAG_BC_MARK_COND,
     INET_DIAG_BC_S_EQ,
     INET_DIAG_BC_D_EQ,
+}
+
+impl byte_code {
+    pub fn max_value() -> u8 {
+        byte_code::INET_DIAG_BC_D_EQ as u8
+    }
 }
 
 #[repr(C)]
@@ -265,11 +283,13 @@ pub enum extension {
     INET_DIAG_BBRINFO,
     INET_DIAG_CLASS_ID,
     INET_DIAG_MD5SIG,
-
-    __INET_DIAG_MAX,
 }
 
-pub const INET_DIAG_MAX: u16 = extension::INET_DIAG_MD5SIG as u16 - 1;
+impl extension {
+    pub fn max_value() -> u16 {
+        extension::INET_DIAG_MD5SIG as u16
+    }
+}
 
 /// INET_DIAG_MEM
 #[repr(C)]
