@@ -10,7 +10,7 @@ use crate::{
 use crate::{RtnlBuffer, RtnlMessage};
 
 #[cfg(feature = "audit")]
-use crate::AuditMessage;
+use crate::{AuditBuffer, AuditMessage};
 
 /// Represent a netlink message.
 ///
@@ -239,9 +239,9 @@ impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<NetlinkMessage> for NetlinkBuf
             ),
 
             #[cfg(feature = "audit")]
-            message_type => {
-                NetlinkPayload::Audit(AuditMessage::parse(message_type, &self.payload())?)
-            }
+            message_type => NetlinkPayload::Audit(
+                AuditBuffer::new_checked(self.payload())?.parse_with_param(message_type)?,
+            ),
 
             #[cfg(not(any(feature = "rtnetlink", feature = "audit")))]
             _ => __Default,

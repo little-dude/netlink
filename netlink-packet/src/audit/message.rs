@@ -1,9 +1,5 @@
-use failure::ResultExt;
-
 use crate::constants::*;
-use crate::{
-    DecodeError, Emitable, Parseable, RuleBuffer, RuleMessage, StatusMessage, StatusMessageBuffer,
-};
+use crate::{Emitable, RuleMessage, StatusMessage};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum AuditMessage {
@@ -86,50 +82,6 @@ impl AuditMessage {
             DelRule(_) => AUDIT_DEL_RULE,
             Event((message_type, _)) => *message_type,
         }
-    }
-
-    pub(crate) fn parse(message_type: u16, buffer: &[u8]) -> Result<Self, DecodeError> {
-        use self::AuditMessage::*;
-
-        let message = match message_type {
-            AUDIT_GET if buffer.is_empty() => GetStatus(None),
-            AUDIT_GET => GetStatus(Some(
-                StatusMessageBuffer::new(buffer)
-                    .parse()
-                    .context("failed to parse AUDIT_GET message")?,
-            )),
-            AUDIT_SET => SetStatus(
-                StatusMessageBuffer::new(buffer)
-                    .parse()
-                    .context("failed to parse AUDIT_SET message")?,
-            ),
-            AUDIT_ADD_RULE => AddRule(
-                RuleBuffer::new_checked(&buffer)
-                    .context("failed to parse AUDIT_ADD_RULE message")?
-                    .parse()
-                    .context("failed to parse AUDIT_ADD_RULE message")?,
-            ),
-            AUDIT_DEL_RULE => DelRule(
-                RuleBuffer::new_checked(&buffer)
-                    .context("failed to parse AUDIT_DEL_RULE message")?
-                    .parse()
-                    .context("failed to parse AUDIT_DEL_RULE message")?,
-            ),
-            AUDIT_LIST_RULES if buffer.is_empty() => ListRules(None),
-            AUDIT_LIST_RULES => ListRules(Some(
-                RuleBuffer::new_checked(&buffer)
-                    .context("failed to parse AUDIT_LIST_RULES message")?
-                    .parse()
-                    .context("failed to parse AUDIT_LIST_RULES message")?,
-            )),
-            i if i >= AUDIT_EVENT_MESSAGE_MIN && i <= AUDIT_EVENT_MESSAGE_MAX => {
-                let data = String::from_utf8(buffer.to_vec())
-                    .context("failed to parse audit event data as a valid string")?;
-                Event((i, data))
-            }
-            _ => return Err(format!("unknown message type {}", message_type).into()),
-        };
-        Ok(message)
     }
 }
 
