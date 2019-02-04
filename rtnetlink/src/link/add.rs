@@ -115,6 +115,14 @@ impl LinkAddRequest {
             .up()
     }
 
+    /// Create a new bridge.
+    /// This is equivalent to `ip link add link NAME type bridge`.
+    pub fn bridge(self, name: String) -> Self {
+        self.name(name.clone())
+            .link_info(LinkInfoKind::Bridge, None)
+            .append_nla(LinkNla::IfName(name))
+    }
+
     fn up(mut self) -> Self {
         self.message.header.flags = LinkFlags::from(IFF_UP);
         self.message.header.change_mask = LinkFlags::from(IFF_UP);
