@@ -126,12 +126,15 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<Vec<LinkInfo>> for NlaBuffer<&'
                             LinkInfoKind::Tun => LinkInfoData::Tun(payload.to_vec()),
                             LinkInfoKind::Nlmon => LinkInfoData::Nlmon(payload.to_vec()),
                             LinkInfoKind::Veth => {
-                                let buffer = LinkBuffer::new_checked(&payload)
-                                    .context("failed to parse veth link info")?;
-                                let link_message =
-                                    <LinkBuffer<_> as Parseable<LinkMessage>>::parse(&buffer)
-                                        .context("failed to parse veth link info")?;
-                                LinkInfoData::Veth(link_message)
+                                let nla_buf = NlaBuffer::new_checked(&payload).context(
+                                    "failed to parse IFLA_INFO_DATA (IFLA_INFO_KIND is 'veth')",
+                                )?;
+                                let veth_info =
+                                    <NlaBuffer<_> as Parseable<VethInfoNla>>::parse(&nla_buf)
+                                        .context(
+                                        "failed to parse IFLA_INFO_DATA (IFLA_INFO_KIND is 'veth')",
+                                    )?;
+                                LinkInfoData::Veth(veth_info)
                             }
                             LinkInfoKind::Vxlan => LinkInfoData::Vxlan(payload.to_vec()),
                             LinkInfoKind::Bond => LinkInfoData::Bond(payload.to_vec()),
@@ -170,7 +173,7 @@ pub enum LinkInfoData {
     Vlan(Vec<LinkInfoVlan>),
     Dummy(Vec<u8>),
     Ifb(Vec<u8>),
-    Veth(LinkMessage),
+    Veth(VethInfoNla),
     Vxlan(Vec<u8>),
     Bond(Vec<u8>),
     IpVlan(Vec<u8>),
@@ -857,9 +860,67 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkInfoBridge> for NlaBuffer<&
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum VethInfoNla {
+    Unspec(Vec<u8>),
+    Peer(LinkMessage),
+    Other(DefaultNla),
+}
+
+impl Nla for VethInfoNla {
+    fn value_len(&self) -> usize {
+        use self::VethInfoNla::*;
+        match *self {
+            Unspec(ref bytes) => bytes.len(),
+            Peer(ref message) => message.buffer_len(),
+            Other(ref attr) => attr.value_len(),
+        }
+    }
+
+    fn emit_value(&self, buffer: &mut [u8]) {
+        use self::VethInfoNla::*;
+        match *self {
+            Unspec(ref bytes) => buffer.copy_from_slice(bytes.as_slice()),
+            Peer(ref message) => message.emit(buffer),
+            Other(ref attr) => attr.emit_value(buffer),
+        }
+    }
+
+    fn kind(&self) -> u16 {
+        use self::VethInfoNla::*;
+        match *self {
+            Unspec(_) => VETH_INFO_UNSPEC,
+            Peer(_) => VETH_INFO_PEER,
+            Other(ref attr) => attr.kind(),
+        }
+    }
+}
+
+impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<VethInfoNla> for NlaBuffer<&'buffer T> {
+    fn parse(&self) -> Result<VethInfoNla, DecodeError> {
+        use self::VethInfoNla::*;
+        let payload = self.value();
+        Ok(match self.kind() {
+            VETH_INFO_UNSPEC => Unspec(payload.to_vec()),
+            VETH_INFO_PEER => {
+                let buffer =
+                    LinkBuffer::new_checked(&payload).context("failed to parse veth link info")?;
+                let link_message = <LinkBuffer<_> as Parseable<LinkMessage>>::parse(&buffer)
+                    .context("failed to parse veth link info")?;
+                Peer(link_message)
+            }
+            kind => Other(
+                <Self as Parseable<DefaultNla>>::parse(self)
+                    .context(format!("unknown NLA type {}", kind))?,
+            ),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{LinkFlags, LinkHeader, LinkLayerType, LinkMessage, LinkNla};
 
     #[rustfmt::skip]
     static BRIDGE: [u8; 404] = [
@@ -1122,6 +1183,56 @@ mod tests {
         for nla in nlas.map(|nla| nla.unwrap()) {
             <NlaBuffer<_> as Parseable<LinkInfoBridge>>::parse(&nla).unwrap();
         }
+    }
+
+    #[rustfmt::skip]
+    #[test]
+    fn parse_veth_info() {
+        let data = vec![
+            0x08, 0x00, // length = 8
+            0x01, 0x00, // type = 1 = IFLA_INFO_KIND
+            0x76, 0x65, 0x74, 0x68, // VETH
+
+            0x30, 0x00, // length = 48
+            0x02, 0x00, // type = IFLA_INFO_DATA
+
+                0x2c, 0x00, // length = 44
+                0x01, 0x00, // type = VETH_INFO_PEER
+                // The data a NEWLINK message
+                0x00, // interface family
+                0x00, // padding
+                0x00, 0x00, // link layer type
+                0x00, 0x00, 0x00, 0x00, // link index
+                0x00, 0x00, 0x00, 0x00, // flags
+                0x00, 0x00, 0x00, 0x00, // flags change mask
+                    // NLA
+                    0x10, 0x00, // length = 16
+                    0x03, 0x00, // type = IFLA_IFNAME
+                    0x76, 0x65, 0x74, 0x68, 0x63, 0x30, 0x65, 0x36, 0x30, 0x64, 0x36, 0x00,
+                    // NLA
+                    0x08, 0x00, // length = 8
+                    0x0d, 0x00, // type = IFLA_TXQLEN
+                    0x00, 0x00, 0x00, 0x00,
+        ];
+        let nla = NlaBuffer::new_checked(&data[..]).unwrap();
+        let parsed = <NlaBuffer<_> as Parseable<Vec<LinkInfo>>>::parse(&nla).unwrap();
+        let expected = vec![
+            LinkInfo::Kind(LinkInfoKind::Veth),
+            LinkInfo::Data(LinkInfoData::Veth(VethInfoNla::Peer(LinkMessage {
+                header: LinkHeader {
+                    interface_family: 0,
+                    index: 0,
+                    link_layer_type: LinkLayerType::Netrom,
+                    flags: LinkFlags(0),
+                    change_mask: LinkFlags(0),
+                },
+                nlas: vec![
+                    LinkNla::IfName("vethc0e60d6".to_string()),
+                    LinkNla::TxQueueLen(0),
+                ],
+            }))),
+        ];
+        assert_eq!(expected, parsed);
     }
 
     #[test]

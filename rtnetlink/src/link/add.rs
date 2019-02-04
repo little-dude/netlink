@@ -3,7 +3,7 @@ use futures::{Future, Stream};
 use crate::packet::constants::{IFF_UP, NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST};
 use crate::packet::{
     LinkFlags, LinkInfo, LinkInfoData, LinkInfoKind, LinkInfoVlan, LinkMessage, LinkNla,
-    NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage,
+    NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage, VethInfoNla
 };
 
 use crate::{Error, ErrorKind, Handle};
@@ -96,9 +96,9 @@ impl LinkAddRequest {
     pub fn veth(self, name: String, peer_name: String) -> Self {
         let mut peer = LinkMessage::new();
         peer.nlas.push(LinkNla::IfName(peer_name));
-
+        let link_info_data = LinkInfoData::Veth(VethInfoNla::Peer(peer));
         self.name(name)
-            .link_info(LinkInfoKind::Veth, Some(LinkInfoData::Veth(peer)))
+            .link_info(LinkInfoKind::Veth, Some(link_info_data))
             .up()
     }
 

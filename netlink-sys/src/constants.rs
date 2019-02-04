@@ -267,6 +267,9 @@ pub const IFLA_INET6_ICMP6STATS: u16 = 6;
 pub const IFLA_INET6_TOKEN: u16 = 7;
 pub const IFLA_INET6_ADDR_GEN_MODE: u16 = 8;
 
+pub const VETH_INFO_UNSPEC: u16 = 0;
+pub const VETH_INFO_PEER: u16 = 1;
+
 pub const IFA_UNSPEC: u16 = 0;
 pub const IFA_ADDRESS: u16 = 1;
 pub const IFA_LOCAL: u16 = 2;
