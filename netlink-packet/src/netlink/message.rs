@@ -332,6 +332,7 @@ mod test {
     //
     // This message was created using `ip link add qemu-br1 type bridge`.
     #[rustfmt::skip]
+    #[cfg(feature = "rtnetlink")]
     #[test]
     fn test_non_null_terminated_string() {
         use crate::*;
