@@ -46,6 +46,13 @@ impl LinkSetRequest {
         &mut self.message
     }
 
+    /// Attach the link to a bridge (its _master_). This is equivalent to `ip link set LINK master
+    /// BRIDGE`. To succeed, both the bridge and the link that is being attached must be UP.
+    pub fn master(mut self, master_index: u32) -> Self {
+        self.message.nlas.push(LinkNla::Master(master_index));
+        self
+    }
+
     /// Set the link with the given index up (equivalent to `ip link set dev DEV up`)
     pub fn up(mut self) -> Self {
         self.message.header.flags = LinkFlags::from(IFF_UP);
