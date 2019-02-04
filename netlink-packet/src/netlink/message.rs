@@ -3,11 +3,11 @@ use failure::ResultExt;
 
 use crate::{
     AckMessage, DecodeError, Emitable, ErrorBuffer, ErrorMessage, NetlinkBuffer, NetlinkHeader,
-    Parseable,
+    Parseable, ParseableParametrized,
 };
 
 #[cfg(feature = "rtnetlink")]
-use crate::RtnlMessage;
+use crate::{RtnlBuffer, RtnlMessage};
 
 #[cfg(feature = "audit")]
 use crate::AuditMessage;
@@ -234,9 +234,9 @@ impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<NetlinkMessage> for NetlinkBuf
             NLMSG_DONE => Done,
 
             #[cfg(feature = "rtnetlink")]
-            message_type => {
-                NetlinkPayload::Rtnl(RtnlMessage::parse(message_type, &self.payload())?)
-            }
+            message_type => NetlinkPayload::Rtnl(
+                RtnlBuffer::new_checked(self.payload())?.parse_with_param(message_type)?,
+            ),
 
             #[cfg(feature = "audit")]
             message_type => {
@@ -324,71 +324,5 @@ mod test {
             0x00, 0x00, // invalid (error message)
         ];
         let _ = <NetlinkBuffer<_> as Parseable<NetlinkMessage>>::parse(&NetlinkBuffer::new(&data));
-    }
-
-    // This test was added because one of the NLA's payload is a string that is not null
-    // terminated. I'm not sure if we missed something in the IFLA_LINK_INFO spec, or if
-    // linux/iproute2 is being a bit inconsistent here.
-    //
-    // This message was created using `ip link add qemu-br1 type bridge`.
-    #[rustfmt::skip]
-    #[cfg(feature = "rtnetlink")]
-    #[test]
-    fn test_non_null_terminated_string() {
-        use crate::*;
-        let data = vec![
-            0x40, 0x00, 0x00, 0x00, // length = 64
-            0x10, 0x00, // message type = 16 = (create network interface)
-            0x05, 0x06, // flags
-            0x81, 0x74, 0x57, 0x5c, // seq id
-            0x00, 0x00, 0x00, 0x00, // pid
-            0x00, // interface family
-            0x00, // padding
-            0x00, 0x00, // device type (NET/ROM pseudo)
-            0x00, 0x00, 0x00, 0x00, // interface index
-            0x00, 0x00, 0x00, 0x00, // device flags
-            0x00, 0x00, 0x00, 0x00, // device change flags
-            // NLA: device name
-            0x0d, 0x00, // length = 13
-            0x03, 0x00, // type = 3
-            // value=qemu-br1 NOTE THAT THIS IS NULL-TERMINATED
-            0x71, 0x65, 0x6d, 0x75, 0x2d, 0x62, 0x72, 0x31, 0x00,
-            0x00, 0x00, 0x00, // padding
-            // NLA: Link info
-            0x10, 0x00, // length = 16
-            0x12, 0x00, // type = link info
-                // nested NLA:
-                0x0a, 0x00, // length = 10
-                0x01, 0x00, // type = 1 = IFLA_INFO_KIND
-                // "bridge" NOTE THAT THIS IS NOT NULL-TERMINATED!
-                0x62, 0x72, 0x69, 0x64, 0x67, 0x65,
-                0x00, 0x00, // padding
-        ];
-        let expected = NetlinkMessage {
-            header: NetlinkHeader {
-                length: 64,
-                message_type: 16,
-                flags: NetlinkFlags::from(0x0605),
-                sequence_number: 1549235329,
-                port_number: 0,
-            },
-            payload: NetlinkPayload::Rtnl(RtnlMessage::NewLink(LinkMessage {
-                header: LinkHeader {
-                    interface_family: 0,
-                    index: 0,
-                    link_layer_type: LinkLayerType::Netrom,
-                    flags: LinkFlags(0),
-                    change_mask: LinkFlags(0),
-                },
-                nlas: vec![
-                    LinkNla::IfName(String::from("qemu-br1")),
-                    LinkNla::LinkInfo(vec![LinkInfo::Kind(LinkInfoKind::Bridge)]),
-                ],
-            })),
-        };
-        let actual =
-            <NetlinkBuffer<_> as Parseable<NetlinkMessage>>::parse(&NetlinkBuffer::new(&data))
-                .unwrap();
-        assert_eq!(expected, actual);
     }
 }

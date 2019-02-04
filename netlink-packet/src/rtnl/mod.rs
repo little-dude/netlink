@@ -6,6 +6,9 @@ mod nsid;
 mod route;
 mod tc;
 
+#[cfg(test)]
+mod test;
+
 pub use self::address::*;
 pub use self::link::*;
 pub use self::neighbour::*;
@@ -13,6 +16,9 @@ pub use self::neighbour_table::*;
 pub use self::nsid::*;
 pub use self::route::*;
 pub use self::tc::*;
+
+mod buffer;
+pub use self::buffer::*;
 
 mod message;
 pub use self::message::*;
