@@ -330,6 +330,7 @@ pub const NETNSA_NONE: u16 = 0;
 pub const NETNSA_NSID: u16 = 1;
 pub const NETNSA_PID: u16 = 2;
 pub const NETNSA_FD: u16 = 3;
+pub const NETNSA_NSID_NOT_ASSIGNED: i32 = -1;
 
 pub const ARPHRD_NETROM: u16 = 0;
 pub const ARPHRD_ETHER: u16 = 1;
