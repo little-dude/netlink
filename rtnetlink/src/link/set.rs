@@ -83,4 +83,17 @@ impl LinkSetRequest {
         self.message.nlas.push(LinkNla::Address(address));
         self
     }
+
+    /// Move this network device into the network namespace of the process with the given `pid`.
+    pub fn setns_by_pid(mut self, pid: u32) -> Self {
+        self.message.nlas.push(LinkNla::NetNsPid(pid));
+        self
+    }
+
+    /// Move this network device into the network namespace corresponding to the given file
+    /// descriptor.
+    pub fn setns_by_fd(mut self, fd: u32) -> Self {
+        self.message.nlas.push(LinkNla::NetNsFd(fd));
+        self
+    }
 }

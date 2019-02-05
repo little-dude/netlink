@@ -82,7 +82,7 @@ pub enum LinkNla {
     NetNsPid(u32),
     NumVf(u32),
     Group(u32),
-    NetnsFd(u32),
+    NetNsFd(u32),
     ExtMask(u32),
     Promiscuity(u32),
     NumTxQueues(u32),
@@ -157,7 +157,7 @@ impl Nla for LinkNla {
                 | NetNsPid(_)
                 | NumVf(_)
                 | Group(_)
-                | NetnsFd(_)
+                | NetNsFd(_)
                 | ExtMask(_)
                 | Promiscuity(_)
                 | NumTxQueues(_)
@@ -235,7 +235,7 @@ impl Nla for LinkNla {
                 | NetNsPid(ref value)
                 | NumVf(ref value)
                 | Group(ref value)
-                | NetnsFd(ref value)
+                | NetNsFd(ref value)
                 | ExtMask(ref value)
                 | Promiscuity(ref value)
                 | NumTxQueues(ref value)
@@ -303,7 +303,7 @@ impl Nla for LinkNla {
             NetNsPid(_) => IFLA_NET_NS_PID,
             NumVf(_) => IFLA_NUM_VF,
             Group(_) => IFLA_GROUP,
-            NetnsFd(_) => IFLA_NET_NS_FD,
+            NetNsFd(_) => IFLA_NET_NS_FD,
             ExtMask(_) => IFLA_EXT_MASK,
             Promiscuity(_) => IFLA_PROMISCUITY,
             NumTxQueues(_) => IFLA_NUM_TX_QUEUES,
@@ -380,7 +380,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> ParseableParametrized<LinkNla, u16>
             }
             IFLA_NUM_VF => NumVf(parse_u32(payload).context("invalid IFLA_NUM_VF value")?),
             IFLA_GROUP => Group(parse_u32(payload).context("invalid IFLA_GROUP value")?),
-            IFLA_NET_NS_FD => NetnsFd(parse_u32(payload).context("invalid IFLA_NET_NS_FD value")?),
+            IFLA_NET_NS_FD => NetNsFd(parse_u32(payload).context("invalid IFLA_NET_NS_FD value")?),
             IFLA_EXT_MASK => ExtMask(parse_u32(payload).context("invalid IFLA_EXT_MASK value")?),
             IFLA_PROMISCUITY => {
                 Promiscuity(parse_u32(payload).context("invalid IFLA_PROMISCUITY value")?)
