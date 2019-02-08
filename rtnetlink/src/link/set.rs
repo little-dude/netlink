@@ -1,3 +1,5 @@
+use std::os::unix::io::RawFd;
+
 use futures::{Future, Stream};
 
 use crate::packet::constants::{IFF_UP, NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST};
@@ -92,7 +94,7 @@ impl LinkSetRequest {
 
     /// Move this network device into the network namespace corresponding to the given file
     /// descriptor.
-    pub fn setns_by_fd(mut self, fd: u32) -> Self {
+    pub fn setns_by_fd(mut self, fd: RawFd) -> Self {
         self.message.nlas.push(LinkNla::NetNsFd(fd));
         self
     }

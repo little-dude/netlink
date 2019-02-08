@@ -23,6 +23,7 @@ pub use self::stats64::*;
 mod tests;
 
 use std::mem::size_of;
+use std::os::unix::io::RawFd;
 
 use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
@@ -82,7 +83,7 @@ pub enum LinkNla {
     NetNsPid(u32),
     NumVf(u32),
     Group(u32),
-    NetNsFd(u32),
+    NetNsFd(RawFd),
     ExtMask(u32),
     Promiscuity(u32),
     NumTxQueues(u32),
@@ -235,7 +236,6 @@ impl Nla for LinkNla {
                 | NetNsPid(ref value)
                 | NumVf(ref value)
                 | Group(ref value)
-                | NetNsFd(ref value)
                 | ExtMask(ref value)
                 | Promiscuity(ref value)
                 | NumTxQueues(ref value)
@@ -245,7 +245,9 @@ impl Nla for LinkNla {
                 | GsoMaxSize(ref value)
                 => NativeEndian::write_u32(buffer, *value),
 
-            LinkNetnsId(ref value) => NativeEndian::write_i32(buffer, *value),
+            LinkNetnsId(ref value)
+                | NetNsFd(ref value)
+                => NativeEndian::write_i32(buffer, *value),
 
             OperState(state) => buffer[0] = state.into(),
             Map(ref map) => map.emit(buffer),
@@ -380,7 +382,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> ParseableParametrized<LinkNla, u16>
             }
             IFLA_NUM_VF => NumVf(parse_u32(payload).context("invalid IFLA_NUM_VF value")?),
             IFLA_GROUP => Group(parse_u32(payload).context("invalid IFLA_GROUP value")?),
-            IFLA_NET_NS_FD => NetNsFd(parse_u32(payload).context("invalid IFLA_NET_NS_FD value")?),
+            IFLA_NET_NS_FD => NetNsFd(parse_i32(payload).context("invalid IFLA_NET_NS_FD value")?),
             IFLA_EXT_MASK => ExtMask(parse_u32(payload).context("invalid IFLA_EXT_MASK value")?),
             IFLA_PROMISCUITY => {
                 Promiscuity(parse_u32(payload).context("invalid IFLA_PROMISCUITY value")?)
