@@ -3,7 +3,7 @@ use futures::{Future, Stream};
 use crate::packet::constants::{IFF_UP, NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST};
 use crate::packet::{
     LinkFlags, LinkInfo, LinkInfoData, LinkInfoKind, LinkInfoVlan, LinkMessage, LinkNla,
-    NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage, VethInfoNla
+    NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage, VethInfoNla,
 };
 
 use crate::{Error, ErrorKind, Handle};
@@ -92,14 +92,21 @@ impl LinkAddRequest {
     }
 
     /// Create a veth pair.
-    /// kThis is equivalent to `ip link add NAME1 type veth peer name NAME2`.
+    /// This is equivalent to `ip link add NAME1 type veth peer name NAME2`.
     pub fn veth(self, name: String, peer_name: String) -> Self {
+        // NOTE: `name` is the name of the peer in the netlink message (ie the link created via the
+        // VethInfoNla::Peer attribute, and `peer_name` is the name in the main netlink message.
+        // This is a bit weird, but it's all hidden from the user.
+
         let mut peer = LinkMessage::new();
-        peer.nlas.push(LinkNla::IfName(peer_name));
+        // FIXME: we get a -107 (ENOTCONN) (???) when trying to set `name` up.
+        // peer.header.flags = LinkFlags::from(IFF_UP);
+        // peer.header.change_mask = LinkFlags::from(IFF_UP);
+        peer.nlas.push(LinkNla::IfName(name));
         let link_info_data = LinkInfoData::Veth(VethInfoNla::Peer(peer));
-        self.name(name)
+        self.name(peer_name)
+            .up() // iproute2 does not set this one up
             .link_info(LinkInfoKind::Veth, Some(link_info_data))
-            .up()
     }
 
     /// Create VLAN on a link.
