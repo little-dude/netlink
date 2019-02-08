@@ -32,5 +32,4 @@ path = "../netlink-proto"
 [dev-dependencies]
 env_logger = "0.6.0"
 ipnetwork = "0.13.1"
-tokio-core = "0.1.17"
 tokio = "0.1.13"
