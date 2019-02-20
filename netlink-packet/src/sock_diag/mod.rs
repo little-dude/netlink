@@ -29,12 +29,12 @@ mod message;
 
 pub use self::inet::{
     inet, inet6, Attr as InetDiagAttr, Extension, Extensions, MemInfo, Request as InetDiagRequest,
-    Response as InetDiagResponse, TcpInfo, TcpState, TcpStates, Timer,
+    Response as InetDiagResponse, SctpState, TcpInfo, TcpState, TcpStates, Timer,
 };
 pub use self::sock::SkMemInfo;
 pub use self::unix::{
     unix, Attr as UnixDiagAttr, Attribute, Request as UnixDiagRequest,
-    Response as UnixDiagResponse, Show, UnixState, UnixStates,
+    Response as UnixDiagResponse, RqLen as UnixRqLen, Show, UnixState, UnixStates, Vfs as UnixVfs,
 };
 
 pub use self::buffer::Shutdown;

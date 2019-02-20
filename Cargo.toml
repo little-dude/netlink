@@ -6,4 +6,5 @@ members = [
     "netlink-proto",
     "rtnetlink",
     "audit",
+    "sock_diag",
 ]

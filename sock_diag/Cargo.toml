@@ -1,0 +1,51 @@
+[package]
+name = "sock_diag"
+version = "0.1.0"
+authors = ["Corentin Henry <corentinhenry@gmail.com>", "Flier Lu <flier.lu@gmail.com>"]
+edition = "2018"
+
+homepage = "https://github.com/little-dude/netlink"
+keywords = ["netlink", "ip", "linux"]
+license = "MIT"
+readme = "../README.md"
+repository = "https://github.com/little-dude/netlink"
+description = "linux sock_diag via netlink"
+
+[dependencies]
+futures = "0.1.25"
+lazy_static = "1.2.0"
+failure = "0.1.3"
+
+[dependencies.netlink-sys]
+version = "0.1"
+default-features = false
+features = ["tokio_support"]
+path = "../netlink-sys"
+
+[dependencies.netlink-packet]
+version = "0.1"
+default-features = false
+features = ["sock_diag"]
+path = "../netlink-packet"
+
+[dependencies.netlink-proto]
+version = "0.1"
+default-features = false
+features = ["sock_diag"]
+path = "../netlink-proto"
+
+[dev-dependencies]
+pretty_env_logger = "0.3"
+log = "0.4"
+lazy_static = "1.2"
+try_from = "0.3"
+structopt = "0.2"
+term_size = "0.3"
+libc = "0.2"
+bitflags = "1.0"
+tokio = "0.1"
+tokio-core = "0.1"
+pnet_datalink = "0.21"
+
+[[example]]
+name = "ss"

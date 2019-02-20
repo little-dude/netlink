@@ -9,7 +9,7 @@ pub const INET_DIAG_GETSOCK_MAX: isize = 24;
 ///
 /// /include/net/tcp_states.h
 #[repr(u8)]
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum tcp_state {
     /// (both server and client) represents an open connection, data received can be delivered to the user.
     /// The normal state for the data transfer phase of the connection.
@@ -49,7 +49,27 @@ impl tcp_state {
     }
 }
 
-pub const TCPF_ALL: u32 = 0xFFF;
+#[repr(u8)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum sctp_state {
+    SCTP_STATE_CLOSED,
+    SCTP_STATE_COOKIE_WAIT,
+    SCTP_STATE_COOKIE_ECHOED,
+    SCTP_STATE_ESTABLISHED,
+    SCTP_STATE_SHUTDOWN_PENDING,
+    SCTP_STATE_SHUTDOWN_SENT,
+    SCTP_STATE_SHUTDOWN_RECEIVED,
+    SCTP_STATE_SHUTDOWN_ACK_SENT,
+}
+
+impl sctp_state {
+    pub fn min_value() -> u8 {
+        sctp_state::SCTP_STATE_CLOSED as u8
+    }
+    pub fn max_value() -> u8 {
+        sctp_state::SCTP_STATE_SHUTDOWN_ACK_SENT as u8
+    }
+}
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -179,6 +199,7 @@ pub struct inet_diag_req_raw {
 }
 
 #[repr(u16)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum inet_diag_attr {
     INET_DIAG_REQ_NONE,
     INET_DIAG_REQ_BYTECODE,
@@ -203,6 +224,7 @@ pub struct inet_diag_bc_op {
 }
 
 #[repr(u8)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum byte_code {
     INET_DIAG_BC_NOP,
     INET_DIAG_BC_JMP,
@@ -262,7 +284,7 @@ pub struct inet_diag_msg {
 
 /// Extensions
 #[repr(u16)]
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum extension {
     INET_DIAG_NONE,
     INET_DIAG_MEMINFO,

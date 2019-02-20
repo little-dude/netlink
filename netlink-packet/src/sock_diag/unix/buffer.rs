@@ -1,4 +1,5 @@
 use std::ffi::CStr;
+use std::iter;
 use std::mem;
 
 use byteorder::{ByteOrder, NativeEndian};
@@ -52,6 +53,12 @@ bitflags! {
 impl Default for UnixStates {
     fn default() -> Self {
         UnixStates::all()
+    }
+}
+
+impl From<UnixState> for UnixStates {
+    fn from(state: UnixState) -> Self {
+        Self::from_bits_truncate(1 << (state as u8))
     }
 }
 
@@ -261,13 +268,25 @@ impl<T: AsRef<[u8]>> ParseableParametrized<Attr, Attribute> for T {
         let payload = self.as_ref();
 
         Ok(match ty {
-            UNIX_DIAG_NAME if !payload.is_empty() => Attr::Name(
-                CStr::from_bytes_with_nul(payload)
-                    .context("invalid name")?
-                    .to_str()
-                    .context("invalid name")?
-                    .to_owned(),
-            ),
+            UNIX_DIAG_NAME if !payload.is_empty() => {
+                let payload = if payload[0] == 0 {
+                    payload
+                        .iter()
+                        .map(|b| if *b == 0 { b'@' } else { *b })
+                        .chain(iter::once(0))
+                        .collect()
+                } else {
+                    payload.to_vec()
+                };
+
+                Attr::Name(
+                    CStr::from_bytes_with_nul(&payload)
+                        .context("invalid name")?
+                        .to_str()
+                        .context("invalid name")?
+                        .to_owned(),
+                )
+            }
             UNIX_DIAG_VFS if payload.len() >= mem::size_of::<[u32; 2]>() => {
                 Attr::Vfs(unix_diag_vfs {
                     udiag_vfs_ino: NativeEndian::read_u32(&payload[0..4]),

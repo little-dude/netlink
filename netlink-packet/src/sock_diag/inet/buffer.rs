@@ -12,7 +12,7 @@ use crate::sock_diag::{
     buffer::{array_of, RtaIterator, SDIAG_FAMILY, SDIAG_PROTOCOL},
     Extension,
     Extension::*,
-    MemInfo, Shutdown, SkMemInfo, TcpInfo, TcpState,
+    MemInfo, SctpState, Shutdown, SkMemInfo, TcpInfo, TcpState,
     TcpState::*,
 };
 use crate::{DecodeError, Field, Parseable, ParseableParametrized, Rest};
@@ -72,9 +72,15 @@ bitflags! {
     }
 }
 
+impl From<Extension> for Extensions {
+    fn from(ext: Extension) -> Self {
+        Self::from_bits_truncate(1 << (ext as u16 - 1))
+    }
+}
+
 impl Default for Extensions {
     fn default() -> Self {
-        Extensions::empty()
+        Self::empty()
     }
 }
 
@@ -92,6 +98,18 @@ pub enum Timer {
 }
 
 impl TryFrom<u8> for TcpState {
+    type Err = DecodeError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Err> {
+        if Self::min_value() <= value && value <= Self::max_value() {
+            Ok(unsafe { mem::transmute(value) })
+        } else {
+            Err(format!("contains unknown state: {}", value).into())
+        }
+    }
+}
+
+impl TryFrom<u8> for SctpState {
     type Err = DecodeError;
 
     fn try_from(value: u8) -> Result<Self, Self::Err> {
@@ -136,9 +154,15 @@ bitflags! {
     }
 }
 
+impl From<TcpState> for TcpStates {
+    fn from(state: TcpState) -> Self {
+        Self::from_bits_truncate(1 << (state as u8))
+    }
+}
+
 impl Default for TcpStates {
     fn default() -> Self {
-        TcpStates::all()
+        Self::empty()
     }
 }
 
@@ -269,7 +293,7 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> SocketIdBuffer<T> {
     pub fn set_src_addr(&mut self, addr: &SocketAddr) {
         match addr {
             SocketAddr::V4(addr) => {
-                self.set_src_ipv4(addr.ip());
+                self.set_src_ipv4(*addr.ip());
                 self.set_sport(addr.port());
             }
             SocketAddr::V6(addr) => {
@@ -279,7 +303,7 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> SocketIdBuffer<T> {
         }
     }
 
-    pub fn set_src_ipv4(&mut self, addr: &Ipv4Addr) {
+    pub fn set_src_ipv4(&mut self, addr: Ipv4Addr) {
         let data = self.buffer.as_mut();
         data[IDIAG_SRC].copy_from_slice(&addr.octets());
     }
@@ -292,7 +316,7 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> SocketIdBuffer<T> {
     pub fn set_dst_addr(&mut self, addr: &SocketAddr) {
         match addr {
             SocketAddr::V4(addr) => {
-                self.set_dst_ipv4(addr.ip());
+                self.set_dst_ipv4(*addr.ip());
                 self.set_dport(addr.port());
             }
             SocketAddr::V6(addr) => {
@@ -302,7 +326,7 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> SocketIdBuffer<T> {
         }
     }
 
-    pub fn set_dst_ipv4(&mut self, addr: &Ipv4Addr) {
+    pub fn set_dst_ipv4(&mut self, addr: Ipv4Addr) {
         let data = self.buffer.as_mut();
         data[IDIAG_DST].copy_from_slice(&addr.octets());
     }
@@ -431,9 +455,9 @@ impl<T: AsRef<[u8]>> ResponseBuffer<T> {
         data[IDIAG_MSG_FAMILY]
     }
 
-    pub fn state(&self) -> Result<TcpState, DecodeError> {
+    pub fn state(&self) -> u8 {
         let data = self.buffer.as_ref();
-        TcpState::try_from(data[IDIAG_MSG_STATE])
+        data[IDIAG_MSG_STATE]
     }
 
     pub fn timer(&self) -> Option<Timer> {

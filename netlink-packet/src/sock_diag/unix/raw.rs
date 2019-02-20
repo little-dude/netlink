@@ -15,7 +15,7 @@ pub struct unix_diag_req {
 }
 
 #[repr(u32)]
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum show {
     /// show name (not path)
     UDIAG_SHOW_NAME = 0x0000_0001,
@@ -44,7 +44,7 @@ pub struct unix_diag_msg {
 }
 
 #[repr(u8)]
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum unix_state {
     ESTABLISHED = TCP_ESTABLISHED as u8,
     LISTEN = TCP_LISTEN as u8,
@@ -57,7 +57,7 @@ impl unix_state {
 }
 
 #[repr(u16)]
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum attribute {
     UNIX_DIAG_NAME,
     UNIX_DIAG_VFS,

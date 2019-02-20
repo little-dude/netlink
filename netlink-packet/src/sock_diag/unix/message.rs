@@ -3,8 +3,11 @@ use try_from::TryFrom;
 use netlink_sys::constants::AF_UNIX;
 
 use crate::sock_diag::{
-    unix::buffer::{Attr, RequestBuffer, ResponseBuffer, UnixStates},
-    Attribute, Show, UnixState,
+    unix::{
+        buffer::{Attr, RequestBuffer, ResponseBuffer},
+        RqLen, UnixState, UnixStates, Vfs,
+    },
+    Attribute, Show, Shutdown, SkMemInfo,
 };
 use crate::{DecodeError, Emitable, Parseable, ParseableParametrized};
 
@@ -41,6 +44,29 @@ pub fn unix() -> Request {
 impl Request {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn with_states(mut self, states: UnixStates) -> Self {
+        self.states.insert(states);
+        self
+    }
+
+    pub fn without_states(mut self, states: UnixStates) -> Self {
+        self.states.remove(states);
+        self
+    }
+
+    pub fn with_show(mut self, show: Show) -> Self {
+        self.show.insert(show);
+        self
+    }
+
+    pub fn with_state(self, state: UnixState) -> Self {
+        self.with_states(state.into())
+    }
+
+    pub fn without_state(self, state: UnixState) -> Self {
+        self.without_states(state.into())
     }
 }
 
@@ -90,6 +116,106 @@ pub struct Response {
     /// This is an opaque identifiers that could be used in subsequent queries.
     pub cookie: Option<u64>,
     pub attrs: Vec<Attr>,
+}
+
+impl Response {
+    /// name (not path)
+    pub fn name(&self) -> Option<&str> {
+        self.attrs
+            .iter()
+            .filter_map(|attr| {
+                if let Attr::Name(ref value) = attr {
+                    Some(value.as_str())
+                } else {
+                    None
+                }
+            })
+            .next()
+    }
+
+    /// VFS inode info
+    pub fn vfs(&self) -> Option<&Vfs> {
+        self.attrs
+            .iter()
+            .filter_map(|attr| {
+                if let Attr::Vfs(ref value) = attr {
+                    Some(value)
+                } else {
+                    None
+                }
+            })
+            .next()
+    }
+
+    /// peer socket info
+    pub fn peer(&self) -> Option<u32> {
+        self.attrs
+            .iter()
+            .filter_map(|attr| {
+                if let Attr::Peer(value) = attr {
+                    Some(*value)
+                } else {
+                    None
+                }
+            })
+            .next()
+    }
+
+    /// pending connections
+    pub fn icons(&self) -> Option<&[u32]> {
+        self.attrs
+            .iter()
+            .filter_map(|attr| {
+                if let Attr::Icons(value) = attr {
+                    Some(value.as_slice())
+                } else {
+                    None
+                }
+            })
+            .next()
+    }
+
+    /// skb receive queue len
+    pub fn rqlen(&self) -> Option<&RqLen> {
+        self.attrs
+            .iter()
+            .filter_map(|attr| {
+                if let Attr::RecvQueueLen(ref value) = attr {
+                    Some(value)
+                } else {
+                    None
+                }
+            })
+            .next()
+    }
+
+    /// memory info of a socket
+    pub fn socket_mem_info(&self) -> Option<&SkMemInfo> {
+        self.attrs
+            .iter()
+            .filter_map(|attr| {
+                if let Attr::MemInfo(ref value) = attr {
+                    Some(value)
+                } else {
+                    None
+                }
+            })
+            .next()
+    }
+
+    /// shutdown states
+    pub fn shutdown(&self) -> Option<Shutdown> {
+        self.attrs
+            .iter()
+            .filter_map(|attr| {
+                if let Attr::Shutdown(ref value) = attr {
+                    Some(*value)
+                } else {
+                    None
+                }
+            })
+            .next()
+    }
 }
 
 impl<T: AsRef<[u8]>> Parseable<Response> for ResponseBuffer<T> {

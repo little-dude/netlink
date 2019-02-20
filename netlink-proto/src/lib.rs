@@ -1,4 +1,4 @@
-#![cfg(any(feature = "audit", feature = "rtnetlink"))]
+#![cfg(any(feature = "audit", feature = "rtnetlink", feature = "sock_diag"))]
 
 #[macro_use]
 extern crate futures;

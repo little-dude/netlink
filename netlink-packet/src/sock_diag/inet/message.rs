@@ -1,4 +1,5 @@
 use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6};
+use std::ops::{Deref, DerefMut};
 use std::time::Duration;
 
 use try_from::TryFrom;
@@ -7,7 +8,7 @@ use netlink_sys::constants::{AF_INET, AF_INET6};
 
 use crate::sock_diag::{
     inet::buffer::{Attr, RequestBuffer, ResponseBuffer},
-    Extension, Extensions, TcpState, TcpStates, Timer,
+    Extension, Extensions, MemInfo, Shutdown, SkMemInfo, TcpInfo, TcpState, TcpStates, Timer,
 };
 use crate::{DecodeError, Emitable, Parseable, ParseableParametrized};
 
@@ -57,6 +58,20 @@ pub fn inet6(protocol: u8) -> Request {
     Request::new(AF_INET6 as u8, protocol)
 }
 
+impl Deref for Request {
+    type Target = SockId;
+
+    fn deref(&self) -> &Self::Target {
+        &self.id
+    }
+}
+
+impl DerefMut for Request {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.id
+    }
+}
+
 impl Request {
     pub fn new(family: u8, protocol: u8) -> Request {
         Request {
@@ -68,22 +83,31 @@ impl Request {
         }
     }
 
-    pub fn with_state(mut self, state: TcpState) -> Self {
-        self.states
-            .insert(TcpStates::from_bits_truncate(1 << state as usize));
+    pub fn with_states(mut self, states: TcpStates) -> Self {
+        self.states.insert(states);
         self
     }
 
-    pub fn without_state(mut self, state: TcpState) -> Self {
-        self.states
-            .remove(TcpStates::from_bits_truncate(1 << state as usize));
+    pub fn without_states(mut self, states: TcpStates) -> Self {
+        self.states.remove(states);
         self
     }
 
-    pub fn with_extension(mut self, ext: Extension) -> Self {
-        self.extensions
-            .insert(Extensions::from_bits_truncate(1 << (ext as usize - 1)));
+    pub fn with_extensions(mut self, exts: Extensions) -> Self {
+        self.extensions.insert(exts);
         self
+    }
+
+    pub fn with_state(self, state: TcpState) -> Self {
+        self.with_states(state.into())
+    }
+
+    pub fn without_state(self, state: TcpState) -> Self {
+        self.without_states(state.into())
+    }
+
+    pub fn with_extension(self, ext: Extension) -> Self {
+        self.with_extensions(ext.into())
     }
 }
 
@@ -119,7 +143,7 @@ pub struct Response {
     /// This should be set to either AF_INET or AF_INET6 for IPv4 or IPv6 sockets respectively.
     pub family: u8,
     /// This is the socket states.
-    pub state: TcpState,
+    pub state: u8,
     /// For TCP sockets, this field describes the type of timer
     /// that is currently active for the socket.
     pub timer: Option<Timer>,
@@ -138,6 +162,170 @@ pub struct Response {
     /// This is the socket inode number.
     pub inode: u32,
     pub attrs: Vec<Attr>,
+}
+
+impl Deref for Response {
+    type Target = SockId;
+
+    fn deref(&self) -> &Self::Target {
+        &self.id
+    }
+}
+
+impl Response {
+    /// the memory information of the socket.
+    pub fn meminfo(&self) -> Option<&MemInfo> {
+        self.attrs
+            .iter()
+            .filter_map(|attr| {
+                if let Attr::MemInfo(ref value) = attr {
+                    Some(value)
+                } else {
+                    None
+                }
+            })
+            .next()
+    }
+
+    /// the TCP information
+    pub fn tcp_info(&self) -> Option<&TcpInfo> {
+        self.attrs
+            .iter()
+            .filter_map(|attr| {
+                if let Attr::Info(ref value) = attr {
+                    Some(&**value)
+                } else {
+                    None
+                }
+            })
+            .next()
+    }
+
+    /// the congestion control algorithm used
+    pub fn conf(&self) -> Option<&str> {
+        self.attrs
+            .iter()
+            .filter_map(|attr| {
+                if let Attr::Conf(ref value) = attr {
+                    Some(value.as_str())
+                } else {
+                    None
+                }
+            })
+            .next()
+    }
+
+    /// the TOS of the socket.
+    pub fn tos(&self) -> Option<u8> {
+        self.attrs
+            .iter()
+            .filter_map(|attr| {
+                if let Attr::Tos(value) = attr {
+                    Some(*value)
+                } else {
+                    None
+                }
+            })
+            .next()
+    }
+
+    /// the TClass of the socket.
+    pub fn tclass(&self) -> Option<u8> {
+        self.attrs
+            .iter()
+            .filter_map(|attr| {
+                if let Attr::TClass(value) = attr {
+                    Some(*value)
+                } else {
+                    None
+                }
+            })
+            .next()
+    }
+
+    /// socket memory information
+    pub fn socket_mem_info(&self) -> Option<&SkMemInfo> {
+        self.attrs
+            .iter()
+            .filter_map(|attr| {
+                if let Attr::SkMemInfo(ref value) = attr {
+                    Some(value)
+                } else {
+                    None
+                }
+            })
+            .next()
+    }
+
+    /// shutdown states
+    pub fn shutdown(&self) -> Option<Shutdown> {
+        self.attrs
+            .iter()
+            .filter_map(|attr| {
+                if let Attr::Shutdown(ref value) = attr {
+                    Some(*value)
+                } else {
+                    None
+                }
+            })
+            .next()
+    }
+
+    /// The protocol
+    pub fn protocol(&self) -> Option<u8> {
+        self.attrs
+            .iter()
+            .filter_map(|attr| {
+                if let Attr::Protocol(value) = attr {
+                    Some(*value)
+                } else {
+                    None
+                }
+            })
+            .next()
+    }
+
+    /// The socket is IPv6 only
+    pub fn ipv6_only(&self) -> Option<bool> {
+        self.attrs
+            .iter()
+            .filter_map(|attr| {
+                if let Attr::SkV6Only(value) = attr {
+                    Some(*value)
+                } else {
+                    None
+                }
+            })
+            .next()
+    }
+
+    /// The mark of the socket.
+    pub fn mark(&self) -> Option<u32> {
+        self.attrs
+            .iter()
+            .filter_map(|attr| {
+                if let Attr::Mark(value) = attr {
+                    Some(*value)
+                } else {
+                    None
+                }
+            })
+            .next()
+    }
+
+    /// The class ID of the socket.
+    pub fn class_id(&self) -> Option<u32> {
+        self.attrs
+            .iter()
+            .filter_map(|attr| {
+                if let Attr::ClassId(value) = attr {
+                    Some(*value)
+                } else {
+                    None
+                }
+            })
+            .next()
+    }
 }
 
 impl<T: AsRef<[u8]>> Parseable<Response> for ResponseBuffer<T> {
@@ -196,7 +384,7 @@ impl<T: AsRef<[u8]>> Parseable<Response> for ResponseBuffer<T> {
 
         Ok(Response {
             family,
-            state: self.state()?,
+            state: self.state(),
             timer: self.timer(),
             id: SockId {
                 src,
