@@ -1,7 +1,6 @@
 use std::ffi::CStr;
 use std::mem;
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
-use std::ptr::NonNull;
 use std::time::Duration;
 
 use byteorder::{ByteOrder, NativeEndian, NetworkEndian};
@@ -9,7 +8,7 @@ use failure::ResultExt;
 use try_from::TryFrom;
 
 use crate::sock_diag::{
-    buffer::{array_of, RtaIterator, SDIAG_FAMILY, SDIAG_PROTOCOL},
+    buffer::{array_of, CStruct, RtaIterator, REQ_FAMILY, REQ_PROTOCOL},
     Extension,
     Extension::*,
     MemInfo, SctpState, Shutdown, SkMemInfo, TcpInfo, TcpState,
@@ -17,34 +16,34 @@ use crate::sock_diag::{
 };
 use crate::{DecodeError, Field, Parseable, ParseableParametrized, Rest};
 
-const IDIAG_SPORT: Field = 0..2;
-const IDIAG_DPORT: Field = 2..4;
-const IDIAG_SRC: Field = array_of::<u32>(4, 4);
-const IDIAG_DST: Field = array_of::<u32>(20, 4);
-const IDIAG_IF: Field = 36..40;
-const IDIAG_COOKIE: Field = array_of::<u32>(40, 2);
-const IDIAG_ID_SIZE: usize = IDIAG_COOKIE.end;
+const ID_SPORT: Field = 0..2;
+const ID_DPORT: Field = 2..4;
+const ID_SRC: Field = array_of::<u32>(4, 4);
+const ID_DST: Field = array_of::<u32>(20, 4);
+const ID_IF: Field = 36..40;
+const ID_COOKIE: Field = array_of::<u32>(40, 2);
+const ID_SIZE: usize = ID_COOKIE.end;
 
 const INET_DIAG_NOCOOKIE: u64 = !0;
 
-const IDIAG_REQ_EXT: usize = 2;
-const IDIAG_REQ_STATES: Field = 4..8;
-const IDIAG_REQ_ID: Field = 8..56;
-const IDIAG_REQ_SIZE: usize = IDIAG_REQ_ID.end;
-const IDIAG_REQ_ATTRIBUTES: Rest = IDIAG_REQ_SIZE..;
+const REQ_EXT: usize = 2;
+const REQ_STATES: Field = 4..8;
+const REQ_ID: Field = 8..56;
+const REQ_SIZE: usize = REQ_ID.end;
+const REQ_ATTRIBUTES: Rest = REQ_SIZE..;
 
-const IDIAG_MSG_FAMILY: usize = 0;
-const IDIAG_MSG_STATE: usize = 1;
-const IDIAG_MSG_TIMER: usize = 2;
-const IDIAG_MSG_RETRANS: usize = 3;
-const IDIAG_MSG_ID: Field = 4..52;
-const IDIAG_MSG_EXPIRES: Field = 52..56;
-const IDIAG_MSG_RQUEUE: Field = 56..60;
-const IDIAG_MSG_WQUEUE: Field = 60..64;
-const IDIAG_MSG_UID: Field = 64..68;
-const IDIAG_MSG_INODE: Field = 68..72;
-const IDIAG_MSG_SIZE: usize = IDIAG_MSG_INODE.end;
-const IDIAG_MSG_ATTRIBUTES: Rest = IDIAG_MSG_SIZE..;
+const MSG_FAMILY: usize = 0;
+const MSG_STATE: usize = 1;
+const MSG_TIMER: usize = 2;
+const MSG_RETRANS: usize = 3;
+const MSG_ID: Field = 4..52;
+const MSG_EXPIRES: Field = 52..56;
+const MSG_RQUEUE: Field = 56..60;
+const MSG_WQUEUE: Field = 60..64;
+const MSG_UID: Field = 64..68;
+const MSG_INODE: Field = 68..72;
+const MSG_SIZE: usize = MSG_INODE.end;
+const MSG_ATTRIBUTES: Rest = MSG_SIZE..;
 
 impl TryFrom<u16> for Extension {
     type Err = DecodeError;
@@ -166,50 +165,6 @@ impl Default for TcpStates {
     }
 }
 
-impl<T: AsRef<[u8]>> Parseable<TcpInfo> for T {
-    fn parse(&self) -> Result<TcpInfo, DecodeError> {
-        let data = self.as_ref();
-
-        if data.len() >= mem::size_of::<TcpInfo>() {
-            Ok(unsafe {
-                NonNull::new_unchecked(data.as_ptr() as *mut u8)
-                    .cast::<TcpInfo>()
-                    .as_ptr()
-                    .read()
-            })
-        } else {
-            Err(format!(
-                "buffer size is {}, whereas a buffer is at least {} long",
-                data.len(),
-                mem::size_of::<TcpInfo>()
-            )
-            .into())
-        }
-    }
-}
-
-impl<T: AsRef<[u8]>> Parseable<MemInfo> for T {
-    fn parse(&self) -> Result<MemInfo, DecodeError> {
-        let data = self.as_ref();
-
-        if data.len() >= mem::size_of::<MemInfo>() {
-            Ok(unsafe {
-                NonNull::new_unchecked(data.as_ptr() as *mut u8)
-                    .cast::<MemInfo>()
-                    .as_ptr()
-                    .read()
-            })
-        } else {
-            Err(format!(
-                "buffer size is {}, whereas a buffer is at least {} long",
-                data.len(),
-                mem::size_of::<MemInfo>()
-            )
-            .into())
-        }
-    }
-}
-
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct SocketIdBuffer<T> {
     buffer: T,
@@ -221,54 +176,54 @@ impl<T> SocketIdBuffer<T> {
     }
 
     pub const fn len() -> usize {
-        IDIAG_ID_SIZE
+        ID_SIZE
     }
 }
 
 impl<T: AsRef<[u8]>> SocketIdBuffer<T> {
     pub fn sport(&self) -> u16 {
         let data = self.buffer.as_ref();
-        NetworkEndian::read_u16(&data[IDIAG_SPORT])
+        NetworkEndian::read_u16(&data[ID_SPORT])
     }
 
     pub fn dport(&self) -> u16 {
         let data = self.buffer.as_ref();
-        NetworkEndian::read_u16(&data[IDIAG_DPORT])
+        NetworkEndian::read_u16(&data[ID_DPORT])
     }
 
     pub fn src_ipv4(&self) -> Ipv4Addr {
         let data = self.buffer.as_ref();
-        Ipv4Addr::from(NetworkEndian::read_u32(&data[IDIAG_SRC]))
+        Ipv4Addr::from(NetworkEndian::read_u32(&data[ID_SRC]))
     }
 
     pub fn src_ipv6(&self) -> Ipv6Addr {
         let data = self.buffer.as_ref();
         let mut addr = [0u8; 16];
-        addr.copy_from_slice(&data[IDIAG_SRC]);
+        addr.copy_from_slice(&data[ID_SRC]);
         Ipv6Addr::from(addr)
     }
 
     pub fn dst_ipv4(&self) -> Ipv4Addr {
         let data = self.buffer.as_ref();
-        Ipv4Addr::from(NetworkEndian::read_u32(&data[IDIAG_DST]))
+        Ipv4Addr::from(NetworkEndian::read_u32(&data[ID_DST]))
     }
 
     pub fn dst_ipv6(&self) -> Ipv6Addr {
         let data = self.buffer.as_ref();
         let mut addr = [0u8; 16];
-        addr.copy_from_slice(&data[IDIAG_DST]);
+        addr.copy_from_slice(&data[ID_DST]);
         Ipv6Addr::from(addr)
     }
 
     pub fn interface(&self) -> u32 {
         let data = self.buffer.as_ref();
-        NativeEndian::read_u32(&data[IDIAG_IF])
+        NativeEndian::read_u32(&data[ID_IF])
     }
 
     pub fn cookie(&self) -> Option<u64> {
         let data = self.buffer.as_ref();
         let mut cookie = [0u32; 2];
-        NativeEndian::read_u32_into(&data[IDIAG_COOKIE], &mut cookie);
+        NativeEndian::read_u32_into(&data[ID_COOKIE], &mut cookie);
         let cookie = u64::from(cookie[0]) + (u64::from(cookie[1]) << 32);
 
         if cookie == INET_DIAG_NOCOOKIE {
@@ -282,12 +237,12 @@ impl<T: AsRef<[u8]>> SocketIdBuffer<T> {
 impl<T: AsRef<[u8]> + AsMut<[u8]>> SocketIdBuffer<T> {
     pub fn set_sport(&mut self, port: u16) {
         let data = self.buffer.as_mut();
-        NetworkEndian::write_u16(&mut data[IDIAG_SPORT], port)
+        NetworkEndian::write_u16(&mut data[ID_SPORT], port)
     }
 
     pub fn set_dport(&mut self, port: u16) {
         let data = self.buffer.as_mut();
-        NetworkEndian::write_u16(&mut data[IDIAG_DPORT], port)
+        NetworkEndian::write_u16(&mut data[ID_DPORT], port)
     }
 
     pub fn set_src_addr(&mut self, addr: &SocketAddr) {
@@ -305,12 +260,12 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> SocketIdBuffer<T> {
 
     pub fn set_src_ipv4(&mut self, addr: Ipv4Addr) {
         let data = self.buffer.as_mut();
-        data[IDIAG_SRC].copy_from_slice(&addr.octets());
+        data[ID_SRC].copy_from_slice(&addr.octets());
     }
 
     pub fn set_src_ipv6(&mut self, addr: &Ipv6Addr) {
         let data = self.buffer.as_mut();
-        data[IDIAG_SRC].copy_from_slice(&addr.octets());
+        data[ID_SRC].copy_from_slice(&addr.octets());
     }
 
     pub fn set_dst_addr(&mut self, addr: &SocketAddr) {
@@ -328,24 +283,24 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> SocketIdBuffer<T> {
 
     pub fn set_dst_ipv4(&mut self, addr: Ipv4Addr) {
         let data = self.buffer.as_mut();
-        data[IDIAG_DST].copy_from_slice(&addr.octets());
+        data[ID_DST].copy_from_slice(&addr.octets());
     }
 
     pub fn set_dst_ipv6(&mut self, addr: &Ipv6Addr) {
         let data = self.buffer.as_mut();
-        data[IDIAG_DST].copy_from_slice(&addr.octets());
+        data[ID_DST].copy_from_slice(&addr.octets());
     }
 
     pub fn set_interface(&mut self, intf: u32) {
         let data = self.buffer.as_mut();
-        NativeEndian::write_u32(&mut data[IDIAG_IF], intf)
+        NativeEndian::write_u32(&mut data[ID_IF], intf)
     }
 
     pub fn set_cookie(&mut self, cookie: Option<u64>) {
         let data = self.buffer.as_mut();
         let cookie = cookie.unwrap_or(INET_DIAG_NOCOOKIE);
         let cookie = [cookie as u32, (cookie >> 32) as u32];
-        NativeEndian::write_u32_into(&cookie[..], &mut data[IDIAG_COOKIE]);
+        NativeEndian::write_u32_into(&cookie[..], &mut data[ID_COOKIE]);
     }
 }
 
@@ -360,58 +315,58 @@ impl<T> RequestBuffer<T> {
     }
 
     pub const fn len() -> usize {
-        IDIAG_REQ_SIZE
+        REQ_SIZE
     }
 }
 
 impl<T: AsRef<[u8]>> RequestBuffer<T> {
     pub fn family(&self) -> u8 {
         let data = self.buffer.as_ref();
-        data[SDIAG_FAMILY]
+        data[REQ_FAMILY]
     }
     pub fn protocol(&self) -> u8 {
         let data = self.buffer.as_ref();
-        data[SDIAG_PROTOCOL]
+        data[REQ_PROTOCOL]
     }
     pub fn extensions(&self) -> Extensions {
         let data = self.buffer.as_ref();
-        Extensions::from_bits_truncate(data[IDIAG_REQ_EXT])
+        Extensions::from_bits_truncate(data[REQ_EXT])
     }
     pub fn states(&self) -> TcpStates {
         let data = self.buffer.as_ref();
-        TcpStates::from_bits_truncate(NativeEndian::read_u32(&data[IDIAG_REQ_STATES]))
+        TcpStates::from_bits_truncate(NativeEndian::read_u32(&data[REQ_STATES]))
     }
     pub fn id(&self) -> SocketIdBuffer<&[u8]> {
         let data = self.buffer.as_ref();
 
-        SocketIdBuffer::new(&data[IDIAG_REQ_ID])
+        SocketIdBuffer::new(&data[REQ_ID])
     }
 }
 
 impl<T: AsRef<[u8]> + AsMut<[u8]>> RequestBuffer<T> {
     pub fn set_family(&mut self, family: u8) {
         let data = self.buffer.as_mut();
-        data[SDIAG_FAMILY] = family
+        data[REQ_FAMILY] = family
     }
 
     pub fn set_protocol(&mut self, protocol: u8) {
         let data = self.buffer.as_mut();
-        data[SDIAG_PROTOCOL] = protocol
+        data[REQ_PROTOCOL] = protocol
     }
 
     pub fn set_extensions(&mut self, ext: Extensions) {
         let data = self.buffer.as_mut();
-        data[IDIAG_REQ_EXT] = ext.bits()
+        data[REQ_EXT] = ext.bits()
     }
 
     pub fn set_states(&mut self, states: TcpStates) {
         let data = self.buffer.as_mut();
-        NativeEndian::write_u32(&mut data[IDIAG_REQ_STATES], states.bits())
+        NativeEndian::write_u32(&mut data[REQ_STATES], states.bits())
     }
 
     pub fn id_mut(&mut self) -> SocketIdBuffer<&mut [u8]> {
         let data = self.buffer.as_mut();
-        SocketIdBuffer::new(&mut data[IDIAG_REQ_ID])
+        SocketIdBuffer::new(&mut data[REQ_ID])
     }
 }
 
@@ -426,7 +381,7 @@ impl<T> ResponseBuffer<T> {
     }
 
     pub const fn len() -> usize {
-        IDIAG_MSG_SIZE
+        MSG_SIZE
     }
 }
 
@@ -439,10 +394,10 @@ impl<T: AsRef<[u8]>> ResponseBuffer<T> {
 
     fn check_len(&self) -> Result<(), DecodeError> {
         let len = self.buffer.as_ref().len();
-        if len < IDIAG_MSG_SIZE {
+        if len < MSG_SIZE {
             Err(format!(
                 "buffer size is {}, whereas a rule buffer is at least {} long",
-                len, IDIAG_MSG_SIZE
+                len, MSG_SIZE
             )
             .into())
         } else {
@@ -452,33 +407,33 @@ impl<T: AsRef<[u8]>> ResponseBuffer<T> {
 
     pub fn family(&self) -> u8 {
         let data = self.buffer.as_ref();
-        data[IDIAG_MSG_FAMILY]
+        data[MSG_FAMILY]
     }
 
     pub fn state(&self) -> u8 {
         let data = self.buffer.as_ref();
-        data[IDIAG_MSG_STATE]
+        data[MSG_STATE]
     }
 
     pub fn timer(&self) -> Option<Timer> {
         let data = self.buffer.as_ref();
-        match data[IDIAG_MSG_TIMER] {
-            1 => Some(Timer::Retransmit(data[IDIAG_MSG_RETRANS])),
-            2 => Some(Timer::KeepAlive(data[IDIAG_MSG_RETRANS])),
+        match data[MSG_TIMER] {
+            1 => Some(Timer::Retransmit(data[MSG_RETRANS])),
+            2 => Some(Timer::KeepAlive(data[MSG_RETRANS])),
             3 => Some(Timer::TimeWait),
-            4 => Some(Timer::Probe(data[IDIAG_MSG_RETRANS])),
+            4 => Some(Timer::Probe(data[MSG_RETRANS])),
             _ => None,
         }
     }
 
     pub fn id(&self) -> SocketIdBuffer<&[u8]> {
         let data = self.buffer.as_ref();
-        SocketIdBuffer::new(&data[IDIAG_MSG_ID])
+        SocketIdBuffer::new(&data[MSG_ID])
     }
 
     pub fn expires(&self) -> Option<Duration> {
         let data = self.buffer.as_ref();
-        let expires = NativeEndian::read_u32(&data[IDIAG_MSG_EXPIRES]);
+        let expires = NativeEndian::read_u32(&data[MSG_EXPIRES]);
         if expires == 0 {
             None
         } else {
@@ -488,81 +443,84 @@ impl<T: AsRef<[u8]>> ResponseBuffer<T> {
 
     pub fn rqueue(&self) -> u32 {
         let data = self.buffer.as_ref();
-        NativeEndian::read_u32(&data[IDIAG_MSG_RQUEUE])
+        NativeEndian::read_u32(&data[MSG_RQUEUE])
     }
 
     pub fn wqueue(&self) -> u32 {
         let data = self.buffer.as_ref();
-        NativeEndian::read_u32(&data[IDIAG_MSG_WQUEUE])
+        NativeEndian::read_u32(&data[MSG_WQUEUE])
     }
 
     pub fn uid(&self) -> u32 {
         let data = self.buffer.as_ref();
-        NativeEndian::read_u32(&data[IDIAG_MSG_UID])
+        NativeEndian::read_u32(&data[MSG_UID])
     }
 
     pub fn inode(&self) -> u32 {
         let data = self.buffer.as_ref();
-        NativeEndian::read_u32(&data[IDIAG_MSG_INODE])
+        NativeEndian::read_u32(&data[MSG_INODE])
     }
 
     pub fn attrs(&self) -> RtaIterator<&[u8]> {
         let data = self.buffer.as_ref();
-        RtaIterator::new(&data[IDIAG_MSG_ATTRIBUTES])
+        RtaIterator::new(&data[MSG_ATTRIBUTES])
     }
 }
 
 impl<T: AsRef<[u8]> + AsMut<[u8]>> ResponseBuffer<T> {
     pub fn set_family(&mut self, family: u8) {
         let data = self.buffer.as_mut();
-        data[IDIAG_MSG_FAMILY] = family
+        data[MSG_FAMILY] = family
     }
 
     pub fn set_state(&mut self, state: TcpState) {
         let data = self.buffer.as_mut();
-        data[IDIAG_MSG_STATE] = state as u8
+        data[MSG_STATE] = state as u8
     }
 
     pub fn set_timer(&mut self, timer: u8) {
         let data = self.buffer.as_mut();
-        data[IDIAG_MSG_TIMER] = timer
+        data[MSG_TIMER] = timer
     }
 
     pub fn set_retrans(&mut self, retrans: u8) {
         let data = self.buffer.as_mut();
-        data[IDIAG_MSG_RETRANS] = retrans
+        data[MSG_RETRANS] = retrans
     }
 
     pub fn id_mut(&mut self) -> SocketIdBuffer<&mut [u8]> {
         let data = self.buffer.as_mut();
-        SocketIdBuffer::new(&mut data[IDIAG_MSG_ID])
+        SocketIdBuffer::new(&mut data[MSG_ID])
     }
 
     pub fn set_expires(&mut self, expires: u32) {
         let data = self.buffer.as_mut();
-        NativeEndian::write_u32(&mut data[IDIAG_MSG_EXPIRES], expires)
+        NativeEndian::write_u32(&mut data[MSG_EXPIRES], expires)
     }
 
     pub fn set_rqueue(&mut self, rqueue: u32) {
         let data = self.buffer.as_mut();
-        NativeEndian::write_u32(&mut data[IDIAG_MSG_RQUEUE], rqueue)
+        NativeEndian::write_u32(&mut data[MSG_RQUEUE], rqueue)
     }
 
     pub fn set_wqueue(&mut self, wqueue: u32) {
         let data = self.buffer.as_mut();
-        NativeEndian::write_u32(&mut data[IDIAG_MSG_WQUEUE], wqueue)
+        NativeEndian::write_u32(&mut data[MSG_WQUEUE], wqueue)
     }
 
     pub fn set_uid(&mut self, uid: u32) {
         let data = self.buffer.as_mut();
-        NativeEndian::write_u32(&mut data[IDIAG_MSG_UID], uid)
+        NativeEndian::write_u32(&mut data[MSG_UID], uid)
     }
 
     pub fn set_inode(&mut self, inode: u32) {
         let data = self.buffer.as_mut();
-        NativeEndian::write_u32(&mut data[IDIAG_MSG_INODE], inode)
+        NativeEndian::write_u32(&mut data[MSG_INODE], inode)
     }
 }
+
+impl CStruct for TcpInfo {}
+impl CStruct for MemInfo {}
 
 /// The socket extended information
 #[derive(Debug, PartialEq, Eq, Clone)]

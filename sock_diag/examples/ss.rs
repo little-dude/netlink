@@ -5,6 +5,7 @@ extern crate bitflags;
 #[macro_use]
 extern crate lazy_static;
 
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::ffi::CStr;
 use std::fmt;
@@ -17,7 +18,8 @@ use std::str::FromStr;
 use failure::{bail, Error};
 use futures::{future, Future, Stream};
 use libc::{
-    IPPROTO_DCCP, IPPROTO_SCTP, IPPROTO_TCP, IPPROTO_UDP, SOCK_DGRAM, SOCK_SEQPACKET, SOCK_STREAM,
+    IPPROTO_DCCP, IPPROTO_SCTP, IPPROTO_TCP, IPPROTO_UDP, SOCK_DGRAM, SOCK_RAW, SOCK_SEQPACKET,
+    SOCK_STREAM,
 };
 use structopt::StructOpt;
 use tokio_core::reactor::Core;
@@ -26,7 +28,8 @@ use try_from::TryFrom;
 use sock_diag::{
     constants::*,
     packet::sock_diag::{
-        Extensions, InetDiagResponse, SctpState, Show, TcpStates, UnixDiagResponse, UnixStates,
+        packet::PROTO_NAMES, Extensions, InetDiagResponse, PacketDiagResponse, PacketShow,
+        SctpState, SockState, SockStates, UnixDiagResponse, UnixShow,
     },
 };
 
@@ -219,7 +222,7 @@ bitflags! {
 }
 
 impl Proto {
-    pub fn count(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.bits.count_ones() as usize
     }
 }
@@ -509,6 +512,32 @@ impl SockDiag {
     }
 
     fn packet_show_netlink(&self) -> Result<(), Error> {
+        let (conn, handle) = sock_diag::new_connection()?;
+        let families = self.families;
+
+        let request = handle
+            .packet()
+            .list()
+            .with_show(
+                PacketShow::INFO
+                    | PacketShow::MEMINFO
+                    | PacketShow::FILTER
+                    | PacketShow::RING_CFG
+                    | PacketShow::FANOUT,
+            )
+            .execute()
+            .for_each(|res| {
+                if families.contains(res.family.into()) {
+                    println!("{}", PacketSockFmt::new(self, &res));
+                }
+
+                Ok(())
+            });
+
+        let mut core = Core::new()?;
+        core.handle().spawn(conn.map_err(|_| ()));
+        core.run(request)?;
+
         Ok(())
     }
 
@@ -521,10 +550,10 @@ impl SockDiag {
             .list()
             .with_states(self.states.into())
             .with_show({
-                let mut show = Show::NAME | Show::PEER | Show::RQLEN;
+                let mut show = UnixShow::NAME | UnixShow::PEER | UnixShow::RQLEN;
 
                 if self.show_mem {
-                    show |= Show::MEMINFO;
+                    show |= UnixShow::MEMINFO;
                 }
 
                 show
@@ -542,9 +571,9 @@ impl SockDiag {
                 Ok(())
             });
 
-        let mut core = Core::new().unwrap();
+        let mut core = Core::new()?;
         core.handle().spawn(conn.map_err(|_| ()));
-        core.run(request).unwrap();
+        core.run(request)?;
 
         Ok(())
     }
@@ -552,6 +581,7 @@ impl SockDiag {
     fn inet_show_netlink(&self, proto: u8) -> Result<(), Error> {
         let (conn, handle) = sock_diag::new_connection()?;
 
+        let families = self.families;
         let send_request = |family| {
             handle
                 .inet()
@@ -571,7 +601,9 @@ impl SockDiag {
                 })
                 .execute()
                 .for_each(|res| {
-                    println!("{}", InetSockFmt::new(self, &res, proto));
+                    if families.contains(res.family.into()) {
+                        println!("{}", InetSockFmt::new(self, &res, proto));
+                    }
 
                     Ok(())
                 })
@@ -605,12 +637,12 @@ struct Layout {
 
 impl Layout {
     fn new(sock_diag: &SockDiag) -> Self {
-        let netid_width = if sock_diag.protos.count() > 1 {
+        let netid_width = if sock_diag.protos.len() > 1 {
             Some(5)
         } else {
             None
         };
-        let state_width = if sock_diag.states.count() > 1 {
+        let state_width = if sock_diag.states.len() > 1 {
             Some(10)
         } else {
             None
@@ -695,6 +727,127 @@ impl<'a> fmt::Display for SockDiagHeader<'a> {
             addr_width = self.layout.addr_width,
             serv_width = self.layout.serv_width
         )
+    }
+}
+
+struct PacketSockFmt<'a> {
+    sock_diag: SockDiagFmt<'a>,
+    res: &'a PacketDiagResponse,
+}
+
+impl<'a> Deref for PacketSockFmt<'a> {
+    type Target = SockDiagFmt<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.sock_diag
+    }
+}
+
+impl<'a> PacketSockFmt<'a> {
+    fn new(sock_diag: &'a SockDiag, res: &'a PacketDiagResponse) -> Self {
+        PacketSockFmt {
+            sock_diag: SockDiagFmt::new(sock_diag),
+            res,
+        }
+    }
+}
+
+impl<'a> fmt::Display for PacketSockFmt<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        PacketStateFmt(self).fmt(f)?;
+
+        if self.show_details {
+            // TODO
+        }
+
+        Ok(())
+    }
+}
+
+struct PacketStateFmt<'a>(&'a PacketSockFmt<'a>);
+
+impl<'a> Deref for PacketStateFmt<'a> {
+    type Target = PacketSockFmt<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        self.0
+    }
+}
+
+impl<'a> fmt::Display for PacketStateFmt<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", PacketSockStateFmt(self),)
+    }
+}
+
+struct PacketSockStateFmt<'a>(&'a PacketStateFmt<'a>);
+
+impl<'a> Deref for PacketSockStateFmt<'a> {
+    type Target = PacketStateFmt<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        self.0
+    }
+}
+
+impl<'a> fmt::Display for PacketSockStateFmt<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if let Some(width) = self.layout.netid_width {
+            write!(
+                f,
+                "{:<width$} ",
+                if self.res.ty == SOCK_RAW as u8 {
+                    "p_raw"
+                } else {
+                    "p_dgr"
+                },
+                width = width
+            )?;
+        }
+
+        write!(f, "{:<6} {:<6} ", 0, 0)?;
+
+        let proto: Cow<str> = if self.res.proto as i32 == SOCK_RAW {
+            "*".into()
+        } else {
+            let proto = self.res.proto as i32;
+
+            PROTO_NAMES
+                .get(&proto)
+                .map(|s| (*s).into())
+                .unwrap_or_else(|| format!("[{}]", self.res.proto).into())
+        };
+
+        write!(f, "{:>width$}", proto, width = self.layout.addr_width)?;
+
+        let ifname: Cow<str> = self
+            .res
+            .info()
+            .map(|info| info.pdi_index)
+            .and_then(|ifindex| {
+                pnet_datalink::interfaces()
+                    .into_iter()
+                    .find(|intf| intf.index == ifindex)
+                    .map(|intf| intf.name.into())
+            })
+            .unwrap_or("*".into());
+
+        write!(f, ":{:<width$}", ifname, width = self.layout.serv_width)?;
+
+        write!(
+            f,
+            "{:>addr_width$}*{:<serv_width$}",
+            "",
+            "",
+            addr_width = self.layout.addr_width,
+            serv_width = self.layout.serv_width
+        )?;
+
+        if self.show_users {
+            // TODO
+        }
+
+        Ok(())
     }
 }
 
@@ -1045,122 +1198,6 @@ impl fmt::Display for ProtoName {
             _ => "???",
         }
         .fmt(f)
-    }
-}
-
-#[repr(u8)]
-#[allow(non_camel_case_types)]
-enum SockState {
-    SS_UNKNOWN,
-    SS_ESTABLISHED,
-    SS_SYN_SENT,
-    SS_SYN_RECV,
-    SS_FIN_WAIT1,
-    SS_FIN_WAIT2,
-    SS_TIME_WAIT,
-    SS_CLOSE,
-    SS_CLOSE_WAIT,
-    SS_LAST_ACK,
-    SS_LISTEN,
-    SS_CLOSING,
-}
-
-use SockState::*;
-
-bitflags! {
-    struct SockStates: u32 {
-        const UNKNOWN       = 1 << SS_UNKNOWN as u8;
-        const ESTABLISHED   = 1 << SS_ESTABLISHED as u8;
-        const SYN_SENT      = 1 << SS_SYN_SENT as u8;
-        const SYN_RECV      = 1 << SS_SYN_RECV as u8;
-        const FIN_WAIT1     = 1 << SS_FIN_WAIT1 as u8;
-        const FIN_WAIT2     = 1 << SS_FIN_WAIT2 as u8;
-        const TIME_WAIT     = 1 << SS_TIME_WAIT as u8;
-        const CLOSE         = 1 << SS_CLOSE as u8;
-        const CLOSE_WAIT    = 1 << SS_CLOSE_WAIT as u8;
-        const LAST_ACK      = 1 << SS_LAST_ACK as u8;
-        const LISTEN        = 1 << SS_LISTEN as u8;
-        const CLOSING       = 1 << SS_CLOSING as u8;
-    }
-}
-
-impl SockStates {
-    fn conn() -> Self {
-        let mut states = Self::all();
-        states.remove(Self::LISTEN | Self::CLOSE | Self::TIME_WAIT | Self::SYN_RECV);
-        states
-    }
-
-    fn count(&self) -> usize {
-        self.bits.count_ones() as usize
-    }
-
-    /// all the states except for `listening` and `closed`
-    pub fn connected() -> Self {
-        let mut states = Self::all();
-        states.remove(Self::LISTEN | Self::CLOSE);
-        states
-    }
-
-    /// all the connected states except for `syn-sent`
-    pub fn synchronized() -> Self {
-        let mut states = Self::connected();
-        states.remove(Self::SYN_SENT);
-        states
-    }
-
-    /// states, which are maintained as minisockets, i.e. `time-wait` and `syn-recv`
-    pub fn bucket() -> Self {
-        Self::SYN_RECV | Self::TIME_WAIT
-    }
-
-    /// opposite to bucket
-    pub fn big() -> Self {
-        let mut states = Self::all();
-        states.remove(Self::bucket());
-        states
-    }
-}
-
-impl FromStr for SockStates {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let states = match s {
-            "established" => Self::ESTABLISHED,
-            "syn-sent" => Self::SYN_SENT,
-            "syn-recv" | "syn-rcv" => Self::SYN_RECV,
-            "fin-wait-1" => Self::FIN_WAIT1,
-            "fin-wait-2" => Self::FIN_WAIT2,
-            "time-wait" => Self::TIME_WAIT,
-            "close" | "closed" => Self::CLOSE,
-            "close-wait" => Self::CLOSE_WAIT,
-            "last-ack" => Self::LAST_ACK,
-            "listening" | "listen" => Self::LISTEN,
-            "closing" => Self::CLOSING,
-
-            "all" => Self::all(),
-            "connected" => Self::connected(),
-            "synchronized" => Self::synchronized(),
-            "bucket" => Self::bucket(),
-            "big" => Self::big(),
-
-            _ => bail!("wrong state name {}", s),
-        };
-
-        Ok(states)
-    }
-}
-
-impl From<SockStates> for TcpStates {
-    fn from(states: SockStates) -> Self {
-        TcpStates::from_bits_truncate(states.bits)
-    }
-}
-
-impl From<SockStates> for UnixStates {
-    fn from(states: SockStates) -> Self {
-        UnixStates::from_bits_truncate(states.bits)
     }
 }
 

@@ -1,14 +1,39 @@
 use std::mem;
+use std::ptr::NonNull;
 
 use byteorder::{ByteOrder, NativeEndian};
 
-use crate::Field;
+use crate::{DecodeError, Field, Parseable};
 
-pub const SDIAG_FAMILY: usize = 0;
-pub const SDIAG_PROTOCOL: usize = 1;
+pub const REQ_FAMILY: usize = 0;
+pub const REQ_PROTOCOL: usize = 1;
 
 pub const fn array_of<T>(start: usize, len: usize) -> Field {
     start..(start + mem::size_of::<T>() * len)
+}
+
+pub trait CStruct: Sized {}
+
+impl<T: AsRef<[u8]>, S: CStruct> Parseable<S> for T {
+    fn parse(&self) -> Result<S, DecodeError> {
+        let data = self.as_ref();
+
+        if data.len() >= mem::size_of::<S>() {
+            Ok(unsafe {
+                NonNull::new_unchecked(data.as_ptr() as *mut u8)
+                    .cast::<S>()
+                    .as_ptr()
+                    .read()
+            })
+        } else {
+            Err(format!(
+                "buffer size is {}, whereas a buffer is at least {} long",
+                data.len(),
+                mem::size_of::<S>()
+            )
+            .into())
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -4,18 +4,18 @@ use failure::Error;
 use futures::Stream;
 
 use crate::packet::{
-    NetlinkMessage, NetlinkPayload, Show, SockDiagMessage, UnixDiagRequest, UnixDiagResponse,
-    UnixStates,
+    unix::{Request, Response, Show, States},
+    NetlinkMessage, NetlinkPayload, SockDiagMessage,
 };
 use crate::{ErrorKind, Handle};
 
 pub struct ListRequest {
     handle: Handle,
-    request: UnixDiagRequest,
+    request: Request,
 }
 
 impl Deref for ListRequest {
-    type Target = UnixDiagRequest;
+    type Target = Request;
 
     fn deref(&self) -> &Self::Target {
         &self.request
@@ -32,16 +32,16 @@ impl ListRequest {
     pub(crate) fn new(handle: Handle) -> Self {
         ListRequest {
             handle,
-            request: UnixDiagRequest::new(),
+            request: Request::new(),
         }
     }
 
-    pub fn with_states(mut self, states: UnixStates) -> Self {
+    pub fn with_states(mut self, states: States) -> Self {
         self.request.states.insert(states);
         self
     }
 
-    pub fn without_states(mut self, states: UnixStates) -> Self {
+    pub fn without_states(mut self, states: States) -> Self {
         self.request.states.remove(states);
         self
     }
@@ -52,7 +52,7 @@ impl ListRequest {
     }
 
     /// Execute the request
-    pub fn execute(self) -> impl Stream<Item = UnixDiagResponse, Error = Error> {
+    pub fn execute(self) -> impl Stream<Item = Response, Error = Error> {
         let ListRequest {
             mut handle,
             request,
@@ -64,7 +64,7 @@ impl ListRequest {
 
         handle.request(req).and_then(move |msg| {
             let (header, payload) = msg.into_parts();
-            if let NetlinkPayload::SockDiag(SockDiagMessage::UnixSocks(msg)) = payload {
+            if let NetlinkPayload::SockDiag(SockDiagMessage::UnixSock(msg)) = payload {
                 Ok(msg)
             } else {
                 Err(ErrorKind::UnexpectedMessage(NetlinkMessage::new(header, payload)).into())

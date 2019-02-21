@@ -21,6 +21,7 @@
 //! `/proc/net/tcp`, `/proc/net/udp`, and so on.
 //!
 pub mod inet;
+pub mod packet;
 pub mod sock;
 pub mod unix;
 
@@ -31,10 +32,15 @@ pub use self::inet::{
     inet, inet6, Attr as InetDiagAttr, Extension, Extensions, MemInfo, Request as InetDiagRequest,
     Response as InetDiagResponse, SctpState, TcpInfo, TcpState, TcpStates, Timer,
 };
-pub use self::sock::SkMemInfo;
+pub use self::packet::{
+    Attribute as PacketAttr, Fanout, Request as PacketDiagRequest, Response as PacketDiagResponse,
+    Show as PacketShow,
+};
+pub use self::sock::{SkMemInfo, State as SockState, States as SockStates};
 pub use self::unix::{
-    unix, Attr as UnixDiagAttr, Attribute, Request as UnixDiagRequest,
-    Response as UnixDiagResponse, RqLen as UnixRqLen, Show, UnixState, UnixStates, Vfs as UnixVfs,
+    unix, Attr as UnixDiagAttr, Attribute as UnixAttr, Request as UnixDiagRequest,
+    Response as UnixDiagResponse, RqLen as UnixRqLen, Show as UnixShow, State as UnixState,
+    States as UnixStates, Vfs as UnixVfs,
 };
 
 pub use self::buffer::Shutdown;

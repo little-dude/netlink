@@ -5,9 +5,9 @@ use netlink_sys::constants::AF_UNIX;
 use crate::sock_diag::{
     unix::{
         buffer::{Attr, RequestBuffer, ResponseBuffer},
-        RqLen, UnixState, UnixStates, Vfs,
+        Attribute, RqLen, Show, State, States, Vfs,
     },
-    Attribute, Show, Shutdown, SkMemInfo,
+    Shutdown, SkMemInfo,
 };
 use crate::{DecodeError, Emitable, Parseable, ParseableParametrized};
 
@@ -24,7 +24,7 @@ pub struct Request {
     ///
     /// Only those sockets whose states are in this mask will be reported.
     /// Ignored when querying for an individual socket.
-    pub states: UnixStates,
+    pub states: States,
     /// This is an inode number when querying for an individual socket.
     ///
     /// Ignored when querying for a list of sockets.
@@ -46,13 +46,26 @@ impl Request {
         Self::default()
     }
 
-    pub fn with_states(mut self, states: UnixStates) -> Self {
+    pub fn with_states(mut self, states: States) -> Self {
         self.states.insert(states);
         self
     }
 
-    pub fn without_states(mut self, states: UnixStates) -> Self {
+    pub fn without_states(mut self, states: States) -> Self {
         self.states.remove(states);
+        self
+    }
+
+    pub fn with_state(self, state: State) -> Self {
+        self.with_states(state.into())
+    }
+
+    pub fn without_state(self, state: State) -> Self {
+        self.without_states(state.into())
+    }
+
+    pub fn with_inode(mut self, inode: u32) -> Self {
+        self.inode = inode;
         self
     }
 
@@ -61,12 +74,9 @@ impl Request {
         self
     }
 
-    pub fn with_state(self, state: UnixState) -> Self {
-        self.with_states(state.into())
-    }
-
-    pub fn without_state(self, state: UnixState) -> Self {
-        self.without_states(state.into())
+    pub fn with_cookie(mut self, cookie: u64) -> Self {
+        self.cookie = Some(cookie);
+        self
     }
 }
 
@@ -75,7 +85,7 @@ impl Default for Request {
         Request {
             family: AF_UNIX as u8,
             protocol: 0,
-            states: UnixStates::all(),
+            states: States::all(),
             inode: 0,
             show: Show::NAME | Show::PEER,
             cookie: None,
@@ -110,11 +120,12 @@ pub struct Response {
     /// This is set to one of `SOCK_PACKET`, `SOCK_STREAM`, or `SOCK_SEQPACKET`.
     pub ty: u8,
     /// This is set to one of `LISTEN` or `ESTABLISHED`.
-    pub state: UnixState,
+    pub state: State,
     /// This is the socket inode number.
     pub inode: u32,
     /// This is an opaque identifiers that could be used in subsequent queries.
     pub cookie: Option<u64>,
+    /// socket attributes
     pub attrs: Vec<Attr>,
 }
 

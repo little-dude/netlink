@@ -161,6 +161,7 @@ pub struct Response {
     pub uid: u32,
     /// This is the socket inode number.
     pub inode: u32,
+    /// socket attributes
     pub attrs: Vec<Attr>,
 }
 

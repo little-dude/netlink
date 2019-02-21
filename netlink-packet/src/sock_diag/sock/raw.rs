@@ -3,6 +3,23 @@
 pub const SOCK_DIAG_BY_FAMILY: u16 = 20;
 pub const SOCK_DESTROY: u16 = 21;
 
+#[repr(u8)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum state {
+    SS_UNKNOWN,
+    SS_ESTABLISHED,
+    SS_SYN_SENT,
+    SS_SYN_RECV,
+    SS_FIN_WAIT1,
+    SS_FIN_WAIT2,
+    SS_TIME_WAIT,
+    SS_CLOSE,
+    SS_CLOSE_WAIT,
+    SS_LAST_ACK,
+    SS_LISTEN,
+    SS_CLOSING,
+}
+
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct sock_diag_req {

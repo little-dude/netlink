@@ -7,8 +7,8 @@ use structopt::StructOpt;
 
 use netlink_packet::{
     sock_diag::{
-        Extensions, InetDiagRequest, Show, SockDiagMessage, TcpStates, UnixDiagAttr,
-        UnixDiagRequest,
+        Extensions, InetDiagRequest, SockDiagMessage, TcpStates, UnixDiagAttr, UnixDiagRequest,
+        UnixShow,
     },
     Emitable, NetlinkBuffer, NetlinkMessage, NetlinkPayload, Parseable,
 };
@@ -87,7 +87,7 @@ fn main() {
 
     let mut req = UnixDiagRequest::default();
 
-    req.show |= Show::ICONS;
+    req.show |= UnixShow::ICONS;
 
     dump_connections(&socket, SockDiagMessage::UnixDiag(req));
 }
@@ -140,7 +140,7 @@ fn dump_connections(socket: &Socket, msg: SockDiagMessage) {
             trace!("<<< {:?}", rx_packet);
 
             match rx_packet.payload {
-                NetlinkPayload::SockDiag(SockDiagMessage::InetSocks(ref sock)) => {
+                NetlinkPayload::SockDiag(SockDiagMessage::InetSock(ref sock)) => {
                     let is_ipv6 = sock.family == libc::AF_INET6 as u8;
                     let bind_any = if is_ipv6 { "[::]:*" } else { "0.0.0.0:*" };
 
@@ -171,7 +171,7 @@ fn dump_connections(socket: &Socket, msg: SockDiagMessage) {
                         },
                     )
                 }
-                NetlinkPayload::SockDiag(SockDiagMessage::UnixSocks(ref sock)) => println!(
+                NetlinkPayload::SockDiag(SockDiagMessage::UnixSock(ref sock)) => println!(
                     "unix  {:<10} {:<12} {:<8} {}",
                     match sock.ty as i32 {
                         libc::SOCK_RAW => "RAW",

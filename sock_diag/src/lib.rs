@@ -20,6 +20,9 @@ pub use crate::inet::InetHandle;
 mod unix;
 pub use crate::unix::UnixHandle;
 
+mod pkt;
+pub use crate::pkt::PacketHandle;
+
 use std::io;
 
 pub fn new_connection() -> io::Result<(Connection, Handle)> {

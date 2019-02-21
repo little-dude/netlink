@@ -4,7 +4,7 @@ use failure::Error;
 use futures::Stream;
 
 use crate::packet::{
-    inet::{Extensions, Request, Response, TcpStates},
+    packet::{Request, Response, Show},
     NetlinkMessage, NetlinkPayload, SockDiagMessage,
 };
 use crate::{ErrorKind, Handle};
@@ -29,25 +29,15 @@ impl DerefMut for ListRequest {
 }
 
 impl ListRequest {
-    pub(crate) fn new(handle: Handle, family: u8, protocol: u8) -> Self {
+    pub(crate) fn new(handle: Handle) -> Self {
         ListRequest {
             handle,
-            request: Request::new(family, protocol),
+            request: Request::new(),
         }
     }
 
-    pub fn with_states(mut self, states: TcpStates) -> Self {
-        self.request.states.insert(states);
-        self
-    }
-
-    pub fn without_states(mut self, states: TcpStates) -> Self {
-        self.request.states.remove(states);
-        self
-    }
-
-    pub fn with_extensions(mut self, ext: Extensions) -> Self {
-        self.request.extensions.insert(ext);
+    pub fn with_show(mut self, show: Show) -> Self {
+        self.request.show.insert(show);
         self
     }
 
@@ -58,13 +48,13 @@ impl ListRequest {
             request,
         } = self;
 
-        let mut req = NetlinkMessage::from(SockDiagMessage::InetDiag(request));
+        let mut req = NetlinkMessage::from(SockDiagMessage::PacketDiag(request));
 
         req.header.flags.set_dump().set_request();
 
         handle.request(req).and_then(move |msg| {
             let (header, payload) = msg.into_parts();
-            if let NetlinkPayload::SockDiag(SockDiagMessage::InetSock(msg)) = payload {
+            if let NetlinkPayload::SockDiag(SockDiagMessage::PacketSock(msg)) = payload {
                 Ok(msg)
             } else {
                 Err(ErrorKind::UnexpectedMessage(NetlinkMessage::new(header, payload)).into())

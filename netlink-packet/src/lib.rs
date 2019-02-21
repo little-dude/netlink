@@ -119,6 +119,9 @@
 #[cfg(feature = "sock_diag")]
 #[macro_use] extern crate bitflags;
 
+#[cfg(feature = "sock_diag")]
+#[macro_use] extern crate lazy_static;
+
 pub use netlink_sys::constants;
 
 mod errors;
