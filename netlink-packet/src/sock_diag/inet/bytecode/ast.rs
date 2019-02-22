@@ -1,33 +1,33 @@
 use std::net::IpAddr;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Dir {
     Src,
     Dst,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UnaryOp {
     Not,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CompOp {
     Eq,
     Ge,
     Le,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LogicalOp {
     And,
     Or,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Expr {
     Auto,
-    Addr(Dir, IpAddr, Option<u8>, Option<u16>),
+    Addr(Dir, Option<IpAddr>, Option<u8>, Option<u16>),
     Port(Dir, CompOp, u16),
     IfIndex(u32),
     Mark(u32, Option<u32>),
@@ -94,7 +94,7 @@ mod display {
             match self {
                 Auto => "autobound".fmt(f),
                 Addr(dir, addr, prefix_len, port) => {
-                    let with_ipv6_addr_and_port = if let IpAddr::V6(_) = addr {
+                    let with_ipv6_addr_and_port = if let Some(IpAddr::V6(_)) = addr {
                         port.is_some()
                     } else {
                         false
@@ -105,15 +105,19 @@ mod display {
                         dir,
                         if prefix_len.is_some() { "net" } else { "host" }
                     )?;
-                    if with_ipv6_addr_and_port {
-                        "[".fmt(f)?;
-                    }
-                    addr.fmt(f)?;
-                    if let Some(prefix_len) = prefix_len {
-                        write!(f, "/{}", prefix_len)?;
-                    }
-                    if with_ipv6_addr_and_port {
-                        "]".fmt(f)?;
+                    if let Some(addr) = addr {
+                        if with_ipv6_addr_and_port {
+                            "[".fmt(f)?;
+                        }
+                        addr.fmt(f)?;
+                        if let Some(prefix_len) = prefix_len {
+                            write!(f, "/{}", prefix_len)?;
+                        }
+                        if with_ipv6_addr_and_port {
+                            "]".fmt(f)?;
+                        }
+                    } else {
+                        "*".fmt(f)?;
                     }
                     if let Some(port) = port {
                         write!(f, ":{}", port)

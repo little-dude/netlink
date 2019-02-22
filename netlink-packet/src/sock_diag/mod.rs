@@ -30,8 +30,9 @@ mod buffer;
 mod message;
 
 pub use self::inet::{
-    inet, inet6, Attr as InetDiagAttr, Extension, Extensions, MemInfo, Request as InetDiagRequest,
-    Response as InetDiagResponse, SctpState, TcpInfo, TcpState, TcpStates, Timer,
+    inet, inet6, Attr as InetDiagAttr, Expr, Extension, Extensions, MemInfo,
+    Request as InetDiagRequest, Response as InetDiagResponse, SctpState, TcpInfo, TcpState,
+    TcpStates, Timer,
 };
 pub use self::netlink::{
     Attr as NetlinkDiagAttr, Attribute as NetlinkAttr, Request as NetlinkDiagRequest,

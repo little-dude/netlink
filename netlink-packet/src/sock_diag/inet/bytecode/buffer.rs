@@ -17,14 +17,15 @@ use crate::{
 const BC_OP_CODE: usize = 0;
 const BC_OP_YES: usize = 1;
 const BC_OP_NO: Field = 2..4;
-const BC_OP_COND: Rest = BC_OP_NO.end..;
-pub const BC_OP_MIN_SIZE: usize = BC_OP_NO.end;
+const BC_OP_COND: Rest = 4..;
+pub const BC_OP_MIN_SIZE: usize = 4;
 
 const HOSTCOND_FAMILY: usize = 0;
 const HOSTCOND_PREFIX_LEN: usize = 1;
+const HOSTCOND_PADDING: Field = 2..4;
 const HOSTCOND_PORT: Field = 4..8;
-const HOSTCOND_ADDR: Rest = HOSTCOND_PORT.end..;
-pub const HOSTCOND_SIZE: usize = HOSTCOND_PORT.end;
+const HOSTCOND_ADDR: Rest = 8..;
+pub const HOSTCOND_MIN_SIZE: usize = 8;
 
 pub const IPV4_ADDR_LEN: usize = 4;
 pub const IPV6_ADDR_LEN: usize = 16;
@@ -228,9 +229,15 @@ impl<T: AsRef<[u8]>> HostCondBuffer<T> {
         let data = self.buf.as_ref();
         data[HOSTCOND_PREFIX_LEN]
     }
-    pub fn port(&self) -> u32 {
+    pub fn port(&self) -> Option<u16> {
         let data = self.buf.as_ref();
-        NativeEndian::read_u32(&data[HOSTCOND_PORT])
+        let port = NativeEndian::read_i32(&data[HOSTCOND_PORT]);
+
+        if port == -1 {
+            None
+        } else {
+            Some(port as u16)
+        }
     }
     pub fn addr(&self) -> Option<IpAddr> {
         let data = self.buf.as_ref();
@@ -261,9 +268,13 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> HostCondBuffer<T> {
         let data = self.buf.as_mut();
         data[HOSTCOND_PREFIX_LEN] = prefix_len;
     }
-    pub fn set_port(&mut self, port: u16) {
+    pub fn set_padding(&mut self, padding: u16) {
         let data = self.buf.as_mut();
-        NativeEndian::write_u32(&mut data[HOSTCOND_PORT], u32::from(port));
+        NativeEndian::write_u16(&mut data[HOSTCOND_PADDING], padding);
+    }
+    pub fn set_port(&mut self, port: Option<u16>) {
+        let data = self.buf.as_mut();
+        NativeEndian::write_i32(&mut data[HOSTCOND_PORT], port.map(i32::from).unwrap_or(-1))
     }
     pub fn set_addr(&mut self, addr: &IpAddr) {
         let data = self.buf.as_mut();

@@ -8,13 +8,14 @@ use failure::ResultExt;
 use try_from::TryFrom;
 
 use crate::sock_diag::{
-    buffer::{array_of, CStruct, RtaIterator, REQ_FAMILY, REQ_PROTOCOL},
+    buffer::{array_of, CStruct, RtaBuffer, RtaIterator, REQ_FAMILY, REQ_PROTOCOL, RTA_HDR_LEN},
+    inet::{bytecode::Expr, Attribute::*},
     Extension,
     Extension::*,
     MemInfo, SctpState, Shutdown, SkMemInfo, TcpInfo, TcpState,
     TcpState::*,
 };
-use crate::{DecodeError, Field, Parseable, ParseableParametrized, Rest};
+use crate::{DecodeError, Emitable, Field, Parseable, ParseableParametrized, Rest};
 
 const ID_SPORT: Field = 0..2;
 const ID_DPORT: Field = 2..4;
@@ -367,6 +368,15 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> RequestBuffer<T> {
     pub fn id_mut(&mut self) -> SocketIdBuffer<&mut [u8]> {
         let data = self.buffer.as_mut();
         SocketIdBuffer::new(&mut data[REQ_ID])
+    }
+
+    pub fn set_expr(&mut self, expr: &Expr) {
+        let data = self.buffer.as_mut();
+        let mut buf = RtaBuffer::new(&mut data[REQ_ATTRIBUTES]);
+
+        buf.set_len((RTA_HDR_LEN + expr.buffer_len()) as u16);
+        buf.set_ty(INET_DIAG_REQ_BYTECODE as u16);
+        expr.emit(buf.payload_mut())
     }
 }
 

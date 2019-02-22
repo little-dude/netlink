@@ -18,7 +18,7 @@ use std::path::PathBuf;
 use std::ptr::{self, NonNull};
 use std::str::FromStr;
 
-use failure::{bail, err_msg, Error};
+use failure::{bail, format_err, Error};
 use futures::{future, Future, IntoFuture, Stream};
 use libc::{
     IPPROTO_DCCP, IPPROTO_SCTP, IPPROTO_TCP, IPPROTO_UDP, SOCK_DGRAM, SOCK_RAW, SOCK_SEQPACKET,
@@ -31,7 +31,7 @@ use try_from::TryFrom;
 use sock_diag::{
     constants::*,
     packet::sock_diag::{
-        netlink, packet, Extensions, InetDiagResponse, NetlinkDiagResponse, NetlinkShow,
+        netlink, packet, Expr, Extensions, InetDiagResponse, NetlinkDiagResponse, NetlinkShow,
         PacketDiagResponse, PacketShow, SctpState, SockState::*, SockStates, UnixDiagResponse,
         UnixShow,
     },
@@ -418,6 +418,17 @@ impl Opt {
             }
         }
 
+        let expr = if !self.filter.is_empty() {
+            let filter = self.filter.join(" ");
+            let expr = filter.parse()?;
+
+            debug!("filter `{}` compiled to {:?}", filter, expr);
+
+            Some(expr)
+        } else {
+            None
+        };
+
         debug!(
             "filter protos: {:?}, family: {:?}, states: {:?}",
             protos, families, states
@@ -433,7 +444,7 @@ impl Opt {
             bail!("no socket states to show with such filter.")
         }
 
-        SockDiag::new(self, families, protos, states)
+        Ok(SockDiag::new(self, families, protos, states, expr))
     }
 }
 
@@ -487,6 +498,7 @@ struct SockDiag {
     families: Family,
     protos: Proto,
     states: SockStates,
+    expr: Option<Expr>,
 }
 
 impl Deref for SockDiag {
@@ -503,26 +515,28 @@ impl SockDiag {
         families: Family,
         protos: Proto,
         states: SockStates,
-    ) -> Result<Self, Error> {
-        Ok(Self {
+        expr: Option<Expr>,
+    ) -> Self {
+        SockDiag {
             opts,
             families,
             protos,
             states,
-        })
+            expr,
+        }
     }
 
     fn handle_request<F, R>(&self, callback: F) -> Result<(), Error>
     where
         F: FnOnce(Handle) -> R,
-        R: IntoFuture,
+        R: IntoFuture<Error = Error>,
     {
         let (conn, handle) = sock_diag::new_connection()?;
 
         let mut core = Core::new()?;
         core.handle().spawn(conn.map_err(|_| ()));
         core.run(future::lazy(|| callback(handle)))
-            .map_err(|_| err_msg("fail to handle request"))?;
+            .map_err(|err| format_err!("fail to handle request, {}", err))?;
 
         Ok(())
     }
@@ -610,6 +624,7 @@ impl SockDiag {
 
                     ext
                 })
+                .with_expr(self.expr.clone())
                 .execute()
                 .for_each(|res| {
                     if self.families.contains(res.family.into()) {

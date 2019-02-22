@@ -6,10 +6,10 @@ use crate::sock_diag::inet::{
         ast::{CompOp, Dir, Expr, Expr::*, LogicalOp, UnaryOp},
         buffer::*,
     },
-    raw::{byte_code::*, inet_diag_hostcond},
+    raw::byte_code::*,
 };
 use crate::{
-    constants::{AF_INET, AF_INET6},
+    constants::{AF_INET, AF_INET6, AF_UNSPEC},
     Emitable,
 };
 
@@ -22,11 +22,11 @@ impl Emitable for Expr {
             Port(..) => BC_OP_MIN_SIZE * 2,
             Addr(_, addr, _, _) => {
                 BC_OP_MIN_SIZE
-                    + mem::size_of::<inet_diag_hostcond>()
-                    + match addr {
+                    + HOSTCOND_MIN_SIZE
+                    + addr.map_or(0, |addr| match addr {
                         IpAddr::V4(_) => IPV4_ADDR_LEN,
                         IpAddr::V6(_) => IPV6_ADDR_LEN,
-                    }
+                    })
             }
             Unary(UnaryOp::Not, node) => node.buffer_len() + BC_OP_MIN_SIZE,
             Logical(lhs, LogicalOp::Or, rhs) => {
@@ -37,9 +37,15 @@ impl Emitable for Expr {
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        debug_assert!(buffer.len() >= self.buffer_len());
+        debug_assert!(
+            buffer.len() >= self.buffer_len(),
+            "buf size {} too small than code size {}",
+            buffer.len(),
+            self.buffer_len()
+        );
 
         let mut buf = ByteCodeBuffer::new(buffer);
+        let len = self.buffer_len();
 
         match self {
             Auto => {
@@ -77,17 +83,25 @@ impl Emitable for Expr {
                 let mut host_cond = buf.host_cond_mut();
 
                 match addr {
-                    IpAddr::V4(_) => {
+                    Some(IpAddr::V4(_)) => {
                         host_cond.set_family(AF_INET as u8);
                         host_cond.set_prefix_len(prefix_len.unwrap_or(IPV4_ADDR_LEN as u8 * 8));
                     }
-                    IpAddr::V6(_) => {
+                    Some(IpAddr::V6(_)) => {
                         host_cond.set_family(AF_INET6 as u8);
                         host_cond.set_prefix_len(prefix_len.unwrap_or(IPV6_ADDR_LEN as u8 * 8))
                     }
+                    None => {
+                        host_cond.set_family(AF_UNSPEC as u8);
+                        host_cond.set_prefix_len(0)
+                    }
                 }
-                host_cond.set_port(port.unwrap_or(u16::max_value()));
-                host_cond.set_addr(addr);
+                host_cond.set_padding(0);
+                host_cond.set_port(port.clone());
+
+                if let Some(addr) = addr {
+                    host_cond.set_addr(addr);
+                }
             }
             Unary(UnaryOp::Not, node) => {
                 let buffer = buf.into_inner();
@@ -97,6 +111,8 @@ impl Emitable for Expr {
                 node.emit(left);
 
                 ByteCodeBuffer::new(right).set_jump(BC_OP_MIN_SIZE as u16);
+
+                trace!("{:?} gen code: {:?}", self, &buffer[..len]);
 
                 return;
             }
@@ -111,6 +127,8 @@ impl Emitable for Expr {
 
                 ByteCodeBuffer::new(left).set_jump(rhs.buffer_len() as u16);
                 rhs.emit(right);
+
+                trace!("{:?} gen code: {:?}", self, &buffer[..len]);
 
                 return;
             }
@@ -145,14 +163,16 @@ impl Emitable for Expr {
                     buf = ByteCodeBuffer::new(buffer);
                 }
 
+                trace!("{:?} gen code: {:?}", self, &buffer[..len]);
+
                 return;
             }
         }
 
-        let len = self.buffer_len();
-
         buf.set_yes(len as u8);
         buf.set_no((len + BC_OP_MIN_SIZE) as u16);
+
+        trace!("{:?} gen code: {:?}", self, &buf[..len]);
     }
 }
 
@@ -247,10 +267,10 @@ mod tests {
 
     #[test]
     fn ipv4_addr() {
-        let addr = Addr(Src, Ipv4Addr::LOCALHOST.into(), None, Some(80));
+        let addr = Addr(Src, Some(Ipv4Addr::LOCALHOST.into()), None, Some(80));
         assert_eq!(
             addr.buffer_len(),
-            BC_OP_MIN_SIZE + HOSTCOND_SIZE + IPV4_ADDR_LEN
+            BC_OP_MIN_SIZE + HOSTCOND_MIN_SIZE + IPV4_ADDR_LEN
         );
 
         let buf = addr.emitted();
@@ -262,16 +282,16 @@ mod tests {
         let host = buf.host_cond();
         assert_eq!(host.family(), AF_INET as u8);
         assert_eq!(host.prefix_len(), 32);
-        assert_eq!(host.port(), 80);
+        assert_eq!(host.port(), Some(80));
         assert_eq!(host.addr(), Some(Ipv4Addr::LOCALHOST.into()));
     }
 
     #[test]
     fn ipv6_addr() {
-        let addr = Addr(Src, Ipv6Addr::LOCALHOST.into(), None, Some(443));
+        let addr = Addr(Src, Some(Ipv6Addr::LOCALHOST.into()), None, Some(443));
         assert_eq!(
             addr.buffer_len(),
-            BC_OP_MIN_SIZE + HOSTCOND_SIZE + IPV6_ADDR_LEN
+            BC_OP_MIN_SIZE + HOSTCOND_MIN_SIZE + IPV6_ADDR_LEN
         );
 
         let buf = addr.emitted();
@@ -283,7 +303,7 @@ mod tests {
         let host = buf.host_cond();
         assert_eq!(host.family(), AF_INET6 as u8);
         assert_eq!(host.prefix_len(), 128);
-        assert_eq!(host.port(), 443);
+        assert_eq!(host.port(), Some(443));
         assert_eq!(host.addr(), Some(Ipv6Addr::LOCALHOST.into()));
     }
 

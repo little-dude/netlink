@@ -4,7 +4,7 @@ use failure::Error;
 use futures::Stream;
 
 use crate::packet::{
-    inet::{Extensions, Request, Response, TcpStates},
+    inet::{Expr, Extensions, Request, Response, TcpStates},
     NetlinkMessage, NetlinkPayload, SockDiagMessage,
 };
 use crate::{ErrorKind, Handle};
@@ -48,6 +48,11 @@ impl List {
 
     pub fn with_extensions(mut self, ext: Extensions) -> Self {
         self.request.extensions.insert(ext);
+        self
+    }
+
+    pub fn with_expr(mut self, expr: Option<Expr>) -> Self {
+        self.request.expr = expr;
         self
     }
 

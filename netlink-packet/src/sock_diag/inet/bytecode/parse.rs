@@ -90,11 +90,11 @@ named!(addr<CompleteStr, Expr>, do_parse!(
         (
             dir.map_or_else(|| {
                 Logical(
-                    Box::new(Expr::Addr(Src, cidr.0, cidr.1, port)),
+                    Box::new(Expr::Addr(Src, Some(cidr.0), cidr.1, port)),
                     Or,
-                    Box::new(Expr::Addr(Dst, cidr.0, cidr.1, port)),
+                    Box::new(Expr::Addr(Dst, Some(cidr.0), cidr.1, port)),
                 )
-            }, |dir|Expr::Addr(dir, cidr.0, cidr.1, port))
+            }, |dir|Expr::Addr(dir, Some(cidr.0), cidr.1, port))
         )
     ));
 named!(addr_dir<CompleteStr, Option<Dir>>, alt_complete!(
@@ -157,10 +157,10 @@ named!(port<CompleteStr, Expr>, do_parse!(
     ));
 fn port_with_op(dir: Dir, op: Option<&str>, port: u16) -> Expr {
     match op.unwrap_or("==") {
-        "==" => Port(dir, Eq, port),
+        "==" => Addr(dir, None, None, Some(port)),
         ">=" => Port(dir, Ge, port),
         "<=" => Port(dir, Le, port),
-        "!=" => Unary(Not, Box::new(Port(dir, Eq, port))),
+        "!=" => Unary(Not, Box::new(Addr(dir, None, None, Some(port)))),
         ">" => Unary(Not, Box::new(Port(dir, Le, port))),
         "<" => Unary(Not, Box::new(Port(dir, Ge, port))),
         _ => unreachable!(),
@@ -276,14 +276,14 @@ mod tests {
                 Logical(
                     Box::new(Addr(
                         Src,
-                        Ipv4Addr::new(192, 168, 0, 0).into(),
+                        Some(Ipv4Addr::new(192, 168, 0, 0).into()),
                         Some(24),
                         None,
                     )),
                     Or,
                     Box::new(Addr(
                         Dst,
-                        Ipv4Addr::new(192, 168, 0, 0).into(),
+                        Some(Ipv4Addr::new(192, 168, 0, 0).into()),
                         Some(24),
                         None,
                     )),
@@ -291,25 +291,25 @@ mod tests {
             ),
             (
                 "saddr 127.0.0.1:8080",
-                Addr(Src, Ipv4Addr::LOCALHOST.into(), None, Some(8080)),
+                Addr(Src, Some(Ipv4Addr::LOCALHOST.into()), None, Some(8080)),
             ),
             (
                 "daddr ::ffff:0:0/96",
-                Addr(Dst, "::ffff:0:0".parse().unwrap(), Some(96), None),
+                Addr(Dst, Some("::ffff:0:0".parse().unwrap()), Some(96), None),
             ),
             (
                 "src host 127.0.0.1:8080",
-                Addr(Src, Ipv4Addr::LOCALHOST.into(), None, Some(8080)),
+                Addr(Src, Some(Ipv4Addr::LOCALHOST.into()), None, Some(8080)),
             ),
             (
                 "dst net ::ffff:0:0/96",
-                Addr(Dst, "::ffff:0:0".parse().unwrap(), Some(96), None),
+                Addr(Dst, Some("::ffff:0:0".parse().unwrap()), Some(96), None),
             ),
             (
                 "src host [2001:db8:85a3:8d3:1319:8a2e:370:7348]:443",
                 Addr(
                     Src,
-                    "2001:db8:85a3:8d3:1319:8a2e:370:7348".parse().unwrap(),
+                    Some("2001:db8:85a3:8d3:1319:8a2e:370:7348".parse().unwrap()),
                     None,
                     Some(443),
                 ),
@@ -330,12 +330,16 @@ mod tests {
             port(CompleteStr("port http")),
             Ok((
                 EMPTY,
-                Logical(Box::new(Port(Src, Eq, 80)), Or, Box::new(Port(Dst, Eq, 80)))
+                Logical(
+                    Box::new(Addr(Src, None, None, Some(80))),
+                    Or,
+                    Box::new(Addr(Dst, None, None, Some(80)))
+                )
             ))
         );
         assert_eq!(
             port(CompleteStr("sport == 80")),
-            Ok((EMPTY, Port(Src, Eq, 80)))
+            Ok((EMPTY, Addr(Src, None, None, Some(80))))
         );
         assert_eq!(
             port(CompleteStr("src port >= 443")),
@@ -347,7 +351,10 @@ mod tests {
         );
         assert_eq!(
             port(CompleteStr("sport != 443")),
-            Ok((EMPTY, Unary(Not, Box::new(Port(Src, Eq, 443)))))
+            Ok((
+                EMPTY,
+                Unary(Not, Box::new(Addr(Src, None, None, Some(443))))
+            ))
         );
         assert_eq!(
             port(CompleteStr("dport > 1000")),
@@ -362,51 +369,57 @@ mod tests {
     #[test]
     fn parse_expr() {
         for (s, node) in vec![
-            ("sport 80", Port(Src, Eq, 80)),
-            ("(dport http)", Port(Dst, Eq, 80)),
-            ("!(src port 80)", Unary(Not, Box::new(Port(Src, Eq, 80)))),
+            ("sport 80", Addr(Src, None, None, Some(80))),
+            ("(dport http)", Addr(Dst, None, None, Some(80))),
+            (
+                "!(src port 80)",
+                Unary(Not, Box::new(Addr(Src, None, None, Some(80)))),
+            ),
             (
                 "not dst port https",
-                Unary(Not, Box::new(Port(Dst, Eq, 443))),
+                Unary(Not, Box::new(Addr(Dst, None, None, Some(443)))),
             ),
-            ("not (src port 80)", Unary(Not, Box::new(Port(Src, Eq, 80)))),
+            (
+                "not (src port 80)",
+                Unary(Not, Box::new(Addr(Src, None, None, Some(80)))),
+            ),
             (
                 "(dport 80) && (dport 8080)",
                 Logical(
-                    Box::new(Port(Dst, Eq, 80)),
+                    Box::new(Addr(Dst, None, None, Some(80))),
                     And,
-                    Box::new(Port(Dst, Eq, 8080)),
+                    Box::new(Addr(Dst, None, None, Some(8080))),
                 ),
             ),
             (
                 "dport 80 and dport 8080",
                 Logical(
-                    Box::new(Port(Dst, Eq, 80)),
+                    Box::new(Addr(Dst, None, None, Some(80))),
                     And,
-                    Box::new(Port(Dst, Eq, 8080)),
+                    Box::new(Addr(Dst, None, None, Some(8080))),
                 ),
             ),
             (
                 "dport 80 || dport 8080 || dport 443",
                 Logical(
-                    Box::new(Port(Dst, Eq, 80)),
+                    Box::new(Addr(Dst, None, None, Some(80))),
                     Or,
                     Box::new(Logical(
-                        Box::new(Port(Dst, Eq, 8080)),
+                        Box::new(Addr(Dst, None, None, Some(8080))),
                         Or,
-                        Box::new(Port(Dst, Eq, 443)),
+                        Box::new(Addr(Dst, None, None, Some(443))),
                     )),
                 ),
             ),
             (
                 "daddr 127.0.0.1 and (dport 80 or dport 8080)",
                 Logical(
-                    Box::new(Addr(Dst, Ipv4Addr::LOCALHOST.into(), None, None)),
+                    Box::new(Addr(Dst, Some(Ipv4Addr::LOCALHOST.into()), None, None)),
                     And,
                     Box::new(Logical(
-                        Box::new(Port(Dst, Eq, 80)),
+                        Box::new(Addr(Dst, None, None, Some(80))),
                         Or,
-                        Box::new(Port(Dst, Eq, 8080)),
+                        Box::new(Addr(Dst, None, None, Some(8080))),
                     )),
                 ),
             ),
@@ -416,18 +429,23 @@ mod tests {
                     Box::new(Logical(
                         Box::new(Addr(
                             Src,
-                            Ipv4Addr::new(127, 0, 0, 0).into(),
+                            Some(Ipv4Addr::new(127, 0, 0, 0).into()),
                             Some(24),
                             None,
                         )),
                         Or,
-                        Box::new(Addr(Src, Ipv4Addr::new(10, 0, 0, 0).into(), Some(8), None)),
+                        Box::new(Addr(
+                            Src,
+                            Some(Ipv4Addr::new(10, 0, 0, 0).into()),
+                            Some(8),
+                            None,
+                        )),
                     )),
                     And,
                     Box::new(Logical(
-                        Box::new(Port(Src, Eq, 80)),
+                        Box::new(Addr(Src, None, None, Some(80))),
                         Or,
-                        Box::new(Port(Src, Eq, 8080)),
+                        Box::new(Addr(Src, None, None, Some(8080))),
                     )),
                 ),
             ),

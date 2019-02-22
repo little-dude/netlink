@@ -17,14 +17,14 @@ pub struct packet_diag_req {
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum show {
     /// Basic packet_sk information
-    PACKET_SHOW_INFO = 0x00000001,
+    PACKET_SHOW_INFO = 0x0000_0001,
     /// A set of packet_diag_mclist-s
-    PACKET_SHOW_MCLIST = 0x00000002,
+    PACKET_SHOW_MCLIST = 0x0000_0002,
     /// Rings configuration parameters
-    PACKET_SHOW_RING_CFG = 0x00000004,
-    PACKET_SHOW_FANOUT = 0x00000008,
-    PACKET_SHOW_MEMINFO = 0x00000010,
-    PACKET_SHOW_FILTER = 0x00000020,
+    PACKET_SHOW_RING_CFG = 0x0000_0004,
+    PACKET_SHOW_FANOUT = 0x0000_0008,
+    PACKET_SHOW_MEMINFO = 0x0000_0010,
+    PACKET_SHOW_FILTER = 0x0000_0020,
 }
 
 #[repr(C)]

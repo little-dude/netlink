@@ -5,7 +5,11 @@ use std::time::Duration;
 use netlink_sys::constants::{AF_INET, AF_INET6};
 
 use crate::sock_diag::{
-    inet::buffer::{Attr, RequestBuffer, ResponseBuffer},
+    buffer::RTA_HDR_LEN,
+    inet::{
+        buffer::{Attr, RequestBuffer, ResponseBuffer},
+        bytecode::Expr,
+    },
     Extension, Extensions, MemInfo, Shutdown, SkMemInfo, TcpInfo, TcpState, TcpStates, Timer,
 };
 use crate::{DecodeError, Emitable, Parseable, ParseableParametrized};
@@ -46,6 +50,8 @@ pub struct Request {
     ///
     /// Unlike UNIX domain sockets, IPv4 and IPv6 sockets are identified using addresses and ports.
     pub id: SockId,
+    /// This is a compiled filter expression.
+    pub expr: Option<Expr>,
 }
 
 pub fn inet(protocol: u8) -> Request {
@@ -78,6 +84,7 @@ impl Request {
             extensions: Extensions::empty(),
             states: TcpStates::all(),
             id: SockId::default(),
+            expr: None,
         }
     }
 
@@ -107,11 +114,21 @@ impl Request {
     pub fn with_extension(self, ext: Extension) -> Self {
         self.with_extensions(ext.into())
     }
+
+    pub fn with_expr(mut self, expr: Option<Expr>) -> Self {
+        self.expr = expr;
+        self
+    }
 }
 
 impl Emitable for Request {
     fn buffer_len(&self) -> usize {
         RequestBuffer::<()>::len()
+            + self
+                .expr
+                .as_ref()
+                .map(|expr| RTA_HDR_LEN + expr.buffer_len())
+                .unwrap_or_default()
     }
 
     fn emit(&self, buf: &mut [u8]) {
@@ -132,6 +149,10 @@ impl Emitable for Request {
         }
         id.set_interface(self.id.interface);
         id.set_cookie(self.id.cookie);
+
+        if let Some(ref expr) = self.expr {
+            req.set_expr(expr);
+        }
     }
 }
 
