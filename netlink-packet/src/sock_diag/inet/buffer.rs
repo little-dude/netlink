@@ -548,46 +548,50 @@ pub enum Attr {
     /// The class ID of the socket.
     ClassId(u32),
     /// other attribute
-    Other(Extension, Vec<u8>),
+    Other(u16, Vec<u8>),
 }
 
-impl<T: AsRef<[u8]>> ParseableParametrized<Attr, Extension> for T {
-    fn parse_with_param(&self, ty: Extension) -> Result<Attr, DecodeError> {
+impl<T: AsRef<[u8]>> ParseableParametrized<Attr, u16> for T {
+    fn parse_with_param(&self, ty: u16) -> Result<Attr, DecodeError> {
         use Extension::*;
 
         let payload = self.as_ref();
 
-        Ok(match ty {
-            INET_DIAG_MEMINFO if payload.len() >= mem::size_of::<MemInfo>() => {
-                Attr::MemInfo(payload.parse()?)
-            }
-            INET_DIAG_INFO if payload.len() >= mem::size_of::<TcpInfo>() => {
-                Attr::Info(Box::new(payload.parse()?))
-            }
-            INET_DIAG_CONG if !payload.is_empty() => Attr::Conf(
-                CStr::from_bytes_with_nul(payload)
-                    .context("invalid name")?
-                    .to_str()
-                    .context("invalid name")?
-                    .to_owned(),
-            ),
-            INET_DIAG_TOS if !payload.is_empty() => Attr::Tos(payload[0]),
-            INET_DIAG_TCLASS if !payload.is_empty() => Attr::TClass(payload[0]),
-            INET_DIAG_SKMEMINFO if payload.len() >= mem::size_of::<SkMemInfo>() => {
-                Attr::SkMemInfo(payload.parse()?)
-            }
-            INET_DIAG_SHUTDOWN if !payload.is_empty() => {
-                Attr::Shutdown(Shutdown::from_bits_truncate(payload[0]))
-            }
-            INET_DIAG_PROTOCOL if !payload.is_empty() => Attr::Protocol(payload[0]),
-            INET_DIAG_SKV6ONLY if !payload.is_empty() => Attr::SkV6Only(payload[0] != 0),
-            INET_DIAG_MARK if payload.len() >= mem::size_of::<u32>() => {
-                Attr::Mark(NativeEndian::read_u32(payload))
-            }
-            INET_DIAG_CLASS_ID if payload.len() >= mem::size_of::<u32>() => {
-                Attr::ClassId(NativeEndian::read_u32(payload))
-            }
-            _ => Attr::Other(ty, payload.to_vec()),
-        })
+        Extension::try_from(ty)
+            .and_then(|attr| {
+                Ok(match attr {
+                    INET_DIAG_MEMINFO if payload.len() >= mem::size_of::<MemInfo>() => {
+                        Attr::MemInfo(payload.parse()?)
+                    }
+                    INET_DIAG_INFO if payload.len() >= mem::size_of::<TcpInfo>() => {
+                        Attr::Info(Box::new(payload.parse()?))
+                    }
+                    INET_DIAG_CONG if !payload.is_empty() => Attr::Conf(
+                        CStr::from_bytes_with_nul(payload)
+                            .context("invalid name")?
+                            .to_str()
+                            .context("invalid name")?
+                            .to_owned(),
+                    ),
+                    INET_DIAG_TOS if !payload.is_empty() => Attr::Tos(payload[0]),
+                    INET_DIAG_TCLASS if !payload.is_empty() => Attr::TClass(payload[0]),
+                    INET_DIAG_SKMEMINFO if payload.len() >= mem::size_of::<SkMemInfo>() => {
+                        Attr::SkMemInfo(payload.parse()?)
+                    }
+                    INET_DIAG_SHUTDOWN if !payload.is_empty() => {
+                        Attr::Shutdown(Shutdown::from_bits_truncate(payload[0]))
+                    }
+                    INET_DIAG_PROTOCOL if !payload.is_empty() => Attr::Protocol(payload[0]),
+                    INET_DIAG_SKV6ONLY if !payload.is_empty() => Attr::SkV6Only(payload[0] != 0),
+                    INET_DIAG_MARK if payload.len() >= mem::size_of::<u32>() => {
+                        Attr::Mark(NativeEndian::read_u32(payload))
+                    }
+                    INET_DIAG_CLASS_ID if payload.len() >= mem::size_of::<u32>() => {
+                        Attr::ClassId(NativeEndian::read_u32(payload))
+                    }
+                    _ => Attr::Other(ty, payload.to_vec()),
+                })
+            })
+            .or_else(|_| Ok(Attr::Other(ty, payload.to_vec())))
     }
 }

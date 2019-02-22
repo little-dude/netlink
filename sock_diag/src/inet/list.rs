@@ -9,12 +9,12 @@ use crate::packet::{
 };
 use crate::{ErrorKind, Handle};
 
-pub struct ListRequest {
+pub struct List {
     handle: Handle,
     request: Request,
 }
 
-impl Deref for ListRequest {
+impl Deref for List {
     type Target = Request;
 
     fn deref(&self) -> &Self::Target {
@@ -22,15 +22,15 @@ impl Deref for ListRequest {
     }
 }
 
-impl DerefMut for ListRequest {
+impl DerefMut for List {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.request
     }
 }
 
-impl ListRequest {
+impl List {
     pub(crate) fn new(handle: Handle, family: u8, protocol: u8) -> Self {
-        ListRequest {
+        List {
             handle,
             request: Request::new(family, protocol),
         }
@@ -53,7 +53,7 @@ impl ListRequest {
 
     /// Execute the request
     pub fn execute(self) -> impl Stream<Item = Response, Error = Error> {
-        let ListRequest {
+        let List {
             mut handle,
             request,
         } = self;

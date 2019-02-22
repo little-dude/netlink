@@ -165,7 +165,7 @@ fn dump_connections(socket: &Socket, msg: SockDiagMessage) {
                             bind_any.to_owned()
                         },
                         if protocol == libc::IPPROTO_TCP {
-                            format!("{:?}", sock.state).split_off("TCP_".len())
+                            format!("{:?}", sock.state)
                         } else {
                             String::new()
                         },

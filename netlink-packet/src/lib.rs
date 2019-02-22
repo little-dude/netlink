@@ -119,7 +119,7 @@
 #[cfg(feature = "sock_diag")]
 #[macro_use] extern crate bitflags;
 
-#[cfg(feature = "sock_diag")]
+#[cfg(any(test, feature = "sock_diag"))]
 #[macro_use] extern crate lazy_static;
 
 pub use netlink_sys::constants;
@@ -159,5 +159,3 @@ pub use self::netlink::*;
 // FIXME: should we expose these traits or only keep them for internal use?
 mod traits;
 pub use self::traits::*;
-
-#[cfg(test)] #[macro_use] extern crate lazy_static;

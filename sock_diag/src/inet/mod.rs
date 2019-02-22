@@ -2,4 +2,4 @@ mod handle;
 pub use self::handle::InetHandle;
 
 mod list;
-pub use self::list::ListRequest;
+pub use self::list::List;

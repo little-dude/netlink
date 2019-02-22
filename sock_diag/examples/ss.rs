@@ -7,16 +7,19 @@ extern crate lazy_static;
 
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::env;
 use std::ffi::CStr;
 use std::fmt;
+use std::fs;
 use std::mem;
 use std::net::SocketAddr;
 use std::ops::Deref;
+use std::path::PathBuf;
 use std::ptr::{self, NonNull};
 use std::str::FromStr;
 
-use failure::{bail, Error};
-use futures::{future, Future, Stream};
+use failure::{bail, err_msg, Error};
+use futures::{future, Future, IntoFuture, Stream};
 use libc::{
     IPPROTO_DCCP, IPPROTO_SCTP, IPPROTO_TCP, IPPROTO_UDP, SOCK_DGRAM, SOCK_RAW, SOCK_SEQPACKET,
     SOCK_STREAM,
@@ -28,9 +31,11 @@ use try_from::TryFrom;
 use sock_diag::{
     constants::*,
     packet::sock_diag::{
-        packet::PROTO_NAMES, Extensions, InetDiagResponse, PacketDiagResponse, PacketShow,
-        SctpState, SockState, SockStates, UnixDiagResponse, UnixShow,
+        netlink, packet, Extensions, InetDiagResponse, NetlinkDiagResponse, NetlinkShow,
+        PacketDiagResponse, PacketShow, SctpState, SockState::*, SockStates, UnixDiagResponse,
+        UnixShow,
     },
+    Handle,
 };
 
 #[derive(Debug, StructOpt)]
@@ -507,82 +512,88 @@ impl SockDiag {
         })
     }
 
-    fn netlink_show_netlink(&self) -> Result<(), Error> {
+    fn handle_request<F, R>(&self, callback: F) -> Result<(), Error>
+    where
+        F: FnOnce(Handle) -> R,
+        R: IntoFuture,
+    {
+        let (conn, handle) = sock_diag::new_connection()?;
+
+        let mut core = Core::new()?;
+        core.handle().spawn(conn.map_err(|_| ()));
+        core.run(future::lazy(|| callback(handle)))
+            .map_err(|_| err_msg("fail to handle request"))?;
+
         Ok(())
+    }
+
+    fn netlink_show_netlink(&self) -> Result<(), Error> {
+        self.handle_request(|handle| {
+            handle
+                .netlink()
+                .list()
+                .with_show(NetlinkShow::GROUPS | NetlinkShow::MEMINFO)
+                .execute()
+                .for_each(|res| {
+                    println!("{}", NetlinkSockFmt::new(self, &res));
+
+                    Ok(())
+                })
+        })
     }
 
     fn packet_show_netlink(&self) -> Result<(), Error> {
-        let (conn, handle) = sock_diag::new_connection()?;
-        let families = self.families;
-
-        let request = handle
-            .packet()
-            .list()
-            .with_show(
-                PacketShow::INFO
-                    | PacketShow::MEMINFO
-                    | PacketShow::FILTER
-                    | PacketShow::RING_CFG
-                    | PacketShow::FANOUT,
-            )
-            .execute()
-            .for_each(|res| {
-                if families.contains(res.family.into()) {
+        self.handle_request(|handle| {
+            handle
+                .packet()
+                .list()
+                .with_show(
+                    PacketShow::INFO
+                        | PacketShow::MEMINFO
+                        | PacketShow::FILTER
+                        | PacketShow::RING_CFG
+                        | PacketShow::FANOUT,
+                )
+                .execute()
+                .for_each(|res| {
                     println!("{}", PacketSockFmt::new(self, &res));
-                }
 
-                Ok(())
-            });
-
-        let mut core = Core::new()?;
-        core.handle().spawn(conn.map_err(|_| ()));
-        core.run(request)?;
-
-        Ok(())
+                    Ok(())
+                })
+        })
     }
 
     fn unix_show_netlink(&self) -> Result<(), Error> {
-        let (conn, handle) = sock_diag::new_connection()?;
-        let families = self.families;
+        self.handle_request(|handle| {
+            handle
+                .unix()
+                .list()
+                .with_states(self.states.into())
+                .with_show({
+                    let mut show = UnixShow::NAME | UnixShow::PEER | UnixShow::RQLEN;
 
-        let request = handle
-            .unix()
-            .list()
-            .with_states(self.states.into())
-            .with_show({
-                let mut show = UnixShow::NAME | UnixShow::PEER | UnixShow::RQLEN;
+                    if self.show_mem {
+                        show |= UnixShow::MEMINFO;
+                    }
 
-                if self.show_mem {
-                    show |= UnixShow::MEMINFO;
-                }
-
-                show
-            })
-            .execute()
-            .for_each(|res| {
-                if families.contains(res.family.into())
-                    && ((res.ty == SOCK_STREAM as u8 && self.protos.contains(Proto::UNIX_ST))
+                    show
+                })
+                .execute()
+                .for_each(|res| {
+                    if (res.ty == SOCK_STREAM as u8 && self.protos.contains(Proto::UNIX_ST))
                         | (res.ty == SOCK_DGRAM as u8 && self.protos.contains(Proto::UNIX_DG))
-                        | (res.ty == SOCK_SEQPACKET as u8 && self.protos.contains(Proto::UNIX_SQ)))
-                {
-                    println!("{}", UnixSockFmt::new(self, &res));
-                }
+                        | (res.ty == SOCK_SEQPACKET as u8 && self.protos.contains(Proto::UNIX_SQ))
+                    {
+                        println!("{}", UnixSockFmt::new(self, &res));
+                    }
 
-                Ok(())
-            });
-
-        let mut core = Core::new()?;
-        core.handle().spawn(conn.map_err(|_| ()));
-        core.run(request)?;
-
-        Ok(())
+                    Ok(())
+                })
+        })
     }
 
     fn inet_show_netlink(&self, proto: u8) -> Result<(), Error> {
-        let (conn, handle) = sock_diag::new_connection()?;
-
-        let families = self.families;
-        let send_request = |family| {
+        let send_request = |handle: Handle, family| {
             handle
                 .inet()
                 .list(family, proto)
@@ -601,7 +612,7 @@ impl SockDiag {
                 })
                 .execute()
                 .for_each(|res| {
-                    if families.contains(res.family.into()) {
+                    if self.families.contains(res.family.into()) {
                         println!("{}", InetSockFmt::new(self, &res, proto));
                     }
 
@@ -609,14 +620,11 @@ impl SockDiag {
                 })
         };
 
-        let mut core = Core::new()?;
-        core.handle().spawn(conn.map_err(|_| ()));
-
         if self.families.contains(Family::INET) {
-            core.run(future::lazy(|| send_request(AF_INET as u8)))?;
+            self.handle_request(|handle| send_request(handle, AF_INET as u8))?;
         }
         if self.families.contains(Family::INET6) {
-            core.run(future::lazy(|| send_request(AF_INET6 as u8)))?;
+            self.handle_request(|handle| send_request(handle, AF_INET6 as u8))?;
         }
 
         Ok(())
@@ -647,9 +655,9 @@ impl Layout {
         } else {
             None
         };
-        let serv_width = if sock_diag.resolve_services() { 7 } else { 5 };
         let screen_width = term_size::dimensions().map_or(80, |(w, _)| w);
-        let addr_width = screen_width
+        let mut serv_width = if sock_diag.resolve_services() { 7 } else { 5 };
+        let mut addr_width = screen_width
             .checked_sub(netid_width.map(|w| w + 1).unwrap_or_default())
             .and_then(|w| w.checked_sub(state_width.map(|w| w + 1).unwrap_or_default()))
             .and_then(|w| w.checked_sub(14))
@@ -658,6 +666,9 @@ impl Layout {
             .unwrap_or_default()
             .max(15 + serv_width + 1)
             - (serv_width + 1);
+
+        addr_width -= 13;
+        serv_width += 13;
 
         Layout {
             netid_width,
@@ -730,6 +741,130 @@ impl<'a> fmt::Display for SockDiagHeader<'a> {
     }
 }
 
+struct NetlinkSockFmt<'a> {
+    sock_diag: SockDiagFmt<'a>,
+    res: &'a NetlinkDiagResponse,
+}
+
+impl<'a> Deref for NetlinkSockFmt<'a> {
+    type Target = SockDiagFmt<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.sock_diag
+    }
+}
+
+impl<'a> NetlinkSockFmt<'a> {
+    fn new(sock_diag: &'a SockDiag, res: &'a NetlinkDiagResponse) -> Self {
+        NetlinkSockFmt {
+            sock_diag: SockDiagFmt::new(sock_diag),
+            res,
+        }
+    }
+}
+
+impl<'a> fmt::Display for NetlinkSockFmt<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if let Some(width) = self.layout.netid_width {
+            write!(f, "{:<width$} ", "nl", width = width)?;
+        }
+        if let Some(width) = self.layout.state_width {
+            write!(
+                f,
+                "{:<width$} ",
+                SockStateName(SS_CLOSE as u8),
+                width = width
+            )?;
+        }
+
+        let (rq, sq) = self
+            .res
+            .meminfo()
+            .map(|info| (info.rmem_alloc, info.wmem_alloc))
+            .unwrap_or_default();
+
+        write!(f, "{:<6} {:<6} ", rq, sq)?;
+
+        let proto = self.res.proto as isize;
+        let proto_name: Cow<str> = if self.resolve_services() {
+            netlink::PROTO_NAMES.get(&proto).map(|s| (*s).into()).into()
+        } else {
+            None
+        }
+        .unwrap_or_else(|| format!("{}", self.res.proto).into());
+
+        let pid = self.res.portid;
+        let proc_name: Cow<str> = if pid == -1 {
+            "*".into()
+        } else if pid == 0 {
+            "kernel".into()
+        } else if pid > 0 {
+            let mut path = PathBuf::from(env::var_os("PROC_ROOT").unwrap_or("/proc".into()));
+
+            path.push(format!("{}", pid));
+            path.push("stat");
+
+            format!(
+                "{}/{}",
+                fs::read_to_string(&path)
+                    .map_err(|err| {
+                        warn!("fail to read {:?}, {}", path, err);
+
+                        fmt::Error
+                    })?
+                    .split(' ')
+                    .skip(1)
+                    .next()
+                    .unwrap()
+                    .trim_start_matches('(')
+                    .trim_end_matches(')'),
+                pid
+            )
+            .into()
+        } else {
+            format!("{}", pid).into()
+        };
+
+        let addr_width = self.layout.addr_width;
+        let serv_width = self.layout.serv_width;
+
+        write!(
+            f,
+            "{:>addr_width$}:{:<serv_width$}",
+            proto_name,
+            proc_name,
+            addr_width = addr_width,
+            serv_width = serv_width
+        )?;
+
+        if self.res.state == NETLINK_CONNECTED as u8 {
+            write!(
+                f,
+                "{:>addr_width$}:{:<serv_width$}",
+                self.res.dst_group,
+                self.res.dst_portid,
+                addr_width = addr_width,
+                serv_width = serv_width
+            )?;
+        } else {
+            write!(
+                f,
+                "{:>addr_width$}*{:<serv_width$}",
+                "",
+                "",
+                addr_width = addr_width,
+                serv_width = serv_width
+            )?;
+        }
+
+        if self.show_details {
+            // TODO
+        }
+
+        Ok(())
+    }
+}
+
 struct PacketSockFmt<'a> {
     sock_diag: SockDiagFmt<'a>,
     res: &'a PacketDiagResponse,
@@ -755,6 +890,54 @@ impl<'a> PacketSockFmt<'a> {
 impl<'a> fmt::Display for PacketSockFmt<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         PacketStateFmt(self).fmt(f)?;
+
+        let (rq, sq) = self
+            .res
+            .meminfo()
+            .map(|info| (info.rmem_alloc, info.wmem_alloc))
+            .unwrap_or_default();
+
+        write!(f, "{:<6} {:<6} ", rq, sq)?;
+
+        let proto: Cow<str> = if self.res.proto as i32 == SOCK_RAW {
+            "*".into()
+        } else {
+            let proto = self.res.proto as i32;
+
+            packet::PROTO_NAMES
+                .get(&proto)
+                .map(|s| (*s).into())
+                .unwrap_or_else(|| format!("[{}]", self.res.proto).into())
+        };
+
+        write!(f, "{:>width$}", proto, width = self.layout.addr_width)?;
+
+        let ifname: Cow<str> = self
+            .res
+            .info()
+            .map(|info| info.pdi_index)
+            .and_then(|ifindex| {
+                pnet_datalink::interfaces()
+                    .into_iter()
+                    .find(|intf| intf.index == ifindex)
+                    .map(|intf| intf.name.into())
+            })
+            .unwrap_or("*".into());
+
+        write!(f, ":{:<width$}", ifname, width = self.layout.serv_width)?;
+
+        write!(
+            f,
+            "{:>addr_width$}*{:<serv_width$}",
+            "",
+            "",
+            addr_width = self.layout.addr_width,
+            serv_width = self.layout.serv_width
+        )?;
+
+        if self.show_users {
+            // TODO
+        }
 
         if self.show_details {
             // TODO
@@ -804,47 +987,13 @@ impl<'a> fmt::Display for PacketSockStateFmt<'a> {
                 width = width
             )?;
         }
-
-        write!(f, "{:<6} {:<6} ", 0, 0)?;
-
-        let proto: Cow<str> = if self.res.proto as i32 == SOCK_RAW {
-            "*".into()
-        } else {
-            let proto = self.res.proto as i32;
-
-            PROTO_NAMES
-                .get(&proto)
-                .map(|s| (*s).into())
-                .unwrap_or_else(|| format!("[{}]", self.res.proto).into())
-        };
-
-        write!(f, "{:>width$}", proto, width = self.layout.addr_width)?;
-
-        let ifname: Cow<str> = self
-            .res
-            .info()
-            .map(|info| info.pdi_index)
-            .and_then(|ifindex| {
-                pnet_datalink::interfaces()
-                    .into_iter()
-                    .find(|intf| intf.index == ifindex)
-                    .map(|intf| intf.name.into())
-            })
-            .unwrap_or("*".into());
-
-        write!(f, ":{:<width$}", ifname, width = self.layout.serv_width)?;
-
-        write!(
-            f,
-            "{:>addr_width$}*{:<serv_width$}",
-            "",
-            "",
-            addr_width = self.layout.addr_width,
-            serv_width = self.layout.serv_width
-        )?;
-
-        if self.show_users {
-            // TODO
+        if let Some(width) = self.layout.state_width {
+            write!(
+                f,
+                "{:<width$} ",
+                SockStateName(SS_CLOSE as u8),
+                width = width
+            )?;
         }
 
         Ok(())
@@ -924,7 +1073,14 @@ impl<'a> Deref for UnixSockStateFmt<'a> {
 impl<'a> fmt::Display for UnixSockStateFmt<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(width) = self.layout.netid_width {
-            write!(f, "{:<width$} ", UnixTypeName(self.res.ty), width = width)?;
+            let tyname = match self.res.ty as i32 {
+                SOCK_STREAM => "u_str",
+                SOCK_SEQPACKET => "u_seq",
+                SOCK_DGRAM => "u_dgr",
+                _ => "???",
+            };
+
+            write!(f, "{:<width$} ", tyname, width = width)?;
         }
 
         if let Some(width) = self.layout.state_width {
@@ -937,20 +1093,6 @@ impl<'a> fmt::Display for UnixSockStateFmt<'a> {
         }
 
         write!(f, "{:<6} {:<6} ", 0, 0)
-    }
-}
-
-struct UnixTypeName(u8);
-
-impl fmt::Display for UnixTypeName {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.0 as i32 {
-            SOCK_STREAM => "u_str",
-            SOCK_SEQPACKET => "u_seq",
-            SOCK_DGRAM => "u_dgr",
-            _ => "???",
-        }
-        .fmt(f)
     }
 }
 
@@ -1205,8 +1347,6 @@ struct SockStateName(u8);
 
 impl fmt::Display for SockStateName {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use SockState::*;
-
         match unsafe { mem::transmute(self.0) } {
             SS_UNKNOWN => "UNKNOWN",
             SS_ESTABLISHED => "ESTAB",

@@ -3,7 +3,7 @@ use futures::Stream;
 use netlink_proto::{ConnectionHandle, SocketAddr};
 
 use crate::packet::NetlinkMessage;
-use crate::{ErrorKind, InetHandle, PacketHandle, UnixHandle};
+use crate::{ErrorKind, InetHandle, NetlinkHandle, PacketHandle, UnixHandle};
 
 lazy_static! {
     static ref KERNEL_UNICAST: SocketAddr = SocketAddr::new(0, 0);
@@ -46,5 +46,10 @@ impl Handle {
     /// Create a new handle, specifically for packet requests (equivalent to `ss --packet` commands)
     pub fn packet(&self) -> PacketHandle {
         PacketHandle::new(self.clone())
+    }
+
+    /// Create a new handle, specifically for packet requests (equivalent to `ss --family=netlink` commands)
+    pub fn netlink(&self) -> NetlinkHandle {
+        NetlinkHandle::new(self.clone())
     }
 }

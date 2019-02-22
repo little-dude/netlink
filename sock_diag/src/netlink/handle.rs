@@ -1,14 +1,14 @@
 use super::List;
 use crate::Handle;
 
-pub struct PacketHandle(Handle);
+pub struct NetlinkHandle(Handle);
 
-impl PacketHandle {
+impl NetlinkHandle {
     pub fn new(handle: Handle) -> Self {
-        PacketHandle(handle)
+        NetlinkHandle(handle)
     }
 
-    /// Retrieve the list of sockets (equivalent to `ss --packet`)
+    /// Retrieve the list of sockets (equivalent to `ss --family=netlink`)
     pub fn list(&mut self) -> List {
         List::new(self.0.clone())
     }

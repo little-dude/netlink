@@ -1,4 +1,4 @@
-#![allow(unused)]
+#![allow(unused, clippy::unreadable_literal)]
 
 use libc;
 use libc::c_int as int;

@@ -218,48 +218,53 @@ pub enum Attr {
     Uid(u32),
     MemInfo(SkMemInfo),
     Filter(Vec<u8>),
-    /// other attribute
-    Other(Attribute, Vec<u8>),
+    Other(u16, Vec<u8>),
 }
 
-impl<T: AsRef<[u8]>> ParseableParametrized<Attr, Attribute> for T {
-    fn parse_with_param(&self, ty: Attribute) -> Result<Attr, DecodeError> {
+impl<T: AsRef<[u8]>> ParseableParametrized<Attr, u16> for T {
+    fn parse_with_param(&self, ty: u16) -> Result<Attr, DecodeError> {
         use Attribute::*;
 
         let payload = self.as_ref();
 
-        Ok(match ty {
-            PACKET_DIAG_INFO if payload.len() >= mem::size_of::<Info>() => {
-                Attr::Info(payload.parse()?)
-            }
-            PACKET_DIAG_MCLIST if payload.len() >= mem::size_of::<McList>() => Attr::McList(
-                payload
-                    .chunks_exact(mem::size_of::<McList>())
-                    .map(|buf| buf.parse())
-                    .collect::<Result<Vec<_>, _>>()?,
-            ),
-            PACKET_DIAG_RX_RING if payload.len() >= mem::size_of::<Ring>() => {
-                Attr::RxRing(payload.parse()?)
-            }
-            PACKET_DIAG_TX_RING if payload.len() >= mem::size_of::<Ring>() => {
-                Attr::TxRing(payload.parse()?)
-            }
-            PACKET_DIAG_FANOUT if payload.len() >= mem::size_of::<u32>() => {
-                let fanout = NativeEndian::read_u32(payload);
+        Attribute::try_from(ty)
+            .and_then(|attr| {
+                Ok(match attr {
+                    PACKET_DIAG_INFO if payload.len() >= mem::size_of::<Info>() => {
+                        Attr::Info(payload.parse()?)
+                    }
+                    PACKET_DIAG_MCLIST if payload.len() >= mem::size_of::<McList>() => {
+                        Attr::McList(
+                            payload
+                                .chunks_exact(mem::size_of::<McList>())
+                                .map(|buf| buf.parse())
+                                .collect::<Result<Vec<_>, _>>()?,
+                        )
+                    }
+                    PACKET_DIAG_RX_RING if payload.len() >= mem::size_of::<Ring>() => {
+                        Attr::RxRing(payload.parse()?)
+                    }
+                    PACKET_DIAG_TX_RING if payload.len() >= mem::size_of::<Ring>() => {
+                        Attr::TxRing(payload.parse()?)
+                    }
+                    PACKET_DIAG_FANOUT if payload.len() >= mem::size_of::<u32>() => {
+                        let fanout = NativeEndian::read_u32(payload);
 
-                Attr::Fanout(Fanout {
-                    id: (fanout & 0xFF) as u16,
-                    ty: ((fanout >> 16) & 0xFF) as u16,
+                        Attr::Fanout(Fanout {
+                            id: (fanout & 0xFF) as u16,
+                            ty: ((fanout >> 16) & 0xFF) as u16,
+                        })
+                    }
+                    PACKET_DIAG_UID if payload.len() >= mem::size_of::<u32>() => {
+                        Attr::Uid(NativeEndian::read_u32(payload))
+                    }
+                    PACKET_DIAG_MEMINFO if payload.len() >= mem::size_of::<SkMemInfo>() => {
+                        Attr::MemInfo(payload.parse()?)
+                    }
+                    PACKET_DIAG_FILTER => Attr::Filter(payload.to_vec()),
+                    _ => Attr::Other(ty, payload.to_vec()),
                 })
-            }
-            PACKET_DIAG_UID if payload.len() >= mem::size_of::<u32>() => {
-                Attr::Uid(NativeEndian::read_u32(payload))
-            }
-            PACKET_DIAG_MEMINFO if payload.len() >= mem::size_of::<SkMemInfo>() => {
-                Attr::MemInfo(payload.parse()?)
-            }
-            PACKET_DIAG_FILTER => Attr::Filter(payload.to_vec()),
-            _ => Attr::Other(ty, payload.to_vec()),
-        })
+            })
+            .or_else(|_| Ok(Attr::Other(ty, payload.to_vec())))
     }
 }

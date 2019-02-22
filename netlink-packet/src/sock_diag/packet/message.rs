@@ -1,14 +1,12 @@
 use std::collections::HashMap;
 
-use try_from::TryFrom;
-
 use netlink_sys::constants::AF_PACKET;
 
 use crate::{
     sock_diag::{
         packet::{
             buffer::{Attr, RequestBuffer, ResponseBuffer, Show},
-            Attribute, Fanout, Info, McList, Ring,
+            Fanout, Info, McList, Ring,
         },
         SkMemInfo,
     },
@@ -102,12 +100,6 @@ lazy_static! {
 /// The request for `AF_PACKET` sockets
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Request {
-    /// The address family
-    ///
-    /// It should be set to `AF_PACKET`.
-    pub family: u8,
-    /// It should be set to 0
-    pub protocol: u8,
     /// This is an inode number when querying for an individual socket.
     ///
     /// Ignored when querying for a list of sockets.
@@ -144,8 +136,6 @@ impl Request {
 impl Default for Request {
     fn default() -> Self {
         Request {
-            family: AF_PACKET as u8,
-            protocol: 0,
             inode: 0,
             show: Show::INFO,
             cookie: None,
@@ -161,8 +151,8 @@ impl Emitable for Request {
     fn emit(&self, buf: &mut [u8]) {
         let mut req = RequestBuffer::new(buf);
 
-        req.set_family(self.family);
-        req.set_protocol(self.protocol);
+        req.set_family(AF_PACKET as u8);
+        req.set_protocol(0);
         req.set_inode(self.inode);
         req.set_show(self.show);
         req.set_cookie(self.cookie)
@@ -298,9 +288,7 @@ impl<T: AsRef<[u8]>> Parseable<Response> for ResponseBuffer<T> {
     fn parse(&self) -> Result<Response, DecodeError> {
         let attrs = self
             .attrs()
-            .map(|(ty, payload)| {
-                Attribute::try_from(ty).and_then(|ty| payload.parse_with_param(ty))
-            })
+            .map(|(ty, payload)| payload.parse_with_param(ty))
             .collect::<Result<Vec<_>, DecodeError>>()?;
 
         Ok(Response {

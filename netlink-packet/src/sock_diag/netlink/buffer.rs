@@ -1,96 +1,78 @@
-use std::ffi::CStr;
-use std::iter;
 use std::mem;
 
 use byteorder::{ByteOrder, NativeEndian};
-use failure::ResultExt;
 use try_from::TryFrom;
 
+use crate::constants::*;
 use crate::sock_diag::{
-    buffer::{array_of, RtaIterator, REQ_FAMILY, REQ_PROTOCOL},
+    buffer::{array_of, CStruct, RtaIterator, REQ_FAMILY, REQ_PROTOCOL},
     inet::INET_DIAG_NOCOOKIE,
-    unix::{
-        raw::{show::*, unix_diag_rqlen, unix_diag_vfs},
-        Attribute, State,
-    },
-    Shutdown, SkMemInfo,
-    TcpState::*,
+    netlink::{raw::*, Attribute, Ring},
+    SkMemInfo,
 };
 use crate::{DecodeError, Field, Parseable, ParseableParametrized, Rest};
 
-const REQ_STATES: Field = 4..8;
-const REQ_INO: Field = 8..12;
-const REQ_SHOW: Field = 12..16;
-const REQ_COOKIE: Field = array_of::<u32>(16, 2);
+const REQ_INO: Field = 4..8;
+const REQ_SHOW: Field = 8..12;
+const REQ_COOKIE: Field = array_of::<u32>(12, 2);
 const REQ_SIZE: usize = REQ_COOKIE.end;
 
 const MSG_FAMILY: usize = 0;
 const MSG_TYPE: usize = 1;
-const MSG_STATE: usize = 2;
-const MSG_INO: Field = 4..8;
-const MSG_COOKIE: Field = array_of::<u32>(8, 2);
+const MSG_PROTO: usize = 2;
+const MSG_STATE: usize = 3;
+
+const MSG_PORTID: Field = 4..8;
+const MSG_DST_PORTID: Field = 8..12;
+const MSG_DST_GROUP: Field = 12..16;
+const MSG_INO: Field = 16..20;
+const MSG_COOKIE: Field = array_of::<u32>(20, 2);
 const MSG_SIZE: usize = MSG_COOKIE.end;
 const MSG_ATTRIBUTES: Rest = MSG_SIZE..;
+
+#[repr(u8)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum State {
+    UNCONNECTED = NETLINK_UNCONNECTED as u8,
+    CONNECTED = NETLINK_CONNECTED as u8,
+}
 
 impl TryFrom<u8> for State {
     type Err = DecodeError;
 
     fn try_from(value: u8) -> Result<Self, Self::Err> {
-        if value <= Self::max_value() {
-            Ok(unsafe { mem::transmute(value) })
-        } else {
-            Err(format!("unknown UNIX state: {}", value).into())
+        match i32::from(value) {
+            NETLINK_UNCONNECTED => Ok(State::UNCONNECTED),
+            NETLINK_CONNECTED => Ok(State::CONNECTED),
+            _ => Err(format!("unknown state: {}", value).into()),
         }
-    }
-}
-
-bitflags! {
-    /// This is a bit mask that defines a filter of UNIX sockets states.
-    pub struct States: u32 {
-        const ESTABLISHED = 1 << TCP_ESTABLISHED as u8;
-        const LISTEN = 1 << TCP_LISTEN as u8;
-    }
-}
-
-impl Default for States {
-    fn default() -> Self {
-        States::all()
-    }
-}
-
-impl From<State> for States {
-    fn from(state: State) -> Self {
-        Self::from_bits_truncate(1 << (state as u8))
     }
 }
 
 bitflags! {
     ///  This is a set of flags defining what kind of information to report.
     pub struct Show: u32 {
-        /// show name (not path)
-        const NAME = UDIAG_SHOW_NAME as u32;
-        /// show VFS inode info
-        const VFS = UDIAG_SHOW_VFS as u32;
-        /// show peer socket info
-        const PEER = UDIAG_SHOW_PEER as u32;
-        /// show pending connections
-        const ICONS = UDIAG_SHOW_ICONS as u32;
-        /// show skb receive queue len
-        const RQLEN = UDIAG_SHOW_RQLEN as u32;
         /// show memory info of a socket
-        const MEMINFO = UDIAG_SHOW_MEMINFO as u32;
+        const MEMINFO = NDIAG_SHOW_MEMINFO;
+        /// show groups of a netlink socket
+        const GROUPS = NDIAG_SHOW_GROUPS;
+        /// show ring configuration
+        const RING_CFG = NDIAG_SHOW_RING_CFG;
+        /// show flags of a netlink socket
+        const FLAGS = NDIAG_SHOW_FLAGS;
     }
 }
 
-impl TryFrom<u16> for Attribute {
-    type Err = DecodeError;
-
-    fn try_from(value: u16) -> Result<Self, Self::Err> {
-        if value <= Self::max_value() {
-            Ok(unsafe { mem::transmute(value) })
-        } else {
-            Err(format!("unknown attribute: {}", value).into())
-        }
+bitflags! {
+    pub struct Flags: u32 {
+        const CB_RUNNING = NDIAG_FLAG_CB_RUNNING;
+        const PKTINFO = NDIAG_FLAG_PKTINFO;
+        const BROADCAST_ERROR = NDIAG_FLAG_BROADCAST_ERROR;
+        const NO_ENOBUFS = NDIAG_FLAG_NO_ENOBUFS;
+        const LISTEN_ALL_NSID = NDIAG_FLAG_LISTEN_ALL_NSID;
+        const CAP_ACK = NDIAG_FLAG_CAP_ACK;
+        const EXT_ACK = NDIAG_FLAG_EXT_ACK;
+        const STRICT_CHK = NDIAG_FLAG_STRICT_CHK;
     }
 }
 
@@ -117,10 +99,6 @@ impl<T: AsRef<[u8]>> RequestBuffer<T> {
     pub fn protocol(&self) -> u8 {
         let data = self.buffer.as_ref();
         data[REQ_PROTOCOL]
-    }
-    pub fn states(&self) -> States {
-        let data = self.buffer.as_ref();
-        States::from_bits_truncate(NativeEndian::read_u32(&data[REQ_STATES]))
     }
     pub fn inode(&self) -> u32 {
         let data = self.buffer.as_ref();
@@ -152,10 +130,6 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> RequestBuffer<T> {
     pub fn set_protocol(&mut self, protocol: u8) {
         let data = self.buffer.as_mut();
         data[REQ_PROTOCOL] = protocol
-    }
-    pub fn set_states(&mut self, states: States) {
-        let data = self.buffer.as_mut();
-        NativeEndian::write_u32(&mut data[REQ_STATES], states.bits())
     }
     pub fn set_inode(&mut self, inode: u32) {
         let data = self.buffer.as_mut();
@@ -216,9 +190,25 @@ impl<T: AsRef<[u8]>> ResponseBuffer<T> {
         let data = self.buffer.as_ref();
         data[MSG_TYPE]
     }
-    pub fn state(&self) -> Result<State, DecodeError> {
+    pub fn protocol(&self) -> u8 {
         let data = self.buffer.as_ref();
-        State::try_from(data[MSG_STATE])
+        data[MSG_PROTO]
+    }
+    pub fn state(&self) -> u8 {
+        let data = self.buffer.as_ref();
+        data[MSG_STATE]
+    }
+    pub fn portid(&self) -> i32 {
+        let data = self.buffer.as_ref();
+        NativeEndian::read_i32(&data[MSG_PORTID])
+    }
+    pub fn dst_portid(&self) -> i32 {
+        let data = self.buffer.as_ref();
+        NativeEndian::read_i32(&data[MSG_DST_PORTID])
+    }
+    pub fn dst_group(&self) -> u32 {
+        let data = self.buffer.as_ref();
+        NativeEndian::read_u32(&data[MSG_DST_GROUP])
     }
     pub fn inode(&self) -> u32 {
         let data = self.buffer.as_ref();
@@ -242,24 +232,28 @@ impl<T: AsRef<[u8]>> ResponseBuffer<T> {
     }
 }
 
-/// UNIX socket information
+impl TryFrom<u16> for Attribute {
+    type Err = DecodeError;
+
+    fn try_from(value: u16) -> Result<Self, Self::Err> {
+        if value <= Self::max_value() as u16 {
+            Ok(unsafe { mem::transmute(value) })
+        } else {
+            Err(format!("unknown attribute: {}", value).into())
+        }
+    }
+}
+
+impl CStruct for Ring {}
+
+/// PACKET socket information
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Attr {
-    /// name (not path)
-    Name(String),
-    /// VFS inode info
-    Vfs(unix_diag_vfs),
-    /// peer socket info
-    Peer(u32),
-    /// pending connections
-    Icons(Vec<u32>),
-    /// skb receive queue len
-    RecvQueueLen(unix_diag_rqlen),
-    /// memory info of a socket
     MemInfo(SkMemInfo),
-    /// shutdown states
-    Shutdown(Shutdown),
-    /// other attribute
+    Groups(u32),
+    RxRing(Ring),
+    TxRing(Ring),
+    Flags(Flags),
     Other(u16, Vec<u8>),
 }
 
@@ -272,53 +266,20 @@ impl<T: AsRef<[u8]>> ParseableParametrized<Attr, u16> for T {
         Attribute::try_from(ty)
             .and_then(|attr| {
                 Ok(match attr {
-                    UNIX_DIAG_NAME if !payload.is_empty() => {
-                        let payload = if payload[0] == 0 {
-                            payload
-                                .iter()
-                                .map(|b| if *b == 0 { b'@' } else { *b })
-                                .chain(iter::once(0))
-                                .collect()
-                        } else {
-                            payload.to_vec()
-                        };
-
-                        Attr::Name(
-                            CStr::from_bytes_with_nul(&payload)
-                                .context("invalid name")?
-                                .to_str()
-                                .context("invalid name")?
-                                .to_owned(),
-                        )
-                    }
-                    UNIX_DIAG_VFS if payload.len() >= mem::size_of::<[u32; 2]>() => {
-                        Attr::Vfs(unix_diag_vfs {
-                            udiag_vfs_ino: NativeEndian::read_u32(&payload[0..4]),
-                            udiag_vfs_dev: NativeEndian::read_u32(&payload[4..8]),
-                        })
-                    }
-                    UNIX_DIAG_PEER if payload.len() >= mem::size_of::<u32>() => {
-                        Attr::Peer(NativeEndian::read_u32(payload))
-                    }
-                    UNIX_DIAG_ICONS => {
-                        let mut icons = vec![0; payload.len() / 4];
-                        NativeEndian::read_u32_into(
-                            &payload[..icons.len() * 4],
-                            icons.as_mut_slice(),
-                        );
-                        Attr::Icons(icons)
-                    }
-                    UNIX_DIAG_RQLEN if payload.len() >= mem::size_of::<[u32; 2]>() => {
-                        Attr::RecvQueueLen(unix_diag_rqlen {
-                            udiag_rqueue: NativeEndian::read_u32(&payload[0..4]),
-                            udiag_wqueue: NativeEndian::read_u32(&payload[4..8]),
-                        })
-                    }
-                    UNIX_DIAG_MEMINFO if payload.len() >= mem::size_of::<SkMemInfo>() => {
+                    NETLINK_DIAG_MEMINFO if payload.len() >= mem::size_of::<SkMemInfo>() => {
                         Attr::MemInfo(payload.parse()?)
                     }
-                    UNIX_DIAG_SHUTDOWN if !payload.is_empty() => {
-                        Attr::Shutdown(Shutdown::from_bits_truncate(payload[0]))
+                    NETLINK_DIAG_GROUPS if payload.len() >= mem::size_of::<u32>() => {
+                        Attr::Groups(NativeEndian::read_u32(payload))
+                    }
+                    NETLINK_DIAG_RX_RING if payload.len() >= mem::size_of::<Ring>() => {
+                        Attr::RxRing(payload.parse()?)
+                    }
+                    NETLINK_DIAG_TX_RING if payload.len() >= mem::size_of::<Ring>() => {
+                        Attr::TxRing(payload.parse()?)
+                    }
+                    NETLINK_DIAG_FLAGS if payload.len() >= mem::size_of::<u32>() => {
+                        Attr::Flags(Flags::from_bits_truncate(NativeEndian::read_u32(payload)))
                     }
                     _ => Attr::Other(ty, payload.to_vec()),
                 })

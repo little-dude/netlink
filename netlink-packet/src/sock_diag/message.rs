@@ -1,8 +1,8 @@
 use failure::ResultExt;
 
-use netlink_sys::constants::{AF_INET, AF_INET6, AF_PACKET, AF_UNIX};
+use netlink_sys::constants::{AF_INET, AF_INET6, AF_NETLINK, AF_PACKET, AF_UNIX};
 
-use crate::sock_diag::{inet, packet, sock::SOCK_DIAG_BY_FAMILY, unix};
+use crate::sock_diag::{inet, netlink, packet, sock::SOCK_DIAG_BY_FAMILY, unix};
 use crate::{DecodeError, Emitable, Parseable};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -13,6 +13,8 @@ pub enum Message {
     UnixSock(unix::Response),
     PacketDiag(packet::Request),
     PacketSock(packet::Response),
+    NetlinkDiag(netlink::Request),
+    NetlinkSock(netlink::Response),
 }
 
 impl Emitable for Message {
@@ -23,6 +25,7 @@ impl Emitable for Message {
             InetDiag(ref req) => req.buffer_len(),
             UnixDiag(ref req) => req.buffer_len(),
             PacketDiag(ref req) => req.buffer_len(),
+            NetlinkDiag(ref req) => req.buffer_len(),
             _ => unimplemented!(),
         }
     }
@@ -34,6 +37,7 @@ impl Emitable for Message {
             InetDiag(ref req) => req.emit(buf),
             UnixDiag(ref req) => req.emit(buf),
             PacketDiag(ref req) => req.emit(buf),
+            NetlinkDiag(ref req) => req.emit(buf),
             _ => unimplemented!(),
         }
     }
@@ -57,6 +61,12 @@ impl Message {
                 )),
                 AF_PACKET => Ok(Message::PacketSock(
                     packet::ResponseBuffer::new_checked(buffer)
+                        .context("failed to parse SOCK_DIAG_BY_FAMILY message")?
+                        .parse()
+                        .context("failed to parse SOCK_DIAG_BY_FAMILY message")?,
+                )),
+                AF_NETLINK => Ok(Message::NetlinkSock(
+                    netlink::ResponseBuffer::new_checked(buffer)
                         .context("failed to parse SOCK_DIAG_BY_FAMILY message")?
                         .parse()
                         .context("failed to parse SOCK_DIAG_BY_FAMILY message")?,

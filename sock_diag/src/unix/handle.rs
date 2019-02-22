@@ -1,4 +1,4 @@
-use super::ListRequest;
+use super::List;
 use crate::Handle;
 
 pub struct UnixHandle(Handle);
@@ -9,7 +9,7 @@ impl UnixHandle {
     }
 
     /// Retrieve the list of sockets (equivalent to `ss --unix`)
-    pub fn list(&mut self) -> ListRequest {
-        ListRequest::new(self.0.clone())
+    pub fn list(&mut self) -> List {
+        List::new(self.0.clone())
     }
 }

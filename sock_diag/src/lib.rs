@@ -23,6 +23,9 @@ pub use crate::unix::UnixHandle;
 mod pkt;
 pub use crate::pkt::PacketHandle;
 
+mod netlink;
+pub use crate::netlink::NetlinkHandle;
+
 use std::io;
 
 pub fn new_connection() -> io::Result<(Connection, Handle)> {

@@ -4,7 +4,7 @@ use failure::Error;
 use futures::Stream;
 
 use crate::packet::{
-    unix::{Request, Response, Show, States},
+    sock_diag::netlink::{Request, Response, Show},
     NetlinkMessage, NetlinkPayload, SockDiagMessage,
 };
 use crate::{ErrorKind, Handle};
@@ -36,16 +36,6 @@ impl List {
         }
     }
 
-    pub fn with_states(mut self, states: States) -> Self {
-        self.request.states.insert(states);
-        self
-    }
-
-    pub fn without_states(mut self, states: States) -> Self {
-        self.request.states.remove(states);
-        self
-    }
-
     pub fn with_show(mut self, show: Show) -> Self {
         self.request.show.insert(show);
         self
@@ -58,13 +48,13 @@ impl List {
             request,
         } = self;
 
-        let mut req = NetlinkMessage::from(SockDiagMessage::UnixDiag(request));
+        let mut req = NetlinkMessage::from(SockDiagMessage::NetlinkDiag(request));
 
         req.header.flags.set_dump().set_request();
 
         handle.request(req).and_then(move |msg| {
             let (header, payload) = msg.into_parts();
-            if let NetlinkPayload::SockDiag(SockDiagMessage::UnixSock(msg)) = payload {
+            if let NetlinkPayload::SockDiag(SockDiagMessage::NetlinkSock(msg)) = payload {
                 Ok(msg)
             } else {
                 Err(ErrorKind::UnexpectedMessage(NetlinkMessage::new(header, payload)).into())

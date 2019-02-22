@@ -2,8 +2,6 @@ use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6};
 use std::ops::{Deref, DerefMut};
 use std::time::Duration;
 
-use try_from::TryFrom;
-
 use netlink_sys::constants::{AF_INET, AF_INET6};
 
 use crate::sock_diag::{
@@ -378,9 +376,7 @@ impl<T: AsRef<[u8]>> Parseable<Response> for ResponseBuffer<T> {
 
         let attrs = self
             .attrs()
-            .map(|(ty, payload)| {
-                Extension::try_from(ty).and_then(|ty| payload.parse_with_param(ty))
-            })
+            .map(|(ty, payload)| payload.parse_with_param(ty))
             .collect::<Result<Vec<_>, DecodeError>>()?;
 
         Ok(Response {
