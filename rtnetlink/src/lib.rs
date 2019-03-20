@@ -118,6 +118,7 @@ extern crate lazy_static;
 use failure;
 
 pub use crate::packet::constants;
+use crate::packet::NetlinkMessage;
 pub use netlink_packet as packet;
 use netlink_proto;
 pub use netlink_proto::{Connection, Protocol};
@@ -136,7 +137,15 @@ pub use crate::addr::*;
 
 use std::io;
 
+use futures::sync::mpsc::UnboundedReceiver;
+
 pub fn new_connection() -> io::Result<(Connection, Handle)> {
     let (conn, handle, _) = netlink_proto::new_connection(Protocol::Route)?;
     Ok((conn, Handle::new(handle)))
+}
+
+pub fn new_connection_with_messages(
+) -> io::Result<(Connection, Handle, UnboundedReceiver<NetlinkMessage>)> {
+    let (conn, handle, messages) = netlink_proto::new_connection(Protocol::Route)?;
+    Ok((conn, Handle::new(handle), messages))
 }
