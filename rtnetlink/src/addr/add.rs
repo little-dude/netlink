@@ -49,18 +49,22 @@ impl AddressAddRequest {
             message.nlas.push(AddressNla::Address(address_vec.clone()));
 
             // for IPv4 the IFA_LOCAL address can be set to the same value as IFA_ADDRESS
-            message.nlas.push(AddressNla::Local(address_vec));
+            message.nlas.push(AddressNla::Local(address_vec.clone()));
 
             // set the IFA_BROADCAST address as well (IPv6 does not support broadcast)
             if prefix_len == 32 {
-                message
-                    .nlas
-                    .push(AddressNla::Broadcast(vec![0xff, 0xff, 0xff, 0xff]));
+                message.nlas.push(AddressNla::Broadcast(address_vec));
             } else {
-                let mask = Ipv4Addr::from(!((0xffff_ffff as u32) >> u32::from(prefix_len)));
+                let ip_addr: u32 = u32::from(Ipv4Addr::new(
+                    address_vec[0],
+                    address_vec[1],
+                    address_vec[2],
+                    address_vec[3],
+                ));
+                let brd = Ipv4Addr::from((0xffff_ffff as u32) >> u32::from(prefix_len) | ip_addr);
                 message
                     .nlas
-                    .push(AddressNla::Broadcast(mask.octets().to_vec()));
+                    .push(AddressNla::Broadcast(brd.octets().to_vec()));
             };
         }
         AddressAddRequest { handle, message }
