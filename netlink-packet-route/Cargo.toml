@@ -25,6 +25,7 @@ name = "dump_links"
 criterion = "0.2.11"
 pcap-file = "0.10.0"
 netlink-sys = { path = "../netlink-sys", version = "0.2" }
+lazy_static = "1"
 
 [[bench]]
 name = "link_message"

@@ -8,7 +8,7 @@ use crate::{
             IFLA_INET6_ICMP6STATS, IFLA_INET6_STATS, IFLA_INET6_TOKEN, IFLA_INET6_UNSPEC,
         },
         nla::{DefaultNla, Nla, NlaBuffer},
-        traits::{Emitable, Parseable},
+        traits::Parseable,
         utils::{parse_ipv6, parse_u32, parse_u8},
     },
     DecodeError,
@@ -26,14 +26,14 @@ pub use self::stats::*;
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub enum LinkAfInet6Nla {
     Flags(u32),
-    CacheInfo(LinkInet6CacheInfo),
+    CacheInfo(Vec<u8>),
     // LinkInet6DevConf is big (198 bytes), so we're wasting a space for each variant without a box.
-    DevConf(Box<LinkInet6DevConf>),
+    DevConf(Vec<u8>),
     Unspec(Vec<u8>),
     // LinkInet6Stats is huge (288 bytes), so we're wasting a *lot* of space for each variant without a
     // box.
-    Stats(Box<LinkInet6Stats>),
-    IcmpStats(LinkIcmp6Stats),
+    Stats(Vec<u8>),
+    IcmpStats(Vec<u8>),
     Token([u8; 16]),
     AddrGenMode(u8),
     Other(DefaultNla),
@@ -44,10 +44,10 @@ impl Nla for LinkAfInet6Nla {
         use self::LinkAfInet6Nla::*;
         match *self {
             Unspec(ref bytes) => bytes.len(),
-            CacheInfo(ref cache_info) => cache_info.buffer_len(),
-            DevConf(ref dev_conf) => dev_conf.buffer_len(),
-            Stats(ref stats) => stats.buffer_len(),
-            IcmpStats(ref icmp_stats) => icmp_stats.buffer_len(),
+            CacheInfo(ref cache_info) => cache_info.len(),
+            DevConf(ref dev_conf) => dev_conf.len(),
+            Stats(ref stats) => stats.len(),
+            IcmpStats(ref icmp_stats) => icmp_stats.len(),
             Flags(_) => 4,
             Token(_) => 16,
             AddrGenMode(_) => 1,
@@ -60,10 +60,10 @@ impl Nla for LinkAfInet6Nla {
         match *self {
             Unspec(ref bytes) => buffer.copy_from_slice(bytes.as_slice()),
             Flags(ref value) => NativeEndian::write_u32(buffer, *value),
-            CacheInfo(ref cache_info) => cache_info.emit(buffer),
-            DevConf(ref inet6_dev_conf) => inet6_dev_conf.emit(buffer),
-            Stats(ref inet6_stats) => inet6_stats.emit(buffer),
-            IcmpStats(ref icmp6_stats) => icmp6_stats.emit(buffer),
+            CacheInfo(ref cache_info) => buffer.copy_from_slice(cache_info.as_slice()),
+            DevConf(ref bytes) => buffer.copy_from_slice(bytes.as_slice()),
+            Stats(ref inet6_stats) => buffer.copy_from_slice(inet6_stats.as_slice()),
+            IcmpStats(ref icmp6_stats) => buffer.copy_from_slice(icmp6_stats.as_slice()),
             Token(ref ipv6) => buffer.copy_from_slice(&ipv6[..]),
             AddrGenMode(value) => buffer[0] = value,
             Other(ref nla) => nla.emit_value(buffer),
@@ -95,30 +95,10 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkAfInet6Nla> for NlaBuffer<&
             IFLA_INET6_FLAGS => {
                 Flags(parse_u32(payload).context("invalid IFLA_INET6_FLAGS value")?)
             }
-            IFLA_INET6_CACHEINFO => CacheInfo(
-                LinkInet6CacheInfoBuffer::new_checked(payload)
-                    .context("invalid IFLA_INET6_CACHEINFO value")?
-                    .parse()
-                    .context("invalid IFLA_INET6_CACHEINFO value")?,
-            ),
-            IFLA_INET6_CONF => DevConf(Box::new(
-                LinkInet6DevConfBuffer::new_checked(payload)
-                    .context("invalid IFLA_INET6_CONF value")?
-                    .parse()
-                    .context("invalid IFLA_INET6_CONF value")?,
-            )),
-            IFLA_INET6_STATS => Stats(Box::new(
-                LinkInet6StatsBuffer::new_checked(payload)
-                    .context("invalid IFLA_INET6_STATS value")?
-                    .parse()
-                    .context("invalid IFLA_INET6_STATS value")?,
-            )),
-            IFLA_INET6_ICMP6STATS => IcmpStats(
-                LinkIcmp6StatsBuffer::new_checked(payload)
-                    .context("invalid IFLA_INET6_ICMP6STATS value")?
-                    .parse()
-                    .context("invalid IFLA_INET6_ICMP6STATS value")?,
-            ),
+            IFLA_INET6_CACHEINFO => CacheInfo(payload.to_vec()),
+            IFLA_INET6_CONF => DevConf(payload.to_vec()),
+            IFLA_INET6_STATS => Stats(payload.to_vec()),
+            IFLA_INET6_ICMP6STATS => IcmpStats(payload.to_vec()),
             IFLA_INET6_TOKEN => {
                 Token(parse_ipv6(payload).context("invalid IFLA_INET6_TOKEN value")?)
             }

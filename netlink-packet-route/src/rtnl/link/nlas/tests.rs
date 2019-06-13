@@ -177,16 +177,22 @@ fn get_nlas() -> impl Iterator<Item = Result<NlaBuffer<&'static [u8]>, DecodeErr
     NlasIterator::new(&*BUFFER.value())
 }
 
+fn get_byte_buffer(nla: &dyn Emitable) -> Vec<u8> {
+    let mut buf = vec![0u8; nla.buffer_len()];
+    nla.emit(&mut buf);
+    buf
+}
+
 lazy_static! {
     static ref PARSED_AF_INET6: LinkAfSpecInetNla = LinkAfSpecInetNla::Inet6(vec![
         LinkAfInet6Nla::Flags(2147483648),
-        LinkAfInet6Nla::CacheInfo(LinkInet6CacheInfo {
+        LinkAfInet6Nla::CacheInfo(get_byte_buffer(&LinkInet6CacheInfo {
             max_reasm_len: 65535,
             tstamp: 175,
             reachable_time: 25730,
             retrans_time: 1000,
-        }),
-        LinkAfInet6Nla::DevConf(Box::new(LinkInet6DevConf {
+        })),
+        LinkAfInet6Nla::DevConf(get_byte_buffer(&LinkInet6DevConf {
             forwarding: 0,
             hoplimit: 64,
             mtu6: 65536,
@@ -239,7 +245,7 @@ lazy_static! {
             accept_ra_rt_info_min_plen: 0,
             ndisc_tclass: 0,
         })),
-        LinkAfInet6Nla::Stats(Box::new(LinkInet6Stats {
+        LinkAfInet6Nla::Stats(get_byte_buffer(&LinkInet6Stats {
             num: 36,
             in_pkts: 6,
             in_octets: 420,
@@ -277,14 +283,14 @@ lazy_static! {
             in_ect0_pkts: 0,
             in_ce_pkts: 0,
         })),
-        LinkAfInet6Nla::IcmpStats(LinkIcmp6Stats {
+        LinkAfInet6Nla::IcmpStats(get_byte_buffer(&LinkIcmp6Stats {
             num: 6,
             in_msgs: 0,
             in_errors: 0,
             out_msgs: 0,
             out_errors: 0,
             csum_errors: 0,
-        }),
+        })),
         LinkAfInet6Nla::Token([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
         LinkAfInet6Nla::AddrGenMode(0),
     ]);
@@ -292,39 +298,41 @@ lazy_static! {
 
 lazy_static! {
     static ref PARSED_AF_INET: LinkAfSpecInetNla =
-        LinkAfSpecInetNla::Inet(vec![LinkAfInetNla::DevConf(LinkInetDevConf {
-            forwarding: 1,
-            mc_forwarding: 0,
-            proxy_arp: 0,
-            accept_redirects: 1,
-            secure_redirects: 1,
-            send_redirects: 1,
-            shared_media: 1,
-            rp_filter: 0,
-            accept_source_route: 1,
-            bootp_relay: 0,
-            log_martians: 0,
-            tag: 0,
-            arpfilter: 0,
-            medium_id: 0,
-            noxfrm: 1,
-            nopolicy: 1,
-            force_igmp_version: 0,
-            arp_announce: 0,
-            arp_ignore: 0,
-            promote_secondaries: 0,
-            arp_accept: 0,
-            arp_notify: 0,
-            accept_local: 0,
-            src_vmark: 0,
-            proxy_arp_pvlan: 0,
-            route_localnet: 0,
-            igmpv2_unsolicited_report_interval: 10000,
-            igmpv3_unsolicited_report_interval: 1000,
-            ignore_routes_with_linkdown: 0,
-            drop_unicast_in_l2_multicast: 0,
-            drop_gratuitous_arp: 0,
-        })]);
+        LinkAfSpecInetNla::Inet(vec![LinkAfInetNla::DevConf(get_byte_buffer(
+            &LinkInetDevConf {
+                forwarding: 1,
+                mc_forwarding: 0,
+                proxy_arp: 0,
+                accept_redirects: 1,
+                secure_redirects: 1,
+                send_redirects: 1,
+                shared_media: 1,
+                rp_filter: 0,
+                accept_source_route: 1,
+                bootp_relay: 0,
+                log_martians: 0,
+                tag: 0,
+                arpfilter: 0,
+                medium_id: 0,
+                noxfrm: 1,
+                nopolicy: 1,
+                force_igmp_version: 0,
+                arp_announce: 0,
+                arp_ignore: 0,
+                promote_secondaries: 0,
+                arp_accept: 0,
+                arp_notify: 0,
+                accept_local: 0,
+                src_vmark: 0,
+                proxy_arp_pvlan: 0,
+                route_localnet: 0,
+                igmpv2_unsolicited_report_interval: 10000,
+                igmpv3_unsolicited_report_interval: 1000,
+                ignore_routes_with_linkdown: 0,
+                drop_unicast_in_l2_multicast: 0,
+                drop_gratuitous_arp: 0,
+            }
+        ))]);
 }
 
 #[test]
