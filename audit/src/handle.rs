@@ -1,6 +1,6 @@
 use crate::packet::constants::{
     AUDIT_STATUS_ENABLED, AUDIT_STATUS_PID, NLM_F_ACK, NLM_F_CREATE, NLM_F_DUMP, NLM_F_EXCL,
-    NLM_F_REQUEST,
+    NLM_F_NONREC, NLM_F_REQUEST,
 };
 use crate::packet::{
     AuditMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, RuleMessage, StatusMessage,
@@ -53,6 +53,13 @@ impl Handle {
         let mut req = NetlinkMessage::from(AuditMessage::AddRule(rule));
         req.header.flags =
             NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
+        self.acked_request(req)
+    }
+
+    /// Deletes a given rule
+    pub fn del_rule(&mut self, rule: RuleMessage) -> impl Future<Item = (), Error = Error> {
+        let mut req = NetlinkMessage::from(AuditMessage::DelRule(rule));
+        req.header.flags = NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_NONREC);
         self.acked_request(req)
     }
 
