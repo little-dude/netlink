@@ -3,8 +3,8 @@ use std::thread::spawn;
 use futures::{Future, Stream};
 use tokio_core::reactor::Core;
 
+use netlink_packet_route::link::nlas::LinkNla;
 use rtnetlink::new_connection;
-use rtnetlink::packet::LinkNla;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();

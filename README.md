@@ -26,15 +26,27 @@ Organization
 - the [`netlink_sys`](./netlink-sys) crate provides netlink sockets.
   Integration with [`mio`](https://github.com/carllerche/mio) and
   [`tokio`](https://github.com/tokio-rs/) is optional.
-- the [`netlink_packet`](./netlink-packet) crate defines the netlink messages,
-  and method for serializing and deserializing them.
-- the [`netlink_proto`](./netlink-proto) crate provides the Tokio integration.
-- the [`rtnetlink`](./rtnetlink) crate provides higher level abstraction for
-  the [route protocol](https://www.infradead.org/~tgr/libnl/doc/route.html)
-  (see `man 7 rtnetlink`). This is probably what users want to use, if they
+- Each netlink protocol has a `netlink-packet-<protocol_name>` crate
+  that provides the packets for this protocol:
+    - [`netlink-packet-route`](./netlink-packet-route) provides
+      `RtnlMessage` which represents messages for the route protocol
+    - [`netlink-packet-audit`](./netlink-packet-audit) provides
+      `AuditMessage` which represents messages for the audit protocol
+- the [`netlink-packet-core`](./netlink-packet-core) is the glue for
+  all the other `netlink-packet-*` crates. I provides a unique
+  `NetlinkMessage<T>` type that represent any netlink message for any
+  sub-protocol.
+- the [`netlink_proto`](./netlink-proto) crate an asynchronous
+  implementation of the netlink protocol. It only depends on
+  `netlink-packet-core` for the `NetlinkMessage` type and
+  `netlink-sys` for the socket.
+- the [`rtnetlink`](./rtnetlink) crate provides higher level
+  abstraction for the [route
+  protocol](https://www.infradead.org/~tgr/libnl/doc/route.html) (see
+  `man 7 rtnetlink`). This is probably what users want to use, if they
   want to manipulate IP addresses, route tables, etc.
-- the [`audit`](./audit) crate provides higher level abstractions for the
-  audit protocol.
+- the [`audit`](./audit) crate provides higher level abstractions for
+  the audit protocol.
 
 Other netlink projects in rust
 ------------------------------

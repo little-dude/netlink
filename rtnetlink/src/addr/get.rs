@@ -1,7 +1,10 @@
 use futures::Stream;
 
-use crate::packet::constants::{NLM_F_DUMP, NLM_F_REQUEST};
-use crate::packet::{AddressMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage};
+use netlink_packet_core::{
+    header::flags::{NLM_F_DUMP, NLM_F_REQUEST},
+    NetlinkFlags, NetlinkMessage, NetlinkPayload,
+};
+use netlink_packet_route::{address::AddressMessage, RtnlMessage};
 
 use crate::{Error, ErrorKind, Handle};
 
@@ -31,7 +34,7 @@ impl AddressGetRequest {
         handle.request(req).and_then(move |msg| {
             let (header, payload) = msg.into_parts();
             match payload {
-                NetlinkPayload::Rtnl(RtnlMessage::NewAddress(msg)) => Ok(msg),
+                NetlinkPayload::InnerMessage(RtnlMessage::NewAddress(msg)) => Ok(msg),
                 NetlinkPayload::Error(err) => Err(ErrorKind::NetlinkError(err).into()),
                 _ => Err(ErrorKind::UnexpectedMessage(NetlinkMessage::new(header, payload)).into()),
             }

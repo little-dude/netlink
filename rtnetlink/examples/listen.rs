@@ -3,8 +3,7 @@
 
 use futures::{Future, Stream};
 
-use netlink_sys::SocketAddr;
-use rtnetlink::constants::{RTMGRP_IPV4_ROUTE, RTMGRP_IPV6_ROUTE};
+use netlink_sys::{SocketAddr, RTMGRP_IPV4_ROUTE, RTMGRP_IPV6_ROUTE};
 use rtnetlink::new_connection_with_messages;
 
 fn main() {

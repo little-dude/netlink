@@ -8,9 +8,11 @@ use std::thread::spawn;
 use futures::Future;
 use tokio_core::reactor::Core;
 
-use audit::constants::AUDIT_ARCH_X86_64;
 use audit::new_connection;
-use audit::packet::{RuleAction, RuleField, RuleFieldFlags, RuleFlags, RuleMessage, RuleSyscalls};
+use netlink_packet_audit::{
+    archs::AUDIT_ARCH_X86_64,
+    rules::{RuleAction, RuleField, RuleFieldFlags, RuleFlags, RuleMessage, RuleSyscalls},
+};
 
 fn main() {
     env_logger::init();

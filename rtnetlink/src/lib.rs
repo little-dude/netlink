@@ -37,10 +37,6 @@
 //! # Example: creating a veth pair
 //!
 //! ```rust,no_run
-//! extern crate futures;
-//! extern crate rtnetlink;
-//! extern crate tokio_core;
-//!
 //! use std::thread::spawn;
 //!
 //! use futures::Future;
@@ -70,10 +66,6 @@
 //! # Example: deleting a link by name
 //!
 //! ```rust,no_run
-//! extern crate futures;
-//! extern crate rtnetlink;
-//! extern crate tokio_core;
-//!
 //! use std::env;
 //! use std::thread::spawn;
 //!
@@ -81,7 +73,7 @@
 //! use tokio_core::reactor::Core;
 //!
 //! use rtnetlink::new_connection;
-//! use rtnetlink::packet::LinkNla;
+//! use netlink_packet_route::link::nlas::LinkNla;
 //!
 //! fn main() {
 //!     let args: Vec<String> = env::args().collect();
@@ -117,11 +109,10 @@ extern crate lazy_static;
 
 use failure;
 
-pub use crate::packet::constants;
-use crate::packet::NetlinkMessage;
-pub use netlink_packet as packet;
+pub use netlink_packet_core;
+pub use netlink_packet_route;
 use netlink_proto;
-pub use netlink_proto::{Connection, Protocol};
+pub use netlink_proto::{sys::Protocol, Connection};
 
 mod handle;
 pub use crate::handle::*;
@@ -137,15 +128,20 @@ pub use crate::addr::*;
 
 use std::io;
 
+use crate::netlink_packet_core::NetlinkMessage;
+use crate::netlink_packet_route::RtnlMessage;
 use futures::sync::mpsc::UnboundedReceiver;
 
-pub fn new_connection() -> io::Result<(Connection, Handle)> {
+pub fn new_connection() -> io::Result<(Connection<RtnlMessage>, Handle)> {
     let (conn, handle, _) = netlink_proto::new_connection(Protocol::Route)?;
     Ok((conn, Handle::new(handle)))
 }
 
-pub fn new_connection_with_messages(
-) -> io::Result<(Connection, Handle, UnboundedReceiver<NetlinkMessage>)> {
+pub fn new_connection_with_messages() -> io::Result<(
+    Connection<RtnlMessage>,
+    Handle,
+    UnboundedReceiver<NetlinkMessage<RtnlMessage>>,
+)> {
     let (conn, handle, messages) = netlink_proto::new_connection(Protocol::Route)?;
     Ok((conn, Handle::new(handle), messages))
 }

@@ -1,7 +1,10 @@
 use futures::{Future, Stream};
 
-use crate::packet::constants::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST};
-use crate::packet::{NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage};
+use netlink_packet_core::{
+    header::flags::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST},
+    NetlinkFlags, NetlinkMessage, NetlinkPayload,
+};
+use netlink_packet_route::RtnlMessage;
 
 use super::AddressHandle;
 use crate::{Error, ErrorKind, Handle};

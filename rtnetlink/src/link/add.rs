@@ -1,9 +1,15 @@
 use futures::{Future, Stream};
 
-use crate::packet::constants::{IFF_UP, NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST};
-use crate::packet::{
-    LinkFlags, LinkInfo, LinkInfoData, LinkInfoKind, LinkInfoVlan, LinkMessage, LinkNla,
-    NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage, VethInfoNla,
+use netlink_packet_core::{
+    header::flags::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST},
+    NetlinkFlags, NetlinkMessage, NetlinkPayload,
+};
+use netlink_packet_route::{
+    link::{
+        nlas::{LinkInfo, LinkInfoData, LinkInfoKind, LinkInfoVlan, LinkNla, VethInfoNla},
+        LinkFlags, LinkMessage, IFF_UP,
+    },
+    RtnlMessage,
 };
 
 use crate::{Error, ErrorKind, Handle};

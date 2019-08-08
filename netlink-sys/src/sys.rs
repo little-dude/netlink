@@ -8,6 +8,22 @@ use std::os::unix::io::{AsRawFd, RawFd};
 
 use super::Protocol;
 
+pub const RTMGRP_LINK: u32 = 1;
+pub const RTMGRP_NOTIFY: u32 = 2;
+pub const RTMGRP_NEIGH: u32 = 4;
+pub const RTMGRP_TC: u32 = 8;
+pub const RTMGRP_IPV4_IFADDR: u32 = 16;
+pub const RTMGRP_IPV4_MROUTE: u32 = 32;
+pub const RTMGRP_IPV4_ROUTE: u32 = 64;
+pub const RTMGRP_IPV4_RULE: u32 = 128;
+pub const RTMGRP_IPV6_IFADDR: u32 = 256;
+pub const RTMGRP_IPV6_MROUTE: u32 = 512;
+pub const RTMGRP_IPV6_ROUTE: u32 = 1024;
+pub const RTMGRP_IPV6_IFINFO: u32 = 2048;
+pub const RTMGRP_DECNET_IFADDR: u32 = 4096;
+pub const RTMGRP_DECNET_ROUTE: u32 = 16384;
+pub const RTMGRP_IPV6_PREFIX: u32 = 131072;
+
 #[derive(Clone, Debug)]
 pub struct Socket(RawFd);
 
@@ -344,7 +360,7 @@ impl Socket {
     /// `NETLINK_LISTEN_ALL_NSID` (since Linux 4.2). When set, this socket will receive netlink
     /// notifications from  all  network  namespaces that have an nsid assigned into the network
     /// namespace where the socket has been opened. The nsid is sent to user space via an ancillary
-    /// data.                                    
+    /// data.
     pub fn set_listen_all_namespaces(&mut self, value: bool) -> Result<()> {
         let value: libc::c_int = if value { 1 } else { 0 };
         setsockopt(
@@ -379,7 +395,7 @@ impl Socket {
 /// Wrapper around `getsockopt`:
 ///
 /// ```no_rust
-/// int getsockopt(int socket, int level, int option_name, void *restrict option_value, socklen_t *restrict option_len);      
+/// int getsockopt(int socket, int level, int option_name, void *restrict option_value, socklen_t *restrict option_len);
 /// ```
 fn getsockopt<T: Copy>(fd: RawFd, level: libc::c_int, option: libc::c_int) -> Result<T> {
     unsafe {

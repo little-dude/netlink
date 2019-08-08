@@ -1,5 +1,6 @@
-use crate::packet::{ErrorMessage, NetlinkMessage};
 use failure::{Backtrace, Context, Fail};
+use netlink_packet_audit::AuditMessage;
+use netlink_packet_core::{ErrorMessage, NetlinkMessage};
 use std::fmt::{self, Display};
 
 #[derive(Debug)]
@@ -10,7 +11,7 @@ pub struct Error {
 #[derive(Clone, Eq, PartialEq, Debug, Fail)]
 pub enum ErrorKind {
     #[fail(display = "Received an unexpected message {:?}", _0)]
-    UnexpectedMessage(NetlinkMessage),
+    UnexpectedMessage(NetlinkMessage<AuditMessage>),
 
     #[fail(display = "Received a netlink error message {:?}", _0)]
     NetlinkError(ErrorMessage),
