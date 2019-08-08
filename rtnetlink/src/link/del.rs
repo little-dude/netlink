@@ -1,8 +1,11 @@
 use futures::{Future, Stream};
 
-use crate::packet::constants::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST};
-use crate::packet::{LinkMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage};
 use crate::{Error, ErrorKind, Handle};
+use netlink_packet_core::{
+    header::flags::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST},
+    {NetlinkFlags, NetlinkMessage, NetlinkPayload},
+};
+use netlink_packet_route::{link::LinkMessage, RtnlMessage};
 
 lazy_static! {
     // Flags for `ip link del`

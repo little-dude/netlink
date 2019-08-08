@@ -16,18 +16,29 @@ matrix:
         - cargo test --features tokio_support
 
     - rust: stable
-      name: netlink-packet
+      name: netlink-packet-core
       script:
-        - cd netlink-packet
-        - cargo test --features audit
-        - cargo test --features rtnetlink
+        - cd netlink-packet-core
+        - cargo test
+
+    - rust: stable
+      name: netlink-packet-audit
+      script:
+        - cd netlink-packet-audit
+        - cargo test
+
+    - rust: stable
+      name: netlink-packet-route
+      script:
+        - cd netlink-packet-route
+        - cargo test
 
     - rust: stable
       name: netlink-proto
       script:
         - cd netlink-proto
-        - cargo test --features audit
-        - cargo test --features rtnetlink
+        - cargo test
+        - cargo test --features workaround-audit-bug
 
     - rust: stable
       name: rtnetlink
@@ -44,47 +55,51 @@ matrix:
     # =====================================================================
     # Nightly
     # =====================================================================
-
     - rust: nightly
       name: nightly netlink-sys
       before_script:
-        - rustup component add clippy-preview
+        - rustup component add clippy
       script:
-          - cargo test -Z package-features --package netlink-sys
-          - cargo test -Z package-features --package netlink-sys --features mio_support
-          - cargo test -Z package-features --package netlink-sys --features tokio_support
+          - cargo clippy --all-features
+
+    - rust: nightly
+      name: nightly netlink-packet-core
+      before_script:
+        - rustup component add clippy
+      script:
           - cargo clippy
 
     - rust: nightly
-      name: nightly netlink-packet
+      name: nightly netlink-packet-audit
       before_script:
-        - rustup component add clippy-preview
+        - rustup component add clippy
       script:
-          - cargo test -Z package-features --package netlink-packet --features audit
-          - cargo test -Z package-features --package netlink-packet --features rtnetlink
+          - cargo clippy
+
+    - rust: nightly
+      name: nightly netlink-packet-route
+      before_script:
+        - rustup component add clippy
+      script:
           - cargo clippy
 
     - rust: nightly
       name: nightly netlink-proto
       before_script:
-        - rustup component add clippy-preview
+        - rustup component add clippy
       script:
-          - cargo test -Z package-features --package netlink-proto --features audit
-          - cargo test -Z package-features --package netlink-proto --features rtnetlink
           - cargo clippy
 
     - rust: nightly
       name: nightly netlink-proto
       before_script:
-        - rustup component add clippy-preview
+        - rustup component add clippy
       script:
-          - cargo test -Z package-features --package rtnetlink
-          - cargo test -Z package-features --package audit
           - cargo clippy
 
     - rust: nightly
       name: rustfmt
       before_script:
-        - rustup component add rustfmt-preview
+        - rustup component add rustfmt
       script:
           - cargo fmt --all -- --check

@@ -1,12 +1,12 @@
 use failure::Fail;
+use std::fmt::Debug;
 use std::io;
 use std::marker::PhantomData;
 
-// FIXME: for some reason, the compiler says BufMut and Emitable are unused, but they _are_ used.
-// These traits need to be in scope for some methods to be called.
-
 use bytes::{BufMut, BytesMut};
-use netlink_packet::{Emitable, NetlinkBuffer, NetlinkMessage, Parseable};
+use netlink_packet_core::{
+    NetlinkBuffer, NetlinkDeserializable, NetlinkMessage, NetlinkSerializable,
+};
 use tokio_io::codec::{Decoder, Encoder};
 
 pub struct NetlinkCodec<T> {
@@ -29,12 +29,16 @@ impl<T> NetlinkCodec<T> {
 
 // FIXME: it seems that for audit, we're receiving malformed packets.
 // See https://github.com/mozilla/libaudit-go/issues/24
-impl Decoder for NetlinkCodec<NetlinkMessage> {
-    type Item = NetlinkMessage;
+impl<T> Decoder for NetlinkCodec<NetlinkMessage<T>>
+where
+    T: NetlinkDeserializable<T> + Debug + Eq + PartialEq + Clone,
+{
+    type Item = NetlinkMessage<T>;
     type Error = io::Error;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         debug!("NetlinkCodec: decoding next message");
+
         // If there's nothing to read, return Ok(None)
         if src.as_ref().is_empty() {
             trace!("buffer is empty");
@@ -45,9 +49,9 @@ impl Decoder for NetlinkCodec<NetlinkMessage> {
         // This is a bit hacky because we don't want to keep `src` borrowed, since we need to
         // mutate it later.
         let len = match NetlinkBuffer::new_checked(src.as_ref()) {
-            #[cfg(not(feature = "audit"))]
+            #[cfg(not(feature = "workaround-audit-bug"))]
             Ok(buf) => buf.length() as usize,
-            #[cfg(feature = "audit")]
+            #[cfg(feature = "workaround-audit-bug")]
             Ok(buf) => {
                 if (src.as_ref().len() as isize - buf.length() as isize) <= 16 {
                     // The audit messages are sometimes truncated, because the length specified in
@@ -85,7 +89,7 @@ impl Decoder for NetlinkCodec<NetlinkMessage> {
             }
         };
 
-        #[cfg(feature = "audit")]
+        #[cfg(feature = "workaround-audit-bug")]
         let bytes = {
             let mut bytes = src.split_to(len);
             {
@@ -114,16 +118,15 @@ impl Decoder for NetlinkCodec<NetlinkMessage> {
             bytes
         };
 
-        #[cfg(not(feature = "audit"))]
+        #[cfg(not(feature = "workaround-audit-bug"))]
         let bytes = src.split_to(len);
-        let parsed =
-            <NetlinkBuffer<_> as Parseable<NetlinkMessage>>::parse(&NetlinkBuffer::new(&bytes));
+        let parsed = NetlinkMessage::<T>::deserialize(&bytes);
 
         match parsed {
             Ok(packet) => Ok(Some(packet)),
             Err(e) => {
                 let mut error_string = format!("failed to decode packet {:#x?}", &bytes);
-                for cause in e.causes() {
+                for cause in Fail::iter_chain(&e) {
                     error_string += &format!(": {}", cause);
                 }
                 error!("{}", error_string);
@@ -133,8 +136,11 @@ impl Decoder for NetlinkCodec<NetlinkMessage> {
     }
 }
 
-impl Encoder for NetlinkCodec<NetlinkMessage> {
-    type Item = NetlinkMessage;
+impl<T> Encoder for NetlinkCodec<NetlinkMessage<T>>
+where
+    T: Debug + Eq + PartialEq + Clone + NetlinkSerializable<T>,
+{
+    type Item = NetlinkMessage<T>;
     type Error = io::Error;
 
     fn encode(&mut self, msg: Self::Item, buf: &mut BytesMut) -> Result<(), Self::Error> {
@@ -159,7 +165,7 @@ impl Encoder for NetlinkCodec<NetlinkMessage> {
                     ),
                 ));
             }
-            msg.emit(&mut buf.bytes_mut()[..size]);
+            msg.serialize(&mut buf.bytes_mut()[..size]);
             buf.advance_mut(size);
         }
         Ok(())

@@ -1,60 +1,69 @@
-use std::collections::HashMap;
-use std::io;
+use std::{
+    collections::{HashMap, VecDeque},
+    fmt::Debug,
+    io,
+};
 
-use futures::sync::mpsc::{UnboundedReceiver, UnboundedSender};
-use futures::{Async, AsyncSink, Future, Poll, Sink, Stream};
+use futures::{
+    sync::mpsc::{UnboundedReceiver, UnboundedSender},
+    Async, AsyncSink, Future, Poll, Sink, Stream,
+};
 
-use netlink_packet::NetlinkMessage;
+use netlink_packet_core::{
+    NetlinkDeserializable, NetlinkMessage, NetlinkPayload, NetlinkSerializable,
+};
 use netlink_sys::{Protocol, SocketAddr, TokioSocket};
-use std::collections::VecDeque;
 
-use crate::errors::{Error, ErrorKind};
+use crate::{
+    codecs::NetlinkCodec,
+    errors::{Error, ErrorKind},
+    framed::NetlinkFramed,
+    request::Request,
+};
 
-use super::codecs::NetlinkCodec;
-use super::framed::NetlinkFramed;
-use super::request::Request;
-
-lazy_static! {
-    static ref KERNEL_UNICAST: SocketAddr = SocketAddr::new(0, 0);
-}
-
-/// Connection to a netlink socket, running in the background.
+/// Connection to a Netlink socket, running in the background.
 ///
 /// [`ConnectionHandle`](struct.ConnectionHandle.html) are used to pass new requests to the
 /// `Connection`, that in turn, sends them through the netlink socket.
-pub struct Connection {
-    socket: NetlinkFramed<NetlinkCodec<NetlinkMessage>>,
+pub struct Connection<T>
+where
+    T: Debug + Clone + PartialEq + Eq + NetlinkSerializable<T> + NetlinkDeserializable<T>,
+{
+    socket: NetlinkFramed<NetlinkCodec<NetlinkMessage<T>>>,
 
     // Counter that is incremented for each message sent
     sequence_id: u32,
 
     // Requests for which we're waiting for a response
-    pending_requests: HashMap<(SocketAddr, u32), UnboundedSender<NetlinkMessage>>,
+    pending_requests: HashMap<(SocketAddr, u32), UnboundedSender<NetlinkMessage<T>>>,
 
     // Requests to be sent out
-    requests_buffer: VecDeque<Request>,
+    requests_buffer: VecDeque<Request<T>>,
 
     // Channel used by the user to pass requests to the connection. These requests are either sent
     // out as soon as they are received, or put in self.requests_buffer for and processed later.
-    requests_rx: UnboundedReceiver<Request>,
+    requests_rx: UnboundedReceiver<Request<T>>,
 
     // Channel used to transmit to the ConnectionHandle the unsollicited messages received from the
     // socket (multicast messages for instance).
-    incoming_messages_tx: UnboundedSender<NetlinkMessage>,
+    incoming_messages_tx: UnboundedSender<NetlinkMessage<T>>,
 
     // Indicate whether this connection is shutting down.
     shutting_down: bool,
 }
 
-impl Connection {
+impl<T> Connection<T>
+where
+    T: Debug + Clone + PartialEq + Eq + NetlinkSerializable<T> + NetlinkDeserializable<T>,
+{
     pub(crate) fn new(
-        requests_rx: UnboundedReceiver<Request>,
-        incoming_messages_tx: UnboundedSender<NetlinkMessage>,
+        requests_rx: UnboundedReceiver<Request<T>>,
+        incoming_messages_tx: UnboundedSender<NetlinkMessage<T>>,
         protocol: Protocol,
     ) -> io::Result<Self> {
         let socket = TokioSocket::new(protocol)?;
         Ok(Connection {
-            socket: NetlinkFramed::new(socket, NetlinkCodec::<NetlinkMessage>::new()),
+            socket: NetlinkFramed::new(socket, NetlinkCodec::<NetlinkMessage<T>>::new()),
             sequence_id: 0,
             pending_requests: HashMap::new(),
             requests_buffer: VecDeque::with_capacity(1024),
@@ -68,7 +77,7 @@ impl Connection {
         self.socket.get_mut()
     }
 
-    fn prepare_message(&mut self, message: &mut NetlinkMessage) {
+    fn prepare_message(&mut self, message: &mut NetlinkMessage<T>) {
         self.sequence_id += 1;
         message.header.sequence_number = self.sequence_id;
         message.finalize();
@@ -76,7 +85,7 @@ impl Connection {
 
     // FIXME: this should return an error when the sink is full and we don't have any more
     // space to buffer the message
-    fn send(&mut self, request: Request) -> AsyncSink<Request> {
+    fn send(&mut self, request: Request<T>) -> AsyncSink<Request<T>> {
         if !self.requests_buffer.is_empty() {
             trace!("there are already requests waiting for being sent");
             return AsyncSink::NotReady(request);
@@ -123,7 +132,7 @@ impl Connection {
         trace!("all the buffered requests have been sent");
     }
 
-    fn handle_message(&mut self, message: NetlinkMessage, source: SocketAddr) {
+    fn handle_message(&mut self, message: NetlinkMessage<T>, source: SocketAddr) {
         let seq = message.header.sequence_number;
         let mut close_chan = false;
 
@@ -135,32 +144,37 @@ impl Connection {
                 close_chan = true;
             }
 
-            if message.is_done() {
-                trace!("received end of dump message");
-                close_chan = true;
-            } else if message.is_noop() {
-                trace!("ignoring NOOP");
-            } else if message.is_error() {
-                trace!("forwarding error message and closing channel with handle");
-                // If send returns an Err, its because the other side has been dropped, so it
-                // does not really matter.
-                let _ = tx.unbounded_send(message);
-                close_chan = true;
-            } else if message.is_ack() {
-                trace!("got ack for message {}", message.header.sequence_number);
-                // FIXME: we could set `close_chan = true` and not forward the ACK to the handle,
-                // if we assume receiving an ACK means we won't receive other messages for that
-                // request. But I'm not sure whether that's the case.
-                //
-                // close_chan = true;
-                let _ = tx.unbounded_send(message);
-            } else if message.is_overrun() {
-                // FIXME: we should obviously NOT panic here but I'm not sure what we
-                // should do. Can we increase the buffer size now? Should we leave that the
-                // users?
-                panic!("overrun: receive buffer is full");
-            } else {
-                let _ = tx.unbounded_send(message);
+            match message.payload {
+                NetlinkPayload::Done => {
+                    trace!("received end of dump message");
+                    close_chan = true;
+                }
+                NetlinkPayload::Noop => trace!("ignoring NOOP"),
+                NetlinkPayload::Error(_) => {
+                    trace!("forwarding error message and closing channel with handle");
+                    // If send returns an Err, its because the other side has been dropped, so it
+                    // does not really matter.
+                    let _ = tx.unbounded_send(message);
+                    close_chan = true;
+                }
+                NetlinkPayload::Ack(_) => {
+                    trace!("got ack for message {}", message.header.sequence_number);
+                    // FIXME: we could set `close_chan = true` and not forward the ACK to the handle,
+                    // if we assume receiving an ACK means we won't receive other messages for that
+                    // request. But I'm not sure whether that's the case.
+                    //
+                    // close_chan = true;
+                    let _ = tx.unbounded_send(message);
+                }
+                NetlinkPayload::Overrun(_) => {
+                    // FIXME: we should obviously NOT panic here but I'm not sure what we
+                    // should do. Can we increase the buffer size now? Should we leave that the
+                    // users?
+                    panic!("overrun: receive buffer is full");
+                }
+                NetlinkPayload::InnerMessage(_) => {
+                    let _ = tx.unbounded_send(message);
+                }
             }
         } else {
             let _ = self.incoming_messages_tx.unbounded_send(message);
@@ -172,7 +186,7 @@ impl Connection {
         }
     }
 
-    fn read_all(&mut self) -> Result<(), Error> {
+    fn read_all(&mut self) -> Result<(), Error<T>> {
         trace!("reading from socket");
         loop {
             match self
@@ -230,9 +244,12 @@ impl Connection {
     }
 }
 
-impl Future for Connection {
+impl<T> Future for Connection<T>
+where
+    T: Debug + Clone + PartialEq + Eq + NetlinkSerializable<T> + NetlinkDeserializable<T>,
+{
     type Item = ();
-    type Error = Error;
+    type Error = Error<T>;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         debug!("polling connection");

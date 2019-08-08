@@ -1,11 +1,14 @@
 use futures::{Future, Stream};
 use std::net::{IpAddr, Ipv4Addr};
 
-use crate::packet::constants::{
-    AF_INET, AF_INET6, NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST,
+use netlink_packet_core::{
+    header::flags::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST},
+    NetlinkFlags, NetlinkMessage, NetlinkPayload,
 };
-use crate::packet::{
-    AddressMessage, AddressNla, NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage,
+use netlink_packet_route::{
+    address::{nlas::AddressNla, AddressMessage},
+    link::address_families::{AF_INET, AF_INET6},
+    RtnlMessage,
 };
 
 use crate::{Error, ErrorKind, Handle};

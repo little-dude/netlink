@@ -1,0 +1,22 @@
+[package]
+name = "netlink-packet-fuzz"
+version = "0.0.1"
+authors = ["Automatically generated"]
+publish = false
+edition = "2018"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+netlink-packet-audit = { path = ".." }
+netlink-packet-core = { path = "../../netlink-packet-core" }
+libfuzzer-sys = { git = "https://github.com/rust-fuzz/libfuzzer-sys.git" }
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "netlink-audit"
+path = "fuzz_targets/netlink.rs"

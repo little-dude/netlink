@@ -1,43 +1,58 @@
 use std::error::Error as StdError;
-use std::fmt;
+use std::fmt::{self, Debug};
 use std::io;
 
-use netlink_packet::NetlinkMessage;
+use netlink_packet_core::NetlinkMessage;
 
 #[derive(Debug)]
-pub struct Error {
-    kind: ErrorKind,
+pub struct Error<T>
+where
+    T: Debug + Eq + PartialEq + Clone,
+{
+    kind: ErrorKind<T>,
 }
 
-impl Error {
-    pub fn kind(&self) -> &ErrorKind {
+impl<T> Error<T>
+where
+    T: Debug + Eq + PartialEq + Clone,
+{
+    pub fn kind(&self) -> &ErrorKind<T> {
         &self.kind
     }
 
-    pub fn into_inner(self) -> ErrorKind {
+    pub fn into_inner(self) -> ErrorKind<T> {
         self.kind
     }
 }
 
 #[derive(Debug)]
-pub enum ErrorKind {
+pub enum ErrorKind<T>
+where
+    T: Debug + Eq + PartialEq + Clone,
+{
     /// The netlink connection is closed
     ConnectionClosed,
 
     /// Received an error message as a response
-    NetlinkError(NetlinkMessage),
+    NetlinkError(NetlinkMessage<T>),
 
     /// Error while reading from or writing to the netlink socket
     SocketIo(io::Error),
 }
 
-impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+impl<T> From<ErrorKind<T>> for Error<T>
+where
+    T: Debug + Eq + PartialEq + Clone,
+{
+    fn from(kind: ErrorKind<T>) -> Error<T> {
         Error { kind }
     }
 }
 
-impl fmt::Display for Error {
+impl<T> fmt::Display for Error<T>
+where
+    T: Debug + Eq + PartialEq + Clone,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::ErrorKind::*;
         match self.kind() {
@@ -48,7 +63,10 @@ impl fmt::Display for Error {
     }
 }
 
-impl StdError for Error {
+impl<T> StdError for Error<T>
+where
+    T: Debug + Eq + PartialEq + Clone,
+{
     fn description(&self) -> &str {
         use crate::ErrorKind::*;
         match self.kind() {

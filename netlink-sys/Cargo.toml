@@ -12,20 +12,20 @@ repository = "https://github.com/little-dude/netlink"
 description = "netlink sockets, with optional integration with mio and tokio"
 
 [dependencies]
-libc = "0.2.45"
-log = "0.4.6"
+libc = "0.2.61"
+log = "0.4.8"
 
 [dependencies.futures]
 optional = true
-version = "0.1.25"
+version = "0.1.28"
 
 [dependencies.mio]
 optional = true
-version = "0.6.16"
+version = "0.6.19"
 
 [dependencies.tokio-reactor]
 optional = true
-version = "0.1.7"
+version = "0.1.9"
 
 [features]
 default = []
@@ -33,6 +33,6 @@ mio_support = ["mio"]
 tokio_support = ["mio_support", "tokio-reactor", "futures"]
 
 [dev-dependencies]
-env_logger = "0.6.0"
+env_logger = "0.6.2"
 tokio-core = "0.1.17"
-futures = "0.1.25"
+futures = "0.1.28"

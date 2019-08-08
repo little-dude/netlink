@@ -1,7 +1,10 @@
 use futures::Stream;
 
-use crate::packet::constants::{NLM_F_DUMP, NLM_F_REQUEST};
-use crate::packet::{LinkMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage};
+use crate::netlink_packet_route::{link::LinkMessage, RtnlMessage};
+use netlink_packet_core::{
+    header::flags::{NLM_F_DUMP, NLM_F_REQUEST},
+    NetlinkFlags, NetlinkMessage, NetlinkPayload,
+};
 
 use crate::{Error, ErrorKind, Handle};
 
@@ -32,7 +35,7 @@ impl LinkGetRequest {
         handle.request(req).and_then(move |msg| {
             let (header, payload) = msg.into_parts();
             match payload {
-                NetlinkPayload::Rtnl(RtnlMessage::NewLink(msg)) => Ok(msg),
+                NetlinkPayload::InnerMessage(RtnlMessage::NewLink(msg)) => Ok(msg),
                 NetlinkPayload::Error(err) => Err(ErrorKind::NetlinkError(err).into()),
                 _ => Err(ErrorKind::UnexpectedMessage(NetlinkMessage::new(header, payload)).into()),
             }

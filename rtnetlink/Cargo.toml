@@ -12,26 +12,17 @@ repository = "https://github.com/little-dude/netlink"
 description = "manipulate linux networking resources via netlink"
 
 [dependencies]
-futures = "0.1.25"
-log = "0.4.6"
-lazy_static = "1.2.0"
-failure = "0.1.4"
-
-[dependencies.netlink-packet]
-version = "0.1"
-default-features = false
-features = ["rtnetlink"]
-path = "../netlink-packet"
-
-[dependencies.netlink-proto]
-version = "0.1"
-default-features = false
-features = ["rtnetlink"]
-path = "../netlink-proto"
+futures = "0.1.28"
+log = "0.4.8"
+lazy_static = "1.3.0"
+failure = "0.1.5"
+netlink-packet-core = { path = "../netlink-packet-core", version = "0.1"}
+netlink-packet-route = { path = "../netlink-packet-route", version = "0.1"}
+netlink-proto = { path = "../netlink-proto", version = "0.1" }
 
 [dev-dependencies]
-env_logger = "0.6.0"
-ipnetwork = "0.13.1"
+env_logger = "0.6.2"
+ipnetwork = "0.14.0"
 tokio-core = "0.1.17"
-tokio = "0.1.13"
+tokio = "0.1.22"
 netlink-sys = { path = "../netlink-sys" }

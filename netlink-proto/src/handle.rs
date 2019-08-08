@@ -1,6 +1,7 @@
 use futures::sync::mpsc::{unbounded, UnboundedSender};
 use futures::Stream;
-use netlink_packet::NetlinkMessage;
+use netlink_packet_core::NetlinkMessage;
+use std::fmt::Debug;
 
 use crate::errors::{Error, ErrorKind};
 use crate::Request;
@@ -8,12 +9,18 @@ use netlink_sys::SocketAddr;
 
 /// A handle to pass requests to a [`Connection`](struct.Connection.html).
 #[derive(Clone, Debug)]
-pub struct ConnectionHandle {
-    requests_tx: UnboundedSender<Request>,
+pub struct ConnectionHandle<T>
+where
+    T: Debug + Clone + Eq + PartialEq,
+{
+    requests_tx: UnboundedSender<Request<T>>,
 }
 
-impl ConnectionHandle {
-    pub(crate) fn new(requests_tx: UnboundedSender<Request>) -> Self {
+impl<T> ConnectionHandle<T>
+where
+    T: Debug + Clone + Eq + PartialEq,
+{
+    pub(crate) fn new(requests_tx: UnboundedSender<Request<T>>) -> Self {
         ConnectionHandle { requests_tx }
     }
 
@@ -25,10 +32,10 @@ impl ConnectionHandle {
     /// closed
     pub fn request(
         &mut self,
-        message: NetlinkMessage,
+        message: NetlinkMessage<T>,
         destination: SocketAddr,
-    ) -> impl Stream<Item = NetlinkMessage, Error = Error> {
-        let (tx, rx) = unbounded::<NetlinkMessage>();
+    ) -> impl Stream<Item = NetlinkMessage<T>, Error = Error<T>> {
+        let (tx, rx) = unbounded::<NetlinkMessage<T>>();
         let request = Request::from((tx, message, destination));
         debug!("handle: forwarding new request to connection");
         // We don't handle the error here, because we would have to return a Result, which makes
@@ -44,10 +51,10 @@ impl ConnectionHandle {
 
     pub fn notify(
         &mut self,
-        message: NetlinkMessage,
+        message: NetlinkMessage<T>,
         destination: SocketAddr,
-    ) -> Result<(), Error> {
-        let (tx, _rx) = unbounded::<NetlinkMessage>();
+    ) -> Result<(), Error<T>> {
+        let (tx, _rx) = unbounded::<NetlinkMessage<T>>();
         let request = Request::from((tx, message, destination));
         debug!("handle: forwarding new request to connection");
         UnboundedSender::unbounded_send(&self.requests_tx, request)

@@ -2,10 +2,14 @@
 //! received.
 use std::thread::spawn;
 
-use audit::constants::AUDIT_NLGRP_READLOG;
 use audit::new_connection;
 use futures::{Future, Stream};
 use tokio_core::reactor::Core;
+
+/// Unused multicast group for audit
+pub const AUDIT_NLGRP_NONE: u32 = 0;
+/// Multicast group to listen for audit events
+pub const AUDIT_NLGRP_READLOG: u32 = 1;
 
 fn main() {
     env_logger::init();

@@ -8,7 +8,7 @@ use futures::{Future, Stream};
 use ipnetwork::IpNetwork;
 use tokio_core::reactor::Core;
 
-use rtnetlink::packet::LinkNla;
+use netlink_packet_route::link::nlas::LinkNla;
 use rtnetlink::{new_connection, ErrorKind};
 
 fn main() {
