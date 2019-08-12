@@ -14,12 +14,6 @@ netlink protocol](https://www.infradead.org/~tgr/libnl/doc/route.html) (see
 The project is in its early stages, and I'm currently focusing on the route and
 audit netlink protocols.
 
-Documentation
--------------
-
-- [`rtnetlink`](https://docs.rs/rtnetlink/)
-- [`audit`](https://docs.rs/audit)
-
 Organization
 ------------
 
