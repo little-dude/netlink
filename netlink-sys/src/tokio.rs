@@ -8,11 +8,11 @@ use tokio_reactor::PollEvented;
 use super::sys;
 use super::Protocol;
 
-/// An I/O object representing a UDP socket.
+/// An I/O object representing a Netlink socket.
 pub struct TokioSocket(PollEvented<sys::Socket>);
 
 impl TokioSocket {
-    /// This function will create a new UDP socket and attempt to bind it to
+    /// This function will create a new Netlink socket and attempt to bind it to
     /// the `addr` provided.
     pub fn bind(&mut self, addr: &sys::SocketAddr) -> io::Result<()> {
         self.0.get_mut().bind(addr)
