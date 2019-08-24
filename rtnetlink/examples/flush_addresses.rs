@@ -1,66 +1,55 @@
-use std::thread::spawn;
+use failure::Fail;
+use futures::stream::TryStreamExt;
+use rtnetlink::{new_connection, Error, Handle};
+use std::env;
 
-use futures::{Future, Stream};
-use tokio_core::reactor::Core;
-
-use netlink_packet_route::link::nlas::LinkNla;
-use rtnetlink::new_connection;
-
-fn main() {
-    let args: Vec<String> = std::env::args().collect();
+#[tokio::main]
+async fn main() -> Result<(), ()> {
+    let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
-        return usage();
+        usage();
+        return Ok(());
     }
     let link_name = &args[1];
 
-    // Create a netlink connection, and a handle to send requests via this connection
-    let (connection, handle) = new_connection().unwrap();
+    let (connection, handle, _) = new_connection().unwrap();
+    tokio::spawn(connection);
 
-    // The connection we run in its own thread
-    spawn(move || Core::new().unwrap().run(connection));
+    if let Err(e) = flush_addresses(handle, link_name.to_string()).await {
+        eprintln!("{}", format_failure_error(e));
+    }
 
-    handle
-        .link()
-        .get()
-        .execute()
-        // Filter the link to keep the one with the wanted name
-        .filter(|link_msg| {
-            for nla in &link_msg.nlas {
-                if let LinkNla::IfName(ref name) = nla {
-                    return name == link_name;
-                }
-            }
-            false
-        })
-        // Convert the stream into a future
-        .collect()
-        .map_err(|e| format!("{}", e))
-        // Make sure we found 1 and only 1 link with the given name, and return it
-        .and_then(|mut link_msgs| {
-            if link_msgs.len() > 1 {
-                Err(format!("Found multiple links named {}", link_name))
-            } else if link_msgs.is_empty() {
-                Err(format!("Link {} not found", link_name))
-            } else {
-                Ok(link_msgs.drain(..).next().unwrap())
-            }
-        })
-        // Flush the addresses on the link
-        .and_then(|link_msg| {
-            handle
-                .address()
-                .flush(link_msg.header.index)
-                .execute()
-                .map(|_| println!("done"))
-                .map_err(|e| format!("{}", e))
-        })
-        // Print the potential errors
-        .or_else(|e| {
-            eprintln!("{}", e);
-            Ok(()) as Result<(), String>
-        })
-        .wait()
-        .unwrap();
+    Ok(())
+}
+
+async fn flush_addresses(handle: Handle, link: String) -> Result<(), Error> {
+    let mut links = handle.link().get().set_name_filter(link.clone()).execute();
+    if let Some(link) = links.try_next().await? {
+        // We should have received only one message
+        assert!(links.try_next().await?.is_none());
+
+        let mut addresses = handle
+            .address()
+            .get()
+            .set_link_index_filter(link.header.index)
+            .execute();
+        while let Some(addr) = addresses.try_next().await? {
+            handle.address().del(addr).execute().await?;
+        }
+        Ok(())
+    } else {
+        eprintln!("link {} not found", link);
+        Ok(())
+    }
+}
+
+fn format_failure_error<E: Fail>(error: E) -> String {
+    let mut causes = Fail::iter_chain(&error);
+    let mut error_string = causes.next().unwrap().to_string();
+    for cause in causes {
+        error_string += &format!(": {}", cause);
+    }
+    error_string
 }
 
 fn usage() {

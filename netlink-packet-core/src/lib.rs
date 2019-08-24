@@ -31,7 +31,7 @@
 //!     header::flags::{NLM_F_DUMP, NLM_F_REQUEST},
 //!     NetlinkFlags, NetlinkMessage,
 //! };
-//! use netlink_packet_route::{
+//! use netlink_packet_route::rtnl::{
 //!     link::{LinkHeader, LinkMessage},
 //!     RtnlMessage,
 //! };
@@ -268,7 +268,3 @@ pub use self::payload::*;
 
 mod message;
 pub use self::message::*;
-
-#[cfg(test)]
-#[macro_use]
-extern crate lazy_static;

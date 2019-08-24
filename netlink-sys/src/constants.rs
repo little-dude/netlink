@@ -435,7 +435,7 @@ pub const NDTPA_MCAST_REPROBES: int = 17;
 pub const NDTPA_PAD: int = 18;
 
 #[allow(overflowing_literals)]
-pub const RT_TABLE_MAX: int = 4294967295;
+pub const RT_TABLE_MAX: int = 0xffff_ffff;
 
 pub const PREFIX_UNSPEC: int = 0;
 pub const PREFIX_ADDRESS: int = 1;
@@ -510,7 +510,7 @@ pub const RTAX_FEATURE_TIMESTAMP: int = 4;
 pub const RTAX_FEATURE_ALLFRAG: int = 8;
 pub const RTAX_FEATURE_MASK: int = 15;
 #[allow(overflowing_literals)]
-pub const TCM_IFINDEX_MAGIC_BLOCK: int = 4294967295;
+pub const TCM_IFINDEX_MAGIC_BLOCK: int = 0xffff_ffff;
 pub const TCA_FLAG_LARGE_DUMP_ON: int = 1;
 pub const RTEXT_FILTER_VF: int = 1;
 pub const RTEXT_FILTER_BRVLAN: int = 2;

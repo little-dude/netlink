@@ -1,16 +1,23 @@
-use failure::Fail;
-use futures::{Future, Stream};
-use netlink_packet_audit::{rules::RuleMessage, AuditMessage, StatusMessage};
-use netlink_packet_core::{
-    header::flags::{NLM_F_ACK, NLM_F_CREATE, NLM_F_DUMP, NLM_F_EXCL, NLM_F_NONREC, NLM_F_REQUEST},
-    NetlinkFlags, NetlinkMessage, NetlinkPayload,
-};
-use netlink_proto::{sys::SocketAddr, ConnectionHandle};
 use std::process;
 
-lazy_static! {
-    static ref KERNEL_UNICAST: SocketAddr = SocketAddr::new(0, 0);
-}
+use failure::Fail;
+use futures::{
+    future::{self, Either},
+    stream::{Stream, StreamExt, TryStream},
+    FutureExt,
+};
+use netlink_proto::{sys::SocketAddr, ConnectionHandle};
+
+use crate::packet::{
+    netlink::{
+        header::flags::{
+            NLM_F_ACK, NLM_F_CREATE, NLM_F_DUMP, NLM_F_EXCL, NLM_F_NONREC, NLM_F_REQUEST,
+        },
+        NetlinkFlags, NetlinkMessage, NetlinkPayload,
+    },
+    rules::RuleMessage,
+    AuditMessage, StatusMessage,
+};
 
 // ==========================================
 // mask values
@@ -49,68 +56,75 @@ impl Handle {
     pub fn request(
         &mut self,
         message: NetlinkMessage<AuditMessage>,
-    ) -> impl Stream<Item = NetlinkMessage<AuditMessage>, Error = Error> {
+    ) -> Result<impl Stream<Item = NetlinkMessage<AuditMessage>>, Error> {
         self.0
-            .request(message, *KERNEL_UNICAST)
+            .request(message, SocketAddr::new(0, 0))
             .map_err(|e| e.context(ErrorKind::RequestFailed).into())
     }
 
     /// Send a netlink message that expects an acknowledgement. The returned future resolved when
     /// that ACK is received. If anything else is received, the future resolves into an error.
-    fn acked_request(
-        &mut self,
-        message: NetlinkMessage<AuditMessage>,
-    ) -> impl Future<Item = (), Error = Error> {
-        self.request(message).take(1).for_each(|nl_msg| {
-            let (header, payload) = nl_msg.into_parts();
-            match payload {
-                NetlinkPayload::Ack(_) => Ok(()),
-                NetlinkPayload::Error(err_msg) => Err(ErrorKind::NetlinkError(err_msg).into()),
-                _ => Err(ErrorKind::UnexpectedMessage(NetlinkMessage::new(header, payload)).into()),
+    async fn acked_request(&mut self, message: NetlinkMessage<AuditMessage>) -> Result<(), Error> {
+        let mut response = self.request(message)?;
+        if let Some(message) = response.next().await {
+            let (header, payload) = message.into_parts();
+            // NetlinkError and AuditMessage are forwarded to the
+            // handle. Ack is signaled by the stream finishing.
+            if let NetlinkPayload::Error(err_msg) = payload {
+                Err(ErrorKind::NetlinkError(err_msg).into())
+            } else {
+                Err(ErrorKind::UnexpectedMessage(NetlinkMessage::new(header, payload)).into())
             }
-        })
+        } else {
+            Ok(())
+        }
     }
 
     /// Add the given rule
-    pub fn add_rule(&mut self, rule: RuleMessage) -> impl Future<Item = (), Error = Error> {
+    pub async fn add_rule(&mut self, rule: RuleMessage) -> Result<(), Error> {
         let mut req = NetlinkMessage::from(AuditMessage::AddRule(rule));
         req.header.flags =
             NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
-        self.acked_request(req)
+        self.acked_request(req).await
     }
 
     /// Deletes a given rule
-    pub fn del_rule(&mut self, rule: RuleMessage) -> impl Future<Item = (), Error = Error> {
+    pub async fn del_rule(&mut self, rule: RuleMessage) -> Result<(), Error> {
         let mut req = NetlinkMessage::from(AuditMessage::DelRule(rule));
         req.header.flags = NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_NONREC);
-        self.acked_request(req)
+        self.acked_request(req).await
     }
 
     /// List the current rules
-    pub fn list_rules(&mut self) -> impl Stream<Item = RuleMessage, Error = Error> {
+    pub fn list_rules(&mut self) -> impl TryStream<Ok = RuleMessage, Error = Error> {
         let mut req = NetlinkMessage::from(AuditMessage::ListRules(None));
         req.header.flags = NetlinkFlags::from(NLM_F_REQUEST | NLM_F_DUMP);
 
-        self.request(req).and_then(|nl_msg| {
-            let (header, payload) = nl_msg.into_parts();
-            match payload {
-                NetlinkPayload::InnerMessage(AuditMessage::ListRules(Some(rule_msg))) => {
-                    Ok(rule_msg)
+        match self.request(req) {
+            Ok(response) => Either::Left(response.map(move |msg| {
+                let (header, payload) = msg.into_parts();
+                match payload {
+                    NetlinkPayload::InnerMessage(AuditMessage::ListRules(Some(rule_msg))) => {
+                        Ok(rule_msg)
+                    }
+                    NetlinkPayload::Error(err_msg) => Err(ErrorKind::NetlinkError(err_msg).into()),
+                    _ => Err(
+                        ErrorKind::UnexpectedMessage(NetlinkMessage::new(header, payload)).into(),
+                    ),
                 }
-                NetlinkPayload::Error(err_msg) => Err(ErrorKind::NetlinkError(err_msg).into()),
-                _ => Err(ErrorKind::UnexpectedMessage(NetlinkMessage::new(header, payload)).into()),
-            }
-        })
+            })),
+            Err(e) => Either::Right(future::err::<RuleMessage, Error>(e).into_stream()),
+        }
     }
 
     /// Enable receiving audit events
-    pub fn enable_events(&mut self) -> impl Future<Item = (), Error = Error> {
+    pub async fn enable_events(&mut self) -> Result<(), Error> {
         let mut status = StatusMessage::new();
         status.enabled = 1;
         status.pid = process::id();
         status.mask = AUDIT_STATUS_ENABLED | AUDIT_STATUS_PID;
         let mut req = NetlinkMessage::from(AuditMessage::SetStatus(status));
         req.header.flags = NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK);
-        self.acked_request(req)
+        self.acked_request(req).await
     }
 }

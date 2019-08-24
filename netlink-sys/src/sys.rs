@@ -8,22 +8,6 @@ use std::os::unix::io::{AsRawFd, RawFd};
 
 use super::Protocol;
 
-pub const RTMGRP_LINK: u32 = 1;
-pub const RTMGRP_NOTIFY: u32 = 2;
-pub const RTMGRP_NEIGH: u32 = 4;
-pub const RTMGRP_TC: u32 = 8;
-pub const RTMGRP_IPV4_IFADDR: u32 = 16;
-pub const RTMGRP_IPV4_MROUTE: u32 = 32;
-pub const RTMGRP_IPV4_ROUTE: u32 = 64;
-pub const RTMGRP_IPV4_RULE: u32 = 128;
-pub const RTMGRP_IPV6_IFADDR: u32 = 256;
-pub const RTMGRP_IPV6_MROUTE: u32 = 512;
-pub const RTMGRP_IPV6_ROUTE: u32 = 1024;
-pub const RTMGRP_IPV6_IFINFO: u32 = 2048;
-pub const RTMGRP_DECNET_IFADDR: u32 = 4096;
-pub const RTMGRP_DECNET_ROUTE: u32 = 16384;
-pub const RTMGRP_IPV6_PREFIX: u32 = 131072;
-
 #[derive(Clone, Debug)]
 pub struct Socket(RawFd);
 
@@ -211,6 +195,11 @@ impl Socket {
 
     // Most of the comments in this method come from a discussion on rust users forum.
     // [thread]: https://users.rust-lang.org/t/help-understanding-libc-call/17308/9
+    //
+    // WARNING: with datagram oriented protocols, `recv` and
+    // `recvfrom` receive normally only ONE datagram, but it seems not
+    // to be verified for Netlink sockets: multiple message can be
+    // received in a single call.
     pub fn recv_from(&self, buf: &mut [u8], flags: libc::c_int) -> Result<(usize, SocketAddr)> {
         // Create an empty storage for the address. Note that Rust standard library create a
         // sockaddr_storage so that it works for any address family, but here, we already know that
@@ -320,12 +309,12 @@ impl Socket {
         )
     }
 
-    pub fn list_membership(&self) -> Vec<u32> {
-        unimplemented!();
-        // getsockopt won't be enough here, because we may need to perform 2 calls, and because the
-        // length of the list returned by libc::getsockopt is returned by mutating the length
-        // argument, which our implementation of getsockopt forbids.
-    }
+    // pub fn list_membership(&self) -> Vec<u32> {
+    //     unimplemented!();
+    //     // getsockopt won't be enough here, because we may need to perform 2 calls, and because the
+    //     // length of the list returned by libc::getsockopt is returned by mutating the length
+    //     // argument, which our implementation of getsockopt forbids.
+    // }
 
     /// `NETLINK_BROADCAST_ERROR` (since Linux 2.6.30). When not set, `netlink_broadcast()` only
     /// reports `ESRCH` errors and silently ignore `NOBUFS` errors.
@@ -397,7 +386,7 @@ impl Socket {
 /// ```no_rust
 /// int getsockopt(int socket, int level, int option_name, void *restrict option_value, socklen_t *restrict option_len);
 /// ```
-fn getsockopt<T: Copy>(fd: RawFd, level: libc::c_int, option: libc::c_int) -> Result<T> {
+pub(crate) fn getsockopt<T: Copy>(fd: RawFd, level: libc::c_int, option: libc::c_int) -> Result<T> {
     unsafe {
         // Create storage for the options we're fetching
         let mut slot: T = mem::zeroed();

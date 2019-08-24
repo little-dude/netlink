@@ -1,17 +1,15 @@
-use futures::{Future, Stream};
+use futures::stream::StreamExt;
 
-use crate::{Error, ErrorKind, Handle};
-use netlink_packet_core::{
-    header::flags::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST},
-    {NetlinkFlags, NetlinkMessage, NetlinkPayload},
+use crate::{
+    packet::{
+        netlink::{
+            header::flags::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST},
+            {NetlinkFlags, NetlinkMessage, NetlinkPayload},
+        },
+        rtnl::{link::LinkMessage, RtnlMessage},
+    },
+    Error, ErrorKind, Handle,
 };
-use netlink_packet_route::{link::LinkMessage, RtnlMessage};
-
-lazy_static! {
-    // Flags for `ip link del`
-    static ref DEL_FLAGS: NetlinkFlags =
-        NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
-}
 
 pub struct LinkDelRequest {
     handle: Handle,
@@ -26,20 +24,22 @@ impl LinkDelRequest {
     }
 
     /// Execute the request
-    pub fn execute(self) -> impl Future<Item = (), Error = Error> {
+    pub async fn execute(self) -> Result<(), Error> {
         let LinkDelRequest {
             mut handle,
             message,
         } = self;
         let mut req = NetlinkMessage::from(RtnlMessage::DelLink(message));
-        req.header.flags = *DEL_FLAGS;
-        handle.request(req).for_each(|message| {
+        req.header.flags =
+            NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
+
+        let mut response = handle.request(req)?;
+        while let Some(message) = response.next().await {
             if let NetlinkPayload::Error(err) = message.payload {
-                Err(ErrorKind::NetlinkError(err).into())
-            } else {
-                Ok(())
+                return Err(ErrorKind::NetlinkError(err).into());
             }
-        })
+        }
+        Ok(())
     }
 
     /// Return a mutable reference to the request

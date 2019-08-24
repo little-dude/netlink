@@ -1,46 +1,37 @@
+use futures::stream::TryStreamExt;
+use rtnetlink::{new_connection, Error, Handle};
 use std::env;
-use std::thread::spawn;
 
-use futures::{Future, Stream};
-use tokio_core::reactor::Core;
-
-use netlink_packet_route::link::nlas::LinkNla;
-use rtnetlink::new_connection;
-
-fn main() {
+#[tokio::main]
+async fn main() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
-        return usage();
+        usage();
+        return Ok(());
     }
     let link_name = &args[1];
 
-    // Create a connection and a handle to use it
-    let (connection, handle) = new_connection().unwrap();
+    let (connection, handle, _) = new_connection().unwrap();
+    tokio::spawn(connection);
 
-    // Spawn the connection in a background thread. All we need is the handle.
-    spawn(move || Core::new().unwrap().run(connection));
+    set_link_down(handle, link_name.to_string())
+        .await
+        .map_err(|e| format!("{}", e))
+}
 
-    // Get the list of links
-    let links = handle.link().get().execute().collect().wait().unwrap();
-
-    for link in links {
-        for nla in &link.nlas {
-            // Find the link with the name provided as argument
-            if let LinkNla::IfName(ref name) = nla {
-                if name != link_name {
-                    continue;
-                }
-                println!("setting link {} down", link_name);
-                // Set it down
-                match handle.link().set(link.header.index).down().execute().wait() {
-                    Ok(()) => println!("done"),
-                    Err(e) => eprintln!("error: {}", e),
-                }
-                return;
-            }
-        }
+async fn set_link_down(handle: Handle, name: String) -> Result<(), Error> {
+    let mut links = handle.link().get().set_name_filter(name.clone()).execute();
+    if let Some(link) = links.try_next().await? {
+        handle
+            .link()
+            .set(link.header.index)
+            .down()
+            .execute()
+            .await?
+    } else {
+        println!("no link link {} found", name);
     }
-    eprintln!("link {} not found", link_name);
+    Ok(())
 }
 
 fn usage() {

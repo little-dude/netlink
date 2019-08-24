@@ -1,8 +1,9 @@
 use std::net::IpAddr;
 
-use super::{AddressAddRequest, AddressDelRequest, AddressFlushRequest, AddressGetRequest};
-
+use super::{AddressAddRequest, AddressDelRequest, AddressGetRequest};
 use crate::Handle;
+
+use netlink_packet_route::rtnl::address::AddressMessage;
 
 pub struct AddressHandle(Handle);
 
@@ -21,13 +22,8 @@ impl AddressHandle {
         AddressAddRequest::new(self.0.clone(), index, address, prefix_len)
     }
 
-    /// Delete all ip addresses on an interface with the given index (equivalent to `ip addr flush`)
-    pub fn flush(self, index: u32) -> AddressFlushRequest {
-        AddressFlushRequest::new(self.0.clone(), index)
-    }
-
-    /// Delete the given IP address on the interface with the given index
-    pub fn del(self, index: u32, address: IpAddr, prefix_len: u8) -> AddressDelRequest {
-        AddressDelRequest::new(self.0.clone(), index, address, prefix_len)
+    /// Delete the given address
+    pub fn del(&self, address: AddressMessage) -> AddressDelRequest {
+        AddressDelRequest::new(self.0.clone(), address)
     }
 }

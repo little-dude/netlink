@@ -1,23 +1,21 @@
-use futures::{Future, Stream};
+use futures::stream::StreamExt;
 
-use netlink_packet_core::{
-    header::flags::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST},
-    NetlinkFlags, NetlinkMessage, NetlinkPayload,
-};
-use netlink_packet_route::{
-    link::{
-        nlas::{LinkInfo, LinkInfoData, LinkInfoKind, LinkInfoVlan, LinkNla, VethInfoNla},
-        LinkFlags, LinkMessage, IFF_UP,
+use crate::{
+    packet::{
+        netlink::{
+            header::flags::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST},
+            NetlinkFlags, NetlinkMessage, NetlinkPayload,
+        },
+        rtnl::{
+            link::{
+                nlas::{LinkInfo, LinkInfoData, LinkInfoKind, LinkInfoVlan, LinkNla, VethInfoNla},
+                LinkFlags, LinkMessage, IFF_UP,
+            },
+            RtnlMessage,
+        },
     },
-    RtnlMessage,
+    Error, ErrorKind, Handle,
 };
-
-use crate::{Error, ErrorKind, Handle};
-
-lazy_static! {
-    // Flags for `ip link add`
-    static ref ADD_FLAGS: NetlinkFlags = NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
-}
 
 /// A request to create a new link. This is equivalent to the `ip link add` commands.
 ///
@@ -38,20 +36,22 @@ impl LinkAddRequest {
     }
 
     /// Execute the request.
-    pub fn execute(self) -> impl Future<Item = (), Error = Error> {
+    pub async fn execute(self) -> Result<(), Error> {
         let LinkAddRequest {
             mut handle,
             message,
         } = self;
         let mut req = NetlinkMessage::from(RtnlMessage::NewLink(message));
-        req.header.flags = *ADD_FLAGS;
-        handle.request(req).for_each(|message| {
+        req.header.flags =
+            NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
+
+        let mut response = handle.request(req)?;
+        while let Some(message) = response.next().await {
             if let NetlinkPayload::Error(err) = message.payload {
-                Err(ErrorKind::NetlinkError(err).into())
-            } else {
-                Ok(())
+                return Err(ErrorKind::NetlinkError(err).into());
             }
-        })
+        }
+        Ok(())
     }
 
     /// Return a mutable reference to the request message.
@@ -64,20 +64,10 @@ impl LinkAddRequest {
     /// could do:
     ///
     /// ```rust,no_run
-    /// extern crate futures;
-    /// extern crate rtnetlink;
-    /// extern crate tokio_core;
-    ///
-    /// use std::thread::spawn;
-    ///
     /// use futures::Future;
-    /// use tokio_core::reactor::Core;
+    /// use rtnetlink::{Handle, new_connection};
     ///
-    /// use rtnetlink::new_connection;
-    ///
-    /// fn main() {
-    ///     let (connection, handle) = new_connection().unwrap();
-    ///     spawn(move || Core::new().unwrap().run(connection));
+    /// async fn run(handle: Handle) -> Result<(), String> {
     ///     let vlan_id = 100;
     ///     let link_id = 6;
     ///     let mut request = handle.link().add().vlan("my-vlan-itf".into(), link_id, vlan_id);
@@ -85,7 +75,7 @@ impl LinkAddRequest {
     ///     request.message_mut().header.flags.unset_up();
     ///     request.message_mut().header.change_mask.unset_up();
     ///     // send the request
-    ///     request.execute().wait().unwrap();
+    ///     request.execute().await.map_err(|e| format!("{}", e))
     /// }
     pub fn message_mut(&mut self) -> &mut LinkMessage {
         &mut self.message

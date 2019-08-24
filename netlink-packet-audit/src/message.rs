@@ -6,8 +6,9 @@ use netlink_packet_core::{
 
 use crate::{
     commands::{AUDIT_ADD_RULE, AUDIT_DEL_RULE, AUDIT_GET, AUDIT_LIST_RULES, AUDIT_SET},
+    netlink::DecodeError,
     rules::RuleMessage,
-    AuditBuffer, DecodeError, Emitable, ParseableParametrized, StatusMessage,
+    AuditBuffer, Emitable, ParseableParametrized, StatusMessage,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]

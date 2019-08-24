@@ -1,10 +1,7 @@
-#[macro_use]
-extern crate criterion;
-extern crate netlink_packet_route;
+use criterion::{criterion_group, criterion_main, Criterion};
 
-use criterion::Criterion;
-use netlink_packet_route::{
-    link::{LinkBuffer, LinkHeader, LinkMessage, LinkNla},
+use netlink_packet_route::rtnl::{
+    link::{nlas::LinkNla, LinkBuffer, LinkHeader, LinkMessage},
     traits::{Parseable, ParseableParametrized},
 };
 

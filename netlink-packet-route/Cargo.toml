@@ -31,7 +31,7 @@ name = "dump_links"
 [dev-dependencies]
 criterion = "0.2.11"
 pcap-file = "0.10.0"
-netlink-sys = { path = "../netlink-sys", version = "0.1" }
+netlink-sys = { path = "../netlink-sys", version = "0.2" }
 
 [[bench]]
 name = "link_message"

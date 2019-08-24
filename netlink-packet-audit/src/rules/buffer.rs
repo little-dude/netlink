@@ -1,7 +1,7 @@
 use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
 
-use crate::{rules::*, DecodeError, Field, Parseable};
+use crate::{netlink::DecodeError, rules::*, Field, Parseable};
 
 // FIXME: when const fn are stable, use them, instead of defining a macro
 // const fn u32_array(start: usize, len: usize) -> Field {

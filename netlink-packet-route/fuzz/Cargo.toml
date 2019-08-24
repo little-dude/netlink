@@ -10,7 +10,6 @@ cargo-fuzz = true
 
 [dependencies]
 netlink-packet-route = { path = ".." }
-netlink-packet-core = { path = "../../netlink-packet-core" }
 libfuzzer-sys = { git = "https://github.com/rust-fuzz/libfuzzer-sys.git" }
 
 # Prevent this from interfering with workspaces

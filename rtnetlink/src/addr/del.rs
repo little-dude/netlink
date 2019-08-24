@@ -1,91 +1,45 @@
-use futures::{Future, Stream};
-use std::net::IpAddr;
+use futures::stream::StreamExt;
 
-use netlink_packet_core::{
-    header::flags::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST},
-    NetlinkFlags, NetlinkMessage, NetlinkPayload,
+use crate::{
+    packet::{
+        netlink::{
+            header::flags::{NLM_F_ACK, NLM_F_REQUEST},
+            NetlinkFlags, NetlinkMessage, NetlinkPayload,
+        },
+        rtnl::{address::AddressMessage, RtnlMessage},
+    },
+    Error, ErrorKind, Handle,
 };
-use netlink_packet_route::{address::nlas::AddressNla, RtnlMessage};
-
-use crate::{AddressHandle, Error, ErrorKind, Handle};
-
-lazy_static! {
-    // Flags for `ip addr del`
-    static ref DEL_FLAGS: NetlinkFlags =
-        NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
-}
 
 pub struct AddressDelRequest {
     handle: Handle,
-    index: u32,
-    address: IpAddr,
-    prefix_len: u8,
+    message: AddressMessage,
 }
 
 impl AddressDelRequest {
-    pub(crate) fn new(handle: Handle, index: u32, address: IpAddr, prefix_len: u8) -> Self {
-        AddressDelRequest {
-            handle,
-            index,
-            address,
-            prefix_len,
-        }
+    pub(crate) fn new(handle: Handle, message: AddressMessage) -> Self {
+        AddressDelRequest { handle, message }
     }
 
     /// Execute the request
-    pub fn execute(self) -> impl Future<Item = (), Error = Error> {
+    pub async fn execute(self) -> Result<(), Error> {
         let AddressDelRequest {
-            handle,
-            index,
-            address,
-            prefix_len,
+            mut handle,
+            message,
         } = self;
 
-        AddressHandle::new(handle.clone())
-            .get()
-            .execute()
-            .filter(move |msg| {
-                if msg.header.index != index {
-                    return false;
-                }
-                if msg.header.prefix_len != prefix_len {
-                    return false;
-                }
-                for nla in msg.nlas.iter() {
-                    match nla {
-                        AddressNla::Unspec(bytes)
-                        | AddressNla::Address(bytes)
-                        | AddressNla::Local(bytes)
-                        | AddressNla::Multicast(bytes)
-                        | AddressNla::Anycast(bytes) => {
-                            let is_match = match address {
-                                IpAddr::V4(address) => bytes[..] == address.octets()[..],
-                                IpAddr::V6(address) => bytes[..] == address.octets()[..],
-                            };
-                            if is_match {
-                                return true;
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-                false
-            })
-            .map(move |msg| {
-                let mut req = NetlinkMessage::from(RtnlMessage::DelAddress(msg));
-                req.header.flags = *DEL_FLAGS;
-                handle.clone().request(req).for_each(|message| {
-                    if let NetlinkPayload::Error(err) = message.payload {
-                        Err(ErrorKind::NetlinkError(err).into())
-                    } else {
-                        Ok(())
-                    }
-                })
-            })
-            // 0xff is arbitrary. It is the max amount of futures that will be
-            // buffered.
-            .buffer_unordered(0xff)
-            // turn the stream into a future.
-            .for_each(|()| Ok(()))
+        let mut req = NetlinkMessage::from(RtnlMessage::DelAddress(message));
+        req.header.flags = NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK);
+        let mut response = handle.request(req)?;
+        while let Some(msg) = response.next().await {
+            if let NetlinkPayload::Error(e) = msg.payload {
+                return Err(ErrorKind::NetlinkError(e).into());
+            }
+        }
+        Ok(())
+    }
+
+    pub fn message_mut(&mut self) -> &mut AddressMessage {
+        &mut self.message
     }
 }

@@ -1,25 +1,19 @@
-use std::{
-    collections::{HashMap, VecDeque},
-    fmt::Debug,
-    io,
-};
+use std::{fmt::Debug, io, pin::Pin};
 
 use futures::{
-    sync::mpsc::{UnboundedReceiver, UnboundedSender},
-    Async, AsyncSink, Future, Poll, Sink, Stream,
+    channel::mpsc::{UnboundedReceiver, UnboundedSender},
+    task::Context,
+    Future, Poll, Sink, Stream,
 };
+
+use log::{error, warn};
 
 use netlink_packet_core::{
     NetlinkDeserializable, NetlinkMessage, NetlinkPayload, NetlinkSerializable,
 };
-use netlink_sys::{Protocol, SocketAddr, TokioSocket};
+use netlink_sys::{Protocol as NetlinkProtocol, Socket, SocketAddr};
 
-use crate::{
-    codecs::NetlinkCodec,
-    errors::{Error, ErrorKind},
-    framed::NetlinkFramed,
-    request::Request,
-};
+use crate::{codecs::NetlinkCodec, framed::NetlinkFramed, Protocol, Request, Response};
 
 /// Connection to a Netlink socket, running in the background.
 ///
@@ -31,263 +25,250 @@ where
 {
     socket: NetlinkFramed<NetlinkCodec<NetlinkMessage<T>>>,
 
-    // Counter that is incremented for each message sent
-    sequence_id: u32,
+    protocol: Protocol<T, UnboundedSender<NetlinkMessage<T>>>,
 
-    // Requests for which we're waiting for a response
-    pending_requests: HashMap<(SocketAddr, u32), UnboundedSender<NetlinkMessage<T>>>,
+    /// Channel used by the user to pass requests to the connection.
+    requests_rx: Option<UnboundedReceiver<Request<T>>>,
 
-    // Requests to be sent out
-    requests_buffer: VecDeque<Request<T>>,
+    /// Channel used to transmit to the ConnectionHandle the unsollicited messages received from the
+    /// socket (multicast messages for instance).
+    unsollicited_messages_tx: Option<UnboundedSender<(NetlinkMessage<T>, SocketAddr)>>,
 
-    // Channel used by the user to pass requests to the connection. These requests are either sent
-    // out as soon as they are received, or put in self.requests_buffer for and processed later.
-    requests_rx: UnboundedReceiver<Request<T>>,
-
-    // Channel used to transmit to the ConnectionHandle the unsollicited messages received from the
-    // socket (multicast messages for instance).
-    incoming_messages_tx: UnboundedSender<NetlinkMessage<T>>,
-
-    // Indicate whether this connection is shutting down.
-    shutting_down: bool,
+    socket_closed: bool,
 }
 
 impl<T> Connection<T>
 where
-    T: Debug + Clone + PartialEq + Eq + NetlinkSerializable<T> + NetlinkDeserializable<T>,
+    T: Debug + Clone + PartialEq + Eq + NetlinkSerializable<T> + NetlinkDeserializable<T> + Unpin,
 {
     pub(crate) fn new(
         requests_rx: UnboundedReceiver<Request<T>>,
-        incoming_messages_tx: UnboundedSender<NetlinkMessage<T>>,
-        protocol: Protocol,
+        unsollicited_messages_tx: UnboundedSender<(NetlinkMessage<T>, SocketAddr)>,
+        protocol: NetlinkProtocol,
     ) -> io::Result<Self> {
-        let socket = TokioSocket::new(protocol)?;
+        let socket = Socket::new(protocol)?;
         Ok(Connection {
             socket: NetlinkFramed::new(socket, NetlinkCodec::<NetlinkMessage<T>>::new()),
-            sequence_id: 0,
-            pending_requests: HashMap::new(),
-            requests_buffer: VecDeque::with_capacity(1024),
-            requests_rx,
-            shutting_down: false,
-            incoming_messages_tx,
+            protocol: Protocol::new(),
+            requests_rx: Some(requests_rx),
+            unsollicited_messages_tx: Some(unsollicited_messages_tx),
+            socket_closed: false,
         })
     }
 
-    pub fn socket_mut(&mut self) -> &mut TokioSocket {
+    pub fn socket_mut(&mut self) -> &mut Socket {
         self.socket.get_mut()
     }
 
-    fn prepare_message(&mut self, message: &mut NetlinkMessage<T>) {
-        self.sequence_id += 1;
-        message.header.sequence_number = self.sequence_id;
-        message.finalize();
-    }
+    pub fn poll_send_messages(&mut self, cx: &mut Context) {
+        trace!("poll_send_messages called");
+        let Connection {
+            ref mut socket,
+            ref mut protocol,
+            ..
+        } = self;
+        let mut socket = Pin::new(socket);
 
-    // FIXME: this should return an error when the sink is full and we don't have any more
-    // space to buffer the message
-    fn send(&mut self, request: Request<T>) -> AsyncSink<Request<T>> {
-        if !self.requests_buffer.is_empty() {
-            trace!("there are already requests waiting for being sent");
-            return AsyncSink::NotReady(request);
-        }
-
-        let (tx, message, destination) = request.into();
-        trace!("sending message: {:?} to {:?}", message, destination);
-        match self.socket.start_send((message, destination)).unwrap() {
-            AsyncSink::NotReady((message, destination)) => {
-                // The sink is full atm. There is no need to try to call poll_send() because
-                // internally start_send should call it:
-                //
-                //     https://docs.rs/tokio/0.1.7/tokio/prelude/trait.Sink.html#tymethod.start_send
-                //
-                //     The method returns AsyncSink::NotReady if the sink was unable to begin
-                //     sending, usually due to being full. The sink must have attempted to complete
-                //     processing any outstanding requests (equivalent to poll_complete) before
-                //     yielding this result.
-                trace!("the sink is full, cannot send the message now");
-                AsyncSink::NotReady((tx, message, destination).into())
+        while !protocol.outgoing_messages.is_empty() {
+            trace!("found outgoing message to send checking if socket is ready");
+            if let Poll::Ready(Err(e)) = Pin::as_mut(&mut socket).poll_ready(cx) {
+                // Sink errors are usually not recoverable. The socket
+                // probably shut down.
+                warn!("netlink socket shut down: {:?}", e);
+                self.socket_closed = true;
+                return;
             }
-            AsyncSink::Ready => {
-                trace!("message sent!");
-                // NetlinkFramed can only buffer one frame, so to avoid clogging the sink, we need
-                // to flush it as soon as we call start_send(). We don't care about the result
-                // however.
-                let _ = self.socket.poll_complete().unwrap();
-                // Return Ready, because the message is being sent
-                AsyncSink::Ready
+
+            let (mut message, addr) = protocol.outgoing_messages.pop_front().unwrap();
+            message.finalize();
+
+            trace!("sending outgoing message");
+            if let Err(e) = Pin::as_mut(&mut socket).start_send((message, addr)) {
+                error!("failed to send message: {:?}", e);
+                self.socket_closed = true;
+                return;
             }
         }
+
+        trace!("poll_send_messages done");
+        self.poll_flush(cx)
     }
 
-    fn process_buffered_requests(&mut self) {
-        while let Some(request) = self.requests_buffer.pop_front() {
-            match self.send(request) {
-                AsyncSink::Ready => {}
-                AsyncSink::NotReady(request) => {
-                    self.requests_buffer.push_front(request);
+    pub fn poll_flush(&mut self, cx: &mut Context) {
+        trace!("poll_flush called");
+        if let Poll::Ready(Err(e)) = Pin::new(&mut self.socket).poll_flush(cx) {
+            warn!("error flushing netlink socket: {:?}", e);
+            self.socket_closed = true;
+        }
+    }
+
+    pub fn poll_read_messages(&mut self, cx: &mut Context) {
+        trace!("poll_read_messages called");
+        let mut socket = Pin::new(&mut self.socket);
+
+        loop {
+            trace!("polling socket");
+            match socket.as_mut().poll_next(cx) {
+                Poll::Ready(Some((message, addr))) => {
+                    trace!("read datagram from socket");
+                    self.protocol.handle_message(message, addr);
+                }
+                Poll::Ready(None) => {
+                    warn!("netlink socket stream shut down");
+                    self.socket_closed = true;
+                    return;
+                }
+                Poll::Pending => {
+                    trace!("no datagram read from socket");
                     return;
                 }
             }
         }
-        trace!("all the buffered requests have been sent");
     }
 
-    fn handle_message(&mut self, message: NetlinkMessage<T>, source: SocketAddr) {
-        let seq = message.header.sequence_number;
-        let mut close_chan = false;
-
-        debug!("handling message {}", seq);
-
-        if let Some(tx) = self.pending_requests.get_mut(&(source, seq)) {
-            if !message.header.flags.has_multipart() {
-                trace!("not a multipart message");
-                close_chan = true;
-            }
-
-            match message.payload {
-                NetlinkPayload::Done => {
-                    trace!("received end of dump message");
-                    close_chan = true;
-                }
-                NetlinkPayload::Noop => trace!("ignoring NOOP"),
-                NetlinkPayload::Error(_) => {
-                    trace!("forwarding error message and closing channel with handle");
-                    // If send returns an Err, its because the other side has been dropped, so it
-                    // does not really matter.
-                    let _ = tx.unbounded_send(message);
-                    close_chan = true;
-                }
-                NetlinkPayload::Ack(_) => {
-                    trace!("got ack for message {}", message.header.sequence_number);
-                    // FIXME: we could set `close_chan = true` and not forward the ACK to the handle,
-                    // if we assume receiving an ACK means we won't receive other messages for that
-                    // request. But I'm not sure whether that's the case.
-                    //
-                    // close_chan = true;
-                    let _ = tx.unbounded_send(message);
-                }
-                NetlinkPayload::Overrun(_) => {
-                    // FIXME: we should obviously NOT panic here but I'm not sure what we
-                    // should do. Can we increase the buffer size now? Should we leave that the
-                    // users?
-                    panic!("overrun: receive buffer is full");
-                }
-                NetlinkPayload::InnerMessage(_) => {
-                    let _ = tx.unbounded_send(message);
+    pub fn poll_requests(&mut self, cx: &mut Context) {
+        trace!("poll_requests called");
+        if let Some(mut stream) = self.requests_rx.as_mut() {
+            loop {
+                match Pin::new(&mut stream).poll_next(cx) {
+                    Poll::Ready(Some(request)) => self.protocol.request(request),
+                    Poll::Ready(None) => break,
+                    Poll::Pending => return,
                 }
             }
-        } else {
-            let _ = self.incoming_messages_tx.unbounded_send(message);
-        }
-
-        if close_chan {
-            debug!("removing {} from the pending requests", seq);
-            let _ = self.pending_requests.remove(&(source, seq));
+            let _ = self.requests_rx.take();
+            trace!("no new requests to handle poll_requests done");
         }
     }
 
-    fn read_all(&mut self) -> Result<(), Error<T>> {
-        trace!("reading from socket");
-        loop {
-            match self
-                .socket
-                .poll()
-                .map_err(|e| Error::from(ErrorKind::SocketIo(e)))?
+    pub fn forward_unsollicited_messages(&mut self) {
+        if self.unsollicited_messages_tx.is_none() {
+            while let Some((message, source)) = self.protocol.incoming_requests.pop_front() {
+                warn!(
+                    "ignoring unsollicited message {:?} from {:?}",
+                    message, source
+                );
+            }
+            return;
+        }
+
+        trace!("forward_unsollicited_messages called");
+        let mut ready = false;
+
+        let Connection {
+            ref mut protocol,
+            ref mut unsollicited_messages_tx,
+            ..
+        } = self;
+
+        while let Some((message, source)) = protocol.incoming_requests.pop_front() {
+            if unsollicited_messages_tx
+                .as_mut()
+                .unwrap()
+                .unbounded_send((message, source))
+                .is_err()
             {
-                Async::Ready(Some((message, source))) => {
-                    trace!("message received: {:?}", message);
-                    self.handle_message(message, source);
-                }
-                Async::Ready(None) => {
-                    trace!("socket closed");
-                    return Err(ErrorKind::ConnectionClosed.into());
-                }
-                Async::NotReady => return Ok(()),
-            }
-        }
-    }
-
-    fn process_requests(&mut self) {
-        trace!("polling the requests channel");
-        // FIXME: this fails if the request channel is closed, which can be the case, for instance
-        // for read-only connections, where there's no need for requests.
-        while let Async::Ready(item) = self.requests_rx.poll().unwrap() {
-            if let Some(mut request) = item {
-                trace!("request received, sending it through the netlink socket");
-                self.prepare_message(&mut request.message);
-                let destination = request.destination;
-                let response_chan = request.chan.clone();
-                // NOTE: one send returns NotReady, it will keep returning NotReady for the
-                // rest of the requests, so they will all be buffered.
-                match self.send(request) {
-                    AsyncSink::Ready => {
-                        self.pending_requests
-                            .insert((destination, self.sequence_id), response_chan);
-                    }
-                    AsyncSink::NotReady(request) => {
-                        trace!("buffering the request");
-                        self.requests_buffer.push_back(request);
-                    }
-                }
-            } else {
-                trace!("requests channel is closed");
-                self.shutdown();
+                // The channel is unbounded so the only error that can
+                // occur is that the channel is closed because the
+                // receiver was dropped
+                warn!("failed to forward message to connection handle: channel closed");
+                ready = true;
                 break;
             }
         }
+
+        if ready {
+            // The channel is closed so we can drop the sender.
+            let _ = self.unsollicited_messages_tx.take();
+            // purge `protocol.incoming_requests`
+            self.forward_unsollicited_messages();
+        }
+
+        trace!("forward_unsollicited_messages done");
     }
 
-    fn shutdown(&mut self) {
-        debug!("shutting down the connection");
-        self.requests_rx.close();
-        self.shutting_down = true;
+    pub fn forward_responses(&mut self) {
+        trace!("forward_responses called");
+        let protocol = &mut self.protocol;
+
+        while let Some(response) = protocol.incoming_responses.pop_front() {
+            let Response {
+                message,
+                done,
+                metadata: tx,
+            } = response;
+            if done {
+                use NetlinkPayload::*;
+                match &message.payload {
+                    // Since `self.protocol` set the `done` flag here,
+                    // we know it has already dropped the request and
+                    // its associated metadata, ie the UnboundedSender
+                    // used to forward messages back to the
+                    // ConnectionHandle. By just continuing we're
+                    // dropping the last instance of that sender,
+                    // hence closing the channel and signaling the
+                    // handle that no more messages are expected.
+                    Noop | Done | Ack(_) => {
+                        trace!("not forwarding Ack/Done message to the handle");
+                        continue;
+                    }
+                    // I'm not sure how we should handle overrun messages
+                    Overrun(_) => unimplemented!("overrun is not handled yet"),
+                    // We need to forward error messages and messages
+                    // that are part of the netlink subprotocol,
+                    // because only the user knows how they want to
+                    // handle them.
+                    Error(_) | InnerMessage(_) => {}
+                }
+            }
+
+            trace!("forwarding response to the handle");
+            if tx.unbounded_send(message).is_err() {
+                // With an unboundedsender, an error can
+                // only happen if the receiver is closed.
+                warn!("failed to forward response back to the handle");
+            }
+        }
+        trace!("forward_responses done");
+    }
+
+    pub fn should_shut_down(&self) -> bool {
+        self.socket_closed
+            || (self.unsollicited_messages_tx.is_none() && self.requests_rx.is_none())
     }
 }
 
 impl<T> Future for Connection<T>
 where
-    T: Debug + Clone + PartialEq + Eq + NetlinkSerializable<T> + NetlinkDeserializable<T>,
+    T: Debug + Clone + PartialEq + Eq + NetlinkSerializable<T> + NetlinkDeserializable<T> + Unpin,
 {
-    type Item = ();
-    type Error = Error<T>;
+    type Output = ();
 
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        debug!("polling connection");
-        if let Err(e) = self.read_all() {
-            match e.kind() {
-                ErrorKind::ConnectionClosed => return Ok(Async::Ready(())),
-                _ => return Err(e),
-            }
+    fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
+        trace!("polling Connection");
+        let pinned = self.get_mut();
+
+        debug!("reading incoming messages");
+        pinned.poll_read_messages(cx);
+
+        debug!("forwarding unsollicited messages to the connection handle");
+        pinned.forward_unsollicited_messages();
+
+        debug!("forwaring responses to previous requests to the connection handle");
+        pinned.forward_responses();
+
+        debug!("handling requests");
+        pinned.poll_requests(cx);
+
+        debug!("sending messages");
+        pinned.poll_send_messages(cx);
+
+        trace!("done polling Connection");
+
+        if pinned.should_shut_down() {
+            Poll::Ready(())
+        } else {
+            Poll::Pending
         }
-
-        trace!("flushing socket");
-        if let Async::NotReady = self.socket.poll_complete().unwrap() {
-            // We do not poll the requests channel if the sink is full to create backpressure. It's
-            // ok not to poll because as soon as the sink makes progress, this future will be
-            // called.
-            trace!("socket is still busy sending messages: the connection will be polled again when progress has been made");
-            return Ok(Async::NotReady);
-        }
-
-        self.process_buffered_requests();
-        if !self.requests_buffer.is_empty() {
-            trace!("there are requests waiting to be sent. Not processing any new request for now");
-            return Ok(Async::NotReady);
-        }
-
-        if self.shutting_down {
-            // If we're shutting down, we don't accept any more request
-            trace!("the connection is shutting down: not trying to get new requests");
-            return Ok(Async::NotReady);
-        }
-
-        self.process_requests();
-
-        // After sending the requests, flush the sink. We don't care about the outcome here
-        trace!("flushing outgoing messages");
-        let _ = self.socket.poll_complete().unwrap();
-
-        trace!("re-registering interest in readiness events for the connection");
-        Ok(Async::NotReady)
     }
 }

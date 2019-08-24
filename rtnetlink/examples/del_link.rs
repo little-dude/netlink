@@ -1,43 +1,33 @@
+use futures::stream::TryStreamExt;
+use rtnetlink::{new_connection, Error, Handle};
 use std::env;
-use std::thread::spawn;
 
-use futures::{Future, Stream};
-use tokio_core::reactor::Core;
-
-use netlink_packet_route::link::nlas::LinkNla;
-use rtnetlink::new_connection;
-
-fn main() {
+#[tokio::main]
+async fn main() -> Result<(), ()> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
-        return usage();
+        usage();
+        return Ok(());
     }
     let link_name = &args[1];
+    let (connection, handle, _) = new_connection().unwrap();
+    tokio::spawn(connection);
 
-    let (connection, handle) = new_connection().unwrap();
-    spawn(move || Core::new().unwrap().run(connection));
-
-    // Get the list of links
-    let links = handle.link().get().execute().collect().wait().unwrap();
-
-    for link in links {
-        for nla in &link.nlas {
-            // Find the link with the name provided as argument
-            if let LinkNla::IfName(ref name) = nla {
-                if name != link_name {
-                    continue;
-                }
-                println!("setting link {} down", link_name);
-                // Set it down
-                match handle.link().del(link.header.index).execute().wait() {
-                    Ok(()) => println!("done"),
-                    Err(e) => eprintln!("error: {}", e),
-                }
-                return;
-            }
-        }
+    if let Err(e) = del_link(handle, link_name.to_string()).await {
+        eprintln!("{}", e);
     }
-    eprintln!("link {} not found", link_name);
+
+    Ok(())
+}
+
+async fn del_link(handle: Handle, name: String) -> Result<(), Error> {
+    let mut links = handle.link().get().set_name_filter(name.clone()).execute();
+    if let Some(link) = links.try_next().await? {
+        handle.link().del(link.header.index).execute().await
+    } else {
+        eprintln!("link {} not found", name);
+        Ok(())
+    }
 }
 
 fn usage() {

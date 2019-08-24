@@ -1,77 +1,46 @@
-//! This example shows how to add an IP address to the given link, with minimal error handling.
-//! You need to be root run this example.
-
+use futures::stream::TryStreamExt;
 use std::env;
-use std::thread::spawn;
 
-use futures::{Future, Stream};
 use ipnetwork::IpNetwork;
-use tokio_core::reactor::Core;
+use rtnetlink::{new_connection, Error, Handle};
 
-use netlink_packet_route::link::nlas::LinkNla;
-use rtnetlink::{new_connection, ErrorKind};
-
-fn main() {
-    // Parse the arguments
+#[tokio::main]
+async fn main() -> Result<(), ()> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 3 {
-        return usage();
+        usage();
+        return Ok(());
     }
+
     let link_name = &args[1];
     let ip: IpNetwork = args[2].parse().unwrap_or_else(|_| {
         eprintln!("invalid address");
         std::process::exit(1);
     });
 
-    // Create a netlink connection, and a handle to send requests via this connection
-    let (connection, handle) = new_connection().unwrap();
+    let (connection, handle, _) = new_connection().unwrap();
+    tokio::spawn(connection);
 
-    // Spawn the connection on the event loop
-    spawn(move || Core::new().unwrap().run(connection));
+    if let Err(e) = add_address(link_name, ip, handle.clone()).await {
+        eprintln!("{}", e);
+    }
+    Ok(())
+}
 
-    handle
-        // The the "link" handle
+async fn add_address(link_name: &str, ip: IpNetwork, handle: Handle) -> Result<(), Error> {
+    let mut links = handle
         .link()
-        // Create a "get" request from the link handle. We could tweak the request here, before
-        // calling "execute()"
         .get()
-        // Turn the request into a runnable future
-        .execute()
-        // The future is a stream of link message. We are interested only in a specific link, so we
-        // filter out the other message.
-        .filter(|link_msg| {
-            for nla in &link_msg.nlas {
-                if let LinkNla::IfName(ref name) = nla {
-                    return name == link_name;
-                }
-            }
-            false
-        })
-        .take(1)
-        .for_each(|link_msg| {
-            handle
-                // Get an "address" handle
-                .address()
-                // Create an "add" request
-                .add(link_msg.header.index, ip.ip(), ip.prefix())
-                // Turn the request into a future
-                .execute()
-                .and_then(|_| {
-                    println!("done");
-                    Ok(())
-                })
-                .or_else(|e| match e.kind() {
-                    // We handle permission denied errors gracefully
-                    ErrorKind::NetlinkError(ref err_msg) if err_msg.code == -1 => {
-                        eprintln!("permission denied!");
-                        Ok(())
-                    }
-                    // but just propagate any other error
-                    _ => Err(e),
-                })
-        })
-        .wait()
-        .unwrap();
+        .set_name_filter(link_name.to_string())
+        .execute();
+    if let Some(link) = links.try_next().await? {
+        handle
+            .address()
+            .add(link.header.index, ip.ip(), ip.prefix())
+            .execute()
+            .await?
+    }
+    Ok(())
 }
 
 fn usage() {

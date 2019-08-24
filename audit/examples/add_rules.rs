@@ -3,27 +3,24 @@
 //! auditctl -w /etc/passwd -p rwxa -k my_key
 //! auditctl -a always,exit -F arch=b64 -S personality -F key=bypass
 //!
-use std::thread::spawn;
 
-use futures::Future;
-use tokio_core::reactor::Core;
-
-use audit::new_connection;
-use netlink_packet_audit::{
-    archs::AUDIT_ARCH_X86_64,
-    rules::{RuleAction, RuleField, RuleFieldFlags, RuleFlags, RuleMessage, RuleSyscalls},
+use audit::{
+    new_connection,
+    packet::{
+        archs::AUDIT_ARCH_X86_64,
+        rules::{RuleAction, RuleField, RuleFieldFlags, RuleFlags, RuleMessage, RuleSyscalls},
+    },
+    Error, Handle,
 };
 
-fn main() {
-    env_logger::init();
+#[tokio::main]
+async fn main() -> Result<(), String> {
+    let (connection, handle, _) = new_connection().map_err(|e| format!("{}", e))?;
+    tokio::spawn(connection);
+    add_rules(handle).await.map_err(|e| format!("{}", e))
+}
 
-    // Open the netlink socket
-    let (connection, mut handle, _) = new_connection().unwrap();
-
-    // Create the event loop on which that is going to drive our netlink connection
-    spawn(move || Core::new().unwrap().run(connection));
-
-    // create the message for the first rule
+async fn add_rules(mut handle: Handle) -> Result<(), Error> {
     let etc_passwd_rule = RuleMessage {
         flags: RuleFlags::FilterExit,
         action: RuleAction::Always,
@@ -37,8 +34,8 @@ fn main() {
         ],
         syscalls: RuleSyscalls::new_maxed(),
     };
+    handle.add_rule(etc_passwd_rule).await?;
 
-    // create the message for the second rule
     let mut syscalls = RuleSyscalls::new_zeroed();
     syscalls.set(135);
     let personality_syscall_rule = RuleMessage {
@@ -50,8 +47,6 @@ fn main() {
         ],
         syscalls,
     };
-
-    // Create the rules
-    handle.add_rule(etc_passwd_rule).wait().unwrap();
-    handle.add_rule(personality_syscall_rule).wait().unwrap();
+    handle.add_rule(personality_syscall_rule).await?;
+    Ok(())
 }

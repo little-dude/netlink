@@ -1,8 +1,12 @@
-use netlink_packet_core::header::flags::{NLM_F_DUMP, NLM_F_REQUEST};
-use netlink_packet_core::{NetlinkFlags, NetlinkHeader, NetlinkMessage, NetlinkPayload};
 use netlink_packet_route::{
-    link::{LinkHeader, LinkMessage},
-    RtnlMessage,
+    netlink::{
+        header::flags::{NLM_F_DUMP, NLM_F_REQUEST},
+        NetlinkFlags, NetlinkHeader, NetlinkMessage, NetlinkPayload,
+    },
+    rtnl::{
+        link::{LinkHeader, LinkMessage},
+        RtnlMessage,
+    },
 };
 use netlink_sys::{Protocol, Socket, SocketAddr};
 

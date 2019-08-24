@@ -1,4 +1,4 @@
-pub use netlink_packet_core::{DecodeError, EncodeError};
+pub use netlink_packet_core as netlink;
 
 use core::ops::Range;
 /// Represent a multi-bytes field with a fixed size in a packet

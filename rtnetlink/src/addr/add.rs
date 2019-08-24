@@ -1,22 +1,19 @@
-use futures::{Future, Stream};
+use futures::stream::StreamExt;
 use std::net::{IpAddr, Ipv4Addr};
 
-use netlink_packet_core::{
-    header::flags::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST},
-    NetlinkFlags, NetlinkMessage, NetlinkPayload,
-};
 use netlink_packet_route::{
-    address::{nlas::AddressNla, AddressMessage},
-    link::address_families::{AF_INET, AF_INET6},
-    RtnlMessage,
+    netlink::{
+        header::flags::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST},
+        NetlinkFlags, NetlinkMessage, NetlinkPayload,
+    },
+    rtnl::{
+        address::{nlas::AddressNla, AddressMessage},
+        link::address_families::{AF_INET, AF_INET6},
+        RtnlMessage,
+    },
 };
 
 use crate::{Error, ErrorKind, Handle};
-
-lazy_static! {
-    // Flags for `ip addr add`
-    static ref ADD_FLAGS: NetlinkFlags = NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
-}
 
 /// A request to create a new address. This is equivalent to the `ip address add` commands.
 pub struct AddressAddRequest {
@@ -74,20 +71,22 @@ impl AddressAddRequest {
     }
 
     /// Execute the request.
-    pub fn execute(self) -> impl Future<Item = (), Error = Error> {
+    pub async fn execute(self) -> Result<(), Error> {
         let AddressAddRequest {
             mut handle,
             message,
         } = self;
         let mut req = NetlinkMessage::from(RtnlMessage::NewAddress(message));
-        req.header.flags = *ADD_FLAGS;
-        handle.request(req).for_each(|message| {
+        req.header.flags =
+            NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
+
+        let mut response = handle.request(req)?;
+        while let Some(message) = response.next().await {
             if let NetlinkPayload::Error(err) = message.payload {
-                Err(ErrorKind::NetlinkError(err).into())
-            } else {
-                Ok(())
+                return Err(ErrorKind::NetlinkError(err).into());
             }
-        })
+        }
+        Ok(())
     }
 
     /// Return a mutable reference to the request message.

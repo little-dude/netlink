@@ -7,93 +7,92 @@
 //! runtime to print audit events. It requires extra external
 //! dependencies:
 //!
-//! - `futures = "^0.1"`
-//! - `failure = "^0.1"`
-//! - `tokio = "^0.1"`
+//! - `futures = "^0.3"`
+//! - `tokio = "^0.2"`
 //! - `netlink-packet-audit = "^0.1"`
 //!
 //! ```rust,no_run
-//! use std::process;
-//! use failure::Fail; // failure 0.1.5
-//! use futures::{ // futures 0.1.28
-//!     future::{lazy, Future},
-//!     stream::Stream,
-//! };
-//! use netlink_packet_audit::{AuditMessage, StatusMessage}; // netlink-packet-audit 0.1
-//! use netlink_proto::{
-//!     new_connection,
-//!     packet::{
+//! use futures::stream::StreamExt;
+//! use netlink_packet_audit::{
+//!     netlink::{
 //!         header::flags::{NLM_F_ACK, NLM_F_REQUEST},
 //!         NetlinkFlags, NetlinkMessage, NetlinkPayload,
 //!     },
+//!     AuditMessage, StatusMessage,
+//! };
+//! use std::process;
+//!
+//! use netlink_proto::{
+//!     new_connection,
 //!     sys::{Protocol, SocketAddr},
 //! };
 //!
 //! const AUDIT_STATUS_ENABLED: u32 = 1;
 //! const AUDIT_STATUS_PID: u32 = 4;
 //!
-//! fn main() {
-//!     let (conn, mut handle, messages) =
-//!         new_connection(Protocol::Audit).expect("Failed to create a new netlink connection");
+//! #[tokio::main]
+//! async fn main() -> Result<(), String> {
+//!     // Create a netlink socket. Here:
+//!     //
+//!     // - `conn` is a `Connection` that has the netlink socket. It's a
+//!     //   `Future` that keeps polling the socket and must be spawned an
+//!     //   the event loop.
+//!     //
+//!     // - `handle` is a `Handle` to the `Connection`. We use it to send
+//!     //   netlink messages and receive responses to these messages.
+//!     //
+//!     // - `messages` is a channel receiver through which we receive
+//!     //   messages that we have not sollicated, ie that are not
+//!     //   response to a request we made. In this example, we'll receive
+//!     //   the audit event through that channel.
+//!     let (conn, mut handle, mut messages) = new_connection(Protocol::Audit)
+//!         .map_err(|e| format!("Failed to create a new netlink connection: {}", e))?;
 //!
-//!     // We'll send unicast messages to the kernel.
-//!     let kernel_unicast: SocketAddr = SocketAddr::new(0, 0);
+//!     // Spawn the `Connection` so that it starts polling the netlink
+//!     // socket in the background.
+//!     tokio::spawn(conn);
 //!
-//!     tokio::run(lazy(move || {
-//!         // Spawn the `netlink_proto::Connection` so that it starts
-//!         // polling the netlink socket.
-//!         tokio::spawn(conn.map_err(|e| eprintln!("error in connection: {:?}", e)));
+//!     // Use the `ConnectionHandle` to send a request to the kernel
+//!     // asking it to start multicasting audit event messages.
+//!     tokio::spawn(async move {
+//!         // Craft the packet to enable audit events
+//!         let mut status = StatusMessage::new();
+//!         status.enabled = 1;
+//!         status.pid = process::id();
+//!         status.mask = AUDIT_STATUS_ENABLED | AUDIT_STATUS_PID;
+//!         let payload = AuditMessage::SetStatus(status);
+//!         let mut nl_msg = NetlinkMessage::from(payload);
+//!         nl_msg.header.flags = NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK);
 //!
-//!         // Use the `netlink_proto::ConnectionHandle` to send a request
-//!         // to the kernel asking it to start multicasting audit event messages.
-//!         tokio::spawn({
-//!             // Craft the packet to enable audit events
-//!             let mut status = StatusMessage::new();
-//!             status.enabled = 1;
-//!             status.pid = process::id();
-//!             status.mask = AUDIT_STATUS_ENABLED | AUDIT_STATUS_PID;
-//!             let payload = AuditMessage::SetStatus(status);
-//!             let mut nl_msg = NetlinkMessage::from(payload);
-//!             nl_msg.header.flags = NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK);
+//!         // We'll send unicast messages to the kernel.
+//!         let kernel_unicast: SocketAddr = SocketAddr::new(0, 0);
+//!         let mut response = match handle.request(nl_msg, kernel_unicast) {
+//!             Ok(response) => response,
+//!             Err(e) => {
+//!                 eprintln!("{}", e);
+//!                 return;
+//!             }
+//!         };
 //!
-//!             // The ConnectionHandle::request() method returns a
-//!             // Stream<Item=NetlinkMessage<AuditMessage>>, although
-//!             // here we only expects one message in return: either an
-//!             // ACK or an ERROR.
-//!             handle
-//!                 .request(nl_msg, kernel_unicast)
-//!                 // For simplicity we'll use strings for errors in this
-//!                 // example. This netlink-proto uses the `failure`
-//!                 // crate, errors contain the whole chain of errors
-//!                 // that led to this error. `format_failure_error`
-//!                 // format them nicely
-//!                 .map_err(format_failure_error)
-//!                 .for_each(|message| {
-//!                     if let NetlinkPayload::Error(err_message) = message.payload {
-//!                         Err(format!("Received an error message: {:?}", err_message))
-//!                     } else {
-//!                         Ok(())
-//!                     }
-//!                 })
-//!                 .map_err(|e| eprintln!("Request failed: {:?}", e))
-//!         });
+//!         while let Some(message) = response.next().await {
+//!             if let NetlinkPayload::Error(err_message) = message.payload {
+//!                 eprintln!("Received an error message: {:?}", err_message);
+//!                 return;
+//!             }
+//!         }
+//!     });
 //!
-//!         println!("Starting to print audit events... press ^C to interrupt");
-//!
-//!         // We print the audit event messages that the kernel multicasts.
-//!         messages.for_each(|message| {
+//!     // Finally, start receiving event through the `messages` channel.
+//!     println!("Starting to print audit events... press ^C to interrupt");
+//!     while let Some((message, _addr)) = messages.next().await {
+//!         if let NetlinkPayload::Error(err_message) = message.payload {
+//!             eprintln!("received an error message: {:?}", err_message);
+//!         } else {
 //!             println!("{:?}", message);
-//!             Ok(())
-//!         })
-//!     }))
-//! }
-//!
-//! fn format_failure_error<E: Fail>(error: E) -> String {
-//!     let mut error_string = String::new();
-//!     for cause in Fail::iter_chain(&error) {
-//!         error_string += &format!(": {}", cause);
+//!         }
 //!     }
-//!     error_string
+//!
+//!     Ok(())
 //! }
 //! ```
 //!
@@ -108,62 +107,55 @@
 //! in a `Connection` which was polled automatically by the runtime.
 //!
 //! ```rust,no_run
-//! use futures::{Future, Sink, Stream};
+//! use futures::StreamExt;
 //!
 //! use netlink_packet_route::{
-//!     link::{LinkHeader, LinkMessage},
-//!     RtnlMessage,
-//! };
-//!
-//! use netlink_proto::{
-//!     packet::{
+//!     netlink::{
 //!         header::flags::{NLM_F_DUMP, NLM_F_REQUEST},
 //!         NetlinkFlags, NetlinkHeader, NetlinkMessage, NetlinkPayload,
 //!     },
-//!     sys::{Protocol, SocketAddr, TokioSocket},
-//!     NetlinkCodec, NetlinkFramed,
+//!     rtnl::{
+//!         link::{LinkHeader, LinkMessage},
+//!         RtnlMessage,
+//!     },
 //! };
 //!
-//! fn main() {
-//!     let mut socket = TokioSocket::new(Protocol::Route).unwrap();
-//!     // We could use the port number if we were interested in it.
-//!     let _port_number = socket.bind_auto().unwrap().port_number();
-//!     socket.connect(&SocketAddr::new(0, 0)).unwrap();
+//! use netlink_proto::{
+//!     new_connection,
+//!     sys::{Protocol, SocketAddr},
+//! };
 //!
-//!     // `NetlinkFramed<RtnlMessage>` wraps the socket and provides
-//!     // Stream and Sink implementations for the messages.
-//!     let stream = NetlinkFramed::new(socket, NetlinkCodec::<NetlinkMessage<RtnlMessage>>::new());
+//! #[tokio::main]
+//! async fn main() -> Result<(), String> {
+//!     // Create the netlink socket. Here, we won't use the channel that
+//!     // receives unsollicited messages.
+//!     let (conn, mut handle, _) = new_connection(Protocol::Route)
+//!         .map_err(|e| format!("Failed to create a new netlink connection: {}", e))?;
 //!
-//!     // Create the payload for the request.
+//!     // Spawn the `Connection` in the background
+//!     tokio::spawn(conn);
+//!
+//!     // Create the netlink message that requests the links to be dumped
 //!     let payload: NetlinkPayload<RtnlMessage> =
 //!         RtnlMessage::GetLink(LinkMessage::from_parts(LinkHeader::new(), vec![])).into();
-//!
-//!     // Create the header for the request
 //!     let mut header = NetlinkHeader::new();
 //!     header.flags = NetlinkFlags::from(NLM_F_DUMP | NLM_F_REQUEST);
-//!     header.sequence_number = 1;
 //!
-//!     // Create the netlink packet itself
-//!     let mut packet = NetlinkMessage::new(header, payload);
-//!     // `finalize` is important: it garantees the header is consistent
-//!     // with the packet's payload. Having incorrect header can lead to
-//!     // a panic when the message is serialized.
-//!     packet.finalize();
+//!     // Send the request
+//!     let mut response = handle
+//!         .request(NetlinkMessage::new(header, payload), SocketAddr::new(0, 0))
+//!         .map_err(|e| format!("Failed to send request: {}", e))?;
 //!
-//!     // Serialize the packet and send it
-//!     let mut buf = vec![0; packet.header.length as usize];
-//!     packet.serialize(&mut buf[..packet.buffer_len()]);
-//!     println!(">>> {:?}", packet);
-//!     let stream = stream.send((packet, SocketAddr::new(0, 0))).wait().unwrap();
-//!
-//!     // Print all the incoming message (press ^C to exit)
-//!     stream
-//!         .for_each(|(packet, _addr)| {
+//!     // Print all the messages received in response
+//!     loop {
+//!         if let Some(packet) = response.next().await {
 //!             println!("<<< {:?}", packet);
-//!             Ok(())
-//!         })
-//!         .wait()
-//!         .unwrap();
+//!         } else {
+//!             break;
+//!         }
+//!     }
+//!
+//!     Ok(())
 //! }
 //! ```
 #[macro_use]
@@ -177,6 +169,11 @@ pub use crate::codecs::*;
 mod framed;
 pub use crate::framed::*;
 
+mod protocol;
+pub(crate) use self::protocol::{Protocol, Response};
+pub(crate) type Request<T> =
+    self::protocol::Request<T, UnboundedSender<crate::packet::NetlinkMessage<T>>>;
+
 mod connection;
 pub use crate::connection::*;
 
@@ -186,18 +183,12 @@ pub use crate::errors::*;
 mod handle;
 pub use crate::handle::*;
 
-mod request;
-pub(crate) use crate::request::Request;
-
-pub use netlink_packet_core as packet;
-pub use netlink_sys as sys;
-
-use futures::sync::mpsc::{unbounded, UnboundedReceiver};
+use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 use std::fmt::Debug;
 use std::io;
 
-use self::packet::{NetlinkDeserializable, NetlinkMessage, NetlinkSerializable};
-use self::sys::Protocol;
+pub use netlink_packet_core as packet;
+pub use netlink_sys as sys;
 
 /// Create a new Netlink connection for the given Netlink protocol,
 /// and returns a handle to that connection as well as a stream of
@@ -217,18 +208,25 @@ use self::sys::Protocol;
 ///
 /// Most of the time, users will want to spawn the `Connection` on an
 /// async runtime, and use the handle to send messages.
+#[allow(clippy::type_complexity)]
 pub fn new_connection<T>(
-    protocol: Protocol,
+    protocol: netlink_sys::Protocol,
 ) -> io::Result<(
     Connection<T>,
     ConnectionHandle<T>,
-    UnboundedReceiver<NetlinkMessage<T>>,
+    UnboundedReceiver<(packet::NetlinkMessage<T>, sys::SocketAddr)>,
 )>
 where
-    T: Debug + PartialEq + Eq + Clone + NetlinkSerializable<T> + NetlinkDeserializable<T>,
+    T: Debug
+        + PartialEq
+        + Eq
+        + Clone
+        + packet::NetlinkSerializable<T>
+        + packet::NetlinkDeserializable<T>
+        + Unpin,
 {
     let (requests_tx, requests_rx) = unbounded::<Request<T>>();
-    let (messages_tx, messages_rx) = unbounded::<NetlinkMessage<T>>();
+    let (messages_tx, messages_rx) = unbounded::<(packet::NetlinkMessage<T>, sys::SocketAddr)>();
     Ok((
         Connection::new(requests_rx, messages_tx, protocol)?,
         ConnectionHandle::new(requests_tx),

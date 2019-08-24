@@ -1,4 +1,4 @@
-use futures::sync::mpsc::{unbounded, UnboundedSender};
+use futures::channel::mpsc::{unbounded, UnboundedSender};
 use futures::Stream;
 use netlink_packet_core::NetlinkMessage;
 use std::fmt::Debug;
@@ -34,19 +34,22 @@ where
         &mut self,
         message: NetlinkMessage<T>,
         destination: SocketAddr,
-    ) -> impl Stream<Item = NetlinkMessage<T>, Error = Error<T>> {
+    ) -> Result<impl Stream<Item = NetlinkMessage<T>>, Error<T>> {
         let (tx, rx) = unbounded::<NetlinkMessage<T>>();
-        let request = Request::from((tx, message, destination));
+        let request = Request::from((message, destination, tx));
         debug!("handle: forwarding new request to connection");
-        // We don't handle the error here, because we would have to return a Result, which makes
-        // the signature of this method pretty ugly. If this fails, we know that the receiver has
-        // been dropped, so the request (and the tx channed it contains) will be dropped when this
-        // function returns. Then rx.poll() will return the error we want.
-        let _ = UnboundedSender::unbounded_send(&self.requests_tx, request);
-        rx.map_err(|()| {
-            error!("could not forward new request to connection: the connection is closed");
-            ErrorKind::ConnectionClosed.into()
-        })
+        UnboundedSender::unbounded_send(&self.requests_tx, request).map_err(|e| {
+            // the channel is unbounded, so it can't be full. If this
+            // failed, it means the Connection shut down.
+            if e.is_full() {
+                panic!("internal error: unbounded channel full?!");
+            } else if e.is_disconnected() {
+                Error::from(ErrorKind::ConnectionClosed)
+            } else {
+                panic!("unknown error: {:?}", e);
+            }
+        })?;
+        Ok(rx)
     }
 
     pub fn notify(
@@ -55,7 +58,7 @@ where
         destination: SocketAddr,
     ) -> Result<(), Error<T>> {
         let (tx, _rx) = unbounded::<NetlinkMessage<T>>();
-        let request = Request::from((tx, message, destination));
+        let request = Request::from((message, destination, tx));
         debug!("handle: forwarding new request to connection");
         UnboundedSender::unbounded_send(&self.requests_tx, request)
             .map_err(|_| ErrorKind::ConnectionClosed.into())

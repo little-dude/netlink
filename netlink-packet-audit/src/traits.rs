@@ -1,4 +1,4 @@
-use crate::DecodeError;
+use crate::netlink::DecodeError;
 
 /// A type that implements `Emitable` can be serialized.
 pub trait Emitable {

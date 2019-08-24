@@ -1,14 +1,11 @@
-use crate::netlink_packet_core::NetlinkMessage;
 use failure::{Fail, ResultExt};
 use futures::Stream;
-use netlink_packet_route::RtnlMessage;
+
+use crate::{
+    packet::{netlink::NetlinkMessage, rtnl::RtnlMessage},
+    AddressHandle, Error, ErrorKind, LinkHandle,
+};
 use netlink_proto::{sys::SocketAddr, ConnectionHandle};
-
-use crate::{AddressHandle, Error, ErrorKind, LinkHandle};
-
-lazy_static! {
-    static ref KERNEL_UNICAST: SocketAddr = SocketAddr::new(0, 0);
-}
 
 #[derive(Clone, Debug)]
 pub struct Handle(ConnectionHandle<RtnlMessage>);
@@ -21,15 +18,15 @@ impl Handle {
     pub fn request(
         &mut self,
         message: NetlinkMessage<RtnlMessage>,
-    ) -> impl Stream<Item = NetlinkMessage<RtnlMessage>, Error = Error> {
+    ) -> Result<impl Stream<Item = NetlinkMessage<RtnlMessage>>, Error> {
         self.0
-            .request(message, *KERNEL_UNICAST)
+            .request(message, SocketAddr::new(0, 0))
             .map_err(|e| e.context(ErrorKind::RequestFailed).into())
     }
 
     pub fn notify(&mut self, msg: NetlinkMessage<RtnlMessage>) -> Result<(), Error> {
         self.0
-            .notify(msg, *KERNEL_UNICAST)
+            .notify(msg, SocketAddr::new(0, 0))
             .context(ErrorKind::RequestFailed)?;
         Ok(())
     }

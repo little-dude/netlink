@@ -1,57 +1,50 @@
-use futures::{Future, Sink, Stream};
+use futures::StreamExt;
 
 use netlink_packet_route::{
-    link::{LinkHeader, LinkMessage},
-    RtnlMessage,
-};
-
-use netlink_proto::{
-    packet::{
+    netlink::{
         header::flags::{NLM_F_DUMP, NLM_F_REQUEST},
         NetlinkFlags, NetlinkHeader, NetlinkMessage, NetlinkPayload,
     },
-    sys::{Protocol, SocketAddr, TokioSocket},
-    NetlinkCodec, NetlinkFramed,
+    rtnl::{
+        link::{LinkHeader, LinkMessage},
+        RtnlMessage,
+    },
 };
 
-fn main() {
-    let mut socket = TokioSocket::new(Protocol::Route).unwrap();
-    // We could use the port number if we were interested in it.
-    let _port_number = socket.bind_auto().unwrap().port_number();
-    socket.connect(&SocketAddr::new(0, 0)).unwrap();
+use netlink_proto::{
+    new_connection,
+    sys::{Protocol, SocketAddr},
+};
 
-    // `NetlinkFramed<RtnlMessage>` wraps the socket and provides
-    // Stream and Sink implementations for the messages.
-    let stream = NetlinkFramed::new(socket, NetlinkCodec::<NetlinkMessage<RtnlMessage>>::new());
+#[tokio::main]
+async fn main() -> Result<(), String> {
+    // Create the netlink socket. Here, we won't use the channel that
+    // receives unsollicited messages.
+    let (conn, mut handle, _) = new_connection(Protocol::Route)
+        .map_err(|e| format!("Failed to create a new netlink connection: {}", e))?;
 
-    // Create the payload for the request.
+    // Spawn the `Connection` in the background
+    tokio::spawn(conn);
+
+    // Create the netlink message that requests the links to be dumped
     let payload: NetlinkPayload<RtnlMessage> =
         RtnlMessage::GetLink(LinkMessage::from_parts(LinkHeader::new(), vec![])).into();
-
-    // Create the header for the request
     let mut header = NetlinkHeader::new();
     header.flags = NetlinkFlags::from(NLM_F_DUMP | NLM_F_REQUEST);
-    header.sequence_number = 1;
 
-    // Create the netlink packet itself
-    let mut packet = NetlinkMessage::new(header, payload);
-    // `finalize` is important: it garantees the header is consistent
-    // with the packet's payload. Having incorrect header can lead to
-    // a panic when the message is serialized.
-    packet.finalize();
+    // Send the request
+    let mut response = handle
+        .request(NetlinkMessage::new(header, payload), SocketAddr::new(0, 0))
+        .map_err(|e| format!("Failed to send request: {}", e))?;
 
-    // Serialize the packet and send it
-    let mut buf = vec![0; packet.header.length as usize];
-    packet.serialize(&mut buf[..packet.buffer_len()]);
-    println!(">>> {:?}", packet);
-    let stream = stream.send((packet, SocketAddr::new(0, 0))).wait().unwrap();
-
-    // Print all the incoming message (press ^C to exit)
-    stream
-        .for_each(|(packet, _addr)| {
+    // Print all the messages received in response
+    loop {
+        if let Some(packet) = response.next().await {
             println!("<<< {:?}", packet);
-            Ok(())
-        })
-        .wait()
-        .unwrap();
+        } else {
+            break;
+        }
+    }
+
+    Ok(())
 }

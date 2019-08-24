@@ -1,5 +1,5 @@
 use crate::{
-    commands::*, events::*, rules::RuleBuffer, AuditMessage, DecodeError, Parseable,
+    commands::*, events::*, netlink::DecodeError, rules::RuleBuffer, AuditMessage, Parseable,
     ParseableParametrized, StatusMessageBuffer,
 };
 use failure::ResultExt;

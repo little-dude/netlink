@@ -1,15 +1,9 @@
-#[macro_use]
-extern crate criterion;
-extern crate netlink_packet_core;
-extern crate netlink_packet_route;
-extern crate pcap_file;
-
-use criterion::Criterion;
-use netlink_packet_core::NetlinkMessage;
-use netlink_packet_route::RtnlMessage;
-use pcap_file::PcapReader;
-use std;
 use std::fs::File;
+
+use criterion::{criterion_group, criterion_main, Criterion};
+use pcap_file::PcapReader;
+
+use netlink_packet_route::{netlink::NetlinkMessage, rtnl::RtnlMessage};
 
 fn bench(c: &mut Criterion) {
     let pcap_reader = PcapReader::new(File::open("data/rtnetlink.pcap").unwrap()).unwrap();

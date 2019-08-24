@@ -21,85 +21,85 @@
 // `<repo-root>/target/debug/examples/audit_events`. This example runs
 // forever, you must hit ^C to kill it.
 
-use failure::Fail;
-use futures::{
-    future::{lazy, Future},
-    stream::Stream,
-};
-use netlink_packet_audit::{AuditMessage, StatusMessage};
-use netlink_proto::{
-    new_connection,
-    packet::{
+use futures::stream::StreamExt;
+use netlink_packet_audit::{
+    netlink::{
         header::flags::{NLM_F_ACK, NLM_F_REQUEST},
         NetlinkFlags, NetlinkMessage, NetlinkPayload,
     },
-    sys::{Protocol, SocketAddr},
+    AuditMessage, StatusMessage,
 };
 use std::process;
+
+use netlink_proto::{
+    new_connection,
+    sys::{Protocol, SocketAddr},
+};
 
 const AUDIT_STATUS_ENABLED: u32 = 1;
 const AUDIT_STATUS_PID: u32 = 4;
 
-fn main() {
-    let (conn, mut handle, messages) =
-        new_connection(Protocol::Audit).expect("Failed to create a new netlink connection");
+#[tokio::main]
+async fn main() -> Result<(), String> {
+    // Create a netlink socket. Here:
+    //
+    // - `conn` is a `Connection` that has the netlink socket. It's a
+    //   `Future` that keeps polling the socket and must be spawned an
+    //   the event loop.
+    //
+    // - `handle` is a `Handle` to the `Connection`. We use it to send
+    //   netlink messages and receive responses to these messages.
+    //
+    // - `messages` is a channel receiver through which we receive
+    //   messages that we have not sollicated, ie that are not
+    //   response to a request we made. In this example, we'll receive
+    //   the audit event through that channel.
+    let (conn, mut handle, mut messages) = new_connection(Protocol::Audit)
+        .map_err(|e| format!("Failed to create a new netlink connection: {}", e))?;
 
-    // We'll send unicast messages to the kernel.
-    let kernel_unicast: SocketAddr = SocketAddr::new(0, 0);
+    // Spawn the `Connection` so that it starts polling the netlink
+    // socket in the background.
+    tokio::spawn(conn);
 
-    tokio::run(lazy(move || {
-        // Spawn the `netlink_proto::Connection` so that it starts
-        // polling the netlink socket.
-        tokio::spawn(conn.map_err(|e| eprintln!("error in connection: {:?}", e)));
+    // Use the `ConnectionHandle` to send a request to the kernel
+    // asking it to start multicasting audit event messages.
+    tokio::spawn(async move {
+        // Craft the packet to enable audit events
+        let mut status = StatusMessage::new();
+        status.enabled = 1;
+        status.pid = process::id();
+        status.mask = AUDIT_STATUS_ENABLED | AUDIT_STATUS_PID;
+        let payload = AuditMessage::SetStatus(status);
+        let mut nl_msg = NetlinkMessage::from(payload);
+        nl_msg.header.flags = NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK);
 
-        // Use the `netlink_proto::ConnectionHandle` to send a request
-        // to the kernel asking it to start multicasting audit event messages.
-        tokio::spawn({
-            // Craft the packet to enable audit events
-            let mut status = StatusMessage::new();
-            status.enabled = 1;
-            status.pid = process::id();
-            status.mask = AUDIT_STATUS_ENABLED | AUDIT_STATUS_PID;
-            let payload = AuditMessage::SetStatus(status);
-            let mut nl_msg = NetlinkMessage::from(payload);
-            nl_msg.header.flags = NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK);
+        // We'll send unicast messages to the kernel.
+        let kernel_unicast: SocketAddr = SocketAddr::new(0, 0);
+        let mut response = match handle.request(nl_msg, kernel_unicast) {
+            Ok(response) => response,
+            Err(e) => {
+                eprintln!("{}", e);
+                return;
+            }
+        };
 
-            // The ConnectionHandle::request() method returns a
-            // Stream<Item=NetlinkMessage<AuditMessage>>, although
-            // here we only expects one message in return: either an
-            // ACK or an ERROR.
-            handle
-                .request(nl_msg, kernel_unicast)
-                // For simplicity we'll use strings for errors in this
-                // example. This netlink-proto uses the `failure`
-                // crate, errors contain the whole chain of errors
-                // that led to this error. `format_failure_error`
-                // format them nicely
-                .map_err(format_failure_error)
-                .for_each(|message| {
-                    if let NetlinkPayload::Error(err_message) = message.payload {
-                        Err(format!("Received an error message: {:?}", err_message))
-                    } else {
-                        Ok(())
-                    }
-                })
-                .map_err(|e| eprintln!("Request failed: {:?}", e))
-        });
+        while let Some(message) = response.next().await {
+            if let NetlinkPayload::Error(err_message) = message.payload {
+                eprintln!("Received an error message: {:?}", err_message);
+                return;
+            }
+        }
+    });
 
-        println!("Starting to print audit events... press ^C to interrupt");
-
-        // We print the audit event messages that the kernel multicasts.
-        messages.for_each(|message| {
+    // Finally, start receiving event through the `messages` channel.
+    println!("Starting to print audit events... press ^C to interrupt");
+    while let Some((message, _addr)) = messages.next().await {
+        if let NetlinkPayload::Error(err_message) = message.payload {
+            eprintln!("received an error message: {:?}", err_message);
+        } else {
             println!("{:?}", message);
-            Ok(())
-        })
-    }))
-}
-
-fn format_failure_error<E: Fail>(error: E) -> String {
-    let mut error_string = String::new();
-    for cause in Fail::iter_chain(&error) {
-        error_string += &format!(": {}", cause);
+        }
     }
-    error_string
+
+    Ok(())
 }

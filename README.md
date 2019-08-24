@@ -6,13 +6,11 @@ netlink-rs
 This project aims at providing building blocks for [the netlink
 protocol](https://en.wikipedia.org/wiki/Netlink) (see `man 7 netlink`).
 
-The netlink protocol is _huge_ but the two most widely used subprotocols are
-[the generic netlink protocol](https://lwn.net/Articles/208755/) and [the route
-netlink protocol](https://www.infradead.org/~tgr/libnl/doc/route.html) (see
+The netlink protocol is _huge_ but the two some subprotocols are
+widely used. For instance the [the generic netlink
+protocol](https://lwn.net/Articles/208755/) and [the route netlink
+protocol](https://www.infradead.org/~tgr/libnl/doc/route.html) (see
 `man 7 rtnetlink`).
-
-The project is in its early stages, and I'm currently focusing on the route and
-audit netlink protocols.
 
 Organization
 ------------
@@ -93,11 +91,11 @@ although I've only really used the concepts described in the first blog post).
 These ideas are also being used in @m-labs's
 [`smoltcp`](https://github.com/m-labs/smoltcp) project.
 
-Thanks also to the people behing [tokio](tokio.rs), especially @carllerche, for
-the amazing tool they are building, and the support they provide. The project
-structure and code quality are mind blowing, and some parts of this projects
-are basically [rip-offs from tokio's source
-code](https://github.com/little-dude/netlink/blob/master/rtnetlink/src/framed.rs).
+Thanks also to the people behing [tokio](tokio.rs), especially
+@carllerche, for the amazing tool they are building, and the support
+they provide. The project structure and code quality are mind blowing,
+and some parts of this projects are basically rip-offs from tokio's
+source code
 
 Finally, thanks to the Rust community, which
 [helped me](https://users.rust-lang.org/t/help-understanding-libc-call/17308)

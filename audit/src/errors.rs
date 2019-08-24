@@ -1,7 +1,11 @@
-use failure::{Backtrace, Context, Fail};
-use netlink_packet_audit::AuditMessage;
-use netlink_packet_core::{ErrorMessage, NetlinkMessage};
 use std::fmt::{self, Display};
+
+use failure::{Backtrace, Context, Fail};
+
+use crate::packet::{
+    netlink::{ErrorMessage, NetlinkMessage},
+    AuditMessage,
+};
 
 #[derive(Debug)]
 pub struct Error {

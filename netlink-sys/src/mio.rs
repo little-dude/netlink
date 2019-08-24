@@ -1,6 +1,6 @@
-use crate::mio_crate::event::Evented;
-use crate::mio_crate::unix::EventedFd;
-use crate::mio_crate::{Poll, PollOpt, Ready, Token};
+use mio::event::Evented;
+use mio::unix::EventedFd;
+use mio::{Poll, PollOpt, Ready, Token};
 
 use std::io;
 use std::os::unix::io::AsRawFd;
