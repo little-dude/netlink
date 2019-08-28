@@ -53,8 +53,8 @@ but none seems to be really complete.
 - https://github.com/polachok/pnetlink: very similar to this project, but built
   on to of [libpnet](https://github.com/libpnet/libpnet). The author seems to
   be more knowledgeable about netlink than I am. It also has broader coverage
-  of the route netlink protocol (support for the `RTM_{NEW,DEL,GET}ROUTE` and
-  `RTM_{NEW,DEL,GET}ADDRESS` messages). However, many attributes supported by
+  of the route netlink protocol (support for the `RTM_{GET}ROUTE` and
+  `RTM_{NEW,GET}ADDRESS` messages). However, many attributes supported by
   `rtnetlink` are not covered.
 - https://github.com/crhino/netlink-rs: rust bindings for libnl. Very
   incomplete and not developed.
