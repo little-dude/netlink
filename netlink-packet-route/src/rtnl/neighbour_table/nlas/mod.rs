@@ -12,7 +12,7 @@ use failure::ResultExt;
 use crate::{
     rtnl::{
         nla::{DefaultNla, Nla, NlaBuffer},
-        traits::{Emitable, Parseable},
+        traits::Parseable,
         utils::{parse_string, parse_u32, parse_u64},
     },
     DecodeError,
@@ -38,8 +38,8 @@ pub enum NeighbourTableNla {
     Threshold1(u32),
     Threshold2(u32),
     Threshold3(u32),
-    Config(NeighbourTableConfig),
-    Stats(NeighbourTableStats),
+    Config(Vec<u8>),
+    Stats(Vec<u8>),
     GcInterval(u64),
     Other(DefaultNla),
 }
@@ -49,13 +49,11 @@ impl Nla for NeighbourTableNla {
     fn value_len(&self) -> usize {
         use self::NeighbourTableNla::*;
         match *self {
-            Unspec(ref bytes) | Parms(ref bytes) => bytes.len(),
+            Unspec(ref bytes) | Parms(ref bytes) | Config(ref bytes) | Stats(ref bytes)=> bytes.len(),
             // strings: +1 because we need to append a nul byte
             Name(ref s) => s.len() + 1,
             Threshold1(_) | Threshold2(_) | Threshold3(_) => size_of::<u32>(),
             GcInterval(_) => size_of::<u64>(),
-            Config(_) => NEIGHBOUR_TABLE_CONFIG_LEN,
-            Stats(_) => NEIGHBOUR_TABLE_STATS_LEN,
             Other(ref attr) => attr.value_len(),
         }
     }
@@ -63,13 +61,13 @@ impl Nla for NeighbourTableNla {
     fn emit_value(&self, buffer: &mut [u8]) {
         use self::NeighbourTableNla::*;
         match *self {
-            Unspec(ref bytes) | Parms(ref bytes) => buffer.copy_from_slice(bytes.as_slice()),
+            Unspec(ref bytes) | Parms(ref bytes) | Config(ref bytes) | Stats(ref bytes) => {
+                buffer.copy_from_slice(bytes.as_slice())
+            }
             Name(ref string) => {
                 buffer[..string.len()].copy_from_slice(string.as_bytes());
                 buffer[string.len()] = 0;
             }
-            Config(ref config) => config.emit(buffer),
-            Stats(ref stats) => stats.emit(buffer),
             GcInterval(ref value) => NativeEndian::write_u64(buffer, *value),
             Threshold1(ref value) | Threshold2(ref value) | Threshold3(ref value) => {
                 NativeEndian::write_u32(buffer, *value)
@@ -102,16 +100,8 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<NeighbourTableNla> for NlaBuffe
         Ok(match self.kind() {
             NDTA_UNSPEC => Unspec(payload.to_vec()),
             NDTA_NAME => Name(parse_string(payload).context("invalid NDTA_NAME value")?),
-            NDTA_CONFIG => Config(
-                NeighbourTableConfigBuffer::new(payload)
-                    .parse()
-                    .context("invalid NDTA_CONFIG value")?,
-            ),
-            NDTA_STATS => Stats(
-                NeighbourTableStatsBuffer::new(payload)
-                    .parse()
-                    .context("invalid NDTA_STATS value")?,
-            ),
+            NDTA_CONFIG => Config(payload.to_vec()),
+            NDTA_STATS => Stats(payload.to_vec()),
             NDTA_PARMS => Parms(payload.to_vec()),
             NDTA_GC_INTERVAL => {
                 GcInterval(parse_u64(payload).context("invalid NDTA_GC_INTERVAL value")?)
