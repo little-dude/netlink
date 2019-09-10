@@ -126,7 +126,10 @@ mod test {
         let packet = LinkBuffer::new(&HEADER[0..16]);
         assert_eq!(packet.interface_family(), 0);
         assert_eq!(packet.reserved_1(), 0);
-        assert_eq!(LinkLayerType::from(packet.link_layer_type()), LinkLayerType::Loopback);
+        assert_eq!(
+            LinkLayerType::from(packet.link_layer_type()),
+            LinkLayerType::Loopback
+        );
         assert_eq!(packet.link_index(), 1);
         assert_eq!(packet.flags(), IFF_UP | IFF_LOOPBACK | IFF_RUNNING);
         assert!(LinkFlags::from(packet.flags()).is_running());

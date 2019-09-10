@@ -166,13 +166,13 @@ macro_rules! buffer_check_length {
                         concat!("invalid ", stringify!($name), ": length {} < {}"),
                         len, $buffer_len
                     )
-                        .into())
+                    .into())
                 } else {
                     Ok(())
                 }
             }
         }
-    }
+    };
 }
 
 macro_rules! buffer_common {
