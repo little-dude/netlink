@@ -1,10 +1,5 @@
-use byteorder::{ByteOrder, NativeEndian};
-
 use crate::{
-    rtnl::{
-        traits::{Emitable, Parseable},
-        Field,
-    },
+    rtnl::traits::{Emitable, Parseable},
     DecodeError,
 };
 
@@ -21,132 +16,21 @@ pub struct NeighbourTableStats {
     pub periodic_gc_runs: u64,
     pub forced_gc_runs: u64,
 }
-const ALLOCS: Field = 0..8;
-const DESTROYS: Field = 8..16;
-const HASH_GROWS: Field = 16..24;
-const RES_FAILED: Field = 24..32;
-const LOOKUPS: Field = 32..40;
-const HITS: Field = 40..48;
-const MULTICAST_PROBES_RECEIVED: Field = 48..56;
-const UNICAST_PROBES_RECEIVED: Field = 56..64;
-const PERIODIC_GC_RUNS: Field = 64..72;
-const FORCED_GC_RUNS: Field = 72..80;
-pub const NEIGHBOUR_TABLE_STATS_LEN: usize = FORCED_GC_RUNS.end;
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct NeighbourTableStatsBuffer<T> {
-    buffer: T,
-}
-
-impl<T: AsRef<[u8]>> NeighbourTableStatsBuffer<T> {
-    pub fn new(buffer: T) -> NeighbourTableStatsBuffer<T> {
-        NeighbourTableStatsBuffer { buffer }
-    }
-
-    pub fn new_checked(buffer: T) -> Result<NeighbourTableStatsBuffer<T>, DecodeError> {
-        let buf = Self::new(buffer);
-        buf.check_buffer_length()?;
-        Ok(buf)
-    }
-
-    fn check_buffer_length(&self) -> Result<(), DecodeError> {
-        let len = self.buffer.as_ref().len();
-        if len < NEIGHBOUR_TABLE_STATS_LEN {
-            return Err(format!(
-                "invalid NeighbourTableStatsBuffer buffer: length is {} instead of {}",
-                len, NEIGHBOUR_TABLE_STATS_LEN
-            )
-            .into());
-        }
-        Ok(())
-    }
-
-    pub fn into_inner(self) -> T {
-        self.buffer
-    }
-
-    pub fn allocs(&self) -> u64 {
-        NativeEndian::read_u64(&self.buffer.as_ref()[ALLOCS])
-    }
-
-    pub fn destroys(&self) -> u64 {
-        NativeEndian::read_u64(&self.buffer.as_ref()[DESTROYS])
-    }
-
-    pub fn hash_grows(&self) -> u64 {
-        NativeEndian::read_u64(&self.buffer.as_ref()[HASH_GROWS])
-    }
-
-    pub fn res_failed(&self) -> u64 {
-        NativeEndian::read_u64(&self.buffer.as_ref()[RES_FAILED])
-    }
-
-    pub fn lookups(&self) -> u64 {
-        NativeEndian::read_u64(&self.buffer.as_ref()[LOOKUPS])
-    }
-
-    pub fn hits(&self) -> u64 {
-        NativeEndian::read_u64(&self.buffer.as_ref()[HITS])
-    }
-
-    pub fn multicast_probes_received(&self) -> u64 {
-        NativeEndian::read_u64(&self.buffer.as_ref()[MULTICAST_PROBES_RECEIVED])
-    }
-
-    pub fn unicast_probes_received(&self) -> u64 {
-        NativeEndian::read_u64(&self.buffer.as_ref()[UNICAST_PROBES_RECEIVED])
-    }
-
-    pub fn periodic_gc_runs(&self) -> u64 {
-        NativeEndian::read_u64(&self.buffer.as_ref()[PERIODIC_GC_RUNS])
-    }
-
-    pub fn forced_gc_runs(&self) -> u64 {
-        NativeEndian::read_u64(&self.buffer.as_ref()[FORCED_GC_RUNS])
-    }
-}
-
-impl<T: AsRef<[u8]> + AsMut<[u8]>> NeighbourTableStatsBuffer<T> {
-    pub fn set_allocs(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[ALLOCS], value)
-    }
-
-    pub fn set_destroys(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[DESTROYS], value)
-    }
-
-    pub fn set_hash_grows(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[HASH_GROWS], value)
-    }
-
-    pub fn set_res_failed(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[RES_FAILED], value)
-    }
-
-    pub fn set_lookups(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[LOOKUPS], value)
-    }
-
-    pub fn set_hits(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[HITS], value)
-    }
-
-    pub fn set_multicast_probes_received(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[MULTICAST_PROBES_RECEIVED], value)
-    }
-
-    pub fn set_unicast_probes_received(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[UNICAST_PROBES_RECEIVED], value)
-    }
-
-    pub fn set_periodic_gc_runs(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[PERIODIC_GC_RUNS], value)
-    }
-
-    pub fn set_forced_gc_runs(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[FORCED_GC_RUNS], value)
-    }
-}
+pub const NEIGHBOUR_TABLE_STATS_LEN: usize = 80;
+buffer!(NeighbourTableStatsBuffer, NEIGHBOUR_TABLE_STATS_LEN);
+fields!(NeighbourTableStatsBuffer {
+    allocs: (u64, 0..8),
+    destroys: (u64, 8..16),
+    hash_grows: (u64, 16..24),
+    res_failed: (u64, 24..32),
+    lookups: (u64, 32..40),
+    hits: (u64, 40..48),
+    multicast_probes_received: (u64, 48..56),
+    unicast_probes_received: (u64, 56..64),
+    periodic_gc_runs: (u64, 64..72),
+    forced_gc_runs: (u64, 72..80),
+});
 
 impl<T: AsRef<[u8]>> Parseable<NeighbourTableStats> for NeighbourTableStatsBuffer<T> {
     fn parse(&self) -> Result<NeighbourTableStats, DecodeError> {

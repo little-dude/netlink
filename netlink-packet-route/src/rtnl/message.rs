@@ -425,12 +425,10 @@ impl NetlinkSerializable<RtnlMessage> for RtnlMessage {
 impl NetlinkDeserializable<RtnlMessage> for RtnlMessage {
     type Error = FailureError<DecodeError>;
     fn deserialize(header: &NetlinkHeader, payload: &[u8]) -> Result<Self, Self::Error> {
-        match RtnlBuffer::new_checked(payload) {
+        let buf = RtnlBuffer::new(payload);
+        match buf.parse_with_param(header.message_type) {
             Err(e) => Err(e.compat()),
-            Ok(buffer) => match buffer.parse_with_param(header.message_type) {
-                Err(e) => Err(e.compat()),
-                Ok(message) => Ok(message),
-            },
+            Ok(message) => Ok(message),
         }
     }
 }

@@ -528,11 +528,11 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<RouteHeader> for RouteBuffer<&'a T> 
             destination_length: self.destination_length(),
             source_length: self.source_length(),
             tos: self.tos(),
-            table: self.table(),
-            protocol: self.protocol(),
-            scope: self.scope(),
-            kind: self.kind(),
-            flags: self.flags(),
+            table: self.table().into(),
+            protocol: self.protocol().into(),
+            scope: self.scope().into(),
+            kind: self.kind().into(),
+            flags: self.flags().into(),
         })
     }
 }
@@ -548,10 +548,10 @@ impl Emitable for RouteHeader {
         buffer.set_destination_length(self.destination_length);
         buffer.set_source_length(self.source_length);
         buffer.set_tos(self.tos);
-        buffer.set_table(self.table);
-        buffer.set_protocol(self.protocol);
-        buffer.set_scope(self.scope);
-        buffer.set_kind(self.kind);
-        buffer.set_flags(self.flags);
+        buffer.set_table(self.table.into());
+        buffer.set_protocol(self.protocol.into());
+        buffer.set_scope(self.scope.into());
+        buffer.set_kind(self.kind.into());
+        buffer.set_flags(self.flags.into());
     }
 }

@@ -1,10 +1,5 @@
-use byteorder::{ByteOrder, NativeEndian};
-
 use crate::{
-    rtnl::{
-        traits::{Emitable, Parseable},
-        Field,
-    },
+    rtnl::traits::{Emitable, Parseable},
     DecodeError,
 };
 
@@ -27,114 +22,19 @@ pub struct TcStats {
     pub backlog: u32,
 }
 
-const BYTES: Field = 0..8;
-const PACKETS: Field = 8..12;
-const DROPS: Field = 12..16;
-const OVERLIMITS: Field = 16..20;
-const BPS: Field = 20..24;
-const PPS: Field = 24..28;
-const QLEN: Field = 28..32;
-const BACKLOG: Field = 32..36;
-pub const TC_STATS_LEN: usize = BACKLOG.end;
+pub const TC_STATS_LEN: usize = 36;
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct TcStatsBuffer<T> {
-    buffer: T,
-}
-
-impl<T: AsRef<[u8]>> TcStatsBuffer<T> {
-    pub fn new(buffer: T) -> TcStatsBuffer<T> {
-        TcStatsBuffer { buffer }
-    }
-
-    pub fn new_checked(buffer: T) -> Result<TcStatsBuffer<T>, DecodeError> {
-        let buf = Self::new(buffer);
-        buf.check_buffer_length()?;
-        Ok(buf)
-    }
-
-    fn check_buffer_length(&self) -> Result<(), DecodeError> {
-        let len = self.buffer.as_ref().len();
-        if len < TC_STATS_LEN {
-            return Err(format!(
-                "invalid TcStatsBuffer buffer: length is {} instead of {}",
-                len, TC_STATS_LEN
-            )
-            .into());
-        }
-        Ok(())
-    }
-
-    pub fn into_inner(self) -> T {
-        self.buffer
-    }
-
-    pub fn bytes(&self) -> u64 {
-        NativeEndian::read_u64(&self.buffer.as_ref()[BYTES])
-    }
-
-    pub fn packets(&self) -> u32 {
-        NativeEndian::read_u32(&self.buffer.as_ref()[PACKETS])
-    }
-
-    pub fn drops(&self) -> u32 {
-        NativeEndian::read_u32(&self.buffer.as_ref()[DROPS])
-    }
-
-    pub fn overlimits(&self) -> u32 {
-        NativeEndian::read_u32(&self.buffer.as_ref()[OVERLIMITS])
-    }
-
-    pub fn bps(&self) -> u32 {
-        NativeEndian::read_u32(&self.buffer.as_ref()[BPS])
-    }
-
-    pub fn pps(&self) -> u32 {
-        NativeEndian::read_u32(&self.buffer.as_ref()[PPS])
-    }
-
-    pub fn qlen(&self) -> u32 {
-        NativeEndian::read_u32(&self.buffer.as_ref()[QLEN])
-    }
-
-    pub fn backlog(&self) -> u32 {
-        NativeEndian::read_u32(&self.buffer.as_ref()[BACKLOG])
-    }
-}
-
-impl<T: AsRef<[u8]> + AsMut<[u8]>> TcStatsBuffer<T> {
-    pub fn set_bytes(&mut self, value: u64) {
-        NativeEndian::write_u64(&mut self.buffer.as_mut()[BYTES], value)
-    }
-
-    pub fn set_packets(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[PACKETS], value)
-    }
-
-    pub fn set_drops(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[DROPS], value)
-    }
-
-    pub fn set_overlimits(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[OVERLIMITS], value)
-    }
-
-    pub fn set_bps(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[BPS], value)
-    }
-
-    pub fn set_pps(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[PPS], value)
-    }
-
-    pub fn set_qlen(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[QLEN], value)
-    }
-
-    pub fn set_backlog(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[BACKLOG], value)
-    }
-}
+buffer!(TcStatsBuffer, TC_STATS_LEN);
+fields!(TcStatsBuffer {
+    bytes: (u64, 0..8),
+    packets: (u32, 8..12),
+    drops: (u32, 12..16),
+    overlimits: (u32, 16..20),
+    bps: (u32, 20..24),
+    pps: (u32, 24..28),
+    qlen: (u32, 28..32),
+    backlog: (u32, 32..36),
+});
 
 impl<T: AsRef<[u8]>> Parseable<TcStats> for TcStatsBuffer<T> {
     fn parse(&self) -> Result<TcStats, DecodeError> {

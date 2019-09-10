@@ -1,10 +1,5 @@
-use byteorder::{ByteOrder, NativeEndian};
-
 use crate::{
-    rtnl::{
-        traits::{Emitable, Parseable},
-        Field,
-    },
+    rtnl::traits::{Emitable, Parseable},
     DecodeError,
 };
 
@@ -18,93 +13,16 @@ pub struct LinkIcmp6Stats {
     pub csum_errors: i64,
 }
 
-const NUM: Field = 0..8;
-const IN_MSGS: Field = 8..16;
-const IN_ERRORS: Field = 16..24;
-const OUT_MSGS: Field = 24..32;
-const OUT_ERRORS: Field = 32..40;
-const CSUM_ERRORS: Field = 40..48;
-
-pub const LINK_ICMP6_STATS_LEN: usize = CSUM_ERRORS.end;
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct LinkIcmp6StatsBuffer<T> {
-    buffer: T,
-}
-
-impl<T: AsRef<[u8]>> LinkIcmp6StatsBuffer<T> {
-    pub fn new(buffer: T) -> Self {
-        LinkIcmp6StatsBuffer { buffer }
-    }
-
-    pub fn new_checked(buffer: T) -> Result<Self, DecodeError> {
-        let buf = Self::new(buffer);
-        buf.check_buffer_length()?;
-        Ok(buf)
-    }
-
-    fn check_buffer_length(&self) -> Result<(), DecodeError> {
-        let len = self.buffer.as_ref().len();
-        if len < LINK_ICMP6_STATS_LEN {
-            return Err(format!(
-                "invalid LinkIcmp6StatsBuffer buffer: length is {} instead of {}",
-                len, LINK_ICMP6_STATS_LEN,
-            )
-            .into());
-        }
-        Ok(())
-    }
-
-    pub fn num(&self) -> i64 {
-        NativeEndian::read_i64(&self.buffer.as_ref()[NUM])
-    }
-
-    pub fn in_msgs(&self) -> i64 {
-        NativeEndian::read_i64(&self.buffer.as_ref()[IN_MSGS])
-    }
-
-    pub fn in_errors(&self) -> i64 {
-        NativeEndian::read_i64(&self.buffer.as_ref()[IN_ERRORS])
-    }
-
-    pub fn out_msgs(&self) -> i64 {
-        NativeEndian::read_i64(&self.buffer.as_ref()[OUT_MSGS])
-    }
-
-    pub fn out_errors(&self) -> i64 {
-        NativeEndian::read_i64(&self.buffer.as_ref()[OUT_ERRORS])
-    }
-
-    pub fn csum_errors(&self) -> i64 {
-        NativeEndian::read_i64(&self.buffer.as_ref()[CSUM_ERRORS])
-    }
-}
-
-impl<T: AsRef<[u8]> + AsMut<[u8]>> LinkIcmp6StatsBuffer<T> {
-    pub fn set_num(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[NUM], value)
-    }
-
-    pub fn set_in_msgs(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_MSGS], value)
-    }
-
-    pub fn set_in_errors(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[IN_ERRORS], value)
-    }
-
-    pub fn set_out_msgs(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_MSGS], value)
-    }
-
-    pub fn set_out_errors(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[OUT_ERRORS], value)
-    }
-
-    pub fn set_csum_errors(&mut self, value: i64) {
-        NativeEndian::write_i64(&mut self.buffer.as_mut()[CSUM_ERRORS], value)
-    }
-}
+pub const LINK_ICMP6_STATS_LEN: usize = 48;
+buffer!(LinkIcmp6StatsBuffer, LINK_ICMP6_STATS_LEN);
+fields!(LinkIcmp6StatsBuffer {
+    num: (i64, 0..8),
+    in_msgs: (i64, 8..16),
+    in_errors: (i64, 16..24),
+    out_msgs: (i64, 24..32),
+    out_errors: (i64, 32..40),
+    csum_errors: (i64, 40..48),
+});
 
 impl<T: AsRef<[u8]>> Parseable<LinkIcmp6Stats> for LinkIcmp6StatsBuffer<T> {
     fn parse(&self) -> Result<LinkIcmp6Stats, DecodeError> {

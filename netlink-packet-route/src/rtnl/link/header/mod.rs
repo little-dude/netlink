@@ -93,9 +93,9 @@ impl Emitable for LinkHeader {
         let mut packet = LinkBuffer::new(buffer);
         packet.set_interface_family(self.interface_family);
         packet.set_link_index(self.index);
-        packet.set_change_mask(self.change_mask);
-        packet.set_link_layer_type(self.link_layer_type);
-        packet.set_flags(self.flags);
+        packet.set_change_mask(self.change_mask.into());
+        packet.set_link_layer_type(self.link_layer_type.into());
+        packet.set_flags(self.flags.into());
     }
 }
 
@@ -103,10 +103,10 @@ impl<T: AsRef<[u8]>> Parseable<LinkHeader> for LinkBuffer<T> {
     fn parse(&self) -> Result<LinkHeader, DecodeError> {
         Ok(LinkHeader {
             interface_family: self.interface_family(),
-            link_layer_type: self.link_layer_type(),
+            link_layer_type: self.link_layer_type().into(),
             index: self.link_index(),
-            change_mask: self.change_mask(),
-            flags: self.flags(),
+            change_mask: self.change_mask().into(),
+            flags: self.flags().into(),
         })
     }
 }

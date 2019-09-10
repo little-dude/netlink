@@ -19,11 +19,7 @@ libc = "0.2.61"
 log = "0.4.8"
 lazy_static = "1.3.0"
 netlink-packet-core = { path = "../netlink-packet-core", version = "0.1" }
-
-[features]
-# By default this crate does not does anything useful. You should enable a
-# netlink protocol (either rtnetlink or audit), and optionally, tokio support.
-default = []
+paste = "0.1"
 
 [[example]]
 name = "dump_links"

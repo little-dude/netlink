@@ -15,35 +15,7 @@ use crate::{
 };
 use failure::ResultExt;
 
-pub struct RtnlBuffer<T> {
-    buffer: T,
-}
-
-impl<T: AsRef<[u8]>> RtnlBuffer<T> {
-    pub fn new(buffer: T) -> RtnlBuffer<T> {
-        RtnlBuffer { buffer }
-    }
-
-    pub fn length(&self) -> usize {
-        self.buffer.as_ref().len()
-    }
-
-    pub fn new_checked(buffer: T) -> Result<RtnlBuffer<T>, DecodeError> {
-        Ok(Self::new(buffer))
-    }
-}
-
-impl<'a, T: AsRef<[u8]> + ?Sized> RtnlBuffer<&'a T> {
-    pub fn inner(&self) -> &'a [u8] {
-        &self.buffer.as_ref()[..]
-    }
-}
-
-impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> RtnlBuffer<&'a mut T> {
-    pub fn inner_mut(&mut self) -> &mut [u8] {
-        &mut self.buffer.as_mut()[..]
-    }
-}
+buffer!(RtnlBuffer);
 
 impl<'buffer, T: AsRef<[u8]> + ?Sized> ParseableParametrized<RtnlMessage, u16>
     for RtnlBuffer<&'buffer T>
@@ -60,7 +32,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> ParseableParametrized<RtnlMessage, u16>
                     // HACK: iproute2 sends invalid RTM_GETLINK message, where the header is
                     // limited to the interface family (1 byte) and 3 bytes of padding.
                     Err(e) => {
-                        if self.length() == 4 && message_type == RTM_GETLINK {
+                        if self.inner().len() == 4 && message_type == RTM_GETLINK {
                             let mut msg = LinkMessage {
                                 header: LinkHeader::new(),
                                 nlas: vec![],
@@ -88,7 +60,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> ParseableParametrized<RtnlMessage, u16>
                     // HACK: iproute2 sends invalid RTM_GETADDR message, where the header is
                     // limited to the interface family (1 byte) and 3 bytes of padding.
                     Err(e) => {
-                        if self.length() == 4 && message_type == RTM_GETADDR {
+                        if self.inner().len() == 4 && message_type == RTM_GETADDR {
                             let mut msg = AddressMessage {
                                 header: AddressHeader::new(),
                                 nlas: vec![],
@@ -147,7 +119,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> ParseableParametrized<RtnlMessage, u16>
                         // doing so: for link and address messages, the length advertised in the
                         // netlink header includes the 3 bytes of padding but it does not seem to
                         // be the case for the route message, hence the self.length() == 1 check.
-                        if (self.length() == 4 || self.length() == 1) && message_type == RTM_GETROUTE {
+                        if (self.inner().len() == 4 || self.inner().len() == 1) && message_type == RTM_GETROUTE {
                             let mut msg = RouteMessage {
                                 header: RouteHeader::new(),
                                 nlas: vec![],

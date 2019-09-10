@@ -1,10 +1,5 @@
-use byteorder::{ByteOrder, NativeEndian};
-
 use crate::{
-    rtnl::{
-        traits::{Emitable, Parseable},
-        Field,
-    },
+    rtnl::traits::{Emitable, Parseable},
     DecodeError,
 };
 
@@ -21,123 +16,20 @@ pub struct NeighbourTableConfig {
     pub proxy_qlen: u32,
 }
 
-const KEY_LEN: Field = 0..2;
-const ENTRY_SIZE: Field = 2..4;
-const ENTRIES: Field = 4..8;
-const LAST_FLUSH: Field = 8..12;
-const LAST_RAND: Field = 12..16;
-const HASH_RAND: Field = 16..20;
-const HASH_MASK: Field = 20..24;
-const HASH_CHAIN_GC: Field = 24..28;
-const PROXY_QLEN: Field = 28..32;
-pub const NEIGHBOUR_TABLE_CONFIG_LEN: usize = PROXY_QLEN.end;
+pub const NEIGHBOUR_TABLE_CONFIG_LEN: usize = 32;
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct NeighbourTableConfigBuffer<T> {
-    buffer: T,
-}
-
-impl<T: AsRef<[u8]>> NeighbourTableConfigBuffer<T> {
-    pub fn new(buffer: T) -> NeighbourTableConfigBuffer<T> {
-        NeighbourTableConfigBuffer { buffer }
-    }
-
-    pub fn new_checked(buffer: T) -> Result<NeighbourTableConfigBuffer<T>, DecodeError> {
-        let buf = Self::new(buffer);
-        buf.check_buffer_length()?;
-        Ok(buf)
-    }
-
-    fn check_buffer_length(&self) -> Result<(), DecodeError> {
-        let len = self.buffer.as_ref().len();
-        if len < NEIGHBOUR_TABLE_CONFIG_LEN {
-            return Err(format!(
-                "invalid NeighbourTableConfigBuffer buffer: length is {} instead of {}",
-                len, NEIGHBOUR_TABLE_CONFIG_LEN
-            )
-            .into());
-        }
-        Ok(())
-    }
-
-    pub fn into_inner(self) -> T {
-        self.buffer
-    }
-
-    pub fn key_len(&self) -> u16 {
-        NativeEndian::read_u16(&self.buffer.as_ref()[KEY_LEN])
-    }
-
-    pub fn entry_size(&self) -> u16 {
-        NativeEndian::read_u16(&self.buffer.as_ref()[ENTRY_SIZE])
-    }
-
-    pub fn entries(&self) -> u32 {
-        NativeEndian::read_u32(&self.buffer.as_ref()[ENTRIES])
-    }
-
-    pub fn last_flush(&self) -> u32 {
-        NativeEndian::read_u32(&self.buffer.as_ref()[LAST_FLUSH])
-    }
-
-    pub fn last_rand(&self) -> u32 {
-        NativeEndian::read_u32(&self.buffer.as_ref()[LAST_RAND])
-    }
-
-    pub fn hash_rand(&self) -> u32 {
-        NativeEndian::read_u32(&self.buffer.as_ref()[HASH_RAND])
-    }
-
-    pub fn hash_mask(&self) -> u32 {
-        NativeEndian::read_u32(&self.buffer.as_ref()[HASH_MASK])
-    }
-
-    pub fn hash_chain_gc(&self) -> u32 {
-        NativeEndian::read_u32(&self.buffer.as_ref()[HASH_CHAIN_GC])
-    }
-
-    pub fn proxy_qlen(&self) -> u32 {
-        NativeEndian::read_u32(&self.buffer.as_ref()[PROXY_QLEN])
-    }
-}
-
-impl<T: AsRef<[u8]> + AsMut<[u8]>> NeighbourTableConfigBuffer<T> {
-    pub fn set_key_len(&mut self, value: u16) {
-        NativeEndian::write_u16(&mut self.buffer.as_mut()[KEY_LEN], value)
-    }
-
-    pub fn set_entry_size(&mut self, value: u16) {
-        NativeEndian::write_u16(&mut self.buffer.as_mut()[ENTRY_SIZE], value)
-    }
-
-    pub fn set_entries(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[ENTRIES], value)
-    }
-
-    pub fn set_last_flush(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[LAST_FLUSH], value)
-    }
-
-    pub fn set_last_rand(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[LAST_RAND], value)
-    }
-
-    pub fn set_hash_rand(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[HASH_RAND], value)
-    }
-
-    pub fn set_hash_mask(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[HASH_MASK], value)
-    }
-
-    pub fn set_hash_chain_gc(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[HASH_CHAIN_GC], value)
-    }
-
-    pub fn set_proxy_qlen(&mut self, value: u32) {
-        NativeEndian::write_u32(&mut self.buffer.as_mut()[PROXY_QLEN], value)
-    }
-}
+buffer!(NeighbourTableConfigBuffer, NEIGHBOUR_TABLE_CONFIG_LEN);
+fields!(NeighbourTableConfigBuffer {
+    key_len: (u16, 0..2),
+    entry_size: (u16, 2..4),
+    entries: (u32, 4..8),
+    last_flush: (u32, 8..12),
+    last_rand: (u32, 12..16),
+    hash_rand: (u32, 16..20),
+    hash_mask: (u32, 20..24),
+    hash_chain_gc: (u32, 24..28),
+    proxy_qlen: (u32, 28..32),
+});
 
 impl<T: AsRef<[u8]>> Parseable<NeighbourTableConfig> for NeighbourTableConfigBuffer<T> {
     fn parse(&self) -> Result<NeighbourTableConfig, DecodeError> {
