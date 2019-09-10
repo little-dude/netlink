@@ -19,7 +19,3 @@ mod test;
 
 pub mod traits;
 pub(crate) mod utils;
-
-use core::ops::Range;
-/// Represent a multi-bytes field with a fixed size in a packet
-pub(crate) type Field = Range<usize>;

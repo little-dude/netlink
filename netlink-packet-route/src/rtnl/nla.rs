@@ -1,13 +1,15 @@
+use core::ops::Range;
+
 use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
 
 use crate::{
-    rtnl::{
-        traits::{Emitable, Parseable},
-        Field,
-    },
+    rtnl::traits::{Emitable, Parseable},
     DecodeError,
 };
+
+/// Represent a multi-bytes field with a fixed size in a packet
+type Field = Range<usize>;
 
 /// Identify the bits that represent the "nested" flag of a netlink attribute.
 pub const NLA_F_NESTED: u16 = 0x8000;
