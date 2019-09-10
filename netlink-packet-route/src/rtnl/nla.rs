@@ -18,7 +18,6 @@ pub const NLA_F_NET_BYTEORDER: u16 = 0x4000;
 /// Identify the bits that represent the type of a netlink attribute.
 pub const NLA_TYPE_MASK: u16 = !(NLA_F_NET_BYTEORDER | NLA_F_NESTED);
 
-pub const NLA_ALIGNTO: u16 = 4;
 const LENGTH: Field = 0..2;
 const TYPE: Field = 2..4;
 #[allow(non_snake_case)]
