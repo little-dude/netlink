@@ -5,8 +5,7 @@ use crate::{
 
 pub const TC_HEADER_LEN: usize = 20;
 
-buffer!(TcBuffer, TC_HEADER_LEN);
-fields!(TcBuffer {
+buffer!(TcBuffer(TC_HEADER_LEN) {
     family: (u8, 0),
     pad1: (u8, 1),
     pad2: (u16, 2..4),

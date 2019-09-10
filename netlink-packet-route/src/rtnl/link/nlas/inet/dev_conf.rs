@@ -5,8 +5,7 @@ use crate::{
 
 pub const LINK_INET_DEV_CONF_LEN: usize = 124;
 
-buffer!(LinkInetDevConfBuffer, LINK_INET_DEV_CONF_LEN);
-fields!(LinkInetDevConfBuffer {
+buffer!(LinkInetDevConfBuffer(LINK_INET_DEV_CONF_LEN) {
     forwarding: (i32, 0..4),
     mc_forwarding: (i32, 4..8),
     proxy_arp: (i32, 8..12),

@@ -185,8 +185,8 @@ impl<T: AsRef<[u8]>> Parseable<NeighbourHeader> for NeighbourBuffer<T> {
         Ok(NeighbourHeader {
             family: self.family(),
             ifindex: self.ifindex(),
-            state: self.state(),
-            flags: self.flags(),
+            state: self.state().into(),
+            flags: self.flags().into(),
             ntype: self.ntype(),
         })
     }
@@ -201,8 +201,8 @@ impl Emitable for NeighbourHeader {
         let mut packet = NeighbourBuffer::new(buffer);
         packet.set_family(self.family);
         packet.set_ifindex(self.ifindex);
-        packet.set_state(self.state);
-        packet.set_flags(self.flags);
+        packet.set_state(self.state.into());
+        packet.set_flags(self.flags.into());
         packet.set_ntype(self.ntype);
     }
 }

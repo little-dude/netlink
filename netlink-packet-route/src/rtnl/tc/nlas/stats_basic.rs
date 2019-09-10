@@ -14,8 +14,7 @@ pub struct TcStatsBasic {
 
 pub const TC_STATS_BASIC_LEN: usize = 12;
 
-buffer!(TcStatsBasicBuffer, 12);
-fields!(TcStatsBasicBuffer {
+buffer!(TcStatsBasicBuffer(TC_STATS_BASIC_LEN) {
     bytes: (u64, 0..8),
     packets: (u32, 8..12),
 });

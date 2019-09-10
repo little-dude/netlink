@@ -13,8 +13,7 @@ pub struct NeighbourCacheInfo {
 
 pub const NEIGHBOUR_CACHE_INFO_LEN: usize = 16;
 
-buffer!(NeighbourCacheInfoBuffer, NEIGHBOUR_CACHE_INFO_LEN);
-fields!(NeighbourCacheInfoBuffer {
+buffer!(NeighbourCacheInfoBuffer(NEIGHBOUR_CACHE_INFO_LEN) {
     confirmed: (u32, 0..4),
     used: (u32, 4..8),
     updated: (u32, 8..12),

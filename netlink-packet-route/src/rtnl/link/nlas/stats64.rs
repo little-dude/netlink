@@ -4,8 +4,7 @@ use crate::{
 };
 
 pub const LINK_STATS64_LEN: usize = 192;
-buffer!(LinkStats64Buffer, LINK_STATS64_LEN);
-fields!(LinkStats64Buffer {
+buffer!(LinkStats64Buffer(LINK_STATS64_LEN) {
     rx_packets: (u64, 0..8),
     tx_packets: (u64, 8..16),
     rx_bytes: (u64, 16..24),

@@ -4,8 +4,7 @@ use crate::{
 };
 
 pub const LINK_MAP_LEN: usize = 28;
-buffer!(LinkMapBuffer, LINK_MAP_LEN);
-fields!(LinkMapBuffer {
+buffer!(LinkMapBuffer(LINK_MAP_LEN) {
     memory_start: (u64, 0..8),
     memory_end: (u64, 8..16),
     base_address: (u64, 16..24),

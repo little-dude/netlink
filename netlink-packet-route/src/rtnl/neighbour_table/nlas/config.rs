@@ -18,8 +18,7 @@ pub struct NeighbourTableConfig {
 
 pub const NEIGHBOUR_TABLE_CONFIG_LEN: usize = 32;
 
-buffer!(NeighbourTableConfigBuffer, NEIGHBOUR_TABLE_CONFIG_LEN);
-fields!(NeighbourTableConfigBuffer {
+buffer!(NeighbourTableConfigBuffer(NEIGHBOUR_TABLE_CONFIG_LEN) {
     key_len: (u16, 0..2),
     entry_size: (u16, 2..4),
     entries: (u32, 4..8),

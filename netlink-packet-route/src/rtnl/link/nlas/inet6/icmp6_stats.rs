@@ -14,8 +14,7 @@ pub struct LinkIcmp6Stats {
 }
 
 pub const LINK_ICMP6_STATS_LEN: usize = 48;
-buffer!(LinkIcmp6StatsBuffer, LINK_ICMP6_STATS_LEN);
-fields!(LinkIcmp6StatsBuffer {
+buffer!(LinkIcmp6StatsBuffer(LINK_ICMP6_STATS_LEN) {
     num: (i64, 0..8),
     in_msgs: (i64, 8..16),
     in_errors: (i64, 16..24),

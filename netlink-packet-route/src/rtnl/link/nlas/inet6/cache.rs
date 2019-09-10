@@ -12,8 +12,7 @@ pub struct LinkInet6CacheInfo {
 }
 
 pub const LINK_INET6_CACHE_INFO_LEN: usize = 16;
-buffer!(LinkInet6CacheInfoBuffer, LINK_INET6_CACHE_INFO_LEN);
-fields!(LinkInet6CacheInfoBuffer {
+buffer!(LinkInet6CacheInfoBuffer(LINK_INET6_CACHE_INFO_LEN) {
     max_reasm_len: (i32, 0..4),
     tstamp: (i32, 4..8),
     reachable_time: (i32, 8..12),

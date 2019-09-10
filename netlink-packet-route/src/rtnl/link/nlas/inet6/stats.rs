@@ -4,8 +4,7 @@ use crate::{
 };
 
 pub const LINK_INET6_STATS_LEN: usize = 288;
-buffer!(LinkInet6StatsBuffer, LINK_INET6_STATS_LEN);
-fields!(LinkInet6StatsBuffer {
+buffer!(LinkInet6StatsBuffer(LINK_INET6_STATS_LEN) {
     num: (i64, 0..8),
     in_pkts: (i64, 8..16),
     in_octets: (i64, 16..24),

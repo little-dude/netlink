@@ -24,8 +24,7 @@ pub struct TcStats {
 
 pub const TC_STATS_LEN: usize = 36;
 
-buffer!(TcStatsBuffer, TC_STATS_LEN);
-fields!(TcStatsBuffer {
+buffer!(TcStatsBuffer(TC_STATS_LEN) {
     bytes: (u64, 0..8),
     packets: (u32, 8..12),
     drops: (u32, 12..16),

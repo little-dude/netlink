@@ -18,8 +18,7 @@ pub struct NeighbourTableStats {
 }
 
 pub const NEIGHBOUR_TABLE_STATS_LEN: usize = 80;
-buffer!(NeighbourTableStatsBuffer, NEIGHBOUR_TABLE_STATS_LEN);
-fields!(NeighbourTableStatsBuffer {
+buffer!(NeighbourTableStatsBuffer(NEIGHBOUR_TABLE_STATS_LEN) {
     allocs: (u64, 0..8),
     destroys: (u64, 8..16),
     hash_grows: (u64, 16..24),

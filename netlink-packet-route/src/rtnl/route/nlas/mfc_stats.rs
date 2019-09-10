@@ -12,8 +12,7 @@ pub struct RouteMfcStats {
 
 pub const ROUTE_MFC_STATS_LEN: usize = 24;
 
-buffer!(RouteMfcStatsBuffer, ROUTE_MFC_STATS_LEN);
-fields!(RouteMfcStatsBuffer {
+buffer!(RouteMfcStatsBuffer(ROUTE_MFC_STATS_LEN) {
     packets: (u64, 0..8),
     bytes: (u64, 8..16),
     wrong_if: (u64, 16..24),

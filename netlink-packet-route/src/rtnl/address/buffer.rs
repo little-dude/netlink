@@ -5,8 +5,7 @@ use crate::{
 
 pub const ADDRESS_HEADER_LEN: usize = 8;
 
-buffer!(AddressBuffer, ADDRESS_HEADER_LEN);
-fields!(AddressBuffer {
+buffer!(AddressBuffer(ADDRESS_HEADER_LEN) {
     family: (u8, 0),
     prefix_len: (u8, 1),
     flags: (u8, 2),

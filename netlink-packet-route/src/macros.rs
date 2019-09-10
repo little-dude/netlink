@@ -113,9 +113,45 @@ macro_rules! setter {
 }
 
 macro_rules! buffer {
+    ($name:ident($buffer_len:expr) { $($field:ident : ($ty:tt, $offset:expr)),* $(,)? }) => {
+        buffer!($name { $($field: ($ty, $offset),)* });
+        buffer_check_length!($name($buffer_len));
+    };
+
+    ($name:ident { $($field:ident : ($ty:tt, $offset:expr)),* $(,)? }) => {
+        buffer_common!($name);
+        fields!($name {
+            $($field: ($ty, $offset),)*
+        });
+    };
+
     ($name:ident, $buffer_len:expr) => {
         buffer_common!($name);
+        buffer_check_length!($name($buffer_len));
+    };
 
+    ($name:ident) => {
+        buffer_common!($name);
+    };
+}
+
+macro_rules! fields {
+    ($buffer:ident { $($name:ident : ($ty:tt, $offset:expr)),* $(,)? }) => {
+        impl<T: AsRef<[u8]>> $buffer<T> {
+            $(
+                getter!($name, $ty, $offset);
+            )*
+        }
+        impl<T: AsRef<[u8]> + AsMut<[u8]>> $buffer<T> {
+            $(
+                setter!($name, $ty, $offset);
+            )*
+        }
+    }
+}
+
+macro_rules! buffer_check_length {
+    ($name:ident($buffer_len:expr)) => {
         impl<T: AsRef<[u8]>> $name<T> {
             pub fn new_checked(buffer: T) -> Result<Self, DecodeError> {
                 let packet = Self::new(buffer);
@@ -135,24 +171,6 @@ macro_rules! buffer {
                     Ok(())
                 }
             }
-        }
-    };
-    ($name:ident) => {
-        buffer_common!($name);
-    };
-}
-
-macro_rules! fields {
-    ($buffer:ident { $($name:ident : ($ty:tt, $offset:expr)),* $(,)? }) => {
-        impl<T: AsRef<[u8]>> $buffer<T> {
-            $(
-                getter!($name, $ty, $offset);
-            )*
-        }
-        impl<T: AsRef<[u8]> + AsMut<[u8]>> $buffer<T> {
-            $(
-                setter!($name, $ty, $offset);
-            )*
         }
     }
 }

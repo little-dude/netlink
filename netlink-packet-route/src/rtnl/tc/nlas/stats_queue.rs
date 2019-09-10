@@ -20,8 +20,7 @@ pub struct TcStatsQueue {
 
 pub const TC_STATS_QUEUE_LEN: usize = 20;
 
-buffer!(TcStatsQueueBuffer, 20);
-fields!(TcStatsQueueBuffer {
+buffer!(TcStatsQueueBuffer( TC_STATS_QUEUE_LEN) {
     qlen: (u32, 0..4),
     backlog: (u32, 4..8),
     drops: (u32, 8..12),

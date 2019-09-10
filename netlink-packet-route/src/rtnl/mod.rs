@@ -20,10 +20,6 @@ mod test;
 pub mod traits;
 pub(crate) mod utils;
 
-use core::ops::{Range, RangeFrom};
+use core::ops::{Range};
 /// Represent a multi-bytes field with a fixed size in a packet
 pub(crate) type Field = Range<usize>;
-/// Represent a field that starts at a given index in a packet
-pub(crate) type Rest = RangeFrom<usize>;
-/// Represent a field of exactly one byte in a packet
-pub(crate) type Index = usize;

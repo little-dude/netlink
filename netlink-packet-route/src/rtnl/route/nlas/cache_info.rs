@@ -17,8 +17,7 @@ pub struct RouteCacheInfo {
 
 pub const ROUTE_CACHE_INFO_LEN: usize = 32;
 
-buffer!(RouteCacheInfoBuffer, 32);
-fields!(RouteCacheInfoBuffer {
+buffer!(RouteCacheInfoBuffer(ROUTE_CACHE_INFO_LEN) {
     clntref: (u32, 0..4),
     last_use: (u32, 4..8),
     expires: (u32, 8..12),

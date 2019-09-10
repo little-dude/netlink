@@ -5,8 +5,7 @@ use crate::{
 
 pub const LINK_HEADER_LEN: usize = 16;
 
-buffer!(LinkBuffer, 16);
-fields!(LinkBuffer {
+buffer!(LinkBuffer(LINK_HEADER_LEN) {
     interface_family: (u8, 0),
     reserved_1: (u8, 1),
     link_layer_type: (u16, 2..4),

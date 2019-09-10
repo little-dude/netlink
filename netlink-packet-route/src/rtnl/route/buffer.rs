@@ -5,8 +5,7 @@ use crate::{
 
 pub const ROUTE_HEADER_LEN: usize = 12;
 
-buffer!(RouteBuffer, ROUTE_HEADER_LEN);
-fields!(RouteBuffer {
+buffer!(RouteBuffer(ROUTE_HEADER_LEN) {
     address_family: (u8, 0),
     destination_length: (u8, 1),
     source_length: (u8, 2),

@@ -5,8 +5,7 @@ use crate::{
 
 pub const NSID_HEADER_LEN: usize = 4;
 
-buffer!(NsIdBuffer, NSID_HEADER_LEN);
-fields!(NsIdBuffer {
+buffer!(NsIdBuffer(NSID_HEADER_LEN) {
     rtgen_family: (u8, 0),
 });
 

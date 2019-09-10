@@ -12,8 +12,7 @@ pub struct AddressCacheInfo {
 }
 
 pub const ADDRESSS_CACHE_INFO_LEN: usize = 16;
-buffer!(AddressCacheInfoBuffer, ADDRESSS_CACHE_INFO_LEN);
-fields!(AddressCacheInfoBuffer {
+buffer!(AddressCacheInfoBuffer(ADDRESSS_CACHE_INFO_LEN) {
     ifa_preferred: (i32, 0..4),
     ifa_valid: (i32, 4..8),
     cstamp: (i32, 8..12),

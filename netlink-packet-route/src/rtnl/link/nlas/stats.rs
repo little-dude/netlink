@@ -55,8 +55,7 @@ pub struct LinkStats {
 
 pub const LINK_STATS_LEN: usize = 96;
 
-buffer!(LinkStatsBuffer, LINK_STATS_LEN);
-fields!(LinkStatsBuffer {
+buffer!(LinkStatsBuffer(LINK_STATS_LEN) {
     rx_packets: (u32, 0..4),
     tx_packets: (u32, 4..8),
     rx_bytes: (u32, 8..12),

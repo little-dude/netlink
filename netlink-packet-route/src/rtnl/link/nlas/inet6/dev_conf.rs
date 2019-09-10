@@ -4,8 +4,7 @@ use crate::{
 };
 
 pub const LINK_INET6_DEV_CONF_LEN: usize = 204;
-buffer!(LinkInet6DevConfBuffer, LINK_INET6_DEV_CONF_LEN);
-fields!(LinkInet6DevConfBuffer {
+buffer!(LinkInet6DevConfBuffer(LINK_INET6_DEV_CONF_LEN) {
     forwarding: (i32, 0..4),
     hoplimit: (i32, 4..8),
     mtu6: (i32, 8..12),
