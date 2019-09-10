@@ -177,7 +177,7 @@ macro_rules! buffer_check_length {
 
 macro_rules! buffer_common {
     ($name:ident) => {
-        #[derive(Debug, PartialEq, Eq, Clone)]
+        #[derive(Debug, PartialEq, Eq, Clone, Copy)]
         pub struct $name<T> {
             buffer: T,
         }
