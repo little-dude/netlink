@@ -14,8 +14,4 @@ description = "netlink packet types"
 [dependencies]
 failure = "0.1.5"
 byteorder = "1.3.2"
-bytes = "0.4.12"
-libc = "0.2.61"
-log = "0.4.8"
-lazy_static = "1.3.0"
 netlink-packet-core = { path = "../netlink-packet-core", version = "0.1" }
