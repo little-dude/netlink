@@ -1,4 +1,16 @@
 macro_rules! getter {
+    ($buffer: ident, $name:ident, slice, $offset:expr) => {
+        impl<'a, T: AsRef<[u8]> + ?Sized> $buffer<&'a T> {
+            pub fn $name(&self) -> &'a [u8] {
+                & self.buffer.as_ref()[$offset]
+            }
+        }
+    };
+    ($buffer: ident, $name:ident, $ty:tt, $offset:expr) => {
+        impl<'a, T: AsRef<[u8]>> $buffer<T> {
+            getter!($name, $ty, $offset);
+        }
+    };
     ($name:ident, u8, $offset:expr) => {
         pub fn $name(&self) -> u8 {
             self.buffer.as_ref()[$offset]
@@ -48,6 +60,20 @@ macro_rules! getter {
 }
 
 macro_rules! setter {
+    ($buffer: ident, $name:ident, slice, $offset:expr) => {
+        impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> $buffer<&'a mut T> {
+            paste::item! {
+                pub fn [<$name _mut>](&'a mut self) -> &'a mut [u8] {
+                    &mut self.buffer.as_mut()[$offset]
+                }
+            }
+        }
+    };
+    ($buffer: ident, $name:ident, $ty:tt, $offset:expr) => {
+        impl<'a, T: AsRef<[u8]> + AsMut<[u8]>> $buffer<T> {
+            setter!($name, $ty, $offset);
+        }
+    };
     ($name:ident, u8, $offset:expr) => {
         paste::item! {
             pub fn [<set_ $name>](&mut self, value: u8) {
@@ -137,16 +163,13 @@ macro_rules! buffer {
 
 macro_rules! fields {
     ($buffer:ident { $($name:ident : ($ty:tt, $offset:expr)),* $(,)? }) => {
-        impl<T: AsRef<[u8]>> $buffer<T> {
+        $(
+            getter!($buffer, $name, $ty, $offset);
+        )*
+
             $(
-                getter!($name, $ty, $offset);
+                setter!($buffer, $name, $ty, $offset);
             )*
-        }
-        impl<T: AsRef<[u8]> + AsMut<[u8]>> $buffer<T> {
-            $(
-                setter!($name, $ty, $offset);
-            )*
-        }
     }
 }
 
