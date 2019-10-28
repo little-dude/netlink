@@ -1,14 +1,5 @@
-use crate::{DecodeError, NetlinkHeader};
+use crate::NetlinkHeader;
 use std::error::Error;
-
-pub(crate) trait Emitable {
-    fn buffer_len(&self) -> usize;
-    fn emit(&self, buffer: &mut [u8]);
-}
-
-pub(crate) trait Parseable<T> {
-    fn parse(&self) -> Result<T, DecodeError>;
-}
 
 /// A `NetlinkDeserializable` type can be used to deserialize a buffer
 /// into the target type `T` for which it is implemented.

@@ -242,9 +242,6 @@
 //! }
 //! ```
 
-mod errors;
-pub use self::errors::*;
-
 use core::ops::{Range, RangeFrom};
 /// Represent a multi-bytes field with a fixed size in a packet
 pub(crate) type Field = Range<usize>;
@@ -268,3 +265,7 @@ pub use self::payload::*;
 
 mod message;
 pub use self::message::*;
+
+pub use self::utils::errors::*;
+pub(crate) use self::utils::traits::*;
+pub(crate) use netlink_packet_utils as utils;
