@@ -10,7 +10,7 @@ const AUDIT_ARCH_X86_64: u32 = 0xC000_003E;
 #[test]
 fn parse_rule_1() {
     let buf = RuleBuffer::new_checked(&M1_BYTES[..]).unwrap();
-    let parsed: RuleMessage = buf.parse().unwrap();
+    let parsed = RuleMessage::parse(&buf).unwrap();
     assert_eq!(parsed, *M1);
 }
 
@@ -25,7 +25,7 @@ fn emit_rule_1() {
 #[test]
 fn parse_rule_2() {
     let buf = RuleBuffer::new_checked(&M2_BYTES[..]).unwrap();
-    let parsed: RuleMessage = buf.parse().unwrap();
+    let parsed = RuleMessage::parse(&buf).unwrap();
     assert_eq!(parsed, *M2);
 }
 
@@ -40,7 +40,7 @@ fn emit_rule_2() {
 #[test]
 fn parse_rule_3() {
     let buf = RuleBuffer::new_checked(&M3_BYTES[..]).unwrap();
-    let parsed: RuleMessage = buf.parse().unwrap();
+    let parsed = RuleMessage::parse(&buf).unwrap();
     assert_eq!(parsed, *M3);
 }
 

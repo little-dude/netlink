@@ -163,34 +163,34 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> RuleBuffer<T> {
     }
 }
 
-impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<RuleMessage> for RuleBuffer<&'a T> {
-    fn parse(&self) -> Result<RuleMessage, DecodeError> {
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<RuleBuffer<&'a T>> for RuleMessage {
+    fn parse(buf: &RuleBuffer<&'a T>) -> Result<Self, DecodeError> {
         use self::RuleField::*;
 
-        self.check_len().context("invalid rule message buffer")?;
+        buf.check_len().context("invalid rule message buffer")?;
         let mut rule = RuleMessage::new();
-        rule.flags = self.flags().into();
-        rule.action = self.action().into();
-        rule.syscalls = RuleSyscalls::from_slice(self.syscalls())?;
+        rule.flags = buf.flags().into();
+        rule.action = buf.action().into();
+        rule.syscalls = RuleSyscalls::from_slice(buf.syscalls())?;
 
         let mut offset = 0;
 
-        let fields = self
+        let fields = buf
             .fields()
             .chunks(4)
             .map(|chunk| NativeEndian::read_u32(chunk));
-        let values = self
+        let values = buf
             .values()
             .chunks(4)
             .map(|chunk| NativeEndian::read_u32(chunk));
-        let field_flags = self
+        let field_flags = buf
             .field_flags()
             .chunks(4)
             .map(|chunk| RuleFieldFlags::from(NativeEndian::read_u32(chunk)));
         for (field, value, flags) in fields
             .zip(values.zip(field_flags))
             .map(|(field, (value, flags))| (field, value, flags))
-            .take(self.field_count() as usize)
+            .take(buf.field_count() as usize)
         {
             let field = match field {
                 AUDIT_PID => Pid(value),
@@ -228,14 +228,14 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<RuleMessage> for RuleBuffer<&'a T> {
                 _ => {
                     // For all the other fields, the value is a string
                     let str_end = offset + value as usize;
-                    if str_end > self.buf().len() {
+                    if str_end > buf.buf().len() {
                         return Err(format!(
                             "failed to decode field. type={} (value should be a string?)",
                             field
                         )
                         .into());
                     }
-                    let s: String = String::from_utf8_lossy(&self.buf()[offset..str_end]).into();
+                    let s: String = String::from_utf8_lossy(&buf.buf()[offset..str_end]).into();
                     offset = str_end;
                     match field {
                         AUDIT_WATCH => Watch(s),

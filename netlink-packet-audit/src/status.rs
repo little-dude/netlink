@@ -158,20 +158,20 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> StatusMessageBuffer<T> {
     }
 }
 
-impl<T: AsRef<[u8]>> Parseable<StatusMessage> for StatusMessageBuffer<T> {
-    fn parse(&self) -> Result<StatusMessage, DecodeError> {
-        self.check_buffer_length()?;
+impl<T: AsRef<[u8]>> Parseable<StatusMessageBuffer<T>> for StatusMessage {
+    fn parse(buf: &StatusMessageBuffer<T>) -> Result<Self, DecodeError> {
+        buf.check_buffer_length()?;
         Ok(StatusMessage {
-            mask: self.mask(),
-            enabled: self.enabled(),
-            failure: self.failure(),
-            pid: self.pid(),
-            rate_limiting: self.rate_limiting(),
-            backlog_limit: self.backlog_limit(),
-            lost: self.lost(),
-            backlog: self.backlog(),
-            feature_bitmap: self.feature_bitmap(),
-            backlog_wait_time: self.backlog_wait_time(),
+            mask: buf.mask(),
+            enabled: buf.enabled(),
+            failure: buf.failure(),
+            pid: buf.pid(),
+            rate_limiting: buf.rate_limiting(),
+            backlog_limit: buf.backlog_limit(),
+            lost: buf.lost(),
+            backlog: buf.backlog(),
+            feature_bitmap: buf.feature_bitmap(),
+            backlog_wait_time: buf.backlog_wait_time(),
         })
     }
 }

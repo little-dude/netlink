@@ -1,3 +1,6 @@
+pub(crate) extern crate netlink_packet_utils as utils;
+pub use self::utils::traits;
+pub use self::utils::traits::*;
 pub use netlink_packet_core as netlink;
 
 use core::ops::Range;
@@ -31,9 +34,6 @@ pub use self::message::*;
 
 mod buffer;
 pub use self::buffer::*;
-
-mod traits;
-pub(crate) use self::traits::*;
 
 pub mod archs;
 pub mod commands;
