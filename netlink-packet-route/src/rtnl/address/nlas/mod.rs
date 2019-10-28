@@ -7,26 +7,15 @@ use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
 
 use crate::{
-    rtnl::{
-        nla::{DefaultNla, Nla, NlaBuffer},
-        traits::Parseable,
-        utils::{parse_string, parse_u32},
-    },
+    constants::*,
+    nlas::{self, DefaultNla, NlaBuffer},
+    parsers::{parse_string, parse_u32},
+    traits::Parseable,
     DecodeError,
 };
 
-pub const IFA_UNSPEC: u16 = 0;
-pub const IFA_ADDRESS: u16 = 1;
-pub const IFA_LOCAL: u16 = 2;
-pub const IFA_LABEL: u16 = 3;
-pub const IFA_BROADCAST: u16 = 4;
-pub const IFA_ANYCAST: u16 = 5;
-pub const IFA_CACHEINFO: u16 = 6;
-pub const IFA_MULTICAST: u16 = 7;
-pub const IFA_FLAGS: u16 = 8;
-
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum AddressNla {
+pub enum Nla {
     Unspec(Vec<u8>),
     Address(Vec<u8>),
     Local(Vec<u8>),
@@ -39,10 +28,10 @@ pub enum AddressNla {
     Other(DefaultNla),
 }
 
-impl Nla for AddressNla {
+impl nlas::Nla for Nla {
     #[rustfmt::skip]
     fn value_len(&self) -> usize {
-        use self::AddressNla::*;
+        use self::Nla::*;
         match *self {
             // Vec<u8>
             Unspec(ref bytes)
@@ -68,7 +57,7 @@ impl Nla for AddressNla {
 
     #[rustfmt::skip]
     fn emit_value(&self, buffer: &mut [u8]) {
-        use self::AddressNla::*;
+        use self::Nla::*;
         match *self {
             // Vec<u8>
             Unspec(ref bytes)
@@ -95,7 +84,7 @@ impl Nla for AddressNla {
     }
 
     fn kind(&self) -> u16 {
-        use self::AddressNla::*;
+        use self::Nla::*;
         match *self {
             Unspec(_) => IFA_UNSPEC,
             Address(_) => IFA_ADDRESS,
@@ -111,11 +100,11 @@ impl Nla for AddressNla {
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<AddressNla> for NlaBuffer<&'buffer T> {
-    fn parse(&self) -> Result<AddressNla, DecodeError> {
-        use self::AddressNla::*;
-        let payload = self.value();
-        Ok(match self.kind() {
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for Nla {
+    fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
+        use self::Nla::*;
+        let payload = buf.value();
+        Ok(match buf.kind() {
             IFA_UNSPEC => Unspec(payload.to_vec()),
             IFA_ADDRESS => Address(payload.to_vec()),
             IFA_LOCAL => Local(payload.to_vec()),
@@ -125,10 +114,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<AddressNla> for NlaBuffer<&'buf
             IFA_CACHEINFO => CacheInfo(payload.to_vec()),
             IFA_MULTICAST => Multicast(payload.to_vec()),
             IFA_FLAGS => Flags(parse_u32(payload).context("invalid IFA_FLAGS value")?),
-            kind => Other(
-                <Self as Parseable<DefaultNla>>::parse(self)
-                    .context(format!("unknown NLA type {}", kind))?,
-            ),
+            kind => Other(DefaultNla::parse(buf).context(format!("unknown NLA type {}", kind))?),
         })
     }
 }

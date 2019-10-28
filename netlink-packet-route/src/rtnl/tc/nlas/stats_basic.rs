@@ -1,41 +1,40 @@
 use crate::{
-    rtnl::traits::{Emitable, Parseable},
+    traits::{Emitable, Parseable},
     DecodeError,
 };
 
 /// Byte/Packet throughput statistics
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct TcStatsBasic {
+pub struct StatsBasic {
     /// number of seen bytes
     pub bytes: u64,
     /// number of seen packets
     pub packets: u32,
 }
 
-pub const TC_STATS_BASIC_LEN: usize = 12;
+pub const STATS_BASIC_LEN: usize = 12;
 
-buffer!(TcStatsBasicBuffer(TC_STATS_BASIC_LEN) {
+buffer!(StatsBasicBuffer(STATS_BASIC_LEN) {
     bytes: (u64, 0..8),
     packets: (u32, 8..12),
 });
 
-impl<T: AsRef<[u8]>> Parseable<TcStatsBasic> for TcStatsBasicBuffer<T> {
-    fn parse(&self) -> Result<TcStatsBasic, DecodeError> {
-        self.check_buffer_length()?;
-        Ok(TcStatsBasic {
-            bytes: self.bytes(),
-            packets: self.packets(),
+impl<T: AsRef<[u8]>> Parseable<StatsBasicBuffer<T>> for StatsBasic {
+    fn parse(buf: &StatsBasicBuffer<T>) -> Result<Self, DecodeError> {
+        Ok(StatsBasic {
+            bytes: buf.bytes(),
+            packets: buf.packets(),
         })
     }
 }
 
-impl Emitable for TcStatsBasic {
+impl Emitable for StatsBasic {
     fn buffer_len(&self) -> usize {
-        TC_STATS_BASIC_LEN
+        STATS_BASIC_LEN
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        let mut buffer = TcStatsBasicBuffer::new(buffer);
+        let mut buffer = StatsBasicBuffer::new(buffer);
         buffer.set_bytes(self.bytes);
         buffer.set_packets(self.packets);
     }

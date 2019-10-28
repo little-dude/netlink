@@ -71,7 +71,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NetlinkBuffer<&'a T>> for NetlinkHea
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::header::flags::*;
+    use crate::{constants::*, header::flags::*};
 
     // a packet captured with tcpdump that was sent when running `ip link show`
     #[rustfmt::skip]
@@ -90,10 +90,9 @@ mod tests {
 
     #[test]
     fn repr_parse() {
-        let repr: NetlinkHeader = NetlinkBuffer::new_checked(&IP_LINK_SHOW_PKT[..])
-            .unwrap()
-            .parse()
-            .unwrap();
+        let repr =
+            NetlinkHeader::parse(&NetlinkBuffer::new_checked(&IP_LINK_SHOW_PKT[..]).unwrap())
+                .unwrap();
         assert_eq!(repr.length, 40);
         assert_eq!(repr.message_type, RTM_GETLINK);
         assert_eq!(repr.sequence_number, 1_526_271_540);

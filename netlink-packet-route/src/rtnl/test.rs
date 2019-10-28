@@ -1,16 +1,10 @@
 #![cfg(test)]
 
 use crate::{
-    netlink::NetlinkBuffer,
-    rtnl::{
-        link::{
-            nlas::{LinkInfo, LinkInfoKind, LinkNla},
-            LinkFlags, LinkHeader, LinkLayerType, LinkMessage,
-        },
-        message_types::RTM_NEWLINK,
-        traits::ParseableParametrized,
-        RtnlBuffer, RtnlMessage,
-    },
+    nlas::link::{Info, InfoKind, Nla},
+    traits::ParseableParametrized,
+    LinkFlags, LinkHeader, LinkLayerType, LinkMessage, NetlinkBuffer, RtnlMessage,
+    RtnlMessageBuffer, RTM_NEWLINK,
 };
 
 // This test was added because one of the NLA's payload is a string that is not null
@@ -58,13 +52,13 @@ fn test_non_null_terminated_string() {
             change_mask: LinkFlags(0),
         },
         nlas: vec![
-            LinkNla::IfName(String::from("qemu-br1")),
-            LinkNla::LinkInfo(vec![LinkInfo::Kind(LinkInfoKind::Bridge)]),
+            Nla::IfName(String::from("qemu-br1")),
+            Nla::Info(vec![Info::Kind(InfoKind::Bridge)]),
         ],
     });
-    let actual = RtnlBuffer::new(&NetlinkBuffer::new(&data).payload())
-        .parse_with_param(RTM_NEWLINK)
-        .unwrap();
+    let nl_buffer = NetlinkBuffer::new(&data).payload();
+    let rtnl_buffer = RtnlMessageBuffer::new(&nl_buffer);
+    let actual = RtnlMessage::parse_with_param(&rtnl_buffer, RTM_NEWLINK).unwrap();
     assert_eq!(expected, actual);
 }
 
@@ -89,9 +83,9 @@ fn test_attach_to_bridge() {
         0x0a, 0x00, // type
         0x05, 0x00, 0x00, 0x00 // index of the master interface
     ];
-    let actual = RtnlBuffer::new(&NetlinkBuffer::new(&data).payload())
-        .parse_with_param(RTM_NEWLINK)
-        .unwrap();
+    let nl_buffer = NetlinkBuffer::new(&data).payload();
+    let rtnl_buffer = RtnlMessageBuffer::new(&nl_buffer);
+    let actual = RtnlMessage::parse_with_param(&rtnl_buffer, RTM_NEWLINK).unwrap();
     let expected = RtnlMessage::NewLink(LinkMessage {
         header: LinkHeader {
             interface_family: 0,
@@ -100,7 +94,7 @@ fn test_attach_to_bridge() {
             flags: LinkFlags(0),
             change_mask: LinkFlags(0),
         },
-        nlas: vec![LinkNla::Master(5)],
+        nlas: vec![Nla::Master(5)],
     });
     assert_eq!(expected, actual);
 }

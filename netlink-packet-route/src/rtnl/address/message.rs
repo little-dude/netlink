@@ -1,17 +1,15 @@
 use failure::ResultExt;
 
 use crate::{
-    rtnl::{
-        address::{nlas::AddressNla, AddressBuffer, ADDRESS_HEADER_LEN},
-        traits::{Emitable, Parseable},
-    },
-    DecodeError,
+    nlas::address::Nla,
+    traits::{Emitable, Parseable},
+    AddressMessageBuffer, DecodeError, ADDRESS_HEADER_LEN,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct AddressMessage {
     pub header: AddressHeader,
-    pub nlas: Vec<AddressNla>,
+    pub nlas: Vec<Nla>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
@@ -35,7 +33,7 @@ impl Emitable for AddressHeader {
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        let mut packet = AddressBuffer::new(buffer);
+        let mut packet = AddressMessageBuffer::new(buffer);
         packet.set_family(self.family);
         packet.set_prefix_len(self.prefix_len);
         packet.set_flags(self.flags);
@@ -50,7 +48,6 @@ impl Emitable for AddressMessage {
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        // in rust, we're guaranteed that when doing `a() + b(), a() is evaluated first
         self.header.emit(buffer);
         self.nlas
             .as_slice()
@@ -58,36 +55,32 @@ impl Emitable for AddressMessage {
     }
 }
 
-impl<T: AsRef<[u8]>> Parseable<AddressHeader> for AddressBuffer<T> {
-    fn parse(&self) -> Result<AddressHeader, DecodeError> {
-        Ok(AddressHeader {
-            family: self.family(),
-            prefix_len: self.prefix_len(),
-            flags: self.flags(),
-            scope: self.scope(),
-            index: self.index(),
+impl<T: AsRef<[u8]>> Parseable<AddressMessageBuffer<T>> for AddressHeader {
+    fn parse(buf: &AddressMessageBuffer<T>) -> Result<Self, DecodeError> {
+        Ok(Self {
+            family: buf.family(),
+            prefix_len: buf.prefix_len(),
+            flags: buf.flags(),
+            scope: buf.scope(),
+            index: buf.index(),
         })
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<AddressMessage> for AddressBuffer<&'buffer T> {
-    fn parse(&self) -> Result<AddressMessage, DecodeError> {
+impl<'a, T: AsRef<[u8]> + 'a> Parseable<AddressMessageBuffer<&'a T>> for AddressMessage {
+    fn parse(buf: &AddressMessageBuffer<&'a T>) -> Result<Self, DecodeError> {
         Ok(AddressMessage {
-            header: self
-                .parse()
-                .context("failed to parse address message header")?,
-            nlas: self
-                .parse()
-                .context("failed to parse address message NLAs")?,
+            header: AddressHeader::parse(buf).context("failed to parse address message header")?,
+            nlas: Vec::<Nla>::parse(buf).context("failed to parse address message NLAs")?,
         })
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Vec<AddressNla>> for AddressBuffer<&'buffer T> {
-    fn parse(&self) -> Result<Vec<AddressNla>, DecodeError> {
+impl<'a, T: AsRef<[u8]> + 'a> Parseable<AddressMessageBuffer<&'a T>> for Vec<Nla> {
+    fn parse(buf: &AddressMessageBuffer<&'a T>) -> Result<Self, DecodeError> {
         let mut nlas = vec![];
-        for nla_buf in self.nlas() {
-            nlas.push(nla_buf?.parse()?);
+        for nla_buf in buf.nlas() {
+            nlas.push(Nla::parse(&nla_buf?)?);
         }
         Ok(nlas)
     }

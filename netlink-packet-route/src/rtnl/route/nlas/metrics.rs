@@ -3,35 +3,15 @@ use failure::ResultExt;
 use std::mem::size_of;
 
 use crate::{
-    rtnl::{
-        nla::{DefaultNla, Nla, NlaBuffer},
-        traits::Parseable,
-        utils::parse_u32,
-    },
+    constants::*,
+    nlas::{DefaultNla, Nla, NlaBuffer},
+    parsers::parse_u32,
+    traits::Parseable,
     DecodeError,
 };
 
-pub const RTAX_UNSPEC: u16 = 0;
-pub const RTAX_LOCK: u16 = 1;
-pub const RTAX_MTU: u16 = 2;
-pub const RTAX_WINDOW: u16 = 3;
-pub const RTAX_RTT: u16 = 4;
-pub const RTAX_RTTVAR: u16 = 5;
-pub const RTAX_SSTHRESH: u16 = 6;
-pub const RTAX_CWND: u16 = 7;
-pub const RTAX_ADVMSS: u16 = 8;
-pub const RTAX_REORDERING: u16 = 9;
-pub const RTAX_HOPLIMIT: u16 = 10;
-pub const RTAX_INITCWND: u16 = 11;
-pub const RTAX_FEATURES: u16 = 12;
-pub const RTAX_RTO_MIN: u16 = 13;
-pub const RTAX_INITRWND: u16 = 14;
-pub const RTAX_QUICKACK: u16 = 15;
-pub const RTAX_CC_ALGO: u16 = 16;
-pub const RTAX_FASTOPEN_NO_COOKIE: u16 = 17;
-
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum RouteMetricsNla {
+pub enum Metrics {
     Unspec(Vec<u8>),
     Lock(u32),
     Mtu(u32),
@@ -53,10 +33,10 @@ pub enum RouteMetricsNla {
     Other(DefaultNla),
 }
 
-impl Nla for RouteMetricsNla {
+impl Nla for Metrics {
     #[rustfmt::skip]
     fn value_len(&self) -> usize {
-        use self::RouteMetricsNla::*;
+        use self::Metrics::*;
         match *self {
             Unspec(ref bytes) => bytes.len(),
             Lock(_)
@@ -83,7 +63,7 @@ impl Nla for RouteMetricsNla {
 
     #[rustfmt::skip]
     fn emit_value(&self, buffer: &mut [u8]) {
-        use self::RouteMetricsNla::*;
+        use self::Metrics::*;
         match *self {
             Unspec(ref bytes) => buffer.copy_from_slice(bytes.as_slice()),
 
@@ -111,7 +91,7 @@ impl Nla for RouteMetricsNla {
     }
 
     fn kind(&self) -> u16 {
-        use self::RouteMetricsNla::*;
+        use self::Metrics::*;
         match *self {
             Unspec(_) => RTAX_UNSPEC,
             Lock(_) => RTAX_LOCK,
@@ -136,11 +116,11 @@ impl Nla for RouteMetricsNla {
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<RouteMetricsNla> for NlaBuffer<&'buffer T> {
-    fn parse(&self) -> Result<RouteMetricsNla, DecodeError> {
-        use self::RouteMetricsNla::*;
-        let payload = self.value();
-        Ok(match self.kind() {
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for Metrics {
+    fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
+        use self::Metrics::*;
+        let payload = buf.value();
+        Ok(match buf.kind() {
             RTAX_UNSPEC => Unspec(payload.to_vec()),
             RTAX_LOCK => Lock(parse_u32(payload).context("invalid RTAX_LOCK value")?),
             RTAX_MTU => Mtu(parse_u32(payload).context("invalid RTAX_MTU value")?),
@@ -163,10 +143,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<RouteMetricsNla> for NlaBuffer<
             RTAX_FASTOPEN_NO_COOKIE => FastopenNoCookie(
                 parse_u32(payload).context("invalid RTAX_FASTOPEN_NO_COOKIE value")?,
             ),
-            _ => Other(
-                <Self as Parseable<DefaultNla>>::parse(self)
-                    .context("invalid NLA value (unknown type) value")?,
-            ),
+            _ => Other(DefaultNla::parse(buf).context("invalid NLA value (unknown type) value")?),
         })
     }
 }

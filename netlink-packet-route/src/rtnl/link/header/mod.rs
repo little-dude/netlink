@@ -5,11 +5,8 @@ mod link_layer_type;
 pub use self::link_layer_type::*;
 
 use crate::{
-    rtnl::{
-        link::{LinkBuffer, LINK_HEADER_LEN},
-        traits::{Emitable, Parseable},
-    },
-    DecodeError,
+    traits::{Emitable, Parseable},
+    DecodeError, LinkMessageBuffer, LINK_HEADER_LEN,
 };
 
 /// High level representation of `RTM_GETLINK`, `RTM_SETLINK`, `RTM_NEWLINK` and `RTM_DELLINK`
@@ -35,7 +32,7 @@ use crate::{
 /// # Example
 ///
 /// ```rust
-/// use netlink_packet_route::rtnl::link::{LinkHeader, LinkFlags, LinkLayerType, IFF_UP};
+/// use netlink_packet_route::{LinkHeader, LinkFlags, LinkLayerType, IFF_UP};
 /// fn main() {
 ///     let mut hdr = LinkHeader::new();
 ///     assert_eq!(hdr.interface_family, 0u8);
@@ -90,7 +87,7 @@ impl Emitable for LinkHeader {
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        let mut packet = LinkBuffer::new(buffer);
+        let mut packet = LinkMessageBuffer::new(buffer);
         packet.set_interface_family(self.interface_family);
         packet.set_link_index(self.index);
         packet.set_change_mask(self.change_mask.into());
@@ -99,14 +96,14 @@ impl Emitable for LinkHeader {
     }
 }
 
-impl<T: AsRef<[u8]>> Parseable<LinkHeader> for LinkBuffer<T> {
-    fn parse(&self) -> Result<LinkHeader, DecodeError> {
-        Ok(LinkHeader {
-            interface_family: self.interface_family(),
-            link_layer_type: self.link_layer_type().into(),
-            index: self.link_index(),
-            change_mask: self.change_mask().into(),
-            flags: self.flags().into(),
+impl<T: AsRef<[u8]>> Parseable<LinkMessageBuffer<T>> for LinkHeader {
+    fn parse(buf: &LinkMessageBuffer<T>) -> Result<Self, DecodeError> {
+        Ok(Self {
+            interface_family: buf.interface_family(),
+            link_layer_type: buf.link_layer_type().into(),
+            index: buf.link_index(),
+            change_mask: buf.change_mask().into(),
+            flags: buf.flags().into(),
         })
     }
 }

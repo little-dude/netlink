@@ -7,44 +7,16 @@ pub use self::stats_queue::*;
 mod stats_basic;
 pub use self::stats_basic::*;
 
-use std::mem::size_of;
-
 use crate::{
-    rtnl::{
-        nla::{DefaultNla, Nla, NlaBuffer, NlasIterator},
-        traits::{Emitable, Parseable},
-        utils::{parse_string, parse_u8},
-    },
+    constants::*,
+    nlas::{self, DefaultNla, NlaBuffer, NlasIterator},
+    parsers::{parse_string, parse_u8},
+    traits::{Emitable, Parseable},
     DecodeError,
 };
 
-pub const TCA_UNSPEC: u16 = 0;
-pub const TCA_KIND: u16 = 1;
-pub const TCA_OPTIONS: u16 = 2;
-pub const TCA_STATS: u16 = 3;
-pub const TCA_XSTATS: u16 = 4;
-pub const TCA_RATE: u16 = 5;
-pub const TCA_FCNT: u16 = 6;
-pub const TCA_STATS2: u16 = 7;
-pub const TCA_STAB: u16 = 8;
-pub const TCA_PAD: u16 = 9;
-pub const TCA_DUMP_INVISIBLE: u16 = 10;
-pub const TCA_CHAIN: u16 = 11;
-pub const TCA_HW_OFFLOAD: u16 = 12;
-pub const TCA_INGRESS_BLOCK: u16 = 13;
-pub const TCA_EGRESS_BLOCK: u16 = 14;
-
-pub const TCA_STATS_UNSPEC: u16 = 0;
-pub const TCA_STATS_BASIC: u16 = 1;
-pub const TCA_STATS_RATE_EST: u16 = 2;
-pub const TCA_STATS_QUEUE: u16 = 3;
-pub const TCA_STATS_APP: u16 = 4;
-pub const TCA_STATS_RATE_EST64: u16 = 5;
-pub const TCA_STATS_PAD: u16 = 6;
-pub const TCA_STATS_BASIC_HW: u16 = 7;
-
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum TcNla {
+pub enum Nla {
     /// Unspecified
     Unspec(Vec<u8>),
     /// Name of queueing discipline
@@ -52,22 +24,22 @@ pub enum TcNla {
     /// Qdisc-specific options follow
     Options(Vec<u8>),
     /// Qdisc statistics
-    Stats(TcStats),
+    Stats(Stats),
     /// Module-specific statistics
     XStats(Vec<u8>),
     /// Rate limit
     Rate(Vec<u8>),
     Fcnt(Vec<u8>),
-    Stats2(Vec<TcStats2Nla>),
+    Stats2(Vec<Stats2>),
     Stab(Vec<u8>),
     HwOffload(u8),
     Other(DefaultNla),
 }
 
-impl Nla for TcNla {
+impl nlas::Nla for Nla {
     #[rustfmt::skip]
     fn value_len(&self) -> usize {
-        use self::TcNla::*;
+        use self::Nla::*;
         match *self {
             // Vec<u8>
             Unspec(ref bytes)
@@ -76,9 +48,9 @@ impl Nla for TcNla {
                 | Rate(ref bytes)
                 | Fcnt(ref bytes)
                 | Stab(ref bytes) => bytes.len(),
-            HwOffload(_) => size_of::<u8>(),
+            HwOffload(_) => 1,
             Stats2(ref thing) => thing.as_slice().buffer_len(),
-            Stats(_) => TC_STATS_LEN,
+            Stats(_) => STATS_LEN,
             Kind(ref string) => string.as_bytes().len() + 1,
 
             // Defaults
@@ -88,7 +60,7 @@ impl Nla for TcNla {
 
     #[cfg_attr(nightly, rustfmt::skip)]
     fn emit_value(&self, buffer: &mut [u8]) {
-        use self::TcNla::*;
+        use self::Nla::*;
         match *self {
             // Vec<u8>
             Unspec(ref bytes)
@@ -113,7 +85,7 @@ impl Nla for TcNla {
     }
 
     fn kind(&self) -> u16 {
-        use self::TcNla::*;
+        use self::Nla::*;
         match *self {
             Unspec(_) => TCA_UNSPEC,
             Kind(_) => TCA_KIND,
@@ -130,43 +102,42 @@ impl Nla for TcNla {
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<TcNla> for NlaBuffer<&'buffer T> {
-    fn parse(&self) -> Result<TcNla, DecodeError> {
-        use self::TcNla::*;
-        let payload = self.value();
-        Ok(match self.kind() {
-            TCA_UNSPEC => Unspec(payload.to_vec()),
-            TCA_KIND => Kind(parse_string(payload)?),
-            TCA_OPTIONS => Options(payload.to_vec()),
-            TCA_STATS => Stats(TcStatsBuffer::new(payload).parse()?),
-            TCA_XSTATS => XStats(payload.to_vec()),
-            TCA_RATE => Rate(payload.to_vec()),
-            TCA_FCNT => Fcnt(payload.to_vec()),
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for Nla {
+    fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
+        let payload = buf.value();
+        Ok(match buf.kind() {
+            TCA_UNSPEC => Self::Unspec(payload.to_vec()),
+            TCA_KIND => Self::Kind(parse_string(payload)?),
+            TCA_OPTIONS => Self::Options(payload.to_vec()),
+            TCA_STATS => Self::Stats(Stats::parse(&StatsBuffer::new_checked(payload)?)?),
+            TCA_XSTATS => Self::XStats(payload.to_vec()),
+            TCA_RATE => Self::Rate(payload.to_vec()),
+            TCA_FCNT => Self::Fcnt(payload.to_vec()),
             TCA_STATS2 => {
                 let mut nlas = vec![];
                 for nla in NlasIterator::new(payload) {
-                    nlas.push(<dyn Parseable<TcStats2Nla>>::parse(&(nla?))?);
+                    nlas.push(Stats2::parse(&(nla?))?);
                 }
-                Stats2(nlas)
+                Self::Stats2(nlas)
             }
-            TCA_STAB => Stab(payload.to_vec()),
-            TCA_HW_OFFLOAD => HwOffload(parse_u8(payload)?),
-            _ => Other(<Self as Parseable<DefaultNla>>::parse(self)?),
+            TCA_STAB => Self::Stab(payload.to_vec()),
+            TCA_HW_OFFLOAD => Self::HwOffload(parse_u8(payload)?),
+            _ => Self::Other(DefaultNla::parse(buf)?),
         })
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum TcStats2Nla {
+pub enum Stats2 {
     StatsApp(Vec<u8>),
     StatsBasic(Vec<u8>),
     StatsQueue(Vec<u8>),
     Other(DefaultNla),
 }
 
-impl Nla for TcStats2Nla {
+impl nlas::Nla for Stats2 {
     fn value_len(&self) -> usize {
-        use self::TcStats2Nla::*;
+        use self::Stats2::*;
         match *self {
             StatsBasic(ref bytes) | StatsQueue(ref bytes) | StatsApp(ref bytes) => bytes.len(),
             Other(ref nla) => nla.value_len(),
@@ -174,7 +145,7 @@ impl Nla for TcStats2Nla {
     }
 
     fn emit_value(&self, buffer: &mut [u8]) {
-        use self::TcStats2Nla::*;
+        use self::Stats2::*;
         match *self {
             StatsBasic(ref bytes) | StatsQueue(ref bytes) | StatsApp(ref bytes) => {
                 buffer.copy_from_slice(bytes.as_slice())
@@ -184,7 +155,7 @@ impl Nla for TcStats2Nla {
     }
 
     fn kind(&self) -> u16 {
-        use self::TcStats2Nla::*;
+        use self::Stats2::*;
         match *self {
             StatsApp(_) => TCA_STATS_APP,
             StatsBasic(_) => TCA_STATS_BASIC,
@@ -194,15 +165,14 @@ impl Nla for TcStats2Nla {
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<TcStats2Nla> for NlaBuffer<&'buffer T> {
-    fn parse(&self) -> Result<TcStats2Nla, DecodeError> {
-        use self::TcStats2Nla::*;
-        let payload = self.value();
-        Ok(match self.kind() {
-            TCA_STATS_APP => StatsApp(payload.to_vec()),
-            TCA_STATS_BASIC => StatsBasic(payload.to_vec()),
-            TCA_STATS_QUEUE => StatsQueue(payload.to_vec()),
-            _ => Other(<Self as Parseable<DefaultNla>>::parse(self)?),
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for Stats2 {
+    fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
+        let payload = buf.value();
+        Ok(match buf.kind() {
+            TCA_STATS_APP => Self::StatsApp(payload.to_vec()),
+            TCA_STATS_BASIC => Self::StatsBasic(payload.to_vec()),
+            TCA_STATS_QUEUE => Self::StatsQueue(payload.to_vec()),
+            _ => Self::Other(DefaultNla::parse(buf)?),
         })
     }
 }

@@ -1,15 +1,14 @@
 use crate::{
-    rtnl::{
-        neighbour_table::{nlas::NeighbourTableNla, NeighbourTableBuffer, NeighbourTableHeader},
-        traits::{Emitable, Parseable},
-    },
-    DecodeError,
+    nlas::neighbour_table::Nla,
+    traits::{Emitable, Parseable},
+    DecodeError, NeighbourTableHeader, NeighbourTableMessageBuffer,
 };
+use failure::ResultExt;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct NeighbourTableMessage {
     pub header: NeighbourTableHeader,
-    pub nlas: Vec<NeighbourTableNla>,
+    pub nlas: Vec<Nla>,
 }
 
 impl Emitable for NeighbourTableMessage {
@@ -23,24 +22,23 @@ impl Emitable for NeighbourTableMessage {
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<NeighbourTableMessage>
-    for NeighbourTableBuffer<&'buffer T>
+impl<'a, T: AsRef<[u8]> + 'a> Parseable<NeighbourTableMessageBuffer<&'a T>>
+    for NeighbourTableMessage
 {
-    fn parse(&self) -> Result<NeighbourTableMessage, DecodeError> {
+    fn parse(buf: &NeighbourTableMessageBuffer<&'a T>) -> Result<Self, DecodeError> {
         Ok(NeighbourTableMessage {
-            header: self.parse()?,
-            nlas: self.parse()?,
+            header: NeighbourTableHeader::parse(buf)
+                .context("failed to parse neighbour table message header")?,
+            nlas: Vec::<Nla>::parse(buf).context("failed to parse neighbour table message NLAs")?,
         })
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Vec<NeighbourTableNla>>
-    for NeighbourTableBuffer<&'buffer T>
-{
-    fn parse(&self) -> Result<Vec<NeighbourTableNla>, DecodeError> {
+impl<'a, T: AsRef<[u8]> + 'a> Parseable<NeighbourTableMessageBuffer<&'a T>> for Vec<Nla> {
+    fn parse(buf: &NeighbourTableMessageBuffer<&'a T>) -> Result<Self, DecodeError> {
         let mut nlas = vec![];
-        for nla_buf in self.nlas() {
-            nlas.push(nla_buf?.parse()?);
+        for nla_buf in buf.nlas() {
+            nlas.push(Nla::parse(&nla_buf?)?);
         }
         Ok(nlas)
     }

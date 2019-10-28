@@ -19,9 +19,7 @@ pub const NETLINK_HEADER_LEN: usize = PAYLOAD.start;
 /// # Example: reading a packet
 ///
 /// ```rust
-/// use netlink_packet_core::{
-///     NetlinkBuffer,
-///     header::flags::{NLM_F_ROOT, NLM_F_REQUEST, NLM_F_MATCH}};
+/// use netlink_packet_core::{NetlinkBuffer, NLM_F_ROOT, NLM_F_REQUEST, NLM_F_MATCH};
 ///
 /// const RTM_GETLINK: u16 = 18;
 ///
@@ -58,9 +56,7 @@ pub const NETLINK_HEADER_LEN: usize = PAYLOAD.start;
 /// # Example: writing a packet
 ///
 /// ```rust
-/// use netlink_packet_core::{
-///     NetlinkBuffer,
-///     header::flags::{NLM_F_ROOT, NLM_F_REQUEST, NLM_F_MATCH}};
+/// use netlink_packet_core::{NetlinkBuffer, NLM_F_ROOT, NLM_F_REQUEST, NLM_F_MATCH};
 ///
 /// const RTM_GETLINK: u16 = 18;
 ///
@@ -338,7 +334,7 @@ impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> NetlinkBuffer<&'a mut T> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        header::flags::{NLM_F_MATCH, NLM_F_REQUEST, NLM_F_ROOT},
+        constants::{NLM_F_MATCH, NLM_F_REQUEST, NLM_F_ROOT},
         NetlinkBuffer,
     };
 

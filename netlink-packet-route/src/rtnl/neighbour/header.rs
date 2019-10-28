@@ -1,32 +1,12 @@
 use crate::{
-    rtnl::{
-        neighbour::{NeighbourBuffer, NEIGHBOUR_HEADER_LEN},
-        traits::{Emitable, Parseable},
-    },
-    DecodeError,
+    constants::*,
+    traits::{Emitable, Parseable},
+    DecodeError, NeighbourMessageBuffer, NEIGHBOUR_HEADER_LEN,
 };
-
-pub const NUD_INCOMPLETE: u16 = 1;
-pub const NUD_REACHABLE: u16 = 2;
-pub const NUD_STALE: u16 = 4;
-pub const NUD_DELAY: u16 = 8;
-pub const NUD_PROBE: u16 = 16;
-pub const NUD_FAILED: u16 = 32;
-pub const NUD_NOARP: u16 = 64;
-pub const NUD_PERMANENT: u16 = 128;
-pub const NUD_NONE: u16 = 0;
-
-pub const NTF_USE: u8 = 1;
-pub const NTF_SELF: u8 = 2;
-pub const NTF_MASTER: u8 = 4;
-pub const NTF_PROXY: u8 = 8;
-pub const NTF_EXT_LEARNED: u8 = 16;
-pub const NTF_OFFLOADED: u8 = 32;
-pub const NTF_ROUTER: u8 = 128;
 
 /// Neighbour entry state
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
-pub enum NeighbourState {
+pub enum State {
     /// The neighbour has not (yet) been resolved
     Incomplete,
     /// The neighbour entry is valid until its lifetime expires
@@ -51,9 +31,9 @@ pub enum NeighbourState {
     Unknown(u16),
 }
 
-impl From<NeighbourState> for u16 {
-    fn from(value: NeighbourState) -> u16 {
-        use self::NeighbourState::*;
+impl From<State> for u16 {
+    fn from(value: State) -> u16 {
+        use self::State::*;
         match value {
             Incomplete => NUD_INCOMPLETE,
             Reachable => NUD_REACHABLE,
@@ -69,9 +49,9 @@ impl From<NeighbourState> for u16 {
     }
 }
 
-impl From<u16> for NeighbourState {
-    fn from(value: u16) -> NeighbourState {
-        use self::NeighbourState::*;
+impl From<u16> for State {
+    fn from(value: u16) -> State {
+        use self::State::*;
         match value {
             NUD_INCOMPLETE => Incomplete,
             NUD_REACHABLE => Reachable,
@@ -88,30 +68,30 @@ impl From<u16> for NeighbourState {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
-pub struct NeighbourFlags(u8);
+pub struct Flags(u8);
 
-impl From<u8> for NeighbourFlags {
+impl From<u8> for Flags {
     fn from(value: u8) -> Self {
-        NeighbourFlags(value)
+        Flags(value)
     }
 }
 
-impl From<NeighbourFlags> for u8 {
-    fn from(value: NeighbourFlags) -> Self {
+impl From<Flags> for u8 {
+    fn from(value: Flags) -> Self {
         value.0
     }
 }
 
-impl Default for NeighbourFlags {
+impl Default for Flags {
     fn default() -> Self {
-        NeighbourFlags::new()
+        Flags::new()
     }
 }
 
-impl NeighbourFlags {
+impl Flags {
     /// Create a new empty flag set
     pub fn new() -> Self {
-        NeighbourFlags(0)
+        Flags(0)
     }
 
     pub fn has_use(self) -> bool {
@@ -175,19 +155,19 @@ impl NeighbourFlags {
 pub struct NeighbourHeader {
     pub family: u8,
     pub ifindex: u32,
-    pub state: NeighbourState,
-    pub flags: NeighbourFlags,
+    pub state: State,
+    pub flags: Flags,
     pub ntype: u8,
 }
 
-impl<T: AsRef<[u8]>> Parseable<NeighbourHeader> for NeighbourBuffer<T> {
-    fn parse(&self) -> Result<NeighbourHeader, DecodeError> {
-        Ok(NeighbourHeader {
-            family: self.family(),
-            ifindex: self.ifindex(),
-            state: self.state().into(),
-            flags: self.flags().into(),
-            ntype: self.ntype(),
+impl<T: AsRef<[u8]>> Parseable<NeighbourMessageBuffer<T>> for NeighbourHeader {
+    fn parse(buf: &NeighbourMessageBuffer<T>) -> Result<Self, DecodeError> {
+        Ok(Self {
+            family: buf.family(),
+            ifindex: buf.ifindex(),
+            state: buf.state().into(),
+            flags: buf.flags().into(),
+            ntype: buf.ntype(),
         })
     }
 }
@@ -198,7 +178,7 @@ impl Emitable for NeighbourHeader {
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        let mut packet = NeighbourBuffer::new(buffer);
+        let mut packet = NeighbourMessageBuffer::new(buffer);
         packet.set_family(self.family);
         packet.set_ifindex(self.ifindex);
         packet.set_state(self.state.into());
