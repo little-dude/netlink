@@ -6,6 +6,7 @@ members = [
     "netlink-packet-utils",
     "netlink-packet-route",
     "netlink-packet-audit",
+    "netlink-packet-sock-diag",
     "netlink-proto",
     "rtnetlink",
     "audit",

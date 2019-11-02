@@ -65,7 +65,7 @@ macro_rules! setter {
     ($buffer: ident, $name:ident, slice, $offset:expr) => {
         impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> $buffer<&'a mut T> {
             $crate::paste::item! {
-                pub fn [<$name _mut>](&'a mut self) -> &'a mut [u8] {
+                pub fn [<$name _mut>](&mut self) -> &mut [u8] {
                     &mut self.buffer.as_mut()[$offset]
                 }
             }
