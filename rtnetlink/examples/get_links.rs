@@ -1,5 +1,5 @@
 use futures::stream::TryStreamExt;
-use rtnetlink::{new_connection, packet::rtnl::link::nlas::LinkNla, Error, Handle};
+use rtnetlink::{new_connection, packet::rtnl::link::nlas::Nla, Error, Handle};
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {
@@ -41,7 +41,7 @@ async fn get_link_by_index(handle: Handle, index: u32) -> Result<(), Error> {
     assert!(links.try_next().await?.is_none());
 
     for nla in msg.nlas.into_iter() {
-        if let LinkNla::IfName(name) = nla {
+        if let Nla::IfName(name) = nla {
             println!("found link with index {} (name = {})", index, name);
             return Ok(());
         }
@@ -69,7 +69,7 @@ async fn dump_links(handle: Handle) -> Result<(), Error> {
     let mut links = handle.link().get().execute();
     'outer: while let Some(msg) = links.try_next().await? {
         for nla in msg.nlas.into_iter() {
-            if let LinkNla::IfName(name) = nla {
+            if let Nla::IfName(name) = nla {
                 println!("found link {} ({})", msg.header.index, name);
                 continue 'outer;
             }

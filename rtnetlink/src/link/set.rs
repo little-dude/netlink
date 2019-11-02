@@ -1,13 +1,7 @@
 use crate::{
     packet::{
-        netlink::{
-            header::flags::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST},
-            NetlinkFlags, NetlinkMessage, NetlinkPayload,
-        },
-        rtnl::{
-            link::{nlas::LinkNla, LinkFlags, LinkMessage, IFF_UP},
-            RtnlMessage,
-        },
+        nlas::link::Nla, LinkFlags, LinkMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload,
+        RtnlMessage, IFF_UP, NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST,
     },
     Error, ErrorKind, Handle,
 };
@@ -53,7 +47,7 @@ impl LinkSetRequest {
     /// Attach the link to a bridge (its _master_). This is equivalent to `ip link set LINK master
     /// BRIDGE`. To succeed, both the bridge and the link that is being attached must be UP.
     pub fn master(mut self, master_index: u32) -> Self {
-        self.message.nlas.push(LinkNla::Master(master_index));
+        self.message.nlas.push(Nla::Master(master_index));
         self
     }
 
@@ -72,32 +66,32 @@ impl LinkSetRequest {
 
     /// Set the name of the link with the given index (equivalent to `ip link set DEV name NAME`)
     pub fn name(mut self, name: String) -> Self {
-        self.message.nlas.push(LinkNla::IfName(name));
+        self.message.nlas.push(Nla::IfName(name));
         self
     }
 
     /// Set the mtu of the link with the given index (equivalent to `ip link set DEV mtu MTU`)
     pub fn mtu(mut self, mtu: u32) -> Self {
-        self.message.nlas.push(LinkNla::Mtu(mtu));
+        self.message.nlas.push(Nla::Mtu(mtu));
         self
     }
 
     /// Set the hardware address of the link with the given index (equivalent to `ip link set DEV address ADDRESS`)
     pub fn address(mut self, address: Vec<u8>) -> Self {
-        self.message.nlas.push(LinkNla::Address(address));
+        self.message.nlas.push(Nla::Address(address));
         self
     }
 
     /// Move this network device into the network namespace of the process with the given `pid`.
     pub fn setns_by_pid(mut self, pid: u32) -> Self {
-        self.message.nlas.push(LinkNla::NetNsPid(pid));
+        self.message.nlas.push(Nla::NetNsPid(pid));
         self
     }
 
     /// Move this network device into the network namespace corresponding to the given file
     /// descriptor.
     pub fn setns_by_fd(mut self, fd: RawFd) -> Self {
-        self.message.nlas.push(LinkNla::NetNsFd(fd));
+        self.message.nlas.push(Nla::NetNsFd(fd));
         self
     }
 }
