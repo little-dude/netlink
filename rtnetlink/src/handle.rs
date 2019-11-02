@@ -2,7 +2,7 @@ use failure::{Fail, ResultExt};
 use futures::Stream;
 
 use crate::{
-    packet::{netlink::NetlinkMessage, rtnl::RtnlMessage},
+    packet::{NetlinkMessage, RtnlMessage},
     AddressHandle, Error, ErrorKind, LinkHandle,
 };
 use netlink_proto::{sys::SocketAddr, ConnectionHandle};

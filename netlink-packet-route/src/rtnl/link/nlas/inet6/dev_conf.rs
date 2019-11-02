@@ -1,10 +1,10 @@
 use crate::{
-    rtnl::traits::{Emitable, Parseable},
+    traits::{Emitable, Parseable},
     DecodeError,
 };
 
 pub const LINK_INET6_DEV_CONF_LEN: usize = 204;
-buffer!(LinkInet6DevConfBuffer(LINK_INET6_DEV_CONF_LEN) {
+buffer!(Inet6DevConfBuffer(LINK_INET6_DEV_CONF_LEN) {
     forwarding: (i32, 0..4),
     hoplimit: (i32, 4..8),
     mtu6: (i32, 8..12),
@@ -58,71 +58,71 @@ buffer!(LinkInet6DevConfBuffer(LINK_INET6_DEV_CONF_LEN) {
     ndisc_tclass: (i32, 200..204),
 });
 
-impl<T: AsRef<[u8]>> Parseable<LinkInet6DevConf> for LinkInet6DevConfBuffer<T> {
-    fn parse(&self) -> Result<LinkInet6DevConf, DecodeError> {
-        Ok(LinkInet6DevConf {
-            forwarding: self.forwarding(),
-            hoplimit: self.hoplimit(),
-            mtu6: self.mtu6(),
-            accept_ra: self.accept_ra(),
-            accept_redirects: self.accept_redirects(),
-            autoconf: self.autoconf(),
-            dad_transmits: self.dad_transmits(),
-            rtr_solicits: self.rtr_solicits(),
-            rtr_solicit_interval: self.rtr_solicit_interval(),
-            rtr_solicit_delay: self.rtr_solicit_delay(),
-            use_tempaddr: self.use_tempaddr(),
-            temp_valid_lft: self.temp_valid_lft(),
-            temp_prefered_lft: self.temp_prefered_lft(),
-            regen_max_retry: self.regen_max_retry(),
-            max_desync_factor: self.max_desync_factor(),
-            max_addresses: self.max_addresses(),
-            force_mld_version: self.force_mld_version(),
-            accept_ra_defrtr: self.accept_ra_defrtr(),
-            accept_ra_pinfo: self.accept_ra_pinfo(),
-            accept_ra_rtr_pref: self.accept_ra_rtr_pref(),
-            rtr_probe_interval: self.rtr_probe_interval(),
-            accept_ra_rt_info_max_plen: self.accept_ra_rt_info_max_plen(),
-            proxy_ndp: self.proxy_ndp(),
-            optimistic_dad: self.optimistic_dad(),
-            accept_source_route: self.accept_source_route(),
-            mc_forwarding: self.mc_forwarding(),
-            disable_ipv6: self.disable_ipv6(),
-            accept_dad: self.accept_dad(),
-            force_tllao: self.force_tllao(),
-            ndisc_notify: self.ndisc_notify(),
-            mldv1_unsolicited_report_interval: self.mldv1_unsolicited_report_interval(),
-            mldv2_unsolicited_report_interval: self.mldv2_unsolicited_report_interval(),
-            suppress_frag_ndisc: self.suppress_frag_ndisc(),
-            accept_ra_from_local: self.accept_ra_from_local(),
-            use_optimistic: self.use_optimistic(),
-            accept_ra_mtu: self.accept_ra_mtu(),
-            stable_secret: self.stable_secret(),
-            use_oif_addrs_only: self.use_oif_addrs_only(),
-            accept_ra_min_hop_limit: self.accept_ra_min_hop_limit(),
-            ignore_routes_with_linkdown: self.ignore_routes_with_linkdown(),
-            drop_unicast_in_l2_multicast: self.drop_unicast_in_l2_multicast(),
-            drop_unsolicited_na: self.drop_unsolicited_na(),
-            keep_addr_on_down: self.keep_addr_on_down(),
-            rtr_solicit_max_interval: self.rtr_solicit_max_interval(),
-            seg6_enabled: self.seg6_enabled(),
-            seg6_require_hmac: self.seg6_require_hmac(),
-            enhanced_dad: self.enhanced_dad(),
-            addr_gen_mode: self.addr_gen_mode(),
-            disable_policy: self.disable_policy(),
-            accept_ra_rt_info_min_plen: self.accept_ra_rt_info_min_plen(),
-            ndisc_tclass: self.ndisc_tclass(),
+impl<T: AsRef<[u8]>> Parseable<Inet6DevConfBuffer<T>> for Inet6DevConf {
+    fn parse(buf: &Inet6DevConfBuffer<T>) -> Result<Self, DecodeError> {
+        Ok(Self {
+            forwarding: buf.forwarding(),
+            hoplimit: buf.hoplimit(),
+            mtu6: buf.mtu6(),
+            accept_ra: buf.accept_ra(),
+            accept_redirects: buf.accept_redirects(),
+            autoconf: buf.autoconf(),
+            dad_transmits: buf.dad_transmits(),
+            rtr_solicits: buf.rtr_solicits(),
+            rtr_solicit_interval: buf.rtr_solicit_interval(),
+            rtr_solicit_delay: buf.rtr_solicit_delay(),
+            use_tempaddr: buf.use_tempaddr(),
+            temp_valid_lft: buf.temp_valid_lft(),
+            temp_prefered_lft: buf.temp_prefered_lft(),
+            regen_max_retry: buf.regen_max_retry(),
+            max_desync_factor: buf.max_desync_factor(),
+            max_addresses: buf.max_addresses(),
+            force_mld_version: buf.force_mld_version(),
+            accept_ra_defrtr: buf.accept_ra_defrtr(),
+            accept_ra_pinfo: buf.accept_ra_pinfo(),
+            accept_ra_rtr_pref: buf.accept_ra_rtr_pref(),
+            rtr_probe_interval: buf.rtr_probe_interval(),
+            accept_ra_rt_info_max_plen: buf.accept_ra_rt_info_max_plen(),
+            proxy_ndp: buf.proxy_ndp(),
+            optimistic_dad: buf.optimistic_dad(),
+            accept_source_route: buf.accept_source_route(),
+            mc_forwarding: buf.mc_forwarding(),
+            disable_ipv6: buf.disable_ipv6(),
+            accept_dad: buf.accept_dad(),
+            force_tllao: buf.force_tllao(),
+            ndisc_notify: buf.ndisc_notify(),
+            mldv1_unsolicited_report_interval: buf.mldv1_unsolicited_report_interval(),
+            mldv2_unsolicited_report_interval: buf.mldv2_unsolicited_report_interval(),
+            suppress_frag_ndisc: buf.suppress_frag_ndisc(),
+            accept_ra_from_local: buf.accept_ra_from_local(),
+            use_optimistic: buf.use_optimistic(),
+            accept_ra_mtu: buf.accept_ra_mtu(),
+            stable_secret: buf.stable_secret(),
+            use_oif_addrs_only: buf.use_oif_addrs_only(),
+            accept_ra_min_hop_limit: buf.accept_ra_min_hop_limit(),
+            ignore_routes_with_linkdown: buf.ignore_routes_with_linkdown(),
+            drop_unicast_in_l2_multicast: buf.drop_unicast_in_l2_multicast(),
+            drop_unsolicited_na: buf.drop_unsolicited_na(),
+            keep_addr_on_down: buf.keep_addr_on_down(),
+            rtr_solicit_max_interval: buf.rtr_solicit_max_interval(),
+            seg6_enabled: buf.seg6_enabled(),
+            seg6_require_hmac: buf.seg6_require_hmac(),
+            enhanced_dad: buf.enhanced_dad(),
+            addr_gen_mode: buf.addr_gen_mode(),
+            disable_policy: buf.disable_policy(),
+            accept_ra_rt_info_min_plen: buf.accept_ra_rt_info_min_plen(),
+            ndisc_tclass: buf.ndisc_tclass(),
         })
     }
 }
 
-impl Emitable for LinkInet6DevConf {
+impl Emitable for Inet6DevConf {
     fn buffer_len(&self) -> usize {
         LINK_INET6_DEV_CONF_LEN
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        let mut buffer = LinkInet6DevConfBuffer::new(buffer);
+        let mut buffer = Inet6DevConfBuffer::new(buffer);
         buffer.set_forwarding(self.forwarding);
         buffer.set_hoplimit(self.hoplimit);
         buffer.set_mtu6(self.mtu6);
@@ -178,7 +178,7 @@ impl Emitable for LinkInet6DevConf {
 }
 
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
-pub struct LinkInet6DevConf {
+pub struct Inet6DevConf {
     pub forwarding: i32,
     pub hoplimit: i32,
     pub mtu6: i32,

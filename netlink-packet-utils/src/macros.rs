@@ -1,3 +1,4 @@
+#[macro_export]
 macro_rules! getter {
     ($buffer: ident, $name:ident, slice, $offset:expr) => {
         impl<'a, T: AsRef<[u8]> + ?Sized> $buffer<&'a T> {
@@ -18,19 +19,19 @@ macro_rules! getter {
     };
     ($name:ident, u16, $offset:expr) => {
         pub fn $name(&self) -> u16 {
-            use byteorder::{ByteOrder, NativeEndian};
+            use $crate::byteorder::{ByteOrder, NativeEndian};
             NativeEndian::read_u16(&self.buffer.as_ref()[$offset])
         }
     };
     ($name:ident, u32, $offset:expr) => {
         pub fn $name(&self) -> u32 {
-            use byteorder::{ByteOrder, NativeEndian};
+            use $crate::byteorder::{ByteOrder, NativeEndian};
             NativeEndian::read_u32(&self.buffer.as_ref()[$offset])
         }
     };
     ($name:ident, u64, $offset:expr) => {
         pub fn $name(&self) -> u64 {
-            use byteorder::{ByteOrder, NativeEndian};
+            use $crate::byteorder::{ByteOrder, NativeEndian};
             NativeEndian::read_u64(&self.buffer.as_ref()[$offset])
         }
     };
@@ -41,28 +42,29 @@ macro_rules! getter {
     };
     ($name:ident, i16, $offset:expr) => {
         pub fn $name(&self) -> i16 {
-            use byteorder::{ByteOrder, NativeEndian};
+            use $crate::byteorder::{ByteOrder, NativeEndian};
             NativeEndian::read_i16(&self.buffer.as_ref()[$offset])
         }
     };
     ($name:ident, i32, $offset:expr) => {
         pub fn $name(&self) -> i32 {
-            use byteorder::{ByteOrder, NativeEndian};
+            use $crate::byteorder::{ByteOrder, NativeEndian};
             NativeEndian::read_i32(&self.buffer.as_ref()[$offset])
         }
     };
     ($name:ident, i64, $offset:expr) => {
         pub fn $name(&self) -> i64 {
-            use byteorder::{ByteOrder, NativeEndian};
+            use $crate::byteorder::{ByteOrder, NativeEndian};
             NativeEndian::read_i64(&self.buffer.as_ref()[$offset])
         }
     };
 }
 
+#[macro_export]
 macro_rules! setter {
     ($buffer: ident, $name:ident, slice, $offset:expr) => {
         impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> $buffer<&'a mut T> {
-            paste::item! {
+            $crate::paste::item! {
                 pub fn [<$name _mut>](&'a mut self) -> &'a mut [u8] {
                     &mut self.buffer.as_mut()[$offset]
                 }
@@ -75,69 +77,70 @@ macro_rules! setter {
         }
     };
     ($name:ident, u8, $offset:expr) => {
-        paste::item! {
+        $crate::paste::item! {
             pub fn [<set_ $name>](&mut self, value: u8) {
                 self.buffer.as_mut()[$offset] = value;
             }
         }
     };
     ($name:ident, u16, $offset:expr) => {
-        paste::item! {
+        $crate::paste::item! {
             pub fn [<set_ $name>](&mut self, value: u16) {
-                use byteorder::{ByteOrder, NativeEndian};
+                use $crate::byteorder::{ByteOrder, NativeEndian};
                 NativeEndian::write_u16(&mut self.buffer.as_mut()[$offset], value)
             }
         }
     };
     ($name:ident, u32, $offset:expr) => {
-        paste::item! {
+        $crate::paste::item! {
             pub fn [<set_ $name>](&mut self, value: u32) {
-                use byteorder::{ByteOrder, NativeEndian};
+                use $crate::byteorder::{ByteOrder, NativeEndian};
                 NativeEndian::write_u32(&mut self.buffer.as_mut()[$offset], value)
             }
         }
     };
     ($name:ident, u64, $offset:expr) => {
-        paste::item! {
+        $crate::paste::item! {
             pub fn [<set_ $name>](&mut self, value: u64) {
-                use byteorder::{ByteOrder, NativeEndian};
+                use $crate::byteorder::{ByteOrder, NativeEndian};
                 NativeEndian::write_u64(&mut self.buffer.as_mut()[$offset], value)
             }
         }
     };
     ($name:ident, i8, $offset:expr) => {
-        paste::item! {
+        $crate::paste::item! {
             pub fn [<set_ $name>](&mut self, value: i8) {
                 self.buffer.as_mut()[$offset] = value;
             }
         }
     };
     ($name:ident, i16, $offset:expr) => {
-        paste::item! {
+        $crate::paste::item! {
             pub fn [<set_ $name>](&mut self, value: i16) {
-                use byteorder::{ByteOrder, NativeEndian};
+                use $crate::byteorder::{ByteOrder, NativeEndian};
                 NativeEndian::write_i16(&mut self.buffer.as_mut()[$offset], value)
             }
         }
     };
     ($name:ident, i32, $offset:expr) => {
-        paste::item! {
+        $crate::paste::item! {
             pub fn [<set_ $name>](&mut self, value: i32) {
-                use byteorder::{ByteOrder, NativeEndian};
+                use $crate::byteorder::{ByteOrder, NativeEndian};
                 NativeEndian::write_i32(&mut self.buffer.as_mut()[$offset], value)
             }
         }
     };
     ($name:ident, i64, $offset:expr) => {
-        paste::item! {
+        $crate::paste::item! {
             pub fn [<set_ $name>](&mut self, value: i64) {
-                use byteorder::{ByteOrder, NativeEndian};
+                use $crate::byteorder::{ByteOrder, NativeEndian};
                 NativeEndian::write_i64(&mut self.buffer.as_mut()[$offset], value)
             }
         }
     };
 }
 
+#[macro_export]
 macro_rules! buffer {
     ($name:ident($buffer_len:expr) { $($field:ident : ($ty:tt, $offset:expr)),* $(,)? }) => {
         buffer!($name { $($field: ($ty, $offset),)* });
@@ -161,6 +164,7 @@ macro_rules! buffer {
     };
 }
 
+#[macro_export]
 macro_rules! fields {
     ($buffer:ident { $($name:ident : ($ty:tt, $offset:expr)),* $(,)? }) => {
         $(
@@ -173,6 +177,7 @@ macro_rules! fields {
     }
 }
 
+#[macro_export]
 macro_rules! buffer_check_length {
     ($name:ident($buffer_len:expr)) => {
         impl<T: AsRef<[u8]>> $name<T> {
@@ -198,6 +203,7 @@ macro_rules! buffer_check_length {
     };
 }
 
+#[macro_export]
 macro_rules! buffer_common {
     ($name:ident) => {
         #[derive(Debug, PartialEq, Eq, Clone, Copy)]

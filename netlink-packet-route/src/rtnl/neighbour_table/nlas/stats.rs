@@ -1,10 +1,10 @@
 use crate::{
-    rtnl::traits::{Emitable, Parseable},
+    traits::{Emitable, Parseable},
     DecodeError,
 };
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub struct NeighbourTableStats {
+pub struct Stats {
     pub allocs: u64,
     pub destroys: u64,
     pub hash_grows: u64,
@@ -17,8 +17,8 @@ pub struct NeighbourTableStats {
     pub forced_gc_runs: u64,
 }
 
-pub const NEIGHBOUR_TABLE_STATS_LEN: usize = 80;
-buffer!(NeighbourTableStatsBuffer(NEIGHBOUR_TABLE_STATS_LEN) {
+pub const STATS_LEN: usize = 80;
+buffer!(StatsBuffer(STATS_LEN) {
     allocs: (u64, 0..8),
     destroys: (u64, 8..16),
     hash_grows: (u64, 16..24),
@@ -31,31 +31,30 @@ buffer!(NeighbourTableStatsBuffer(NEIGHBOUR_TABLE_STATS_LEN) {
     forced_gc_runs: (u64, 72..80),
 });
 
-impl<T: AsRef<[u8]>> Parseable<NeighbourTableStats> for NeighbourTableStatsBuffer<T> {
-    fn parse(&self) -> Result<NeighbourTableStats, DecodeError> {
-        self.check_buffer_length()?;
-        Ok(NeighbourTableStats {
-            allocs: self.allocs(),
-            destroys: self.destroys(),
-            hash_grows: self.hash_grows(),
-            res_failed: self.res_failed(),
-            lookups: self.lookups(),
-            hits: self.hits(),
-            multicast_probes_received: self.multicast_probes_received(),
-            unicast_probes_received: self.unicast_probes_received(),
-            periodic_gc_runs: self.periodic_gc_runs(),
-            forced_gc_runs: self.forced_gc_runs(),
+impl<T: AsRef<[u8]>> Parseable<StatsBuffer<T>> for Stats {
+    fn parse(buf: &StatsBuffer<T>) -> Result<Self, DecodeError> {
+        Ok(Self {
+            allocs: buf.allocs(),
+            destroys: buf.destroys(),
+            hash_grows: buf.hash_grows(),
+            res_failed: buf.res_failed(),
+            lookups: buf.lookups(),
+            hits: buf.hits(),
+            multicast_probes_received: buf.multicast_probes_received(),
+            unicast_probes_received: buf.unicast_probes_received(),
+            periodic_gc_runs: buf.periodic_gc_runs(),
+            forced_gc_runs: buf.forced_gc_runs(),
         })
     }
 }
 
-impl Emitable for NeighbourTableStats {
+impl Emitable for Stats {
     fn buffer_len(&self) -> usize {
-        NEIGHBOUR_TABLE_STATS_LEN
+        STATS_LEN
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        let mut buffer = NeighbourTableStatsBuffer::new(buffer);
+        let mut buffer = StatsBuffer::new(buffer);
         buffer.set_allocs(self.allocs);
         buffer.set_destroys(self.destroys);
         buffer.set_hash_grows(self.hash_grows);

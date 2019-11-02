@@ -1,10 +1,10 @@
 use crate::{
-    rtnl::traits::{Emitable, Parseable},
+    traits::{Emitable, Parseable},
     DecodeError,
 };
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub struct RouteCacheInfo {
+pub struct CacheInfo {
     pub clntref: u32,
     pub last_use: u32,
     pub expires: u32,
@@ -15,9 +15,9 @@ pub struct RouteCacheInfo {
     pub ts_age: u32,
 }
 
-pub const ROUTE_CACHE_INFO_LEN: usize = 32;
+pub const CACHE_INFO_LEN: usize = 32;
 
-buffer!(RouteCacheInfoBuffer(ROUTE_CACHE_INFO_LEN) {
+buffer!(CacheInfoBuffer(CACHE_INFO_LEN) {
     clntref: (u32, 0..4),
     last_use: (u32, 4..8),
     expires: (u32, 8..12),
@@ -28,28 +28,28 @@ buffer!(RouteCacheInfoBuffer(ROUTE_CACHE_INFO_LEN) {
     ts_age: (u32, 28..32),
 });
 
-impl<T: AsRef<[u8]>> Parseable<RouteCacheInfo> for RouteCacheInfoBuffer<T> {
-    fn parse(&self) -> Result<RouteCacheInfo, DecodeError> {
-        Ok(RouteCacheInfo {
-            clntref: self.clntref(),
-            last_use: self.last_use(),
-            expires: self.expires(),
-            error: self.error(),
-            used: self.used(),
-            id: self.id(),
-            ts: self.ts(),
-            ts_age: self.ts_age(),
+impl<T: AsRef<[u8]>> Parseable<CacheInfoBuffer<T>> for CacheInfo {
+    fn parse(buf: &CacheInfoBuffer<T>) -> Result<Self, DecodeError> {
+        Ok(Self {
+            clntref: buf.clntref(),
+            last_use: buf.last_use(),
+            expires: buf.expires(),
+            error: buf.error(),
+            used: buf.used(),
+            id: buf.id(),
+            ts: buf.ts(),
+            ts_age: buf.ts_age(),
         })
     }
 }
 
-impl Emitable for RouteCacheInfo {
+impl Emitable for CacheInfo {
     fn buffer_len(&self) -> usize {
-        ROUTE_CACHE_INFO_LEN
+        CACHE_INFO_LEN
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        let mut buffer = RouteCacheInfoBuffer::new(buffer);
+        let mut buffer = CacheInfoBuffer::new(buffer);
         buffer.set_clntref(self.clntref);
         buffer.set_last_use(self.last_use);
         buffer.set_expires(self.expires);

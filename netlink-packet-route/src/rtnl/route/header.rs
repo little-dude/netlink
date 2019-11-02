@@ -1,87 +1,14 @@
 use crate::{
-    rtnl::{
-        route::{RouteBuffer, ROUTE_HEADER_LEN},
-        traits::{Emitable, Parseable},
-    },
-    DecodeError,
+    constants::*,
+    traits::{Emitable, Parseable},
+    DecodeError, RouteMessageBuffer, ROUTE_HEADER_LEN,
 };
-
-/// Unknown route
-pub const RTN_UNSPEC: u8 = 0;
-/// A gateway or direct route
-pub const RTN_UNICAST: u8 = 1;
-/// A local interface route
-pub const RTN_LOCAL: u8 = 2;
-/// A local broadcast route (sent as a broadcast)
-pub const RTN_BROADCAST: u8 = 3;
-/// A local broadcast route (sent as a unicast)
-pub const RTN_ANYCAST: u8 = 4;
-/// A multicast route
-pub const RTN_MULTICAST: u8 = 5;
-/// A packet dropping route
-pub const RTN_BLACKHOLE: u8 = 6;
-/// An unreachable destination
-pub const RTN_UNREACHABLE: u8 = 7;
-/// A packet rejection route
-pub const RTN_PROHIBIT: u8 = 8;
-/// Continue routing lookup in another table
-pub const RTN_THROW: u8 = 9;
-/// A network address translation rule
-pub const RTN_NAT: u8 = 10;
-/// Refer to an external resolver (not implemented)
-pub const RTN_XRESOLVE: u8 = 11;
-
-/// Unknown
-pub const RTPROT_UNSPEC: u8 = 0;
-/// Route was learnt by an ICMP redirect
-pub const RTPROT_REDIRECT: u8 = 1;
-/// Route was learnt by the kernel
-pub const RTPROT_KERNEL: u8 = 2;
-/// Route was learnt during boot
-pub const RTPROT_BOOT: u8 = 3;
-/// Route was set statically
-pub const RTPROT_STATIC: u8 = 4;
-pub const RTPROT_GATED: u8 = 8;
-pub const RTPROT_RA: u8 = 9;
-pub const RTPROT_MRT: u8 = 10;
-pub const RTPROT_ZEBRA: u8 = 11;
-pub const RTPROT_BIRD: u8 = 12;
-pub const RTPROT_DNROUTED: u8 = 13;
-pub const RTPROT_XORP: u8 = 14;
-pub const RTPROT_NTK: u8 = 15;
-pub const RTPROT_DHCP: u8 = 16;
-pub const RTPROT_MROUTED: u8 = 17;
-pub const RTPROT_BABEL: u8 = 42;
-
-/// Global route
-pub const RT_SCOPE_UNIVERSE: u8 = 0;
-/// Interior route in the local autonomous system
-pub const RT_SCOPE_SITE: u8 = 200;
-/// Route on this link
-pub const RT_SCOPE_LINK: u8 = 253;
-/// Route on the local host
-pub const RT_SCOPE_HOST: u8 = 254;
-/// Destination doesn't exist
-pub const RT_SCOPE_NOWHERE: u8 = 255;
-
-pub const RT_TABLE_UNSPEC: u8 = 0;
-pub const RT_TABLE_COMPAT: u8 = 252;
-pub const RT_TABLE_DEFAULT: u8 = 253;
-pub const RT_TABLE_MAIN: u8 = 254;
-pub const RT_TABLE_LOCAL: u8 = 255;
-
-pub const RTM_F_NOTIFY: u32 = 256;
-pub const RTM_F_CLONED: u32 = 512;
-pub const RTM_F_EQUALIZE: u32 = 1024;
-pub const RTM_F_PREFIX: u32 = 2048;
-pub const RTM_F_LOOKUP_TABLE: u32 = 4096;
-pub const RTM_F_FIB_MATCH: u32 = 8192;
 
 /// Route type
 ///
 /// ```rust
 /// # extern crate netlink_packet_route;
-/// # use netlink_packet_route::rtnl::route::RouteKind;
+/// # use netlink_packet_route::RouteKind;
 /// #
 /// # fn main() {
 /// assert_eq!(RouteKind::default(), RouteKind::Unspec);
@@ -163,11 +90,11 @@ impl From<u8> for RouteKind {
     }
 }
 
-/// Route origin.
+/// Protocol from which a route was learnt.
 ///
 /// ```rust
 /// # extern crate netlink_packet_route;
-/// # use netlink_packet_route::rtnl::route::RouteProtocol;
+/// # use netlink_packet_route::RouteProtocol;
 /// #
 /// # fn main() {
 /// assert_eq!(RouteProtocol::default(), RouteProtocol::Unspec);
@@ -258,7 +185,7 @@ impl From<u8> for RouteProtocol {
 ///
 /// ```rust
 /// # extern crate netlink_packet_route;
-/// # use netlink_packet_route::rtnl::route::RouteScope;
+/// # use netlink_packet_route::RouteScope;
 /// #
 /// # fn main() {
 /// assert_eq!(RouteScope::default(), RouteScope::Universe);
@@ -316,7 +243,7 @@ impl From<u8> for RouteScope {
 ///
 /// ```rust
 /// # extern crate netlink_packet_route;
-/// # use netlink_packet_route::rtnl::route::RouteTable;
+/// # use netlink_packet_route::RouteTable;
 /// #
 /// # fn main() {
 /// assert_eq!(RouteTable::default(), RouteTable::Unspec);
@@ -470,7 +397,7 @@ impl RouteFlags {
 ///
 /// ```rust
 /// extern crate netlink_packet_route;
-/// use netlink_packet_route::rtnl::route::{RouteHeader, RouteFlags, RouteProtocol, RouteTable, RouteScope, RouteKind};
+/// use netlink_packet_route::{RouteHeader, RouteFlags, RouteProtocol, RouteTable, RouteScope, RouteKind};
 ///
 /// fn main() {
 ///     let mut hdr = RouteHeader::new();
@@ -521,18 +448,18 @@ impl RouteHeader {
     }
 }
 
-impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<RouteHeader> for RouteBuffer<&'a T> {
-    fn parse(&self) -> Result<RouteHeader, DecodeError> {
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<RouteMessageBuffer<&'a T>> for RouteHeader {
+    fn parse(buf: &RouteMessageBuffer<&'a T>) -> Result<Self, DecodeError> {
         Ok(RouteHeader {
-            address_family: self.address_family(),
-            destination_length: self.destination_length(),
-            source_length: self.source_length(),
-            tos: self.tos(),
-            table: self.table().into(),
-            protocol: self.protocol().into(),
-            scope: self.scope().into(),
-            kind: self.kind().into(),
-            flags: self.flags().into(),
+            address_family: buf.address_family(),
+            destination_length: buf.destination_length(),
+            source_length: buf.source_length(),
+            tos: buf.tos(),
+            table: buf.table().into(),
+            protocol: buf.protocol().into(),
+            scope: buf.scope().into(),
+            kind: buf.kind().into(),
+            flags: buf.flags().into(),
         })
     }
 }
@@ -543,7 +470,7 @@ impl Emitable for RouteHeader {
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        let mut buffer = RouteBuffer::new(buffer);
+        let mut buffer = RouteMessageBuffer::new(buffer);
         buffer.set_address_family(self.address_family);
         buffer.set_destination_length(self.destination_length);
         buffer.set_source_length(self.source_length);

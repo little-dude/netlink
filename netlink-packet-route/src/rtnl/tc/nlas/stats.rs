@@ -1,11 +1,11 @@
 use crate::{
-    rtnl::traits::{Emitable, Parseable},
+    traits::{Emitable, Parseable},
     DecodeError,
 };
 
 /// Generic queue statistics
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct TcStats {
+pub struct Stats {
     /// Number of enqueued bytes
     pub bytes: u64,
     /// Number of enqueued packets
@@ -22,9 +22,9 @@ pub struct TcStats {
     pub backlog: u32,
 }
 
-pub const TC_STATS_LEN: usize = 36;
+pub const STATS_LEN: usize = 36;
 
-buffer!(TcStatsBuffer(TC_STATS_LEN) {
+buffer!(StatsBuffer(STATS_LEN) {
     bytes: (u64, 0..8),
     packets: (u32, 8..12),
     drops: (u32, 12..16),
@@ -35,29 +35,28 @@ buffer!(TcStatsBuffer(TC_STATS_LEN) {
     backlog: (u32, 32..36),
 });
 
-impl<T: AsRef<[u8]>> Parseable<TcStats> for TcStatsBuffer<T> {
-    fn parse(&self) -> Result<TcStats, DecodeError> {
-        self.check_buffer_length()?;
-        Ok(TcStats {
-            bytes: self.bytes(),
-            packets: self.packets(),
-            drops: self.drops(),
-            overlimits: self.overlimits(),
-            bps: self.bps(),
-            pps: self.pps(),
-            qlen: self.qlen(),
-            backlog: self.backlog(),
+impl<T: AsRef<[u8]>> Parseable<StatsBuffer<T>> for Stats {
+    fn parse(buf: &StatsBuffer<T>) -> Result<Self, DecodeError> {
+        Ok(Self {
+            bytes: buf.bytes(),
+            packets: buf.packets(),
+            drops: buf.drops(),
+            overlimits: buf.overlimits(),
+            bps: buf.bps(),
+            pps: buf.pps(),
+            qlen: buf.qlen(),
+            backlog: buf.backlog(),
         })
     }
 }
 
-impl Emitable for TcStats {
+impl Emitable for Stats {
     fn buffer_len(&self) -> usize {
-        TC_STATS_LEN
+        STATS_LEN
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        let mut buffer = TcStatsBuffer::new(buffer);
+        let mut buffer = StatsBuffer::new(buffer);
         buffer.set_bytes(self.bytes);
         buffer.set_packets(self.packets);
         buffer.set_drops(self.drops);

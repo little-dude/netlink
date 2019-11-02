@@ -1,10 +1,10 @@
 use crate::{
-    rtnl::traits::{Emitable, Parseable},
+    traits::{Emitable, Parseable},
     DecodeError,
 };
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub struct LinkStats {
+pub struct Stats {
     /// total packets received
     pub rx_packets: u32,
     /// total packets transmitted
@@ -55,7 +55,7 @@ pub struct LinkStats {
 
 pub const LINK_STATS_LEN: usize = 96;
 
-buffer!(LinkStatsBuffer(LINK_STATS_LEN) {
+buffer!(StatsBuffer(LINK_STATS_LEN) {
     rx_packets: (u32, 0..4),
     tx_packets: (u32, 4..8),
     rx_bytes: (u32, 8..12),
@@ -82,44 +82,44 @@ buffer!(LinkStatsBuffer(LINK_STATS_LEN) {
     rx_nohandler: (u32, 92..96),
 });
 
-impl<T: AsRef<[u8]>> Parseable<LinkStats> for LinkStatsBuffer<T> {
-    fn parse(&self) -> Result<LinkStats, DecodeError> {
-        Ok(LinkStats {
-            rx_packets: self.rx_packets(),
-            tx_packets: self.tx_packets(),
-            rx_bytes: self.rx_bytes(),
-            tx_bytes: self.tx_bytes(),
-            rx_errors: self.rx_errors(),
-            tx_errors: self.tx_errors(),
-            rx_dropped: self.rx_dropped(),
-            tx_dropped: self.tx_dropped(),
-            multicast: self.multicast(),
-            collisions: self.collisions(),
-            rx_length_errors: self.rx_length_errors(),
-            rx_over_errors: self.rx_over_errors(),
-            rx_crc_errors: self.rx_crc_errors(),
-            rx_frame_errors: self.rx_frame_errors(),
-            rx_fifo_errors: self.rx_fifo_errors(),
-            rx_missed_errors: self.rx_missed_errors(),
-            tx_aborted_errors: self.tx_aborted_errors(),
-            tx_carrier_errors: self.tx_carrier_errors(),
-            tx_fifo_errors: self.tx_fifo_errors(),
-            tx_heartbeat_errors: self.tx_heartbeat_errors(),
-            tx_window_errors: self.tx_window_errors(),
-            rx_compressed: self.rx_compressed(),
-            tx_compressed: self.tx_compressed(),
-            rx_nohandler: self.rx_nohandler(),
+impl<T: AsRef<[u8]>> Parseable<StatsBuffer<T>> for Stats {
+    fn parse(buf: &StatsBuffer<T>) -> Result<Self, DecodeError> {
+        Ok(Self {
+            rx_packets: buf.rx_packets(),
+            tx_packets: buf.tx_packets(),
+            rx_bytes: buf.rx_bytes(),
+            tx_bytes: buf.tx_bytes(),
+            rx_errors: buf.rx_errors(),
+            tx_errors: buf.tx_errors(),
+            rx_dropped: buf.rx_dropped(),
+            tx_dropped: buf.tx_dropped(),
+            multicast: buf.multicast(),
+            collisions: buf.collisions(),
+            rx_length_errors: buf.rx_length_errors(),
+            rx_over_errors: buf.rx_over_errors(),
+            rx_crc_errors: buf.rx_crc_errors(),
+            rx_frame_errors: buf.rx_frame_errors(),
+            rx_fifo_errors: buf.rx_fifo_errors(),
+            rx_missed_errors: buf.rx_missed_errors(),
+            tx_aborted_errors: buf.tx_aborted_errors(),
+            tx_carrier_errors: buf.tx_carrier_errors(),
+            tx_fifo_errors: buf.tx_fifo_errors(),
+            tx_heartbeat_errors: buf.tx_heartbeat_errors(),
+            tx_window_errors: buf.tx_window_errors(),
+            rx_compressed: buf.rx_compressed(),
+            tx_compressed: buf.tx_compressed(),
+            rx_nohandler: buf.rx_nohandler(),
         })
     }
 }
 
-impl Emitable for LinkStats {
+impl Emitable for Stats {
     fn buffer_len(&self) -> usize {
         LINK_STATS_LEN
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        let mut buffer = LinkStatsBuffer::new(buffer);
+        let mut buffer = StatsBuffer::new(buffer);
         buffer.set_rx_packets(self.rx_packets);
         buffer.set_tx_packets(self.tx_packets);
         buffer.set_rx_bytes(self.rx_bytes);

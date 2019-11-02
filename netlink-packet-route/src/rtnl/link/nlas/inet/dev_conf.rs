@@ -1,11 +1,11 @@
 use crate::{
-    rtnl::traits::{Emitable, Parseable},
+    traits::{Emitable, Parseable},
     DecodeError,
 };
 
-pub const LINK_INET_DEV_CONF_LEN: usize = 124;
+pub const DEV_CONF_LEN: usize = 124;
 
-buffer!(LinkInetDevConfBuffer(LINK_INET_DEV_CONF_LEN) {
+buffer!(InetDevConfBuffer(DEV_CONF_LEN) {
     forwarding: (i32, 0..4),
     mc_forwarding: (i32, 4..8),
     proxy_arp: (i32, 8..12),
@@ -40,7 +40,7 @@ buffer!(LinkInetDevConfBuffer(LINK_INET_DEV_CONF_LEN) {
 });
 
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
-pub struct LinkInetDevConf {
+pub struct InetDevConf {
     pub forwarding: i32,
     pub mc_forwarding: i32,
     pub proxy_arp: i32,
@@ -74,51 +74,51 @@ pub struct LinkInetDevConf {
     pub drop_gratuitous_arp: i32,
 }
 
-impl<T: AsRef<[u8]>> Parseable<LinkInetDevConf> for LinkInetDevConfBuffer<T> {
-    fn parse(&self) -> Result<LinkInetDevConf, DecodeError> {
-        Ok(LinkInetDevConf {
-            forwarding: self.forwarding(),
-            mc_forwarding: self.mc_forwarding(),
-            proxy_arp: self.proxy_arp(),
-            accept_redirects: self.accept_redirects(),
-            secure_redirects: self.secure_redirects(),
-            send_redirects: self.send_redirects(),
-            shared_media: self.shared_media(),
-            rp_filter: self.rp_filter(),
-            accept_source_route: self.accept_source_route(),
-            bootp_relay: self.bootp_relay(),
-            log_martians: self.log_martians(),
-            tag: self.tag(),
-            arpfilter: self.arpfilter(),
-            medium_id: self.medium_id(),
-            noxfrm: self.noxfrm(),
-            nopolicy: self.nopolicy(),
-            force_igmp_version: self.force_igmp_version(),
-            arp_announce: self.arp_announce(),
-            arp_ignore: self.arp_ignore(),
-            promote_secondaries: self.promote_secondaries(),
-            arp_accept: self.arp_accept(),
-            arp_notify: self.arp_notify(),
-            accept_local: self.accept_local(),
-            src_vmark: self.src_vmark(),
-            proxy_arp_pvlan: self.proxy_arp_pvlan(),
-            route_localnet: self.route_localnet(),
-            igmpv2_unsolicited_report_interval: self.igmpv2_unsolicited_report_interval(),
-            igmpv3_unsolicited_report_interval: self.igmpv3_unsolicited_report_interval(),
-            ignore_routes_with_linkdown: self.ignore_routes_with_linkdown(),
-            drop_unicast_in_l2_multicast: self.drop_unicast_in_l2_multicast(),
-            drop_gratuitous_arp: self.drop_gratuitous_arp(),
+impl<T: AsRef<[u8]>> Parseable<InetDevConfBuffer<T>> for InetDevConf {
+    fn parse(buf: &InetDevConfBuffer<T>) -> Result<Self, DecodeError> {
+        Ok(Self {
+            forwarding: buf.forwarding(),
+            mc_forwarding: buf.mc_forwarding(),
+            proxy_arp: buf.proxy_arp(),
+            accept_redirects: buf.accept_redirects(),
+            secure_redirects: buf.secure_redirects(),
+            send_redirects: buf.send_redirects(),
+            shared_media: buf.shared_media(),
+            rp_filter: buf.rp_filter(),
+            accept_source_route: buf.accept_source_route(),
+            bootp_relay: buf.bootp_relay(),
+            log_martians: buf.log_martians(),
+            tag: buf.tag(),
+            arpfilter: buf.arpfilter(),
+            medium_id: buf.medium_id(),
+            noxfrm: buf.noxfrm(),
+            nopolicy: buf.nopolicy(),
+            force_igmp_version: buf.force_igmp_version(),
+            arp_announce: buf.arp_announce(),
+            arp_ignore: buf.arp_ignore(),
+            promote_secondaries: buf.promote_secondaries(),
+            arp_accept: buf.arp_accept(),
+            arp_notify: buf.arp_notify(),
+            accept_local: buf.accept_local(),
+            src_vmark: buf.src_vmark(),
+            proxy_arp_pvlan: buf.proxy_arp_pvlan(),
+            route_localnet: buf.route_localnet(),
+            igmpv2_unsolicited_report_interval: buf.igmpv2_unsolicited_report_interval(),
+            igmpv3_unsolicited_report_interval: buf.igmpv3_unsolicited_report_interval(),
+            ignore_routes_with_linkdown: buf.ignore_routes_with_linkdown(),
+            drop_unicast_in_l2_multicast: buf.drop_unicast_in_l2_multicast(),
+            drop_gratuitous_arp: buf.drop_gratuitous_arp(),
         })
     }
 }
 
-impl Emitable for LinkInetDevConf {
+impl Emitable for InetDevConf {
     fn buffer_len(&self) -> usize {
-        LINK_INET_DEV_CONF_LEN
+        DEV_CONF_LEN
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        let mut buffer = LinkInetDevConfBuffer::new(buffer);
+        let mut buffer = InetDevConfBuffer::new(buffer);
         buffer.set_forwarding(self.forwarding);
         buffer.set_mc_forwarding(self.mc_forwarding);
         buffer.set_proxy_arp(self.proxy_arp);

@@ -3,7 +3,7 @@ use std::net::IpAddr;
 use super::{AddressAddRequest, AddressDelRequest, AddressGetRequest};
 use crate::Handle;
 
-use netlink_packet_route::rtnl::address::AddressMessage;
+use netlink_packet_route::AddressMessage;
 
 pub struct AddressHandle(Handle);
 

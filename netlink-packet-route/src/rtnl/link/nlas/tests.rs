@@ -1,7 +1,4 @@
-use crate::{
-    rtnl::{link::nlas::IFLA_AF_SPEC, nla::NlasIterator},
-    DecodeError,
-};
+use crate::{utils::nla::Nla, DecodeError};
 
 use super::*;
 // https://lists.infradead.org/pipermail/libnl/2015-November/002034.html
@@ -184,15 +181,15 @@ fn get_byte_buffer(nla: &dyn Emitable) -> Vec<u8> {
 }
 
 lazy_static! {
-    static ref PARSED_AF_INET6: LinkAfSpecInetNla = LinkAfSpecInetNla::Inet6(vec![
-        LinkAfInet6Nla::Flags(2147483648),
-        LinkAfInet6Nla::CacheInfo(get_byte_buffer(&LinkInet6CacheInfo {
+    static ref PARSED_AF_INET6: AfSpecInet = AfSpecInet::Inet6(vec![
+        Inet6::Flags(2147483648),
+        Inet6::CacheInfo(get_byte_buffer(&Inet6CacheInfo {
             max_reasm_len: 65535,
             tstamp: 175,
             reachable_time: 25730,
             retrans_time: 1000,
         })),
-        LinkAfInet6Nla::DevConf(get_byte_buffer(&LinkInet6DevConf {
+        Inet6::DevConf(get_byte_buffer(&Inet6DevConf {
             forwarding: 0,
             hoplimit: 64,
             mtu6: 65536,
@@ -245,7 +242,7 @@ lazy_static! {
             accept_ra_rt_info_min_plen: 0,
             ndisc_tclass: 0,
         })),
-        LinkAfInet6Nla::Stats(get_byte_buffer(&LinkInet6Stats {
+        Inet6::Stats(get_byte_buffer(&Inet6Stats {
             num: 36,
             in_pkts: 6,
             in_octets: 420,
@@ -283,7 +280,7 @@ lazy_static! {
             in_ect0_pkts: 0,
             in_ce_pkts: 0,
         })),
-        LinkAfInet6Nla::IcmpStats(get_byte_buffer(&LinkIcmp6Stats {
+        Inet6::IcmpStats(get_byte_buffer(&Icmp6Stats {
             num: 6,
             in_msgs: 0,
             in_errors: 0,
@@ -291,48 +288,46 @@ lazy_static! {
             out_errors: 0,
             csum_errors: 0,
         })),
-        LinkAfInet6Nla::Token([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
-        LinkAfInet6Nla::AddrGenMode(0),
+        Inet6::Token([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+        Inet6::AddrGenMode(0),
     ]);
 }
 
 lazy_static! {
-    static ref PARSED_AF_INET: LinkAfSpecInetNla =
-        LinkAfSpecInetNla::Inet(vec![LinkAfInetNla::DevConf(get_byte_buffer(
-            &LinkInetDevConf {
-                forwarding: 1,
-                mc_forwarding: 0,
-                proxy_arp: 0,
-                accept_redirects: 1,
-                secure_redirects: 1,
-                send_redirects: 1,
-                shared_media: 1,
-                rp_filter: 0,
-                accept_source_route: 1,
-                bootp_relay: 0,
-                log_martians: 0,
-                tag: 0,
-                arpfilter: 0,
-                medium_id: 0,
-                noxfrm: 1,
-                nopolicy: 1,
-                force_igmp_version: 0,
-                arp_announce: 0,
-                arp_ignore: 0,
-                promote_secondaries: 0,
-                arp_accept: 0,
-                arp_notify: 0,
-                accept_local: 0,
-                src_vmark: 0,
-                proxy_arp_pvlan: 0,
-                route_localnet: 0,
-                igmpv2_unsolicited_report_interval: 10000,
-                igmpv3_unsolicited_report_interval: 1000,
-                ignore_routes_with_linkdown: 0,
-                drop_unicast_in_l2_multicast: 0,
-                drop_gratuitous_arp: 0,
-            }
-        ))]);
+    static ref PARSED_AF_INET: AfSpecInet =
+        AfSpecInet::Inet(vec![Inet::DevConf(get_byte_buffer(&InetDevConf {
+            forwarding: 1,
+            mc_forwarding: 0,
+            proxy_arp: 0,
+            accept_redirects: 1,
+            secure_redirects: 1,
+            send_redirects: 1,
+            shared_media: 1,
+            rp_filter: 0,
+            accept_source_route: 1,
+            bootp_relay: 0,
+            log_martians: 0,
+            tag: 0,
+            arpfilter: 0,
+            medium_id: 0,
+            noxfrm: 1,
+            nopolicy: 1,
+            force_igmp_version: 0,
+            arp_announce: 0,
+            arp_ignore: 0,
+            promote_secondaries: 0,
+            arp_accept: 0,
+            arp_notify: 0,
+            accept_local: 0,
+            src_vmark: 0,
+            proxy_arp_pvlan: 0,
+            route_localnet: 0,
+            igmpv2_unsolicited_report_interval: 10000,
+            igmpv3_unsolicited_report_interval: 1000,
+            ignore_routes_with_linkdown: 0,
+            drop_unicast_in_l2_multicast: 0,
+            drop_gratuitous_arp: 0,
+        }))]);
 }
 
 #[test]
@@ -353,7 +348,7 @@ fn parse_af_inet() {
     assert_eq!(inet_buf.value().len(), 128);
 
     // parsing check
-    let parsed: LinkAfSpecInetNla = inet_buf.parse().unwrap();
+    let parsed = AfSpecInet::parse(&inet_buf).unwrap();
     assert_eq!(parsed, *PARSED_AF_INET);
 }
 
@@ -407,7 +402,7 @@ fn parse_af_inet6() {
     assert_eq!(inet6_buf.length(), 612);
     assert_eq!(inet6_buf.kind(), AF_INET6);
     assert_eq!(inet6_buf.value().len(), 608);
-    let parsed: LinkAfSpecInetNla = inet6_buf.parse().unwrap();
+    let parsed = AfSpecInet::parse(&inet6_buf).unwrap();
 
     assert_eq!(parsed, *PARSED_AF_INET6);
 

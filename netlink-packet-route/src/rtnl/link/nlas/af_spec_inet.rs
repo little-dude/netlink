@@ -1,19 +1,15 @@
 use failure::ResultExt;
 
+use super::{inet, inet6};
 use crate::{
-    rtnl::{
-        link::{
-            address_families::*,
-            nlas::{inet::LinkAfInetNla, inet6::LinkAfInet6Nla},
-        },
-        nla::{DefaultNla, Nla, NlaBuffer, NlasIterator},
-        traits::{Emitable, Parseable},
-    },
+    constants::*,
+    nlas::{self, DefaultNla, NlaBuffer, NlasIterator},
+    traits::{Emitable, Parseable},
     DecodeError,
 };
 
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub enum LinkAfSpecInetNla {
+pub enum AfSpecInet {
     Unspec(Vec<u8>),
     Unix(Vec<u8>),
     Ax25(Vec<u8>),
@@ -23,8 +19,8 @@ pub enum LinkAfSpecInetNla {
     Bridge(Vec<u8>),
     AtmPvc(Vec<u8>),
     X25(Vec<u8>),
-    Inet(Vec<LinkAfInetNla>),
-    Inet6(Vec<LinkAfInet6Nla>),
+    Inet(Vec<inet::Inet>),
+    Inet6(Vec<inet6::Inet6>),
     Rose(Vec<u8>),
     DecNet(Vec<u8>),
     NetbEui(Vec<u8>),
@@ -54,10 +50,10 @@ pub enum LinkAfSpecInetNla {
     Other(DefaultNla),
 }
 
-impl Nla for LinkAfSpecInetNla {
+impl nlas::Nla for AfSpecInet {
     #[rustfmt::skip]
     fn value_len(&self) -> usize {
-        use self::LinkAfSpecInetNla::*;
+        use self::AfSpecInet::*;
         match *self {
             Unspec(ref bytes)
                 | Unix(ref bytes)
@@ -103,7 +99,7 @@ impl Nla for LinkAfSpecInetNla {
 
     #[rustfmt::skip]
     fn emit_value(&self, buffer: &mut [u8]) {
-        use self::LinkAfSpecInetNla::*;
+        use self::AfSpecInet::*;
         match *self {
             Unspec(ref bytes)
                 | Unix(ref bytes)
@@ -148,7 +144,7 @@ impl Nla for LinkAfSpecInetNla {
     }
 
     fn kind(&self) -> u16 {
-        use self::LinkAfSpecInetNla::*;
+        use self::AfSpecInet::*;
         match *self {
             Inet(_) => AF_INET,
             Unspec(_) => AF_UNSPEC,
@@ -192,20 +188,18 @@ impl Nla for LinkAfSpecInetNla {
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkAfSpecInetNla> for NlaBuffer<&'buffer T> {
-    fn parse(&self) -> Result<LinkAfSpecInetNla, DecodeError> {
-        use self::LinkAfSpecInetNla::*;
-        let payload = self.value();
-        Ok(match self.kind() {
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for AfSpecInet {
+    fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
+        use self::AfSpecInet::*;
+
+        let payload = buf.value();
+        Ok(match buf.kind() {
             AF_UNSPEC => Unspec(payload.to_vec()),
             AF_INET => {
                 let mut nlas = vec![];
                 for nla in NlasIterator::new(payload) {
                     let nla = nla.context("invalid AF_INET value")?;
-                    nlas.push(
-                        <dyn Parseable<LinkAfInetNla>>::parse(&nla)
-                            .context("invalid AF_INET value")?,
-                    );
+                    nlas.push(inet::Inet::parse(&nla).context("invalid AF_INET value")?);
                 }
                 Inet(nlas)
             }
@@ -213,10 +207,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkAfSpecInetNla> for NlaBuffe
                 let mut nlas = vec![];
                 for nla in NlasIterator::new(payload) {
                     let nla = nla.context("invalid AF_INET6 value")?;
-                    nlas.push(
-                        <dyn Parseable<LinkAfInet6Nla>>::parse(&nla)
-                            .context("invalid AF_INET6 value")?,
-                    );
+                    nlas.push(inet6::Inet6::parse(&nla).context("invalid AF_INET6 value")?);
                 }
                 Inet6(nlas)
             }
@@ -254,10 +245,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkAfSpecInetNla> for NlaBuffe
             AF_IEEE802154 => Ieee802154(payload.to_vec()),
             AF_CAIF => Caif(payload.to_vec()),
             AF_ALG => Alg(payload.to_vec()),
-            kind => Other(
-                <Self as Parseable<DefaultNla>>::parse(self)
-                    .context(format!("Unknown NLA type {}", kind))?,
-            ),
+            kind => Other(DefaultNla::parse(buf).context(format!("Unknown NLA type {}", kind))?),
         })
     }
 }

@@ -1,10 +1,10 @@
 use crate::{
-    rtnl::traits::{Emitable, Parseable},
+    traits::{Emitable, Parseable},
     DecodeError,
 };
 
-pub const LINK_INET6_STATS_LEN: usize = 288;
-buffer!(LinkInet6StatsBuffer(LINK_INET6_STATS_LEN) {
+pub const INET6_STATS_LEN: usize = 288;
+buffer!(Inet6StatsBuffer(INET6_STATS_LEN) {
     num: (i64, 0..8),
     in_pkts: (i64, 8..16),
     in_octets: (i64, 16..24),
@@ -44,7 +44,7 @@ buffer!(LinkInet6StatsBuffer(LINK_INET6_STATS_LEN) {
 });
 
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
-pub struct LinkInet6Stats {
+pub struct Inet6Stats {
     pub num: i64,
     pub in_pkts: i64,
     pub in_octets: i64,
@@ -83,56 +83,56 @@ pub struct LinkInet6Stats {
     pub in_ce_pkts: i64,
 }
 
-impl<T: AsRef<[u8]>> Parseable<LinkInet6Stats> for LinkInet6StatsBuffer<T> {
-    fn parse(&self) -> Result<LinkInet6Stats, DecodeError> {
-        Ok(LinkInet6Stats {
-            num: self.num(),
-            in_pkts: self.in_pkts(),
-            in_octets: self.in_octets(),
-            in_delivers: self.in_delivers(),
-            out_forw_datagrams: self.out_forw_datagrams(),
-            out_pkts: self.out_pkts(),
-            out_octets: self.out_octets(),
-            in_hdr_errors: self.in_hdr_errors(),
-            in_too_big_errors: self.in_too_big_errors(),
-            in_no_routes: self.in_no_routes(),
-            in_addr_errors: self.in_addr_errors(),
-            in_unknown_protos: self.in_unknown_protos(),
-            in_truncated_pkts: self.in_truncated_pkts(),
-            in_discards: self.in_discards(),
-            out_discards: self.out_discards(),
-            out_no_routes: self.out_no_routes(),
-            reasm_timeout: self.reasm_timeout(),
-            reasm_reqds: self.reasm_reqds(),
-            reasm_oks: self.reasm_oks(),
-            reasm_fails: self.reasm_fails(),
-            frag_oks: self.frag_oks(),
-            frag_fails: self.frag_fails(),
-            frag_creates: self.frag_creates(),
-            in_mcast_pkts: self.in_mcast_pkts(),
-            out_mcast_pkts: self.out_mcast_pkts(),
-            in_bcast_pkts: self.in_bcast_pkts(),
-            out_bcast_pkts: self.out_bcast_pkts(),
-            in_mcast_octets: self.in_mcast_octets(),
-            out_mcast_octets: self.out_mcast_octets(),
-            in_bcast_octets: self.in_bcast_octets(),
-            out_bcast_octets: self.out_bcast_octets(),
-            in_csum_errors: self.in_csum_errors(),
-            in_no_ect_pkts: self.in_no_ect_pkts(),
-            in_ect1_pkts: self.in_ect1_pkts(),
-            in_ect0_pkts: self.in_ect0_pkts(),
-            in_ce_pkts: self.in_ce_pkts(),
+impl<T: AsRef<[u8]>> Parseable<Inet6StatsBuffer<T>> for Inet6Stats {
+    fn parse(buf: &Inet6StatsBuffer<T>) -> Result<Self, DecodeError> {
+        Ok(Self {
+            num: buf.num(),
+            in_pkts: buf.in_pkts(),
+            in_octets: buf.in_octets(),
+            in_delivers: buf.in_delivers(),
+            out_forw_datagrams: buf.out_forw_datagrams(),
+            out_pkts: buf.out_pkts(),
+            out_octets: buf.out_octets(),
+            in_hdr_errors: buf.in_hdr_errors(),
+            in_too_big_errors: buf.in_too_big_errors(),
+            in_no_routes: buf.in_no_routes(),
+            in_addr_errors: buf.in_addr_errors(),
+            in_unknown_protos: buf.in_unknown_protos(),
+            in_truncated_pkts: buf.in_truncated_pkts(),
+            in_discards: buf.in_discards(),
+            out_discards: buf.out_discards(),
+            out_no_routes: buf.out_no_routes(),
+            reasm_timeout: buf.reasm_timeout(),
+            reasm_reqds: buf.reasm_reqds(),
+            reasm_oks: buf.reasm_oks(),
+            reasm_fails: buf.reasm_fails(),
+            frag_oks: buf.frag_oks(),
+            frag_fails: buf.frag_fails(),
+            frag_creates: buf.frag_creates(),
+            in_mcast_pkts: buf.in_mcast_pkts(),
+            out_mcast_pkts: buf.out_mcast_pkts(),
+            in_bcast_pkts: buf.in_bcast_pkts(),
+            out_bcast_pkts: buf.out_bcast_pkts(),
+            in_mcast_octets: buf.in_mcast_octets(),
+            out_mcast_octets: buf.out_mcast_octets(),
+            in_bcast_octets: buf.in_bcast_octets(),
+            out_bcast_octets: buf.out_bcast_octets(),
+            in_csum_errors: buf.in_csum_errors(),
+            in_no_ect_pkts: buf.in_no_ect_pkts(),
+            in_ect1_pkts: buf.in_ect1_pkts(),
+            in_ect0_pkts: buf.in_ect0_pkts(),
+            in_ce_pkts: buf.in_ce_pkts(),
         })
     }
 }
 
-impl Emitable for LinkInet6Stats {
+impl Emitable for Inet6Stats {
     fn buffer_len(&self) -> usize {
-        LINK_INET6_STATS_LEN
+        INET6_STATS_LEN
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        let mut buffer = LinkInet6StatsBuffer::new(buffer);
+        let mut buffer = Inet6StatsBuffer::new(buffer);
         buffer.set_num(self.num);
         buffer.set_in_pkts(self.in_pkts);
         buffer.set_in_octets(self.in_octets);

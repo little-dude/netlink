@@ -1,4 +1,4 @@
-use crate::netlink::DecodeError;
+use crate::DecodeError;
 
 /// A type that implements `Emitable` can be serialized.
 pub trait Emitable {
@@ -18,14 +18,20 @@ pub trait Emitable {
 
 /// A `Parseable` type can be used to deserialize data into the target type `T` for which it is
 /// implemented.
-pub trait Parseable<T> {
+pub trait Parseable<T>
+where
+    Self: Sized,
+{
     /// Deserialize the current type.
-    fn parse(&self) -> Result<T, DecodeError>;
+    fn parse(buf: &T) -> Result<Self, DecodeError>;
 }
 
 /// A `Parseable` type can be used to deserialize data into the target type `T` for which it is
 /// implemented.
-pub trait ParseableParametrized<T, P> {
+pub trait ParseableParametrized<T, P>
+where
+    Self: Sized,
+{
     /// Deserialize the current type.
-    fn parse_with_param(&self, params: P) -> Result<T, DecodeError>;
+    fn parse_with_param(buf: &T, params: P) -> Result<Self, DecodeError>;
 }

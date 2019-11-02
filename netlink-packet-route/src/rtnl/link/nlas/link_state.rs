@@ -1,13 +1,7 @@
-pub const IF_OPER_UNKNOWN: u8 = 0;
-pub const IF_OPER_NOTPRESENT: u8 = 1;
-pub const IF_OPER_DOWN: u8 = 2;
-pub const IF_OPER_LOWERLAYERDOWN: u8 = 3;
-pub const IF_OPER_TESTING: u8 = 4;
-pub const IF_OPER_DORMANT: u8 = 5;
-pub const IF_OPER_UP: u8 = 6;
+use crate::constants::*;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum LinkState {
+pub enum State {
     /// Status can't be determined
     Unknown,
     /// Some component is missing
@@ -27,9 +21,9 @@ pub enum LinkState {
     Other(u8),
 }
 
-impl From<u8> for LinkState {
+impl From<u8> for State {
     fn from(value: u8) -> Self {
-        use self::LinkState::*;
+        use self::State::*;
         match value {
             IF_OPER_UNKNOWN => Unknown,
             IF_OPER_NOTPRESENT => NotPresent,
@@ -43,9 +37,9 @@ impl From<u8> for LinkState {
     }
 }
 
-impl From<LinkState> for u8 {
-    fn from(value: LinkState) -> Self {
-        use self::LinkState::*;
+impl From<State> for u8 {
+    fn from(value: State) -> Self {
+        use self::State::*;
         match value {
             Unknown => IF_OPER_UNKNOWN,
             NotPresent => IF_OPER_NOTPRESENT,

@@ -7,8 +7,8 @@
 use audit::{
     new_connection,
     packet::{
-        archs::AUDIT_ARCH_X86_64,
-        rules::{RuleAction, RuleField, RuleFieldFlags, RuleFlags, RuleMessage, RuleSyscalls},
+        constants::AUDIT_ARCH_X86_64, RuleAction, RuleField, RuleFieldFlags, RuleFlags,
+        RuleMessage, RuleSyscalls,
     },
     Error, Handle,
 };

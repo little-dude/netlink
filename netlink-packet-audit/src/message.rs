@@ -1,14 +1,11 @@
 use failure::{Compat as FailureError, Fail};
 
-use netlink_packet_core::{
-    NetlinkDeserializable, NetlinkHeader, NetlinkPayload, NetlinkSerializable,
-};
-
 use crate::{
-    commands::{AUDIT_ADD_RULE, AUDIT_DEL_RULE, AUDIT_GET, AUDIT_LIST_RULES, AUDIT_SET},
-    netlink::DecodeError,
+    constants::*,
     rules::RuleMessage,
-    AuditBuffer, Emitable, ParseableParametrized, StatusMessage,
+    traits::{Emitable, ParseableParametrized},
+    AuditBuffer, DecodeError, NetlinkDeserializable, NetlinkHeader, NetlinkPayload,
+    NetlinkSerializable, StatusMessage,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -144,7 +141,7 @@ impl NetlinkDeserializable<AuditMessage> for AuditMessage {
     fn deserialize(header: &NetlinkHeader, payload: &[u8]) -> Result<Self, Self::Error> {
         match AuditBuffer::new_checked(payload) {
             Err(e) => return Err(e.compat()),
-            Ok(buffer) => match buffer.parse_with_param(header.message_type) {
+            Ok(buffer) => match AuditMessage::parse_with_param(&buffer, header.message_type) {
                 Err(e) => return Err(e.compat()),
                 Ok(message) => return Ok(message),
             },

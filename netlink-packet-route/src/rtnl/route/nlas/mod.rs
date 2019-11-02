@@ -1,55 +1,25 @@
-mod metrics;
-pub use self::metrics::*;
-
 mod cache_info;
 pub use self::cache_info::*;
+
+mod metrics;
+pub use self::metrics::*;
 
 mod mfc_stats;
 pub use self::mfc_stats::*;
 
 use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
-use std::mem::size_of;
 
 use crate::{
-    rtnl::{
-        nla::{DefaultNla, Nla, NlaBuffer},
-        traits::Parseable,
-        utils::{parse_u16, parse_u32},
-    },
+    constants::*,
+    nlas::{self, DefaultNla, NlaBuffer},
+    parsers::{parse_u16, parse_u32},
+    traits::Parseable,
     DecodeError,
 };
 
-pub const RTA_UNSPEC: u16 = 0;
-pub const RTA_DST: u16 = 1;
-pub const RTA_SRC: u16 = 2;
-pub const RTA_IIF: u16 = 3;
-pub const RTA_OIF: u16 = 4;
-pub const RTA_GATEWAY: u16 = 5;
-pub const RTA_PRIORITY: u16 = 6;
-pub const RTA_PREFSRC: u16 = 7;
-pub const RTA_METRICS: u16 = 8;
-pub const RTA_MULTIPATH: u16 = 9;
-pub const RTA_PROTOINFO: u16 = 10;
-pub const RTA_FLOW: u16 = 11;
-pub const RTA_CACHEINFO: u16 = 12;
-pub const RTA_SESSION: u16 = 13;
-pub const RTA_MP_ALGO: u16 = 14;
-pub const RTA_TABLE: u16 = 15;
-pub const RTA_MARK: u16 = 16;
-pub const RTA_MFC_STATS: u16 = 17;
-pub const RTA_VIA: u16 = 18;
-pub const RTA_NEWDST: u16 = 19;
-pub const RTA_PREF: u16 = 20;
-pub const RTA_ENCAP_TYPE: u16 = 21;
-pub const RTA_ENCAP: u16 = 22;
-pub const RTA_EXPIRES: u16 = 23;
-pub const RTA_PAD: u16 = 24;
-pub const RTA_UID: u16 = 25;
-pub const RTA_TTL_PROPAGATE: u16 = 26;
-
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum RouteNla {
+pub enum Nla {
     Unspec(Vec<u8>),
     Destination(Vec<u8>),
     Source(Vec<u8>),
@@ -80,10 +50,10 @@ pub enum RouteNla {
     Other(DefaultNla),
 }
 
-impl Nla for RouteNla {
+impl nlas::Nla for Nla {
     #[rustfmt::skip]
     fn value_len(&self) -> usize {
-        use self::RouteNla::*;
+        use self::Nla::*;
         match *self {
             Unspec(ref bytes)
                 | Destination(ref bytes)
@@ -106,7 +76,7 @@ impl Nla for RouteNla {
                 | Metrics(ref bytes)
                 => bytes.len(),
 
-            EncapType(_) => size_of::<u16>(),
+            EncapType(_) => 2,
             Iif(_)
                 | Oif(_)
                 | Priority(_)
@@ -114,7 +84,7 @@ impl Nla for RouteNla {
                 | Flow(_)
                 | Table(_)
                 | Mark(_)
-                => size_of::<u32>(),
+                => 4,
 
             Other(ref attr) => attr.value_len(),
         }
@@ -122,7 +92,7 @@ impl Nla for RouteNla {
 
     #[rustfmt::skip]
     fn emit_value(&self, buffer: &mut [u8]) {
-        use self::RouteNla::*;
+        use self::Nla::*;
         match *self {
             Unspec(ref bytes)
                 | Destination(ref bytes)
@@ -158,7 +128,7 @@ impl Nla for RouteNla {
     }
 
     fn kind(&self) -> u16 {
-        use self::RouteNla::*;
+        use self::Nla::*;
         match *self {
             Unspec(_) => RTA_UNSPEC,
             Destination(_) => RTA_DST,
@@ -192,11 +162,12 @@ impl Nla for RouteNla {
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<RouteNla> for NlaBuffer<&'buffer T> {
-    fn parse(&self) -> Result<RouteNla, DecodeError> {
-        use self::RouteNla::*;
-        let payload = self.value();
-        Ok(match self.kind() {
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for Nla {
+    fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
+        use self::Nla::*;
+
+        let payload = buf.value();
+        Ok(match buf.kind() {
             RTA_UNSPEC => Unspec(payload.to_vec()),
             RTA_DST => Destination(payload.to_vec()),
             RTA_SRC => Source(payload.to_vec()),
@@ -228,10 +199,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<RouteNla> for NlaBuffer<&'buffe
             RTA_CACHEINFO => CacheInfo(payload.to_vec()),
             RTA_MFC_STATS => MfcStats(payload.to_vec()),
             RTA_METRICS => Metrics(payload.to_vec()),
-            _ => Other(
-                <Self as Parseable<DefaultNla>>::parse(self)
-                    .context("invalid NLA (unknown kind)")?,
-            ),
+            _ => Other(DefaultNla::parse(buf).context("invalid NLA (unknown kind)")?),
         })
     }
 }

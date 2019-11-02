@@ -1,11 +1,11 @@
 use crate::{
-    rtnl::nla::{NlaBuffer, NlasIterator},
+    nlas::{NlaBuffer, NlasIterator},
     DecodeError,
 };
 
 pub const ROUTE_HEADER_LEN: usize = 12;
 
-buffer!(RouteBuffer(ROUTE_HEADER_LEN) {
+buffer!(RouteMessageBuffer(ROUTE_HEADER_LEN) {
     address_family: (u8, 0),
     destination_length: (u8, 1),
     source_length: (u8, 2),
@@ -18,7 +18,7 @@ buffer!(RouteBuffer(ROUTE_HEADER_LEN) {
     payload: (slice, ROUTE_HEADER_LEN..),
 });
 
-impl<'a, T: AsRef<[u8]> + ?Sized> RouteBuffer<&'a T> {
+impl<'a, T: AsRef<[u8]> + ?Sized> RouteMessageBuffer<&'a T> {
     pub fn nlas(&self) -> impl Iterator<Item = Result<NlaBuffer<&'a [u8]>, DecodeError>> {
         NlasIterator::new(self.payload())
     }

@@ -6,14 +6,8 @@ use futures::{
 
 use crate::{
     packet::{
-        netlink::{
-            header::flags::{NLM_F_DUMP, NLM_F_REQUEST},
-            NetlinkFlags, NetlinkMessage, NetlinkPayload,
-        },
-        rtnl::{
-            link::{nlas::LinkNla, LinkMessage},
-            RtnlMessage,
-        },
+        nlas::link::Nla, LinkMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage,
+        NLM_F_DUMP, NLM_F_REQUEST,
     },
     Error, ErrorKind, Handle,
 };
@@ -109,7 +103,7 @@ impl LinkFilterBuilder {
         move |msg: &LinkMessage| {
             if let Some(name) = &self.name {
                 for nla in msg.nlas.iter() {
-                    if let LinkNla::IfName(s) = nla {
+                    if let Nla::IfName(s) = nla {
                         if s == name {
                             return true;
                         }

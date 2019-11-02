@@ -2,7 +2,7 @@ use futures::channel::mpsc::UnboundedReceiver;
 use std::io;
 
 use crate::{
-    packet::{netlink::NetlinkMessage, rtnl::RtnlMessage},
+    packet::{NetlinkMessage, RtnlMessage},
     Handle,
 };
 use netlink_proto::{

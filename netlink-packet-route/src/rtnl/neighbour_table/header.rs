@@ -1,19 +1,19 @@
 use crate::{
-    rtnl::traits::{Emitable, Parseable},
+    traits::{Emitable, Parseable},
     DecodeError,
 };
 
-use super::buffer::{NeighbourTableBuffer, NEIGHBOUR_TABLE_HEADER_LEN};
+use super::buffer::{NeighbourTableMessageBuffer, NEIGHBOUR_TABLE_HEADER_LEN};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct NeighbourTableHeader {
     pub family: u8,
 }
 
-impl<T: AsRef<[u8]>> Parseable<NeighbourTableHeader> for NeighbourTableBuffer<T> {
-    fn parse(&self) -> Result<NeighbourTableHeader, DecodeError> {
-        Ok(NeighbourTableHeader {
-            family: self.family(),
+impl<T: AsRef<[u8]>> Parseable<NeighbourTableMessageBuffer<T>> for NeighbourTableHeader {
+    fn parse(buf: &NeighbourTableMessageBuffer<T>) -> Result<Self, DecodeError> {
+        Ok(Self {
+            family: buf.family(),
         })
     }
 }
@@ -24,7 +24,7 @@ impl Emitable for NeighbourTableHeader {
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        let mut packet = NeighbourTableBuffer::new(buffer);
+        let mut packet = NeighbourTableMessageBuffer::new(buffer);
         packet.set_family(self.family);
     }
 }

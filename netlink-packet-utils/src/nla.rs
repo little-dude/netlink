@@ -4,7 +4,7 @@ use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
 
 use crate::{
-    rtnl::traits::{Emitable, Parseable},
+    traits::{Emitable, Parseable},
     DecodeError,
 };
 
@@ -178,11 +178,11 @@ impl Nla for DefaultNla {
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<DefaultNla> for NlaBuffer<&'buffer T> {
-    fn parse(&self) -> Result<DefaultNla, DecodeError> {
+impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'buffer T>> for DefaultNla {
+    fn parse(buf: &NlaBuffer<&'buffer T>) -> Result<Self, DecodeError> {
         Ok(DefaultNla {
-            kind: self.kind(),
-            value: self.value().to_vec(),
+            kind: buf.kind(),
+            value: buf.value().to_vec(),
         })
     }
 }

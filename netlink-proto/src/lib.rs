@@ -14,10 +14,7 @@
 //! ```rust,no_run
 //! use futures::stream::StreamExt;
 //! use netlink_packet_audit::{
-//!     netlink::{
-//!         header::flags::{NLM_F_ACK, NLM_F_REQUEST},
-//!         NetlinkFlags, NetlinkMessage, NetlinkPayload,
-//!     },
+//!     NLM_F_ACK, NLM_F_REQUEST, NetlinkFlags, NetlinkMessage, NetlinkPayload,
 //!     AuditMessage, StatusMessage,
 //! };
 //! use std::process;
@@ -110,14 +107,8 @@
 //! use futures::StreamExt;
 //!
 //! use netlink_packet_route::{
-//!     netlink::{
-//!         header::flags::{NLM_F_DUMP, NLM_F_REQUEST},
-//!         NetlinkFlags, NetlinkHeader, NetlinkMessage, NetlinkPayload,
-//!     },
-//!     rtnl::{
-//!         link::{LinkHeader, LinkMessage},
-//!         RtnlMessage,
-//!     },
+//!     NLM_F_DUMP, NLM_F_REQUEST, NetlinkFlags, NetlinkMessage, NetlinkPayload,
+//!     NetlinkHeader, LinkHeader, LinkMessage, RtnlMessage
 //! };
 //!
 //! use netlink_proto::{

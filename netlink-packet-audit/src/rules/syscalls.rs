@@ -1,13 +1,9 @@
 use byteorder::{ByteOrder, NativeEndian};
 
-use crate::netlink::DecodeError;
+use crate::{constants::*, DecodeError};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct RuleSyscalls(pub(crate) Vec<u32>);
-
-pub const AUDIT_MAX_FIELDS: usize = 64;
-pub const AUDIT_MAX_KEY_LEN: usize = 256;
-pub const AUDIT_BITMASK_SIZE: usize = 64;
 
 const BITMASK_BYTE_LEN: usize = AUDIT_BITMASK_SIZE * 4;
 const BITMASK_BIT_LEN: u32 = AUDIT_BITMASK_SIZE as u32 * 32;

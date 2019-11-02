@@ -6,14 +6,8 @@ use futures::{
 use std::net::IpAddr;
 
 use netlink_packet_route::{
-    netlink::{
-        header::flags::{NLM_F_DUMP, NLM_F_REQUEST},
-        NetlinkFlags, NetlinkMessage, NetlinkPayload,
-    },
-    rtnl::{
-        address::{nlas::AddressNla, AddressMessage},
-        RtnlMessage,
-    },
+    nlas::address::Nla, AddressMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage,
+    NLM_F_DUMP, NLM_F_REQUEST,
 };
 
 use crate::{Error, ErrorKind, Handle};
@@ -106,7 +100,7 @@ impl AddressFilterBuilder {
     }
 
     fn build(self) -> impl Fn(&AddressMessage) -> bool {
-        use AddressNla::*;
+        use Nla::*;
 
         move |msg: &AddressMessage| {
             if let Some(index) = self.index {

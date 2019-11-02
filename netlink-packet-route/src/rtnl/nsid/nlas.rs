@@ -2,22 +2,15 @@ use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
 
 use crate::{
-    rtnl::{
-        nla::{DefaultNla, Nla, NlaBuffer},
-        traits::Parseable,
-        utils::{parse_i32, parse_u32},
-    },
+    constants::*,
+    nlas::{self, DefaultNla, NlaBuffer},
+    parsers::{parse_i32, parse_u32},
+    traits::Parseable,
     DecodeError,
 };
 
-pub const NETNSA_NONE: u16 = 0;
-pub const NETNSA_NSID: u16 = 1;
-pub const NETNSA_PID: u16 = 2;
-pub const NETNSA_FD: u16 = 3;
-pub const NETNSA_NSID_NOT_ASSIGNED: i32 = -1;
-
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum NsIdNla {
+pub enum Nla {
     Unspec(Vec<u8>),
     Id(i32),
     Pid(u32),
@@ -25,9 +18,9 @@ pub enum NsIdNla {
     Other(DefaultNla),
 }
 
-impl Nla for NsIdNla {
+impl nlas::Nla for Nla {
     fn value_len(&self) -> usize {
-        use self::NsIdNla::*;
+        use self::Nla::*;
         match *self {
             Unspec(ref bytes) => bytes.len(),
             Id(_) | Pid(_) | Fd(_) => 4,
@@ -36,7 +29,7 @@ impl Nla for NsIdNla {
     }
 
     fn emit_value(&self, buffer: &mut [u8]) {
-        use self::NsIdNla::*;
+        use self::Nla::*;
         match *self {
             Unspec(ref bytes) => buffer.copy_from_slice(bytes.as_slice()),
             Fd(ref value) | Pid(ref value) => NativeEndian::write_u32(buffer, *value),
@@ -46,7 +39,7 @@ impl Nla for NsIdNla {
     }
 
     fn kind(&self) -> u16 {
-        use self::NsIdNla::*;
+        use self::Nla::*;
         match *self {
             Unspec(_) => NETNSA_NONE,
             Id(_) => NETNSA_NSID,
@@ -57,19 +50,16 @@ impl Nla for NsIdNla {
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<NsIdNla> for NlaBuffer<&'buffer T> {
-    fn parse(&self) -> Result<NsIdNla, DecodeError> {
-        use self::NsIdNla::*;
-        let payload = self.value();
-        Ok(match self.kind() {
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for Nla {
+    fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
+        use self::Nla::*;
+        let payload = buf.value();
+        Ok(match buf.kind() {
             NETNSA_NONE => Unspec(payload.to_vec()),
             NETNSA_NSID => Id(parse_i32(payload).context("invalid NETNSA_NSID")?),
             NETNSA_PID => Pid(parse_u32(payload).context("invalid NETNSA_PID")?),
             NETNSA_FD => Fd(parse_u32(payload).context("invalid NETNSA_FD")?),
-            kind => Other(
-                <Self as Parseable<DefaultNla>>::parse(self)
-                    .context(format!("unknown NLA type {}", kind))?,
-            ),
+            kind => Other(DefaultNla::parse(buf).context(format!("unknown NLA type {}", kind))?),
         })
     }
 }

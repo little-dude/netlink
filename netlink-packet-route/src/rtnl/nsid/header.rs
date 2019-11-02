@@ -1,42 +1,42 @@
-use super::{NsIdBuffer, NSID_HEADER_LEN};
+use super::{NsidMessageBuffer, NSID_HEADER_LEN};
 use crate::{
-    rtnl::traits::{Emitable, Parseable},
+    traits::{Emitable, Parseable},
     DecodeError,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct NsIdHeader {
+pub struct NsidHeader {
     pub rtgen_family: u8,
 }
 
-impl Default for NsIdHeader {
+impl Default for NsidHeader {
     fn default() -> Self {
-        NsIdHeader::new()
+        NsidHeader::new()
     }
 }
 
-impl NsIdHeader {
-    /// Create a new `NsIdHeader`:
+impl NsidHeader {
+    /// Create a new `NsidHeader`:
     pub fn new() -> Self {
-        NsIdHeader { rtgen_family: 0 }
+        NsidHeader { rtgen_family: 0 }
     }
 }
 
-impl Emitable for NsIdHeader {
+impl Emitable for NsidHeader {
     fn buffer_len(&self) -> usize {
         NSID_HEADER_LEN
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        let mut packet = NsIdBuffer::new(buffer);
+        let mut packet = NsidMessageBuffer::new(buffer);
         packet.set_rtgen_family(self.rtgen_family);
     }
 }
 
-impl<T: AsRef<[u8]>> Parseable<NsIdHeader> for NsIdBuffer<T> {
-    fn parse(&self) -> Result<NsIdHeader, DecodeError> {
-        Ok(NsIdHeader {
-            rtgen_family: self.rtgen_family(),
+impl<T: AsRef<[u8]>> Parseable<NsidMessageBuffer<T>> for NsidHeader {
+    fn parse(buf: &NsidMessageBuffer<T>) -> Result<Self, DecodeError> {
+        Ok(NsidHeader {
+            rtgen_family: buf.rtgen_family(),
         })
     }
 }

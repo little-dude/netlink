@@ -1,17 +1,15 @@
 use failure::ResultExt;
 
 use crate::{
-    rtnl::{
-        tc::{nlas::TcNla, TcBuffer, TC_HEADER_LEN},
-        traits::{Emitable, Parseable},
-    },
-    DecodeError,
+    nlas::tc::Nla,
+    traits::{Emitable, Parseable},
+    DecodeError, TcMessageBuffer, TC_HEADER_LEN,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct TcMessage {
-    header: TcHeader,
-    nlas: Vec<TcNla>,
+    pub header: TcHeader,
+    pub nlas: Vec<Nla>,
 }
 
 impl TcMessage {
@@ -19,31 +17,11 @@ impl TcMessage {
         Default::default()
     }
 
-    pub fn into_parts(self) -> (TcHeader, Vec<TcNla>) {
+    pub fn into_parts(self) -> (TcHeader, Vec<Nla>) {
         (self.header, self.nlas)
     }
 
-    pub fn header_mut(&mut self) -> &mut TcHeader {
-        &mut self.header
-    }
-
-    pub fn header(&self) -> &TcHeader {
-        &self.header
-    }
-
-    pub fn nlas(&self) -> &[TcNla] {
-        self.nlas.as_slice()
-    }
-
-    pub fn nlas_mut(&mut self) -> &mut Vec<TcNla> {
-        &mut self.nlas
-    }
-
-    pub fn append_nla(&mut self, nla: TcNla) {
-        self.nlas.push(nla)
-    }
-
-    pub fn from_parts(header: TcHeader, nlas: Vec<TcNla>) -> Self {
+    pub fn from_parts(header: TcHeader, nlas: Vec<Nla>) -> Self {
         TcMessage { header, nlas }
     }
 }
@@ -84,7 +62,7 @@ impl Emitable for TcHeader {
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        let mut packet = TcBuffer::new(buffer);
+        let mut packet = TcMessageBuffer::new(buffer);
         packet.set_family(self.family);
         packet.set_index(self.index);
         packet.set_handle(self.handle);
@@ -104,32 +82,32 @@ impl Emitable for TcMessage {
     }
 }
 
-impl<T: AsRef<[u8]>> Parseable<TcHeader> for TcBuffer<T> {
-    fn parse(&self) -> Result<TcHeader, DecodeError> {
-        Ok(TcHeader {
-            family: self.family(),
-            index: self.index(),
-            handle: self.handle(),
-            parent: self.parent(),
-            info: self.info(),
+impl<T: AsRef<[u8]>> Parseable<TcMessageBuffer<T>> for TcHeader {
+    fn parse(buf: &TcMessageBuffer<T>) -> Result<Self, DecodeError> {
+        Ok(Self {
+            family: buf.family(),
+            index: buf.index(),
+            handle: buf.handle(),
+            parent: buf.parent(),
+            info: buf.info(),
         })
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<TcMessage> for TcBuffer<&'buffer T> {
-    fn parse(&self) -> Result<TcMessage, DecodeError> {
-        Ok(TcMessage {
-            header: self.parse().context("failed to parse tc message header")?,
-            nlas: self.parse().context("failed to parse tc message NLAs")?,
+impl<'a, T: AsRef<[u8]> + 'a> Parseable<TcMessageBuffer<&'a T>> for TcMessage {
+    fn parse(buf: &TcMessageBuffer<&'a T>) -> Result<Self, DecodeError> {
+        Ok(Self {
+            header: TcHeader::parse(buf).context("failed to parse tc message header")?,
+            nlas: Vec::<Nla>::parse(buf).context("failed to parse tc message NLAs")?,
         })
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Vec<TcNla>> for TcBuffer<&'buffer T> {
-    fn parse(&self) -> Result<Vec<TcNla>, DecodeError> {
+impl<'a, T: AsRef<[u8]> + 'a> Parseable<TcMessageBuffer<&'a T>> for Vec<Nla> {
+    fn parse(buf: &TcMessageBuffer<&'a T>) -> Result<Self, DecodeError> {
         let mut nlas = vec![];
-        for nla_buf in self.nlas() {
-            nlas.push(nla_buf?.parse()?);
+        for nla_buf in buf.nlas() {
+            nlas.push(Nla::parse(&nla_buf?)?);
         }
         Ok(nlas)
     }

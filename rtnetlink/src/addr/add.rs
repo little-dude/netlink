@@ -2,15 +2,8 @@ use futures::stream::StreamExt;
 use std::net::{IpAddr, Ipv4Addr};
 
 use netlink_packet_route::{
-    netlink::{
-        header::flags::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST},
-        NetlinkFlags, NetlinkMessage, NetlinkPayload,
-    },
-    rtnl::{
-        address::{nlas::AddressNla, AddressMessage},
-        link::address_families::{AF_INET, AF_INET6},
-        RtnlMessage,
-    },
+    nlas::address::Nla, AddressMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage,
+    AF_INET, AF_INET6, NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST,
 };
 
 use crate::{Error, ErrorKind, Handle};
@@ -40,20 +33,20 @@ impl AddressAddRequest {
         };
 
         if address.is_multicast() {
-            message.nlas.push(AddressNla::Multicast(address_vec));
+            message.nlas.push(Nla::Multicast(address_vec));
         } else if address.is_unspecified() {
-            message.nlas.push(AddressNla::Unspec(address_vec));
+            message.nlas.push(Nla::Unspec(address_vec));
         } else if address.is_ipv6() {
-            message.nlas.push(AddressNla::Address(address_vec));
+            message.nlas.push(Nla::Address(address_vec));
         } else {
-            message.nlas.push(AddressNla::Address(address_vec.clone()));
+            message.nlas.push(Nla::Address(address_vec.clone()));
 
             // for IPv4 the IFA_LOCAL address can be set to the same value as IFA_ADDRESS
-            message.nlas.push(AddressNla::Local(address_vec.clone()));
+            message.nlas.push(Nla::Local(address_vec.clone()));
 
             // set the IFA_BROADCAST address as well (IPv6 does not support broadcast)
             if prefix_len == 32 {
-                message.nlas.push(AddressNla::Broadcast(address_vec));
+                message.nlas.push(Nla::Broadcast(address_vec));
             } else {
                 let ip_addr: u32 = u32::from(Ipv4Addr::new(
                     address_vec[0],
@@ -62,9 +55,7 @@ impl AddressAddRequest {
                     address_vec[3],
                 ));
                 let brd = Ipv4Addr::from((0xffff_ffff as u32) >> u32::from(prefix_len) | ip_addr);
-                message
-                    .nlas
-                    .push(AddressNla::Broadcast(brd.octets().to_vec()));
+                message.nlas.push(Nla::Broadcast(brd.octets().to_vec()));
             };
         }
         AddressAddRequest { handle, message }

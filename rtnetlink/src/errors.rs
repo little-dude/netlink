@@ -2,10 +2,7 @@ use std::fmt::{self, Display};
 
 use failure::{Backtrace, Context, Fail};
 
-use crate::packet::{
-    netlink::{ErrorMessage, NetlinkMessage},
-    rtnl::RtnlMessage,
-};
+use crate::packet::{ErrorMessage, NetlinkMessage, RtnlMessage};
 
 #[derive(Debug)]
 pub struct Error {

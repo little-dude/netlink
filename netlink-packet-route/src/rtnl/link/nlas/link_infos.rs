@@ -1,78 +1,12 @@
 use crate::{
-    rtnl::{
-        link::{LinkBuffer, LinkMessage},
-        nla::{DefaultNla, Nla, NlaBuffer, NlasIterator},
-        traits::{Emitable, Parseable},
-        utils::{parse_mac, parse_string, parse_u16, parse_u32, parse_u64, parse_u8},
-    },
-    DecodeError,
+    constants::*,
+    nlas::{DefaultNla, Nla, NlaBuffer, NlasIterator},
+    parsers::{parse_mac, parse_string, parse_u16, parse_u32, parse_u64, parse_u8},
+    traits::{Emitable, Parseable},
+    DecodeError, LinkMessage, LinkMessageBuffer,
 };
 use byteorder::{ByteOrder, NativeEndian};
 use failure::ResultExt;
-use std::mem::size_of;
-
-pub const IFLA_INFO_UNSPEC: u16 = 0;
-pub const IFLA_INFO_KIND: u16 = 1;
-pub const IFLA_INFO_DATA: u16 = 2;
-pub const IFLA_INFO_XSTATS: u16 = 3;
-pub const IFLA_INFO_SLAVE_KIND: u16 = 4;
-pub const IFLA_INFO_SLAVE_DATA: u16 = 5;
-
-pub const IFLA_BR_UNSPEC: u16 = 0;
-pub const IFLA_BR_FORWARD_DELAY: u16 = 1;
-pub const IFLA_BR_HELLO_TIME: u16 = 2;
-pub const IFLA_BR_MAX_AGE: u16 = 3;
-pub const IFLA_BR_AGEING_TIME: u16 = 4;
-pub const IFLA_BR_STP_STATE: u16 = 5;
-pub const IFLA_BR_PRIORITY: u16 = 6;
-pub const IFLA_BR_VLAN_FILTERING: u16 = 7;
-pub const IFLA_BR_VLAN_PROTOCOL: u16 = 8;
-pub const IFLA_BR_GROUP_FWD_MASK: u16 = 9;
-pub const IFLA_BR_ROOT_ID: u16 = 10;
-pub const IFLA_BR_BRIDGE_ID: u16 = 11;
-pub const IFLA_BR_ROOT_PORT: u16 = 12;
-pub const IFLA_BR_ROOT_PATH_COST: u16 = 13;
-pub const IFLA_BR_TOPOLOGY_CHANGE: u16 = 14;
-pub const IFLA_BR_TOPOLOGY_CHANGE_DETECTED: u16 = 15;
-pub const IFLA_BR_HELLO_TIMER: u16 = 16;
-pub const IFLA_BR_TCN_TIMER: u16 = 17;
-pub const IFLA_BR_TOPOLOGY_CHANGE_TIMER: u16 = 18;
-pub const IFLA_BR_GC_TIMER: u16 = 19;
-pub const IFLA_BR_GROUP_ADDR: u16 = 20;
-pub const IFLA_BR_FDB_FLUSH: u16 = 21;
-pub const IFLA_BR_MCAST_ROUTER: u16 = 22;
-pub const IFLA_BR_MCAST_SNOOPING: u16 = 23;
-pub const IFLA_BR_MCAST_QUERY_USE_IFADDR: u16 = 24;
-pub const IFLA_BR_MCAST_QUERIER: u16 = 25;
-pub const IFLA_BR_MCAST_HASH_ELASTICITY: u16 = 26;
-pub const IFLA_BR_MCAST_HASH_MAX: u16 = 27;
-pub const IFLA_BR_MCAST_LAST_MEMBER_CNT: u16 = 28;
-pub const IFLA_BR_MCAST_STARTUP_QUERY_CNT: u16 = 29;
-pub const IFLA_BR_MCAST_LAST_MEMBER_INTVL: u16 = 30;
-pub const IFLA_BR_MCAST_MEMBERSHIP_INTVL: u16 = 31;
-pub const IFLA_BR_MCAST_QUERIER_INTVL: u16 = 32;
-pub const IFLA_BR_MCAST_QUERY_INTVL: u16 = 33;
-pub const IFLA_BR_MCAST_QUERY_RESPONSE_INTVL: u16 = 34;
-pub const IFLA_BR_MCAST_STARTUP_QUERY_INTVL: u16 = 35;
-pub const IFLA_BR_NF_CALL_IPTABLES: u16 = 36;
-pub const IFLA_BR_NF_CALL_IP6TABLES: u16 = 37;
-pub const IFLA_BR_NF_CALL_ARPTABLES: u16 = 38;
-pub const IFLA_BR_VLAN_DEFAULT_PVID: u16 = 39;
-pub const IFLA_BR_PAD: u16 = 40;
-pub const IFLA_BR_VLAN_STATS_ENABLED: u16 = 41;
-pub const IFLA_BR_MCAST_STATS_ENABLED: u16 = 42;
-pub const IFLA_BR_MCAST_IGMP_VERSION: u16 = 43;
-pub const IFLA_BR_MCAST_MLD_VERSION: u16 = 44;
-
-pub const IFLA_VLAN_UNSPEC: u16 = 0;
-pub const IFLA_VLAN_ID: u16 = 1;
-pub const IFLA_VLAN_FLAGS: u16 = 2;
-pub const IFLA_VLAN_EGRESS_QOS: u16 = 3;
-pub const IFLA_VLAN_INGRESS_QOS: u16 = 4;
-pub const IFLA_VLAN_PROTOCOL: u16 = 5;
-
-pub const VETH_INFO_UNSPEC: u16 = 0;
-pub const VETH_INFO_PEER: u16 = 1;
 
 const DUMMY: &str = "dummy";
 const IFB: &str = "ifb";
@@ -97,19 +31,19 @@ const VRF: &str = "vrf";
 const GTP: &str = "gtp";
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum LinkInfo {
+pub enum Info {
     Unspec(Vec<u8>),
     Xstats(Vec<u8>),
-    Kind(LinkInfoKind),
-    Data(LinkInfoData),
+    Kind(InfoKind),
+    Data(InfoData),
     SlaveKind(Vec<u8>),
     SlaveData(Vec<u8>),
 }
 
-impl Nla for LinkInfo {
+impl Nla for Info {
     #[rustfmt::skip]
     fn value_len(&self) -> usize {
-        use self::LinkInfo::*;
+        use self::Info::*;
         match self {
             Unspec(ref bytes)
                 | Xstats(ref bytes)
@@ -123,7 +57,7 @@ impl Nla for LinkInfo {
 
     #[rustfmt::skip]
     fn emit_value(&self, buffer: &mut [u8]) {
-        use self::LinkInfo::*;
+        use self::Info::*;
         match self {
             Unspec(ref bytes)
                 | Xstats(ref bytes)
@@ -136,7 +70,7 @@ impl Nla for LinkInfo {
     }
 
     fn kind(&self) -> u16 {
-        use self::LinkInfo::*;
+        use self::Info::*;
         match self {
             Unspec(_) => IFLA_INFO_UNSPEC,
             Xstats(_) => IFLA_INFO_XSTATS,
@@ -148,79 +82,89 @@ impl Nla for LinkInfo {
     }
 }
 
-// XXX: we cannot impl Parseable<LinkInfo> because some attributes depend on each other. To parse
-// IFLA_INFO_DATA we first need to parse the preceding IFLA_INFO_KIND for example.
-impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<Vec<LinkInfo>> for NlaBuffer<&'buffer T> {
-    fn parse(&self) -> Result<Vec<LinkInfo>, DecodeError> {
+pub(crate) struct VecInfo(pub(crate) Vec<Info>);
+
+// We cannot `impl Parseable<_> for Info` because some attributes
+// depend on each other. To parse IFLA_INFO_DATA we first need to
+// parse the preceding IFLA_INFO_KIND for example.
+//
+// Moreover, with cannot `impl Parseable for Vec<Info>` due to the
+// orphan rule: `Parseable` and `Vec<_>` are both defined outside of
+// this crate. Thus, we create this internal VecInfo struct that wraps
+// `Vec<Info>` and allows us to circumvent the orphan rule.
+//
+// The downside is that this impl will not be exposed.
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for VecInfo {
+    fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
         let mut res = Vec::new();
-        let nlas = NlasIterator::new(self.into_inner());
-        let mut link_info_kind: Option<LinkInfoKind> = None;
+        let nlas = NlasIterator::new(buf.into_inner());
+        let mut link_info_kind: Option<InfoKind> = None;
         for nla in nlas {
             let nla = nla?;
             match nla.kind() {
-                IFLA_INFO_UNSPEC => res.push(LinkInfo::Unspec(nla.value().to_vec())),
-                IFLA_INFO_XSTATS => res.push(LinkInfo::Xstats(nla.value().to_vec())),
-                IFLA_INFO_SLAVE_KIND => res.push(LinkInfo::SlaveKind(nla.value().to_vec())),
-                IFLA_INFO_SLAVE_DATA => res.push(LinkInfo::SlaveData(nla.value().to_vec())),
+                IFLA_INFO_UNSPEC => res.push(Info::Unspec(nla.value().to_vec())),
+                IFLA_INFO_XSTATS => res.push(Info::Xstats(nla.value().to_vec())),
+                IFLA_INFO_SLAVE_KIND => res.push(Info::SlaveKind(nla.value().to_vec())),
+                IFLA_INFO_SLAVE_DATA => res.push(Info::SlaveData(nla.value().to_vec())),
                 IFLA_INFO_KIND => {
-                    let parsed = <NlaBuffer<_> as Parseable<LinkInfoKind>>::parse(&nla)?;
-                    res.push(LinkInfo::Kind(parsed.clone()));
+                    let parsed = InfoKind::parse(&nla)?;
+                    res.push(Info::Kind(parsed.clone()));
                     link_info_kind = Some(parsed);
                 }
                 IFLA_INFO_DATA => {
                     if let Some(link_info_kind) = link_info_kind {
                         let payload = nla.value();
                         let info_data = match link_info_kind {
-                            LinkInfoKind::Dummy => LinkInfoData::Dummy(payload.to_vec()),
-                            LinkInfoKind::Ifb => LinkInfoData::Ifb(payload.to_vec()),
-                            LinkInfoKind::Bridge => {
+                            InfoKind::Dummy => InfoData::Dummy(payload.to_vec()),
+                            InfoKind::Ifb => InfoData::Ifb(payload.to_vec()),
+                            InfoKind::Bridge => {
                                 let mut v = Vec::new();
+                                let err =
+                                    "failed to parse IFLA_INFO_DATA (IFLA_INFO_KIND is 'bridge')";
                                 for nla in NlasIterator::new(payload) {
-                                    v.push(<NlaBuffer<_> as Parseable<LinkInfoBridge>>::parse(
-                                        &nla.context("failed to parse IFLA_INFO_DATA (IFLA_INFO_KIND is 'bridge')")?,
-                                    ).context("failed to parse IFLA_INFO_DATA (IFLA_INFO_KIND is 'bridge')")?);
+                                    let nla = &nla.context(err)?;
+                                    let parsed = InfoBridge::parse(nla).context(err)?;
+                                    v.push(parsed);
                                 }
-                                LinkInfoData::Bridge(v)
+                                InfoData::Bridge(v)
                             }
-                            LinkInfoKind::Vlan => {
+                            InfoKind::Vlan => {
                                 let mut v = Vec::new();
+                                let err =
+                                    "failed to parse IFLA_INFO_DATA (IFLA_INFO_KIND is 'vlan')";
                                 for nla in NlasIterator::new(payload) {
-                                    v.push(<NlaBuffer<_> as Parseable<LinkInfoVlan>>::parse(
-                                        &nla.context("failed to parse IFLA_INFO_DATA (IFLA_INFO_KIND is 'vlan')")?,
-                                    ).context("failed to parse IFLA_INFO_DATA (IFLA_INFO_KIND is 'vlan')")?);
+                                    let nla = &nla.context(err)?;
+                                    let parsed = InfoVlan::parse(nla).context(err)?;
+                                    v.push(parsed);
                                 }
-                                LinkInfoData::Vlan(v)
+                                InfoData::Vlan(v)
                             }
-                            LinkInfoKind::Tun => LinkInfoData::Tun(payload.to_vec()),
-                            LinkInfoKind::Nlmon => LinkInfoData::Nlmon(payload.to_vec()),
-                            LinkInfoKind::Veth => {
-                                let nla_buf = NlaBuffer::new_checked(&payload).context(
-                                    "failed to parse IFLA_INFO_DATA (IFLA_INFO_KIND is 'veth')",
-                                )?;
-                                let veth_info =
-                                    <NlaBuffer<_> as Parseable<VethInfoNla>>::parse(&nla_buf)
-                                        .context(
-                                        "failed to parse IFLA_INFO_DATA (IFLA_INFO_KIND is 'veth')",
-                                    )?;
-                                LinkInfoData::Veth(veth_info)
+                            InfoKind::Tun => InfoData::Tun(payload.to_vec()),
+                            InfoKind::Nlmon => InfoData::Nlmon(payload.to_vec()),
+                            InfoKind::Veth => {
+                                let err =
+                                    "failed to parse IFLA_INFO_DATA (IFLA_INFO_KIND is 'veth')";
+                                let nla_buf = NlaBuffer::new_checked(&payload).context(err)?;
+                                let parsed = VethInfo::parse(&nla_buf).context(err)?;
+                                InfoData::Veth(parsed)
                             }
-                            LinkInfoKind::Vxlan => LinkInfoData::Vxlan(payload.to_vec()),
-                            LinkInfoKind::Bond => LinkInfoData::Bond(payload.to_vec()),
-                            LinkInfoKind::IpVlan => LinkInfoData::IpVlan(payload.to_vec()),
-                            LinkInfoKind::MacVlan => LinkInfoData::MacVlan(payload.to_vec()),
-                            LinkInfoKind::MacVtap => LinkInfoData::MacVtap(payload.to_vec()),
-                            LinkInfoKind::GreTap => LinkInfoData::GreTap(payload.to_vec()),
-                            LinkInfoKind::GreTap6 => LinkInfoData::GreTap6(payload.to_vec()),
-                            LinkInfoKind::IpTun => LinkInfoData::IpTun(payload.to_vec()),
-                            LinkInfoKind::SitTun => LinkInfoData::SitTun(payload.to_vec()),
-                            LinkInfoKind::GreTun => LinkInfoData::GreTun(payload.to_vec()),
-                            LinkInfoKind::GreTun6 => LinkInfoData::GreTun6(payload.to_vec()),
-                            LinkInfoKind::Vti => LinkInfoData::Vti(payload.to_vec()),
-                            LinkInfoKind::Vrf => LinkInfoData::Vrf(payload.to_vec()),
-                            LinkInfoKind::Gtp => LinkInfoData::Gtp(payload.to_vec()),
-                            LinkInfoKind::Other(_) => LinkInfoData::Other(payload.to_vec()),
+                            InfoKind::Vxlan => InfoData::Vxlan(payload.to_vec()),
+                            InfoKind::Bond => InfoData::Bond(payload.to_vec()),
+                            InfoKind::IpVlan => InfoData::IpVlan(payload.to_vec()),
+                            InfoKind::MacVlan => InfoData::MacVlan(payload.to_vec()),
+                            InfoKind::MacVtap => InfoData::MacVtap(payload.to_vec()),
+                            InfoKind::GreTap => InfoData::GreTap(payload.to_vec()),
+                            InfoKind::GreTap6 => InfoData::GreTap6(payload.to_vec()),
+                            InfoKind::IpTun => InfoData::IpTun(payload.to_vec()),
+                            InfoKind::SitTun => InfoData::SitTun(payload.to_vec()),
+                            InfoKind::GreTun => InfoData::GreTun(payload.to_vec()),
+                            InfoKind::GreTun6 => InfoData::GreTun6(payload.to_vec()),
+                            InfoKind::Vti => InfoData::Vti(payload.to_vec()),
+                            InfoKind::Vrf => InfoData::Vrf(payload.to_vec()),
+                            InfoKind::Gtp => InfoData::Gtp(payload.to_vec()),
+                            InfoKind::Other(_) => InfoData::Other(payload.to_vec()),
                         };
-                        res.push(LinkInfo::Data(info_data));
+                        res.push(Info::Data(info_data));
                     } else {
                         return Err("IFLA_INFO_DATA is not preceded by an IFLA_INFO_KIND".into());
                     }
@@ -229,19 +173,19 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<Vec<LinkInfo>> for NlaBuffer<&'
                 _ => return Err(format!("unknown NLA type {}", nla.kind()).into()),
             }
         }
-        Ok(res)
+        Ok(VecInfo(res))
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum LinkInfoData {
-    Bridge(Vec<LinkInfoBridge>),
+pub enum InfoData {
+    Bridge(Vec<InfoBridge>),
     Tun(Vec<u8>),
     Nlmon(Vec<u8>),
-    Vlan(Vec<LinkInfoVlan>),
+    Vlan(Vec<InfoVlan>),
     Dummy(Vec<u8>),
     Ifb(Vec<u8>),
-    Veth(VethInfoNla),
+    Veth(VethInfo),
     Vxlan(Vec<u8>),
     Bond(Vec<u8>),
     IpVlan(Vec<u8>),
@@ -259,10 +203,10 @@ pub enum LinkInfoData {
     Other(Vec<u8>),
 }
 
-impl Nla for LinkInfoData {
+impl Nla for InfoData {
     #[rustfmt::skip]
     fn value_len(&self) -> usize {
-        use self::LinkInfoData::*;
+        use self::InfoData::*;
         match self {
             Bridge(ref nlas) => nlas.as_slice().buffer_len(),
             Vlan(ref nlas) =>  nlas.as_slice().buffer_len(),
@@ -292,7 +236,7 @@ impl Nla for LinkInfoData {
 
     #[rustfmt::skip]
     fn emit_value(&self, buffer: &mut [u8]) {
-        use self::LinkInfoData::*;
+        use self::InfoData::*;
         match self {
             Bridge(ref nlas) => nlas.as_slice().emit(buffer),
             Vlan(ref nlas) => nlas.as_slice().emit(buffer),
@@ -326,7 +270,7 @@ impl Nla for LinkInfoData {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum LinkInfoKind {
+pub enum InfoKind {
     Dummy,
     Ifb,
     Bridge,
@@ -351,9 +295,9 @@ pub enum LinkInfoKind {
     Other(String),
 }
 
-impl Nla for LinkInfoKind {
+impl Nla for InfoKind {
     fn value_len(&self) -> usize {
-        use self::LinkInfoKind::*;
+        use self::InfoKind::*;
         let len = match *self {
             Dummy => DUMMY.len(),
             Ifb => IFB.len(),
@@ -382,7 +326,7 @@ impl Nla for LinkInfoKind {
     }
 
     fn emit_value(&self, buffer: &mut [u8]) {
-        use self::LinkInfoKind::*;
+        use self::InfoKind::*;
         let s = match *self {
             Dummy => DUMMY,
             Ifb => IFB,
@@ -416,17 +360,15 @@ impl Nla for LinkInfoKind {
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkInfoKind> for NlaBuffer<&'buffer T> {
-    fn parse(&self) -> Result<LinkInfoKind, DecodeError> {
-        use self::LinkInfoKind::*;
-        if self.kind() != IFLA_INFO_KIND {
-            return Err(format!(
-                "failed to parse IFLA_INFO_KIND: NLA type is {}",
-                self.kind()
-            )
-            .into());
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoKind {
+    fn parse(buf: &NlaBuffer<&'a T>) -> Result<InfoKind, DecodeError> {
+        use self::InfoKind::*;
+        if buf.kind() != IFLA_INFO_KIND {
+            return Err(
+                format!("failed to parse IFLA_INFO_KIND: NLA type is {}", buf.kind()).into(),
+            );
         }
-        let s = parse_string(self.value()).context("invalid IFLA_INFO_KIND value")?;
+        let s = parse_string(buf.value()).context("invalid IFLA_INFO_KIND value")?;
         Ok(match s.as_str() {
             DUMMY => Dummy,
             IFB => Ifb,
@@ -456,7 +398,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkInfoKind> for NlaBuffer<&'b
 
 // https://elixir.bootlin.com/linux/latest/source/net/8021q/vlan_netlink.c#L21
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum LinkInfoVlan {
+pub enum InfoVlan {
     Unspec(Vec<u8>),
     Id(u16),
     Flags((u32, u32)),
@@ -465,13 +407,13 @@ pub enum LinkInfoVlan {
     Protocol(u16),
 }
 
-impl Nla for LinkInfoVlan {
+impl Nla for InfoVlan {
     #[rustfmt::skip]
     fn value_len(&self) -> usize {
-        use self::LinkInfoVlan::*;
+        use self::InfoVlan::*;
         match self {
-            Id(_) | Protocol(_) => size_of::<u16>(),
-            Flags(_) => size_of::<u32>() * 2,
+            Id(_) | Protocol(_) => 2,
+            Flags(_) => 8,
             Unspec(bytes)
                 | EgressQos(bytes)
                 | IngressQos(bytes)
@@ -481,7 +423,7 @@ impl Nla for LinkInfoVlan {
 
     #[rustfmt::skip]
     fn emit_value(&self, buffer: &mut [u8]) {
-        use self::LinkInfoVlan::*;
+        use self::InfoVlan::*;
         match self {
             Unspec(ref bytes)
                 | EgressQos(ref bytes)
@@ -500,7 +442,7 @@ impl Nla for LinkInfoVlan {
     }
 
     fn kind(&self) -> u16 {
-        use self::LinkInfoVlan::*;
+        use self::InfoVlan::*;
         match self {
             Unspec(_) => IFLA_VLAN_UNSPEC,
             Id(_) => IFLA_VLAN_ID,
@@ -512,21 +454,20 @@ impl Nla for LinkInfoVlan {
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkInfoVlan> for NlaBuffer<&'buffer T> {
-    fn parse(&self) -> Result<LinkInfoVlan, DecodeError> {
-        use self::LinkInfoVlan::*;
-        let payload = self.value();
-        Ok(match self.kind() {
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoVlan {
+    fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
+        use self::InfoVlan::*;
+        let payload = buf.value();
+        Ok(match buf.kind() {
             IFLA_VLAN_UNSPEC => Unspec(payload.to_vec()),
             IFLA_VLAN_ID => Id(parse_u16(payload).context("invalid IFLA_VLAN_ID value")?),
             IFLA_VLAN_FLAGS => {
                 let err = "invalid IFLA_VLAN_FLAGS value";
-                let u32len = size_of::<u32>();
-                if payload.len() != (u32len * 2) {
+                if payload.len() != 8 {
                     return Err(err.into());
                 }
-                let flags = parse_u32(&payload[0..u32len]).context(err)?;
-                let mask = parse_u32(&payload[u32len..]).context(err)?;
+                let flags = parse_u32(&payload[0..4]).context(err)?;
+                let mask = parse_u32(&payload[4..]).context(err)?;
                 Flags((flags, mask))
             }
             IFLA_VLAN_EGRESS_QOS => EgressQos(payload.to_vec()),
@@ -534,16 +475,17 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkInfoVlan> for NlaBuffer<&'b
             IFLA_VLAN_PROTOCOL => {
                 Protocol(parse_u16(payload).context("invalid IFLA_VLAN_PROTOCOL value")?)
             }
-            _ => return Err(format!("unknown NLA type {}", self.kind()).into()),
+            _ => return Err(format!("unknown NLA type {}", buf.kind()).into()),
         })
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum LinkInfoBridge {
+pub enum InfoBridge {
     Unspec(Vec<u8>),
     GroupAddr([u8; 6]),
-    // FIXME: what typeh is this? putting Vec<u8> for now but it might be a boolean actually
+    // FIXME: what type is this? putting Vec<u8> for now but it might
+    // be a boolean actually
     FdbFlush(Vec<u8>),
     Pad(Vec<u8>),
     HelloTimer(u64),
@@ -590,10 +532,10 @@ pub enum LinkInfoBridge {
     Other(DefaultNla),
 }
 
-impl Nla for LinkInfoBridge {
+impl Nla for InfoBridge {
     #[rustfmt::skip]
     fn value_len(&self) -> usize {
-        use self::LinkInfoBridge::*;
+        use self::InfoBridge::*;
         match self {
             Unspec(bytes)
                 | FdbFlush(bytes)
@@ -609,7 +551,7 @@ impl Nla for LinkInfoBridge {
                 | MulticastQueryResponseInterval(_)
                 | MulticastLastMemberInterval(_)
                 | MulticastStartupQueryInterval(_)
-                => size_of::<u64>(),
+                => 8,
             ForwardDelay(_)
                 | HelloTime(_)
                 | MaxAge(_)
@@ -620,19 +562,19 @@ impl Nla for LinkInfoBridge {
                 | MulticastLastMemberCount(_)
                 | MulticastStartupQueryCount(_)
                 | RootPathCost(_)
-                => size_of::<u32>(),
+                => 4,
             Priority(_)
                 | VlanProtocol(_)
                 | GroupFwdMask(_)
                 | RootPort(_)
                 | VlanDefaultPvid(_)
-                => size_of::<u16>(),
+                => 2,
 
             RootId(_)
                 | BridgeId(_)
-                => size_of::<u16>() + size_of::<[u8; 6]>(),
+                => 8,
 
-            GroupAddr(_) => size_of::<[u8; 6]>(),
+            GroupAddr(_) => 6,
 
             VlanFiltering(_)
                 | TopologyChange(_)
@@ -648,7 +590,7 @@ impl Nla for LinkInfoBridge {
                 | MulticastStatsEnabled(_)
                 | MulticastIgmpVersion(_)
                 | MulticastMldVersion(_)
-                => size_of::<u8>(),
+                => 1,
             Other(nla)
                 => nla.value_len(),
         }
@@ -656,7 +598,7 @@ impl Nla for LinkInfoBridge {
 
     #[rustfmt::skip]
     fn emit_value(&self, buffer: &mut [u8]) {
-        use self::LinkInfoBridge::*;
+        use self::InfoBridge::*;
         match self {
             Unspec(ref bytes)
                 | FdbFlush(ref bytes)
@@ -725,7 +667,7 @@ impl Nla for LinkInfoBridge {
     }
 
     fn kind(&self) -> u16 {
-        use self::LinkInfoBridge::*;
+        use self::InfoBridge::*;
         match self {
             Unspec(_) => IFLA_BR_UNSPEC,
             GroupAddr(_) => IFLA_BR_GROUP_ADDR,
@@ -777,11 +719,11 @@ impl Nla for LinkInfoBridge {
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkInfoBridge> for NlaBuffer<&'buffer T> {
-    fn parse(&self) -> Result<LinkInfoBridge, DecodeError> {
-        use self::LinkInfoBridge::*;
-        let payload = self.value();
-        Ok(match self.kind() {
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoBridge {
+    fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
+        use self::InfoBridge::*;
+        let payload = buf.value();
+        Ok(match buf.kind() {
             IFLA_BR_UNSPEC => Unspec(payload.to_vec()),
             IFLA_BR_FDB_FLUSH => FdbFlush(payload.to_vec()),
             IFLA_BR_PAD => Pad(payload.to_vec()),
@@ -853,9 +795,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkInfoBridge> for NlaBuffer<&
                 GroupFwdMask(parse_u16(payload).context("invalid IFLA_BR_GROUP_FWD_MASK value")?)
             }
             IFLA_BR_ROOT_ID | IFLA_BR_BRIDGE_ID => {
-                // XXX: we cannot do size_of::<BridgeId>() because Rust structs may contain padding
-                // for better alignment.
-                if payload.len() != size_of::<u16>() + size_of::<[u8; 6]>() {
+                if payload.len() != 8 {
                     return Err("invalid IFLA_BR_ROOT_ID or IFLA_BR_BRIDGE_ID value".into());
                 }
 
@@ -863,7 +803,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkInfoBridge> for NlaBuffer<&
                 let address = parse_mac(&payload[2..])
                     .context("invalid IFLA_BR_ROOT_ID or IFLA_BR_BRIDGE_ID value")?;
 
-                match self.kind() {
+                match buf.kind() {
                     IFLA_BR_ROOT_ID => RootId((priority, address)),
                     IFLA_BR_BRIDGE_ID => BridgeId((priority, address)),
                     _ => unreachable!(),
@@ -921,7 +861,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkInfoBridge> for NlaBuffer<&
                 parse_u8(payload).context("invalid IFLA_BR_MCAST_MLD_VERSION value")?,
             ),
             _ => Other(
-                <Self as Parseable<DefaultNla>>::parse(self)
+                DefaultNla::parse(buf)
                     .context("invalid link info bridge NLA value (unknown type)")?,
             ),
         })
@@ -929,15 +869,15 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<LinkInfoBridge> for NlaBuffer<&
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum VethInfoNla {
+pub enum VethInfo {
     Unspec(Vec<u8>),
     Peer(LinkMessage),
     Other(DefaultNla),
 }
 
-impl Nla for VethInfoNla {
+impl Nla for VethInfo {
     fn value_len(&self) -> usize {
-        use self::VethInfoNla::*;
+        use self::VethInfo::*;
         match *self {
             Unspec(ref bytes) => bytes.len(),
             Peer(ref message) => message.buffer_len(),
@@ -946,7 +886,7 @@ impl Nla for VethInfoNla {
     }
 
     fn emit_value(&self, buffer: &mut [u8]) {
-        use self::VethInfoNla::*;
+        use self::VethInfo::*;
         match *self {
             Unspec(ref bytes) => buffer.copy_from_slice(bytes.as_slice()),
             Peer(ref message) => message.emit(buffer),
@@ -955,7 +895,7 @@ impl Nla for VethInfoNla {
     }
 
     fn kind(&self) -> u16 {
-        use self::VethInfoNla::*;
+        use self::VethInfo::*;
         match *self {
             Unspec(_) => VETH_INFO_UNSPEC,
             Peer(_) => VETH_INFO_PEER,
@@ -964,23 +904,18 @@ impl Nla for VethInfoNla {
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<VethInfoNla> for NlaBuffer<&'buffer T> {
-    fn parse(&self) -> Result<VethInfoNla, DecodeError> {
-        use self::VethInfoNla::*;
-        let payload = self.value();
-        Ok(match self.kind() {
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for VethInfo {
+    fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
+        use self::VethInfo::*;
+        let payload = buf.value();
+        Ok(match buf.kind() {
             VETH_INFO_UNSPEC => Unspec(payload.to_vec()),
             VETH_INFO_PEER => {
-                let buffer =
-                    LinkBuffer::new_checked(&payload).context("failed to parse veth link info")?;
-                let link_message = <LinkBuffer<_> as Parseable<LinkMessage>>::parse(&buffer)
-                    .context("failed to parse veth link info")?;
-                Peer(link_message)
+                let err = "failed to parse veth link info";
+                let buffer = LinkMessageBuffer::new_checked(&payload).context(err)?;
+                Peer(LinkMessage::parse(&buffer).context(err)?)
             }
-            kind => Other(
-                <Self as Parseable<DefaultNla>>::parse(self)
-                    .context(format!("unknown NLA type {}", kind))?,
-            ),
+            kind => Other(DefaultNla::parse(buf).context(format!("unknown NLA type {}", kind))?),
         })
     }
 }
@@ -988,9 +923,8 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<VethInfoNla> for NlaBuffer<&'bu
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rtnl::{
-        link::{nlas::LinkNla, LinkFlags, LinkHeader, LinkLayerType, LinkMessage},
-        traits::Emitable,
+    use crate::{
+        nlas::link::Nla, traits::Emitable, LinkFlags, LinkHeader, LinkLayerType, LinkMessage,
     };
 
     #[rustfmt::skip]
@@ -1195,64 +1129,64 @@ mod tests {
     ];
 
     lazy_static! {
-        static ref BRIDGE_INFO: Vec<LinkInfoBridge> = vec![
-            LinkInfoBridge::HelloTimer(35),
-            LinkInfoBridge::TcnTimer(0),
-            LinkInfoBridge::TopologyChangeTimer(0),
-            LinkInfoBridge::GcTimer(14261),
-            LinkInfoBridge::ForwardDelay(199),
-            LinkInfoBridge::HelloTime(199),
-            LinkInfoBridge::MaxAge(1999),
-            LinkInfoBridge::AgeingTime(29999),
-            LinkInfoBridge::StpState(1),
-            LinkInfoBridge::Priority(0x8000),
-            LinkInfoBridge::VlanFiltering(0),
-            LinkInfoBridge::GroupFwdMask(0),
-            LinkInfoBridge::BridgeId((128, [0x52, 0x54, 0x00, 0xd7, 0x19, 0x3e])),
-            LinkInfoBridge::RootId((128, [0x52, 0x54, 0x00, 0xd7, 0x19, 0x3e])),
-            LinkInfoBridge::RootPort(0),
-            LinkInfoBridge::RootPathCost(0),
-            LinkInfoBridge::TopologyChange(0),
-            LinkInfoBridge::TopologyChangeDetected(0),
-            LinkInfoBridge::GroupAddr([0x01, 0x80, 0xc2, 0x00, 0x00, 0x00]),
-            LinkInfoBridge::VlanProtocol(129),
-            LinkInfoBridge::VlanDefaultPvid(1),
-            LinkInfoBridge::VlanStatsEnabled(0),
-            LinkInfoBridge::MulticastRouter(1),
-            LinkInfoBridge::MulticastSnooping(1),
-            LinkInfoBridge::MulticastQueryUseIfaddr(0),
-            LinkInfoBridge::MulticastQuerier(0),
-            LinkInfoBridge::MulticastStatsEnabled(0),
-            LinkInfoBridge::MulticastHashElasticity(4),
-            LinkInfoBridge::MulticastHashMax(512),
-            LinkInfoBridge::MulticastLastMemberCount(2),
-            LinkInfoBridge::MulticastStartupQueryCount(2),
-            LinkInfoBridge::MulticastIgmpVersion(2),
-            LinkInfoBridge::MulticastMldVersion(1),
-            LinkInfoBridge::MulticastLastMemberInterval(99),
-            LinkInfoBridge::MulticastMembershipInterval(25999),
-            LinkInfoBridge::MulticastQuerierInterval(25499),
-            LinkInfoBridge::MulticastQueryInterval(12499),
-            LinkInfoBridge::MulticastQueryResponseInterval(999),
-            LinkInfoBridge::MulticastStartupQueryInterval(3124),
-            LinkInfoBridge::NfCallIpTables(0),
-            LinkInfoBridge::NfCallIp6Tables(0),
-            LinkInfoBridge::NfCallArpTables(0),
+        static ref BRIDGE_INFO: Vec<InfoBridge> = vec![
+            InfoBridge::HelloTimer(35),
+            InfoBridge::TcnTimer(0),
+            InfoBridge::TopologyChangeTimer(0),
+            InfoBridge::GcTimer(14261),
+            InfoBridge::ForwardDelay(199),
+            InfoBridge::HelloTime(199),
+            InfoBridge::MaxAge(1999),
+            InfoBridge::AgeingTime(29999),
+            InfoBridge::StpState(1),
+            InfoBridge::Priority(0x8000),
+            InfoBridge::VlanFiltering(0),
+            InfoBridge::GroupFwdMask(0),
+            InfoBridge::BridgeId((128, [0x52, 0x54, 0x00, 0xd7, 0x19, 0x3e])),
+            InfoBridge::RootId((128, [0x52, 0x54, 0x00, 0xd7, 0x19, 0x3e])),
+            InfoBridge::RootPort(0),
+            InfoBridge::RootPathCost(0),
+            InfoBridge::TopologyChange(0),
+            InfoBridge::TopologyChangeDetected(0),
+            InfoBridge::GroupAddr([0x01, 0x80, 0xc2, 0x00, 0x00, 0x00]),
+            InfoBridge::VlanProtocol(129),
+            InfoBridge::VlanDefaultPvid(1),
+            InfoBridge::VlanStatsEnabled(0),
+            InfoBridge::MulticastRouter(1),
+            InfoBridge::MulticastSnooping(1),
+            InfoBridge::MulticastQueryUseIfaddr(0),
+            InfoBridge::MulticastQuerier(0),
+            InfoBridge::MulticastStatsEnabled(0),
+            InfoBridge::MulticastHashElasticity(4),
+            InfoBridge::MulticastHashMax(512),
+            InfoBridge::MulticastLastMemberCount(2),
+            InfoBridge::MulticastStartupQueryCount(2),
+            InfoBridge::MulticastIgmpVersion(2),
+            InfoBridge::MulticastMldVersion(1),
+            InfoBridge::MulticastLastMemberInterval(99),
+            InfoBridge::MulticastMembershipInterval(25999),
+            InfoBridge::MulticastQuerierInterval(25499),
+            InfoBridge::MulticastQueryInterval(12499),
+            InfoBridge::MulticastQueryResponseInterval(999),
+            InfoBridge::MulticastStartupQueryInterval(3124),
+            InfoBridge::NfCallIpTables(0),
+            InfoBridge::NfCallIp6Tables(0),
+            InfoBridge::NfCallArpTables(0),
         ];
     }
 
     #[test]
     fn parse_info_kind() {
         let info_kind_nla = NlaBuffer::new_checked(&BRIDGE[..12]).unwrap();
-        let parsed = <NlaBuffer<_> as Parseable<LinkInfoKind>>::parse(&info_kind_nla).unwrap();
-        assert_eq!(parsed, LinkInfoKind::Bridge);
+        let parsed = InfoKind::parse(&info_kind_nla).unwrap();
+        assert_eq!(parsed, InfoKind::Bridge);
     }
 
     #[test]
     fn parse_info_bridge() {
         let nlas = NlasIterator::new(&BRIDGE[16..]);
         for nla in nlas.map(|nla| nla.unwrap()) {
-            <NlaBuffer<_> as Parseable<LinkInfoBridge>>::parse(&nla).unwrap();
+            InfoBridge::parse(&nla).unwrap();
         }
     }
 
@@ -1286,10 +1220,10 @@ mod tests {
                     0x00, 0x00, 0x00, 0x00,
         ];
         let nla = NlaBuffer::new_checked(&data[..]).unwrap();
-        let parsed = <NlaBuffer<_> as Parseable<Vec<LinkInfo>>>::parse(&nla).unwrap();
+        let parsed = VecInfo::parse(&nla).unwrap().0;
         let expected = vec![
-            LinkInfo::Kind(LinkInfoKind::Veth),
-            LinkInfo::Data(LinkInfoData::Veth(VethInfoNla::Peer(LinkMessage {
+            Info::Kind(InfoKind::Veth),
+            Info::Data(InfoData::Veth(VethInfo::Peer(LinkMessage {
                 header: LinkHeader {
                     interface_family: 0,
                     index: 0,
@@ -1298,8 +1232,8 @@ mod tests {
                     change_mask: LinkFlags(0),
                 },
                 nlas: vec![
-                    LinkNla::IfName("vethc0e60d6".to_string()),
-                    LinkNla::TxQueueLen(0),
+                    Nla::IfName("vethc0e60d6".to_string()),
+                    Nla::TxQueueLen(0),
                 ],
             }))),
         ];
@@ -1309,17 +1243,17 @@ mod tests {
     #[test]
     fn parse() {
         let nla = NlaBuffer::new_checked(&BRIDGE[..]).unwrap();
-        let parsed = <NlaBuffer<_> as Parseable<Vec<LinkInfo>>>::parse(&nla).unwrap();
+        let parsed = VecInfo::parse(&nla).unwrap().0;
         assert_eq!(parsed.len(), 2);
-        assert_eq!(parsed[0], LinkInfo::Kind(LinkInfoKind::Bridge));
-        if let LinkInfo::Data(LinkInfoData::Bridge(nlas)) = parsed[1].clone() {
+        assert_eq!(parsed[0], Info::Kind(InfoKind::Bridge));
+        if let Info::Data(InfoData::Bridge(nlas)) = parsed[1].clone() {
             assert_eq!(nlas.len(), BRIDGE_INFO.len());
             for (expected, parsed) in BRIDGE_INFO.iter().zip(nlas) {
                 assert_eq!(*expected, parsed);
             }
         } else {
             panic!(
-                "expected  LinkInfo::Data(LinkInfoData::Bridge(_) got {:?}",
+                "expected  Info::Data(InfoData::Bridge(_) got {:?}",
                 parsed[1]
             )
         }
@@ -1328,8 +1262,8 @@ mod tests {
     #[test]
     fn emit() {
         let nlas = vec![
-            LinkInfo::Kind(LinkInfoKind::Bridge),
-            LinkInfo::Data(LinkInfoData::Bridge(BRIDGE_INFO.clone())),
+            Info::Kind(InfoKind::Bridge),
+            Info::Data(InfoData::Bridge(BRIDGE_INFO.clone())),
         ];
 
         assert_eq!(nlas.as_slice().buffer_len(), 404);

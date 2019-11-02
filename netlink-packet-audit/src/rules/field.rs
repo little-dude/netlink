@@ -1,12 +1,4 @@
-pub const AUDIT_BIT_MASK: u32 = 0x0800_0000;
-pub const AUDIT_LESS_THAN: u32 = 0x1000_0000;
-pub const AUDIT_GREATER_THAN: u32 = 0x2000_0000;
-pub const AUDIT_NOT_EQUAL: u32 = 0x3000_0000;
-pub const AUDIT_EQUAL: u32 = 0x4000_0000;
-pub const AUDIT_BIT_TEST: u32 = AUDIT_BIT_MASK | AUDIT_EQUAL;
-pub const AUDIT_LESS_THAN_OR_EQUAL: u32 = AUDIT_LESS_THAN | AUDIT_EQUAL;
-pub const AUDIT_GREATER_THAN_OR_EQUAL: u32 = AUDIT_GREATER_THAN | AUDIT_EQUAL;
-pub const AUDIT_OPERATORS: u32 = AUDIT_EQUAL | AUDIT_NOT_EQUAL | AUDIT_BIT_MASK;
+use crate::constants::*;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum RuleField {

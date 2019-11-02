@@ -1,11 +1,5 @@
-use netlink_packet_core::{
-    header::flags::{NLM_F_DUMP, NLM_F_REQUEST},
-    NetlinkFlags, NetlinkMessage,
-};
-use netlink_packet_route::rtnl::{
-    link::{LinkHeader, LinkMessage},
-    RtnlMessage,
-};
+use netlink_packet_core::{NetlinkFlags, NetlinkMessage, NLM_F_DUMP, NLM_F_REQUEST};
+use netlink_packet_route::rtnl::{LinkHeader, LinkMessage, RtnlMessage};
 
 fn main() {
     // Create the internal message, a rtnetlink message.

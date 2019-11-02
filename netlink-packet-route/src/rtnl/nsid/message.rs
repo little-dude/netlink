@@ -1,41 +1,37 @@
 use failure::ResultExt;
 
 use crate::{
-    rtnl::{
-        nsid::{nlas::NsIdNla, NsIdBuffer, NsIdHeader},
-        traits::{Emitable, Parseable},
-    },
-    DecodeError,
+    nlas::nsid::Nla,
+    traits::{Emitable, Parseable},
+    DecodeError, NsidHeader, NsidMessageBuffer,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
-pub struct NsIdMessage {
-    pub header: NsIdHeader,
-    pub nlas: Vec<NsIdNla>,
+pub struct NsidMessage {
+    pub header: NsidHeader,
+    pub nlas: Vec<Nla>,
 }
 
-impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<NsIdMessage> for NsIdBuffer<&'buffer T> {
-    fn parse(&self) -> Result<NsIdMessage, DecodeError> {
-        Ok(NsIdMessage {
-            header: self
-                .parse()
-                .context("failed to parse nsid message header")?,
-            nlas: self.parse().context("failed to parse nsid message NLAs")?,
+impl<'a, T: AsRef<[u8]> + 'a> Parseable<NsidMessageBuffer<&'a T>> for NsidMessage {
+    fn parse(buf: &NsidMessageBuffer<&'a T>) -> Result<Self, DecodeError> {
+        Ok(Self {
+            header: NsidHeader::parse(buf).context("failed to parse nsid message header")?,
+            nlas: Vec::<Nla>::parse(buf).context("failed to parse nsid message NLAs")?,
         })
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Vec<NsIdNla>> for NsIdBuffer<&'buffer T> {
-    fn parse(&self) -> Result<Vec<NsIdNla>, DecodeError> {
+impl<'a, T: AsRef<[u8]> + 'a> Parseable<NsidMessageBuffer<&'a T>> for Vec<Nla> {
+    fn parse(buf: &NsidMessageBuffer<&'a T>) -> Result<Self, DecodeError> {
         let mut nlas = vec![];
-        for nla_buf in self.nlas() {
-            nlas.push(nla_buf?.parse()?);
+        for nla_buf in buf.nlas() {
+            nlas.push(Nla::parse(&nla_buf?)?);
         }
         Ok(nlas)
     }
 }
 
-impl Emitable for NsIdMessage {
+impl Emitable for NsidMessage {
     fn buffer_len(&self) -> usize {
         self.header.buffer_len() + self.nlas.as_slice().buffer_len()
     }
@@ -50,15 +46,9 @@ impl Emitable for NsIdMessage {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use crate::{
-        netlink::NetlinkBuffer,
-        rtnl::{
-            message_types::{RTM_GETNSID, RTM_NEWNSID},
-            nsid::nlas::NETNSA_NSID_NOT_ASSIGNED,
-            traits::ParseableParametrized,
-            RtnlBuffer, RtnlMessage,
-        },
+        nlas::nsid::Nla, traits::ParseableParametrized, NetlinkBuffer, NsidHeader, NsidMessage,
+        RtnlMessage, RtnlMessageBuffer, NETNSA_NSID_NOT_ASSIGNED, RTM_GETNSID, RTM_NEWNSID,
     };
 
     #[rustfmt::skip]
@@ -79,13 +69,11 @@ mod test {
             0x03, 0x00, // type = 3 (Fd)
             0x04, 0x00, 0x00, 0x00 // 4
         ];
-        let expected = RtnlMessage::GetNsId(NsIdMessage {
-            header: NsIdHeader { rtgen_family: 0 },
-            nlas: vec![NsIdNla::Fd(4)],
+        let expected = RtnlMessage::GetNsId(NsidMessage {
+            header: NsidHeader { rtgen_family: 0 },
+            nlas: vec![Nla::Fd(4)],
         });
-        let actual = RtnlBuffer::new(&NetlinkBuffer::new(&data).payload())
-            .parse_with_param(RTM_GETNSID)
-            .unwrap();
+        let actual = RtnlMessage::parse_with_param(&RtnlMessageBuffer::new(&NetlinkBuffer::new(&data).payload()), RTM_GETNSID).unwrap();
         assert_eq!(expected, actual);
     }
 
@@ -107,13 +95,13 @@ mod test {
             0x01, 0x00, // type = NETNSA_NSID
             0xff, 0xff, 0xff, 0xff // -1
         ];
-        let expected = RtnlMessage::NewNsId(NsIdMessage {
-            header: NsIdHeader { rtgen_family: 0 },
-            nlas: vec![NsIdNla::Id(NETNSA_NSID_NOT_ASSIGNED)],
+        let expected = RtnlMessage::NewNsId(NsidMessage {
+            header: NsidHeader { rtgen_family: 0 },
+            nlas: vec![Nla::Id(NETNSA_NSID_NOT_ASSIGNED)],
         });
-        let actual = RtnlBuffer::new(&NetlinkBuffer::new(&data).payload())
-            .parse_with_param(RTM_NEWNSID)
-            .unwrap();
+        let nl_buffer = NetlinkBuffer::new(&data).payload();
+        let rtnl_buffer = RtnlMessageBuffer::new(&nl_buffer);
+        let actual = RtnlMessage::parse_with_param(&rtnl_buffer, RTM_NEWNSID).unwrap();
         assert_eq!(expected, actual);
     }
 }

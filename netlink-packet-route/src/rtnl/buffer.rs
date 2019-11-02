@@ -1,43 +1,36 @@
 use crate::{
-    rtnl::{
-        address::{AddressBuffer, AddressHeader, AddressMessage},
-        link::{LinkBuffer, LinkHeader, LinkMessage},
-        message_types::*,
-        neighbour::{NeighbourBuffer, NeighbourMessage},
-        neighbour_table::{NeighbourTableBuffer, NeighbourTableMessage},
-        nsid::{NsIdBuffer, NsIdMessage},
-        route::{RouteBuffer, RouteHeader, RouteMessage},
-        tc::{TcBuffer, TcMessage},
-        traits::{Parseable, ParseableParametrized},
-        RtnlMessage,
-    },
-    DecodeError,
+    constants::*,
+    traits::{Parseable, ParseableParametrized},
+    AddressHeader, AddressMessage, AddressMessageBuffer, DecodeError, LinkHeader, LinkMessage,
+    LinkMessageBuffer, NeighbourMessage, NeighbourMessageBuffer, NeighbourTableMessage,
+    NeighbourTableMessageBuffer, NsidMessage, NsidMessageBuffer, RouteHeader, RouteMessage,
+    RouteMessageBuffer, RtnlMessage, TcMessage, TcMessageBuffer,
 };
 use failure::ResultExt;
 
-buffer!(RtnlBuffer);
+buffer!(RtnlMessageBuffer);
 
-impl<'buffer, T: AsRef<[u8]> + ?Sized> ParseableParametrized<RtnlMessage, u16>
-    for RtnlBuffer<&'buffer T>
+impl<'a, T: AsRef<[u8]> + ?Sized> ParseableParametrized<RtnlMessageBuffer<&'a T>, u16>
+    for RtnlMessage
 {
     #[rustfmt::skip]
-    fn parse_with_param(&self, message_type: u16) -> Result<RtnlMessage, DecodeError> {
+    fn parse_with_param(buf: &RtnlMessageBuffer<&'a T>, message_type: u16) -> Result<Self, DecodeError> {
         use self::RtnlMessage::*;
         let message = match message_type {
 
             // Link messages
             RTM_NEWLINK | RTM_GETLINK | RTM_DELLINK | RTM_SETLINK => {
-                let msg: LinkMessage = match LinkBuffer::new_checked(&self.inner()) {
-                    Ok(buf) => buf.parse().context("invalid link message")?,
+                let msg = match LinkMessageBuffer::new_checked(&buf.inner()) {
+                    Ok(buf) => LinkMessage::parse(&buf).context("invalid link message")?,
                     // HACK: iproute2 sends invalid RTM_GETLINK message, where the header is
                     // limited to the interface family (1 byte) and 3 bytes of padding.
                     Err(e) => {
-                        if self.inner().len() == 4 && message_type == RTM_GETLINK {
+                        if buf.inner().len() == 4 && message_type == RTM_GETLINK {
                             let mut msg = LinkMessage {
                                 header: LinkHeader::new(),
                                 nlas: vec![],
                             };
-                            msg.header.interface_family = self.inner()[0];
+                            msg.header.interface_family = buf.inner()[0];
                             msg
                         } else {
                             return Err(e);
@@ -55,17 +48,17 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> ParseableParametrized<RtnlMessage, u16>
 
             // Address messages
             RTM_NEWADDR | RTM_GETADDR | RTM_DELADDR => {
-                let msg: AddressMessage = match AddressBuffer::new_checked(&self.inner()) {
-                    Ok(buf) => buf.parse().context("invalid link message")?,
+                let msg = match AddressMessageBuffer::new_checked(&buf.inner()) {
+                    Ok(buf) => AddressMessage::parse(&buf).context("invalid link message")?,
                     // HACK: iproute2 sends invalid RTM_GETADDR message, where the header is
                     // limited to the interface family (1 byte) and 3 bytes of padding.
                     Err(e) => {
-                        if self.inner().len() == 4 && message_type == RTM_GETADDR {
+                        if buf.inner().len() == 4 && message_type == RTM_GETADDR {
                             let mut msg = AddressMessage {
                                 header: AddressHeader::new(),
                                 nlas: vec![],
                             };
-                            msg.header.family = self.inner()[0];
+                            msg.header.family = buf.inner()[0];
                             msg
                         } else {
                             return Err(e);
@@ -82,10 +75,8 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> ParseableParametrized<RtnlMessage, u16>
 
             // Neighbour messages
             RTM_NEWNEIGH | RTM_GETNEIGH | RTM_DELNEIGH => {
-                let msg: NeighbourMessage = NeighbourBuffer::new_checked(&self.inner())
-                    .context("invalid neighbour message")?
-                    .parse()
-                    .context("invalid neighbour message")?;
+                let err = "invalid neighbour message";
+                let msg = NeighbourMessage::parse(&NeighbourMessageBuffer::new_checked(&buf.inner()).context(err)?).context(err)?;
                 match message_type {
                     RTM_GETNEIGH => GetNeighbour(msg),
                     RTM_NEWNEIGH => NewNeighbour(msg),
@@ -96,10 +87,8 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> ParseableParametrized<RtnlMessage, u16>
 
             // Neighbour table messages
             RTM_NEWNEIGHTBL | RTM_GETNEIGHTBL | RTM_SETNEIGHTBL => {
-                let msg: NeighbourTableMessage = NeighbourTableBuffer::new_checked(&self.inner())
-                    .context("invalid neighbour table message")?
-                    .parse()
-                    .context("invalid neighbour table message")?;
+                let err = "invalid neighbour table message";
+                let msg = NeighbourTableMessage::parse(&NeighbourTableMessageBuffer::new_checked(&buf.inner()).context(err)?).context(err)?;
                 match message_type {
                     RTM_GETNEIGHTBL => GetNeighbourTable(msg),
                     RTM_NEWNEIGHTBL => NewNeighbourTable(msg),
@@ -110,21 +99,21 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> ParseableParametrized<RtnlMessage, u16>
 
             // Route messages
             RTM_NEWROUTE | RTM_GETROUTE | RTM_DELROUTE => {
-                let msg: RouteMessage = match RouteBuffer::new_checked(&self.inner()) {
-                    Ok(buf) => buf.parse().context("invalid route message")?,
+                let msg = match RouteMessageBuffer::new_checked(&buf.inner()) {
+                    Ok(buf) => RouteMessage::parse(&buf).context("invalid route message")?,
                     // HACK: iproute2 sends invalid RTM_GETROUTE message, where the header is
                     // limited to the interface family (1 byte) and 3 bytes of padding.
                     Err(e) => {
                         // Not only does iproute2 sends invalid messages, it's also inconsistent in
                         // doing so: for link and address messages, the length advertised in the
                         // netlink header includes the 3 bytes of padding but it does not seem to
-                        // be the case for the route message, hence the self.length() == 1 check.
-                        if (self.inner().len() == 4 || self.inner().len() == 1) && message_type == RTM_GETROUTE {
+                        // be the case for the route message, hence the buf.length() == 1 check.
+                        if (buf.inner().len() == 4 || buf.inner().len() == 1) && message_type == RTM_GETROUTE {
                             let mut msg = RouteMessage {
                                 header: RouteHeader::new(),
                                 nlas: vec![],
                             };
-                            msg.header.address_family = self.inner()[0];
+                            msg.header.address_family = buf.inner()[0];
                             msg
                         } else {
                             return Err(e);
@@ -143,10 +132,8 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> ParseableParametrized<RtnlMessage, u16>
             RTM_NEWQDISC | RTM_DELQDISC | RTM_GETQDISC |
             RTM_NEWTCLASS | RTM_DELTCLASS | RTM_GETTCLASS |
             RTM_NEWTFILTER | RTM_DELTFILTER | RTM_GETTFILTER => {
-                let msg: TcMessage = TcBuffer::new_checked(&self.inner())
-                    .context("invalid tc message")?
-                    .parse()
-                    .context("invalid tc message")?;
+                let err = "invalid tc message";
+                let msg = TcMessage::parse(&TcMessageBuffer::new_checked(&buf.inner()).context(err)?).context(err)?;
                 match message_type {
                     RTM_NEWQDISC => NewQueueDiscipline(msg),
                     RTM_DELQDISC => DelQueueDiscipline(msg),
@@ -163,10 +150,8 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> ParseableParametrized<RtnlMessage, u16>
 
             // ND ID Messages
             RTM_NEWNSID | RTM_GETNSID | RTM_DELNSID => {
-                let msg: NsIdMessage = NsIdBuffer::new_checked(&self.inner())
-                    .context("invalid nsid message")?
-                    .parse()
-                    .context("invalid nsid message")?;
+                let err = "invalid nsid message";
+                let msg = NsidMessage::parse(&NsidMessageBuffer::new_checked(&buf.inner()).context(err)?).context(err)?;
                 match message_type {
                     RTM_NEWNSID => NewNsId(msg),
                     RTM_DELNSID => DelNsId(msg),

@@ -35,7 +35,9 @@ where
 {
     pub fn deserialize(buffer: &[u8]) -> Result<Self, DecodeError> {
         let netlink_buffer = NetlinkBuffer::new_checked(&buffer)?;
-        Ok(<NetlinkBuffer<&&[u8]> as Parseable<NetlinkMessage<I>>>::parse(&netlink_buffer)?)
+        Ok(<Self as Parseable<NetlinkBuffer<&&[u8]>>>::parse(
+            &netlink_buffer,
+        )?)
     }
 }
 
@@ -73,36 +75,38 @@ where
     }
 }
 
-impl<'buffer, B, I> Parseable<NetlinkMessage<I>> for NetlinkBuffer<&'buffer B>
+impl<'buffer, B, I> Parseable<NetlinkBuffer<&'buffer B>> for NetlinkMessage<I>
 where
     B: AsRef<[u8]> + 'buffer,
     I: Debug + PartialEq + Eq + Clone + NetlinkDeserializable<I>,
 {
-    fn parse(&self) -> Result<NetlinkMessage<I>, DecodeError> {
-        let header = <Self as Parseable<NetlinkHeader>>::parse(self)
+    fn parse(buf: &NetlinkBuffer<&'buffer B>) -> Result<Self, DecodeError> {
+        use self::NetlinkPayload::*;
+
+        let header = <NetlinkHeader as Parseable<NetlinkBuffer<&'buffer B>>>::parse(buf)
             .context("failed to parse netlink header")?;
 
+        let bytes = buf.payload();
         let payload = match header.message_type {
             NLMSG_ERROR => {
-                let msg: ErrorMessage = ErrorBuffer::new_checked(&self.payload())
-                    .context("failed to parse NLMSG_ERROR")?
-                    .parse()
-                    .context("failed to parse NLMSG_ERROR")?;
+                let buf =
+                    ErrorBuffer::new_checked(&bytes).context("failed to parse NLMSG_ERROR")?;
+                let msg = ErrorMessage::parse(&buf).context("failed to parse NLMSG_ERROR")?;
                 if msg.code >= 0 {
-                    NetlinkPayload::Ack(msg as AckMessage)
+                    Ack(msg as AckMessage)
                 } else {
-                    NetlinkPayload::Error(msg)
+                    Error(msg)
                 }
             }
-            NLMSG_NOOP => NetlinkPayload::Noop,
-            NLMSG_DONE => NetlinkPayload::Done,
-            NLMSG_OVERRUN => NetlinkPayload::Overrun(self.payload().to_vec()),
+            NLMSG_NOOP => Noop,
+            NLMSG_DONE => Done,
+            NLMSG_OVERRUN => Overrun(bytes.to_vec()),
             message_type => {
-                let payload = I::deserialize(&header, self.payload()).context(format!(
+                let inner_msg = I::deserialize(&header, bytes).context(format!(
                     "Failed to parse message with type {}",
                     message_type
                 ))?;
-                NetlinkPayload::InnerMessage(payload)
+                InnerMessage(inner_msg)
             }
         };
         Ok(NetlinkMessage { header, payload })
@@ -115,6 +119,7 @@ where
 {
     fn buffer_len(&self) -> usize {
         use self::NetlinkPayload::*;
+
         let payload_len = match self.payload {
             Noop | Done => 0,
             Overrun(ref bytes) => bytes.len(),

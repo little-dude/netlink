@@ -1,16 +1,14 @@
 use crate::{
-    rtnl::{
-        route::{nlas::RouteNla, RouteBuffer, RouteHeader},
-        traits::{Emitable, Parseable},
-    },
-    DecodeError,
+    nlas::route::Nla,
+    traits::{Emitable, Parseable},
+    DecodeError, RouteHeader, RouteMessageBuffer,
 };
 use failure::ResultExt;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct RouteMessage {
     pub header: RouteHeader,
-    pub nlas: Vec<RouteNla>,
+    pub nlas: Vec<Nla>,
 }
 
 impl Emitable for RouteMessage {
@@ -24,22 +22,20 @@ impl Emitable for RouteMessage {
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<RouteMessage> for RouteBuffer<&'buffer T> {
-    fn parse(&self) -> Result<RouteMessage, DecodeError> {
+impl<'a, T: AsRef<[u8]> + 'a> Parseable<RouteMessageBuffer<&'a T>> for RouteMessage {
+    fn parse(buf: &RouteMessageBuffer<&'a T>) -> Result<Self, DecodeError> {
         Ok(RouteMessage {
-            header: self
-                .parse()
-                .context("failed to parse route message header")?,
-            nlas: self.parse().context("failed to parse route message NLAs")?,
+            header: RouteHeader::parse(buf).context("failed to parse route message header")?,
+            nlas: Vec::<Nla>::parse(buf).context("failed to parse route message NLAs")?,
         })
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<Vec<RouteNla>> for RouteBuffer<&'buffer T> {
-    fn parse(&self) -> Result<Vec<RouteNla>, DecodeError> {
+impl<'a, T: AsRef<[u8]> + 'a> Parseable<RouteMessageBuffer<&'a T>> for Vec<Nla> {
+    fn parse(buf: &RouteMessageBuffer<&'a T>) -> Result<Self, DecodeError> {
         let mut nlas = vec![];
-        for nla_buf in self.nlas() {
-            nlas.push(nla_buf?.parse()?);
+        for nla_buf in buf.nlas() {
+            nlas.push(Nla::parse(&nla_buf?)?);
         }
         Ok(nlas)
     }

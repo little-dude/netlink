@@ -1,11 +1,11 @@
 use crate::{
-    rtnl::nla::{NlaBuffer, NlasIterator},
+    nlas::{NlaBuffer, NlasIterator},
     DecodeError,
 };
 
 pub const TC_HEADER_LEN: usize = 20;
 
-buffer!(TcBuffer(TC_HEADER_LEN) {
+buffer!(TcMessageBuffer(TC_HEADER_LEN) {
     family: (u8, 0),
     pad1: (u8, 1),
     pad2: (u16, 2..4),
@@ -16,7 +16,7 @@ buffer!(TcBuffer(TC_HEADER_LEN) {
     payload: (slice, TC_HEADER_LEN..),
 });
 
-impl<'a, T: AsRef<[u8]> + ?Sized> TcBuffer<&'a T> {
+impl<'a, T: AsRef<[u8]> + ?Sized> TcMessageBuffer<&'a T> {
     pub fn nlas(&self) -> impl Iterator<Item = Result<NlaBuffer<&'a [u8]>, DecodeError>> {
         NlasIterator::new(self.payload())
     }

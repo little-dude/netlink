@@ -2,11 +2,8 @@ use futures::stream::StreamExt;
 
 use crate::{
     packet::{
-        netlink::{
-            header::flags::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST},
-            {NetlinkFlags, NetlinkMessage, NetlinkPayload},
-        },
-        rtnl::{link::LinkMessage, RtnlMessage},
+        LinkMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage, NLM_F_ACK,
+        NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST,
     },
     Error, ErrorKind, Handle,
 };

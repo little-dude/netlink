@@ -1,20 +1,11 @@
 use failure::{Compat as FailureError, Fail};
 
 use crate::{
-    netlink::{NetlinkDeserializable, NetlinkHeader, NetlinkPayload, NetlinkSerializable},
-    rtnl::{
-        address::AddressMessage,
-        link::LinkMessage,
-        message_types::*,
-        neighbour::NeighbourMessage,
-        neighbour_table::NeighbourTableMessage,
-        nsid::NsIdMessage,
-        route::RouteMessage,
-        tc::TcMessage,
-        traits::{Emitable, ParseableParametrized},
-        RtnlBuffer,
-    },
-    DecodeError,
+    constants::*,
+    traits::{Emitable, ParseableParametrized},
+    AddressMessage, DecodeError, LinkMessage, NeighbourMessage, NeighbourTableMessage,
+    NetlinkDeserializable, NetlinkHeader, NetlinkPayload, NetlinkSerializable, NsidMessage,
+    RouteMessage, RtnlMessageBuffer, TcMessage,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -44,9 +35,9 @@ pub enum RtnlMessage {
     NewTrafficFilter(TcMessage),
     DelTrafficFilter(TcMessage),
     GetTrafficFilter(TcMessage),
-    NewNsId(NsIdMessage),
-    DelNsId(NsIdMessage),
-    GetNsId(NsIdMessage),
+    NewNsId(NsidMessage),
+    DelNsId(NsidMessage),
+    GetNsId(NsidMessage),
 }
 
 impl RtnlMessage {
@@ -425,8 +416,8 @@ impl NetlinkSerializable<RtnlMessage> for RtnlMessage {
 impl NetlinkDeserializable<RtnlMessage> for RtnlMessage {
     type Error = FailureError<DecodeError>;
     fn deserialize(header: &NetlinkHeader, payload: &[u8]) -> Result<Self, Self::Error> {
-        let buf = RtnlBuffer::new(payload);
-        match buf.parse_with_param(header.message_type) {
+        let buf = RtnlMessageBuffer::new(payload);
+        match RtnlMessage::parse_with_param(&buf, header.message_type) {
             Err(e) => Err(e.compat()),
             Ok(message) => Ok(message),
         }

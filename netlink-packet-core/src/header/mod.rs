@@ -56,14 +56,14 @@ impl Emitable for NetlinkHeader {
     }
 }
 
-impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NetlinkHeader> for NetlinkBuffer<&'a T> {
-    fn parse(&self) -> Result<NetlinkHeader, DecodeError> {
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NetlinkBuffer<&'a T>> for NetlinkHeader {
+    fn parse(buf: &NetlinkBuffer<&'a T>) -> Result<NetlinkHeader, DecodeError> {
         Ok(NetlinkHeader {
-            length: self.length(),
-            message_type: self.message_type(),
-            flags: self.flags(),
-            sequence_number: self.sequence_number(),
-            port_number: self.port_number(),
+            length: buf.length(),
+            message_type: buf.message_type(),
+            flags: buf.flags(),
+            sequence_number: buf.sequence_number(),
+            port_number: buf.port_number(),
         })
     }
 }
@@ -71,7 +71,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NetlinkHeader> for NetlinkBuffer<&'a
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::header::flags::*;
+    use crate::{constants::*, header::flags::*};
 
     // a packet captured with tcpdump that was sent when running `ip link show`
     #[rustfmt::skip]
@@ -90,10 +90,9 @@ mod tests {
 
     #[test]
     fn repr_parse() {
-        let repr: NetlinkHeader = NetlinkBuffer::new_checked(&IP_LINK_SHOW_PKT[..])
-            .unwrap()
-            .parse()
-            .unwrap();
+        let repr =
+            NetlinkHeader::parse(&NetlinkBuffer::new_checked(&IP_LINK_SHOW_PKT[..]).unwrap())
+                .unwrap();
         assert_eq!(repr.length, 40);
         assert_eq!(repr.message_type, RTM_GETLINK);
         assert_eq!(repr.sequence_number, 1_526_271_540);

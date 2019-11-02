@@ -2,17 +2,9 @@ use futures::stream::StreamExt;
 
 use crate::{
     packet::{
-        netlink::{
-            header::flags::{NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST},
-            NetlinkFlags, NetlinkMessage, NetlinkPayload,
-        },
-        rtnl::{
-            link::{
-                nlas::{LinkInfo, LinkInfoData, LinkInfoKind, LinkInfoVlan, LinkNla, VethInfoNla},
-                LinkFlags, LinkMessage, IFF_UP,
-            },
-            RtnlMessage,
-        },
+        nlas::link::{Info, InfoData, InfoKind, InfoVlan, Nla, VethInfo},
+        LinkFlags, LinkMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage, IFF_UP,
+        NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST,
     },
     Error, ErrorKind, Handle,
 };
@@ -84,25 +76,25 @@ impl LinkAddRequest {
     /// Create a dummy link.
     /// This is equivalent to `ip link add NAME type dummy`.
     pub fn dummy(self, name: String) -> Self {
-        self.name(name).link_info(LinkInfoKind::Dummy, None).up()
+        self.name(name).link_info(InfoKind::Dummy, None).up()
     }
 
     /// Create a veth pair.
     /// This is equivalent to `ip link add NAME1 type veth peer name NAME2`.
     pub fn veth(self, name: String, peer_name: String) -> Self {
         // NOTE: `name` is the name of the peer in the netlink message (ie the link created via the
-        // VethInfoNla::Peer attribute, and `peer_name` is the name in the main netlink message.
+        // VethInfo::Peer attribute, and `peer_name` is the name in the main netlink message.
         // This is a bit weird, but it's all hidden from the user.
 
         let mut peer = LinkMessage::new();
         // FIXME: we get a -107 (ENOTCONN) (???) when trying to set `name` up.
         // peer.header.flags = LinkFlags::from(IFF_UP);
         // peer.header.change_mask = LinkFlags::from(IFF_UP);
-        peer.nlas.push(LinkNla::IfName(name));
-        let link_info_data = LinkInfoData::Veth(VethInfoNla::Peer(peer));
+        peer.nlas.push(Nla::IfName(name));
+        let link_info_data = InfoData::Veth(VethInfo::Peer(peer));
         self.name(peer_name)
             .up() // iproute2 does not set this one up
-            .link_info(LinkInfoKind::Veth, Some(link_info_data))
+            .link_info(InfoKind::Veth, Some(link_info_data))
     }
 
     /// Create VLAN on a link.
@@ -111,10 +103,10 @@ impl LinkAddRequest {
     pub fn vlan(self, name: String, index: u32, vlan_id: u16) -> Self {
         self.name(name)
             .link_info(
-                LinkInfoKind::Vlan,
-                Some(LinkInfoData::Vlan(vec![LinkInfoVlan::Id(vlan_id)])),
+                InfoKind::Vlan,
+                Some(InfoData::Vlan(vec![InfoVlan::Id(vlan_id)])),
             )
-            .append_nla(LinkNla::Link(index))
+            .append_nla(Nla::Link(index))
             .up()
     }
 
@@ -122,8 +114,8 @@ impl LinkAddRequest {
     /// This is equivalent to `ip link add link NAME type bridge`.
     pub fn bridge(self, name: String) -> Self {
         self.name(name.clone())
-            .link_info(LinkInfoKind::Bridge, None)
-            .append_nla(LinkNla::IfName(name))
+            .link_info(InfoKind::Bridge, None)
+            .append_nla(Nla::IfName(name))
     }
 
     fn up(mut self) -> Self {
@@ -132,20 +124,20 @@ impl LinkAddRequest {
         self
     }
 
-    fn link_info(self, kind: LinkInfoKind, data: Option<LinkInfoData>) -> Self {
-        let mut link_info_nlas = vec![LinkInfo::Kind(kind)];
+    fn link_info(self, kind: InfoKind, data: Option<InfoData>) -> Self {
+        let mut link_info_nlas = vec![Info::Kind(kind)];
         if let Some(data) = data {
-            link_info_nlas.push(LinkInfo::Data(data));
+            link_info_nlas.push(Info::Data(data));
         }
-        self.append_nla(LinkNla::LinkInfo(link_info_nlas))
+        self.append_nla(Nla::Info(link_info_nlas))
     }
 
     fn name(mut self, name: String) -> Self {
-        self.message.nlas.push(LinkNla::IfName(name));
+        self.message.nlas.push(Nla::IfName(name));
         self
     }
 
-    fn append_nla(mut self, nla: LinkNla) -> Self {
+    fn append_nla(mut self, nla: Nla) -> Self {
         self.message.nlas.push(nla);
         self
     }

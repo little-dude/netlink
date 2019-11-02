@@ -1,9 +1,15 @@
 #[macro_use]
-pub mod macros;
+pub(crate) extern crate netlink_packet_utils as utils;
+pub(crate) use self::utils::parsers;
+pub use self::utils::{traits, DecodeError};
 
-pub use self::netlink::DecodeError;
-pub use netlink_packet_core as netlink;
+pub use netlink_packet_core::{
+    ErrorMessage, NetlinkBuffer, NetlinkFlags, NetlinkHeader, NetlinkMessage, NetlinkPayload,
+};
+pub(crate) use netlink_packet_core::{NetlinkDeserializable, NetlinkSerializable};
+
 pub mod rtnl;
+pub use self::rtnl::*;
 
 #[cfg(test)]
 #[macro_use]

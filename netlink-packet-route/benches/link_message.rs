@@ -1,8 +1,9 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 
-use netlink_packet_route::rtnl::{
-    link::{nlas::LinkNla, LinkBuffer, LinkHeader, LinkMessage},
+use netlink_packet_route::{
+    nlas::link::Nla,
     traits::{Parseable, ParseableParametrized},
+    LinkHeader, LinkMessage, LinkMessageBuffer,
 };
 
 const LINKMSG1: [u8; 96] = [
@@ -34,25 +35,19 @@ const LINKMSG1: [u8; 96] = [
 fn b1(c: &mut Criterion) {
     c.bench_function("parse LinkMessage header", |b| {
         b.iter(|| {
-            <LinkBuffer<_> as Parseable<LinkHeader>>::parse(&LinkBuffer::new(&LINKMSG1[..]))
-                .unwrap();
+            LinkHeader::parse(&LinkMessageBuffer::new(&LINKMSG1[..])).unwrap();
         })
     });
 
     c.bench_function("parse LinkMessage nlas", |b| {
         b.iter(|| {
-            <LinkBuffer<_> as ParseableParametrized<Vec<LinkNla>, u8>>::parse_with_param(
-                &LinkBuffer::new(&&LINKMSG1[..]),
-                0,
-            )
-            .unwrap();
+            Vec::<Nla>::parse_with_param(&LinkMessageBuffer::new(&&LINKMSG1[..]), 0 as u8).unwrap();
         })
     });
 
     c.bench_function("parse LinkMessage", |b| {
         b.iter(|| {
-            <LinkBuffer<_> as Parseable<LinkMessage>>::parse(&LinkBuffer::new(&&LINKMSG1[..]))
-                .unwrap();
+            LinkMessage::parse(&LinkMessageBuffer::new(&&LINKMSG1[..])).unwrap();
         })
     });
 }
