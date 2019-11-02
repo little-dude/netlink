@@ -1,14 +1,8 @@
 use futures::StreamExt;
 
 use netlink_packet_route::{
-    netlink::{
-        header::flags::{NLM_F_DUMP, NLM_F_REQUEST},
-        NetlinkFlags, NetlinkHeader, NetlinkMessage, NetlinkPayload,
-    },
-    rtnl::{
-        link::{LinkHeader, LinkMessage},
-        RtnlMessage,
-    },
+    LinkHeader, LinkMessage, NetlinkFlags, NetlinkHeader, NetlinkMessage, NetlinkPayload,
+    RtnlMessage, NLM_F_DUMP, NLM_F_REQUEST,
 };
 
 use netlink_proto::{
