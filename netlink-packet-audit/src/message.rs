@@ -1,14 +1,11 @@
 use failure::{Compat as FailureError, Fail};
 
-use netlink_packet_core::{
-    NetlinkDeserializable, NetlinkHeader, NetlinkPayload, NetlinkSerializable,
-};
-
 use crate::{
-    commands::{AUDIT_ADD_RULE, AUDIT_DEL_RULE, AUDIT_GET, AUDIT_LIST_RULES, AUDIT_SET},
-    netlink::DecodeError,
+    constants::*,
     rules::RuleMessage,
-    AuditBuffer, Emitable, ParseableParametrized, StatusMessage,
+    traits::{Emitable, ParseableParametrized},
+    AuditBuffer, DecodeError, NetlinkDeserializable, NetlinkHeader, NetlinkPayload,
+    NetlinkSerializable, StatusMessage,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]

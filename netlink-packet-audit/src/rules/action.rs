@@ -1,9 +1,4 @@
-/// Do not build context if rule matches
-pub const AUDIT_NEVER: u32 = 0;
-/// Build context if rule matches
-pub const AUDIT_POSSIBLE: u32 = 1;
-/// Generate audit record if rule matches
-pub const AUDIT_ALWAYS: u32 = 2;
+use crate::constants::*;
 
 #[derive(Copy, Debug, PartialEq, Eq, Clone)]
 pub enum RuleAction {

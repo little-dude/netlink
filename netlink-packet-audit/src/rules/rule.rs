@@ -1,58 +1,15 @@
 use byteorder::{ByteOrder, NativeEndian};
 
 use crate::{
+    constants::AUDIT_MAX_FIELDS,
     rules::{
         RuleAction, RuleBuffer, RuleField, RuleFieldFlags, RuleFlags, RuleSyscalls,
-        AUDIT_MAX_FIELDS, RULE_BUF_MIN_LEN,
+        RULE_BUF_MIN_LEN,
     },
-    Emitable,
+    traits::Emitable,
 };
 
-pub const AUDIT_PID: u32 = 0;
-pub const AUDIT_UID: u32 = 1;
-pub const AUDIT_EUID: u32 = 2;
-pub const AUDIT_SUID: u32 = 3;
-pub const AUDIT_FSUID: u32 = 4;
-pub const AUDIT_GID: u32 = 5;
-pub const AUDIT_EGID: u32 = 6;
-pub const AUDIT_SGID: u32 = 7;
-pub const AUDIT_FSGID: u32 = 8;
-pub const AUDIT_LOGINUID: u32 = 9;
-pub const AUDIT_PERS: u32 = 10;
-pub const AUDIT_ARCH: u32 = 11;
-pub const AUDIT_MSGTYPE: u32 = 12;
-pub const AUDIT_SUBJ_USER: u32 = 13;
-pub const AUDIT_SUBJ_ROLE: u32 = 14;
-pub const AUDIT_SUBJ_TYPE: u32 = 15;
-pub const AUDIT_SUBJ_SEN: u32 = 16;
-pub const AUDIT_SUBJ_CLR: u32 = 17;
-pub const AUDIT_PPID: u32 = 18;
-pub const AUDIT_OBJ_USER: u32 = 19;
-pub const AUDIT_OBJ_ROLE: u32 = 20;
-pub const AUDIT_OBJ_TYPE: u32 = 21;
-pub const AUDIT_OBJ_LEV_LOW: u32 = 22;
-pub const AUDIT_OBJ_LEV_HIGH: u32 = 23;
-pub const AUDIT_LOGINUID_SET: u32 = 24;
-pub const AUDIT_SESSIONID: u32 = 25;
-pub const AUDIT_FSTYPE: u32 = 26;
-pub const AUDIT_DEVMAJOR: u32 = 100;
-pub const AUDIT_DEVMINOR: u32 = 101;
-pub const AUDIT_INODE: u32 = 102;
-pub const AUDIT_EXIT: u32 = 103;
-pub const AUDIT_SUCCESS: u32 = 104;
-pub const AUDIT_WATCH: u32 = 105;
-pub const AUDIT_PERM: u32 = 106;
-pub const AUDIT_DIR: u32 = 107;
-pub const AUDIT_FILETYPE: u32 = 108;
-pub const AUDIT_OBJ_UID: u32 = 109;
-pub const AUDIT_OBJ_GID: u32 = 110;
-pub const AUDIT_FIELD_COMPARE: u32 = 111;
-pub const AUDIT_EXE: u32 = 112;
-pub const AUDIT_ARG0: u32 = 200;
-pub const AUDIT_ARG1: u32 = 201;
-pub const AUDIT_ARG2: u32 = 202;
-pub const AUDIT_ARG3: u32 = 203;
-pub const AUDIT_FILTERKEY: u32 = 210;
+use crate::constants::*;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct RuleMessage {

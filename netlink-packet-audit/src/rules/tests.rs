@@ -2,7 +2,7 @@ use crate::{
     rules::{
         RuleAction, RuleBuffer, RuleField, RuleFieldFlags, RuleFlags, RuleMessage, RuleSyscalls,
     },
-    Emitable, Parseable,
+    traits::{Emitable, Parseable},
 };
 
 const AUDIT_ARCH_X86_64: u32 = 0xC000_003E;

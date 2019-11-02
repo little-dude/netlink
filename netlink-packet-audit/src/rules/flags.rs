@@ -1,21 +1,4 @@
-/// Apply rule to user-generated messages
-pub const AUDIT_FILTER_USER: u32 = 0;
-/// Apply rule at task creation (not syscall)
-pub const AUDIT_FILTER_TASK: u32 = 1;
-/// Apply rule at syscall entry
-pub const AUDIT_FILTER_ENTRY: u32 = 2;
-/// Apply rule to file system watches
-pub const AUDIT_FILTER_WATCH: u32 = 3;
-/// Apply rule at syscall exit
-pub const AUDIT_FILTER_EXIT: u32 = 4;
-/// Apply rule at audit_log_start
-pub const AUDIT_FILTER_TYPE: u32 = 5;
-pub const AUDIT_FILTER_FS: u32 = 6;
-/// Mask to get actual filter
-pub const AUDIT_NR_FILTERS: u32 = 7;
-pub const AUDIT_FILTER_PREPEND: u32 = 16;
-/// Filter is unset
-pub const AUDIT_FILTER_UNSET: u32 = 128;
+use crate::constants::*;
 
 #[derive(Copy, Debug, PartialEq, Eq, Clone)]
 pub enum RuleFlags {

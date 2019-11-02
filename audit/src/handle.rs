@@ -9,14 +9,8 @@ use futures::{
 use netlink_proto::{sys::SocketAddr, ConnectionHandle};
 
 use crate::packet::{
-    netlink::{
-        header::flags::{
-            NLM_F_ACK, NLM_F_CREATE, NLM_F_DUMP, NLM_F_EXCL, NLM_F_NONREC, NLM_F_REQUEST,
-        },
-        NetlinkFlags, NetlinkMessage, NetlinkPayload,
-    },
-    rules::RuleMessage,
-    AuditMessage, StatusMessage,
+    rules::RuleMessage, AuditMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, StatusMessage,
+    NLM_F_ACK, NLM_F_CREATE, NLM_F_DUMP, NLM_F_EXCL, NLM_F_NONREC, NLM_F_REQUEST,
 };
 
 // ==========================================

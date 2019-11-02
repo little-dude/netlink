@@ -1,6 +1,9 @@
 use byteorder::{ByteOrder, NativeEndian};
 
-use crate::{netlink::DecodeError, Emitable, Field, Parseable};
+use crate::{
+    traits::{Emitable, Parseable},
+    DecodeError, Field,
+};
 
 const MASK: Field = 0..4;
 const ENABLED: Field = 4..8;
