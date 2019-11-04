@@ -1,8 +1,7 @@
 use futures::StreamExt;
 
 use netlink_packet_route::{
-    LinkMessage, NetlinkHeader, NetlinkMessage, RtnlMessage, NLM_F_DUMP,
-    NLM_F_REQUEST,
+    LinkMessage, NetlinkHeader, NetlinkMessage, RtnlMessage, NLM_F_DUMP, NLM_F_REQUEST,
 };
 
 use netlink_proto::{
@@ -22,8 +21,11 @@ async fn main() -> Result<(), String> {
 
     // Create the netlink message that requests the links to be dumped
     let request = NetlinkMessage {
-        header: NetlinkHeader { flags: NLM_F_DUMP | NLM_F_REQUEST, ..Default::default() },
-        payload: RtnlMessage::GetLink(LinkMessage::default()).into()
+        header: NetlinkHeader {
+            flags: NLM_F_DUMP | NLM_F_REQUEST,
+            ..Default::default()
+        },
+        payload: RtnlMessage::GetLink(LinkMessage::default()).into(),
     };
 
     // Send the request
