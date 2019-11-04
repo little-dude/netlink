@@ -171,16 +171,26 @@ pub const NETNSA_PID: u16 = 2;
 pub const NETNSA_FD: u16 = 3;
 pub const NETNSA_NSID_NOT_ASSIGNED: i32 = -1;
 
+/// Neighbour cache entry state: the neighbour has not (yet) been resolved
 pub const NUD_INCOMPLETE: u16 = 1;
+/// Neighbour cache entry state: the neighbour entry is valid until its lifetime expires
 pub const NUD_REACHABLE: u16 = 2;
+/// Neighbour cache entry state: the neighbour entry is valid but suspicious
 pub const NUD_STALE: u16 = 4;
+/// Neighbour cache entry state: the validation of this entry is currently delayed
 pub const NUD_DELAY: u16 = 8;
+/// Neighbour cache entry state: the neighbour entry is being probed
 pub const NUD_PROBE: u16 = 16;
+/// Neighbour cache entry state: the validation of this entry has failed
 pub const NUD_FAILED: u16 = 32;
+/// Neighbour cache entry state: entry is valid and the kernel will not try to validate or refresh it.
 pub const NUD_NOARP: u16 = 64;
+/// Neighbour cache entry state: entry is valid forever and can only be removed explicitly from userspace.
 pub const NUD_PERMANENT: u16 = 128;
+/// Neighbour cache entry state: pseudo state for fresh entries or before deleting entries
 pub const NUD_NONE: u16 = 0;
 
+// Neighbour cache entry flags
 pub const NTF_USE: u8 = 1;
 pub const NTF_SELF: u8 = 2;
 pub const NTF_MASTER: u8 = 4;
@@ -518,9 +528,15 @@ pub const IF_OPER_TESTING: u8 = 4;
 pub const IF_OPER_DORMANT: u8 = 5;
 pub const IF_OPER_UP: u8 = 6;
 
+/// Neighbour cache entry type: unknown type
 pub const NDA_UNSPEC: u16 = 0;
+/// Neighbour cache entry type: entry for a network layer destination
+/// address
 pub const NDA_DST: u16 = 1;
+/// Neighbour cache entry type: entry for a link layer destination
+/// address
 pub const NDA_LLADDR: u16 = 2;
+/// Neighbour cache entry type: entry for cache statistics
 pub const NDA_CACHEINFO: u16 = 3;
 pub const NDA_PROBES: u16 = 4;
 pub const NDA_VLAN: u16 = 5;

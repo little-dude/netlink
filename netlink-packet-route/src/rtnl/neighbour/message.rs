@@ -6,7 +6,7 @@ use crate::{
     DecodeError, NeighbourHeader, NeighbourMessageBuffer,
 };
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct NeighbourMessage {
     pub header: NeighbourHeader,
     pub nlas: Vec<Nla>,
