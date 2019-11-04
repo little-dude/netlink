@@ -9,8 +9,8 @@ use futures::{
 use netlink_proto::{sys::SocketAddr, ConnectionHandle};
 
 use crate::packet::{
-    rules::RuleMessage, AuditMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, StatusMessage,
-    NLM_F_ACK, NLM_F_CREATE, NLM_F_DUMP, NLM_F_EXCL, NLM_F_NONREC, NLM_F_REQUEST,
+    rules::RuleMessage, AuditMessage, NetlinkMessage, NetlinkPayload, StatusMessage, NLM_F_ACK,
+    NLM_F_CREATE, NLM_F_DUMP, NLM_F_EXCL, NLM_F_NONREC, NLM_F_REQUEST,
 };
 
 // ==========================================
@@ -77,22 +77,21 @@ impl Handle {
     /// Add the given rule
     pub async fn add_rule(&mut self, rule: RuleMessage) -> Result<(), Error> {
         let mut req = NetlinkMessage::from(AuditMessage::AddRule(rule));
-        req.header.flags =
-            NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
+        req.header.flags = NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE;
         self.acked_request(req).await
     }
 
     /// Deletes a given rule
     pub async fn del_rule(&mut self, rule: RuleMessage) -> Result<(), Error> {
         let mut req = NetlinkMessage::from(AuditMessage::DelRule(rule));
-        req.header.flags = NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_NONREC);
+        req.header.flags = NLM_F_REQUEST | NLM_F_ACK | NLM_F_NONREC;
         self.acked_request(req).await
     }
 
     /// List the current rules
     pub fn list_rules(&mut self) -> impl TryStream<Ok = RuleMessage, Error = Error> {
         let mut req = NetlinkMessage::from(AuditMessage::ListRules(None));
-        req.header.flags = NetlinkFlags::from(NLM_F_REQUEST | NLM_F_DUMP);
+        req.header.flags = NLM_F_REQUEST | NLM_F_DUMP;
 
         match self.request(req) {
             Ok(response) => Either::Left(response.map(move |msg| {
@@ -118,7 +117,7 @@ impl Handle {
         status.pid = process::id();
         status.mask = AUDIT_STATUS_ENABLED | AUDIT_STATUS_PID;
         let mut req = NetlinkMessage::from(AuditMessage::SetStatus(status));
-        req.header.flags = NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK);
+        req.header.flags = NLM_F_REQUEST | NLM_F_ACK;
         self.acked_request(req).await
     }
 }

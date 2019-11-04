@@ -923,9 +923,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for VethInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        nlas::link::Nla, traits::Emitable, LinkFlags, LinkHeader, LinkLayerType, LinkMessage,
-    };
+    use crate::{nlas::link::Nla, traits::Emitable, LinkHeader, LinkMessage};
 
     #[rustfmt::skip]
     static BRIDGE: [u8; 404] = [
@@ -1227,9 +1225,9 @@ mod tests {
                 header: LinkHeader {
                     interface_family: 0,
                     index: 0,
-                    link_layer_type: LinkLayerType::Netrom,
-                    flags: LinkFlags(0),
-                    change_mask: LinkFlags(0),
+                    link_layer_type: ARPHRD_NETROM,
+                    flags: 0,
+                    change_mask: 0,
                 },
                 nlas: vec![
                     Nla::IfName("vethc0e60d6".to_string()),

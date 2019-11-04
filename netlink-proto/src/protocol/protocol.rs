@@ -4,7 +4,7 @@ use std::{
 };
 
 use netlink_packet_core::{
-    NetlinkDeserializable, NetlinkMessage, NetlinkPayload, NetlinkSerializable,
+    constants::*, NetlinkDeserializable, NetlinkMessage, NetlinkPayload, NetlinkSerializable,
 };
 use netlink_sys::SocketAddr;
 
@@ -38,7 +38,7 @@ where
     pending_requests: HashMap<RequestId, M>,
 
     /// Responses to pending requests
-    pub incoming_responses: VecDeque<(Response<T, M>)>,
+    pub incoming_responses: VecDeque<Response<T, M>>,
 
     /// Requests from remote peers
     pub incoming_requests: VecDeque<(NetlinkMessage<T>, SocketAddr)>,
@@ -79,7 +79,7 @@ where
         debug!("handling response to request {:?}", request_id);
         let mut done = true;
         if let NetlinkPayload::InnerMessage(_) = message.payload {
-            if message.header.flags.has_multipart() {
+            if message.header.flags & NLM_F_MULTIPART == NLM_F_MULTIPART {
                 done = false;
             }
         }
@@ -120,7 +120,10 @@ where
         //  - when the request has the NLM_F_REQUEST flag
         //  - when the request has the NLM_F_ACK flag
         //  - when the request has the NLM_F_ECHO flag
-        if flags.has_request() || flags.has_ack() || flags.has_echo() {
+        if flags & NLM_F_REQUEST == NLM_F_REQUEST
+            || flags & NLM_F_ACK == NLM_F_ACK
+            || flags & NLM_F_ECHO == NLM_F_ECHO
+        {
             self.pending_requests.insert(request_id, metadata);
         }
     }

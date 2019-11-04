@@ -2,8 +2,7 @@ use futures::stream::StreamExt;
 
 use crate::{
     packet::{
-        AddressMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage, NLM_F_ACK,
-        NLM_F_REQUEST,
+        AddressMessage, NetlinkMessage, NetlinkPayload, RtnlMessage, NLM_F_ACK, NLM_F_REQUEST,
     },
     Error, ErrorKind, Handle,
 };
@@ -26,7 +25,7 @@ impl AddressDelRequest {
         } = self;
 
         let mut req = NetlinkMessage::from(RtnlMessage::DelAddress(message));
-        req.header.flags = NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK);
+        req.header.flags = NLM_F_REQUEST | NLM_F_ACK;
         let mut response = handle.request(req)?;
         while let Some(msg) = response.next().await {
             if let NetlinkPayload::Error(e) = msg.payload {

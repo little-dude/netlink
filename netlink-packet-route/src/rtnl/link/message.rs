@@ -6,30 +6,10 @@ use crate::{
     DecodeError, LinkHeader, LinkMessageBuffer,
 };
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct LinkMessage {
     pub header: LinkHeader,
     pub nlas: Vec<Nla>,
-}
-
-impl Default for LinkMessage {
-    fn default() -> Self {
-        LinkMessage::new()
-    }
-}
-
-impl LinkMessage {
-    pub fn new() -> Self {
-        LinkMessage::from_parts(LinkHeader::new(), vec![])
-    }
-
-    pub fn into_parts(self) -> (LinkHeader, Vec<Nla>) {
-        (self.header, self.nlas)
-    }
-
-    pub fn from_parts(header: LinkHeader, nlas: Vec<Nla>) -> Self {
-        LinkMessage { header, nlas }
-    }
 }
 
 impl Emitable for LinkMessage {
@@ -74,10 +54,10 @@ impl<'a, T: AsRef<[u8]> + 'a> ParseableParametrized<LinkMessageBuffer<&'a T>, u8
 #[cfg(test)]
 mod test {
     use crate::{
+        constants::*,
         nlas::link::{Nla, State},
         traits::{Emitable, ParseableParametrized},
-        LinkFlags, LinkHeader, LinkLayerType, LinkMessage, LinkMessageBuffer, AF_INET,
-        IFF_LOOPBACK, IFF_LOWER_UP, IFF_RUNNING, IFF_UP,
+        LinkHeader, LinkMessage, LinkMessageBuffer,
     };
 
     #[rustfmt::skip]
@@ -112,16 +92,10 @@ mod test {
         let packet = LinkMessageBuffer::new(&HEADER[0..16]);
         assert_eq!(packet.interface_family(), 0);
         assert_eq!(packet.reserved_1(), 0);
-        assert_eq!(
-            LinkLayerType::from(packet.link_layer_type()),
-            LinkLayerType::Loopback
-        );
+        assert_eq!(packet.link_layer_type(), ARPHRD_LOOPBACK);
         assert_eq!(packet.link_index(), 1);
         assert_eq!(packet.flags(), IFF_UP | IFF_LOOPBACK | IFF_RUNNING);
-        assert!(LinkFlags::from(packet.flags()).is_running());
-        assert!(LinkFlags::from(packet.flags()).is_loopback());
-        assert!(LinkFlags::from(packet.flags()).is_up());
-        assert_eq!(LinkFlags::from(packet.change_mask()), LinkFlags::new());
+        assert_eq!(packet.change_mask(), 0);
     }
 
     #[test]
@@ -131,14 +105,10 @@ mod test {
             let mut packet = LinkMessageBuffer::new(&mut buf);
             packet.set_interface_family(0);
             packet.set_reserved_1(0);
-            packet.set_link_layer_type(LinkLayerType::Loopback.into());
+            packet.set_link_layer_type(ARPHRD_LOOPBACK);
             packet.set_link_index(1);
-            let mut flags = LinkFlags::new();
-            flags.set_up();
-            flags.set_loopback();
-            flags.set_running();
-            packet.set_flags(flags.into());
-            packet.set_change_mask(LinkFlags::new().into());
+            packet.set_flags(IFF_UP | IFF_LOOPBACK | IFF_RUNNING);
+            packet.set_change_mask(0);
         }
         assert_eq!(&buf[..], &HEADER[0..16]);
     }
@@ -226,10 +196,10 @@ mod test {
 
     #[test]
     fn emit() {
-        let mut header = LinkHeader::new();
-        header.link_layer_type = LinkLayerType::Loopback;
+        let mut header = LinkHeader::default();
+        header.link_layer_type = ARPHRD_LOOPBACK;
         header.index = 1;
-        header.flags = LinkFlags::from(IFF_UP | IFF_LOOPBACK | IFF_RUNNING | IFF_LOWER_UP);
+        header.flags = IFF_UP | IFF_LOOPBACK | IFF_RUNNING | IFF_LOWER_UP;
 
         let nlas = vec![
             Nla::IfName("lo".into()),
@@ -244,7 +214,7 @@ mod test {
             Nla::GsoMaxSize(0x1_0000),
         ];
 
-        let packet = LinkMessage::from_parts(header, nlas);
+        let packet = LinkMessage { header, nlas };
 
         let mut buf = vec![0; 96];
 

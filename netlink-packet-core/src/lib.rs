@@ -27,20 +27,20 @@
 //! `netlink-packet-route`.
 //!
 //! ```rust
-//! use netlink_packet_core::{NLM_F_DUMP, NLM_F_REQUEST, NetlinkFlags, NetlinkMessage};
-//! use netlink_packet_route::{LinkHeader, LinkMessage, RtnlMessage};
+//! use netlink_packet_core::{NLM_F_DUMP, NLM_F_REQUEST, NetlinkMessage, NetlinkHeader};
+//! use netlink_packet_route::{LinkMessage, RtnlMessage};
 //!
 //! fn main() {
-//!     // Create the internal message, a rtnetlink message.
-//!     let rtnl_message = RtnlMessage::GetLink(LinkMessage::from_parts(LinkHeader::new(), vec![]));
-//!
-//!     // Create the full netlink message, that contains the rtnetlink
+//!     // Create the netlink message, that contains the rtnetlink
 //!     // message
-//!     let mut packet = NetlinkMessage::from(rtnl_message);
-//!
-//!     // Set a few fields in the packet's header
-//!     packet.header.flags = NetlinkFlags::from(NLM_F_DUMP | NLM_F_REQUEST);
-//!     packet.header.sequence_number = 1;
+//!     let mut packet = NetlinkMessage {
+//!         header: NetlinkHeader {
+//!             sequence_number: 1,
+//!             flags: NLM_F_DUMP | NLM_F_REQUEST,
+//!             ..Default::default()
+//!         },
+//!         payload: RtnlMessage::GetLink(LinkMessage::default()).into(),
+//!     };
 //!
 //!     // Before serializing the packet, it is very important to call
 //!     // finalize() to ensure the header of the message is consistent
@@ -231,7 +231,7 @@
 //!     assert_eq!(deserialized_packet, packet);
 //!
 //!     // This should print:
-//!     // NetlinkMessage { header: NetlinkHeader { length: 20, message_type: 18, flags: NetlinkFlags(0), sequence_number: 0, port_number: 0 }, payload: InnerMessage(Ping([0, 1, 2, 3])) }
+//!     // NetlinkMessage { header: NetlinkHeader { length: 20, message_type: 18, flags: 0, sequence_number: 0, port_number: 0 }, payload: InnerMessage(Ping([0, 1, 2, 3])) }
 //!     println!("{:?}", packet);
 //! }
 //! ```

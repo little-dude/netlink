@@ -3,8 +3,8 @@ use futures::stream::StreamExt;
 use crate::{
     packet::{
         nlas::link::{Info, InfoData, InfoKind, InfoVlan, Nla, VethInfo},
-        LinkFlags, LinkMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage, IFF_UP,
-        NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST,
+        LinkMessage, NetlinkMessage, NetlinkPayload, RtnlMessage, IFF_UP, NLM_F_ACK, NLM_F_CREATE,
+        NLM_F_EXCL, NLM_F_REQUEST,
     },
     Error, ErrorKind, Handle,
 };
@@ -23,7 +23,7 @@ impl LinkAddRequest {
     pub(crate) fn new(handle: Handle) -> Self {
         LinkAddRequest {
             handle,
-            message: LinkMessage::new(),
+            message: LinkMessage::default(),
         }
     }
 
@@ -34,8 +34,7 @@ impl LinkAddRequest {
             message,
         } = self;
         let mut req = NetlinkMessage::from(RtnlMessage::NewLink(message));
-        req.header.flags =
-            NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
+        req.header.flags = NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE;
 
         let mut response = handle.request(req)?;
         while let Some(message) = response.next().await {
@@ -57,15 +56,15 @@ impl LinkAddRequest {
     ///
     /// ```rust,no_run
     /// use futures::Future;
-    /// use rtnetlink::{Handle, new_connection};
+    /// use rtnetlink::{Handle, new_connection, packet::IFF_UP};
     ///
     /// async fn run(handle: Handle) -> Result<(), String> {
     ///     let vlan_id = 100;
     ///     let link_id = 6;
     ///     let mut request = handle.link().add().vlan("my-vlan-itf".into(), link_id, vlan_id);
     ///     // unset the IFF_UP flag before sending the request
-    ///     request.message_mut().header.flags.unset_up();
-    ///     request.message_mut().header.change_mask.unset_up();
+    ///     request.message_mut().header.flags &= !IFF_UP;
+    ///     request.message_mut().header.change_mask &= !IFF_UP;
     ///     // send the request
     ///     request.execute().await.map_err(|e| format!("{}", e))
     /// }
@@ -86,7 +85,7 @@ impl LinkAddRequest {
         // VethInfo::Peer attribute, and `peer_name` is the name in the main netlink message.
         // This is a bit weird, but it's all hidden from the user.
 
-        let mut peer = LinkMessage::new();
+        let mut peer = LinkMessage::default();
         // FIXME: we get a -107 (ENOTCONN) (???) when trying to set `name` up.
         // peer.header.flags = LinkFlags::from(IFF_UP);
         // peer.header.change_mask = LinkFlags::from(IFF_UP);
@@ -119,8 +118,8 @@ impl LinkAddRequest {
     }
 
     fn up(mut self) -> Self {
-        self.message.header.flags = LinkFlags::from(IFF_UP);
-        self.message.header.change_mask = LinkFlags::from(IFF_UP);
+        self.message.header.flags = IFF_UP;
+        self.message.header.change_mask = IFF_UP;
         self
     }
 

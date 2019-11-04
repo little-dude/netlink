@@ -6,8 +6,8 @@ use futures::{
 use std::net::IpAddr;
 
 use netlink_packet_route::{
-    nlas::address::Nla, AddressMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage,
-    NLM_F_DUMP, NLM_F_REQUEST,
+    nlas::address::Nla, AddressMessage, NetlinkMessage, NetlinkPayload, RtnlMessage, NLM_F_DUMP,
+    NLM_F_REQUEST,
 };
 
 use crate::{Error, ErrorKind, Handle};
@@ -39,7 +39,7 @@ impl AddressGetRequest {
         } = self;
 
         let mut req = NetlinkMessage::from(RtnlMessage::GetAddress(message));
-        req.header.flags = NetlinkFlags::from(NLM_F_REQUEST | NLM_F_DUMP);
+        req.header.flags = NLM_F_REQUEST | NLM_F_DUMP;
 
         let filter = filter_builder.build();
         match handle.request(req) {

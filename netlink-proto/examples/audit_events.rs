@@ -23,8 +23,7 @@
 
 use futures::stream::StreamExt;
 use netlink_packet_audit::{
-    AuditMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, StatusMessage, NLM_F_ACK,
-    NLM_F_REQUEST,
+    AuditMessage, NetlinkMessage, NetlinkPayload, StatusMessage, NLM_F_ACK, NLM_F_REQUEST,
 };
 use std::process;
 
@@ -68,7 +67,7 @@ async fn main() -> Result<(), String> {
         status.mask = AUDIT_STATUS_ENABLED | AUDIT_STATUS_PID;
         let payload = AuditMessage::SetStatus(status);
         let mut nl_msg = NetlinkMessage::from(payload);
-        nl_msg.header.flags = NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK);
+        nl_msg.header.flags = NLM_F_REQUEST | NLM_F_ACK;
 
         // We'll send unicast messages to the kernel.
         let kernel_unicast: SocketAddr = SocketAddr::new(0, 0);

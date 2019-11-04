@@ -2,8 +2,8 @@ use futures::stream::StreamExt;
 use std::net::{IpAddr, Ipv4Addr};
 
 use netlink_packet_route::{
-    nlas::address::Nla, AddressMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage,
-    AF_INET, AF_INET6, NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST,
+    nlas::address::Nla, AddressMessage, NetlinkMessage, NetlinkPayload, RtnlMessage, AF_INET,
+    AF_INET6, NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST,
 };
 
 use crate::{Error, ErrorKind, Handle};
@@ -68,8 +68,7 @@ impl AddressAddRequest {
             message,
         } = self;
         let mut req = NetlinkMessage::from(RtnlMessage::NewAddress(message));
-        req.header.flags =
-            NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
+        req.header.flags = NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE;
 
         let mut response = handle.request(req)?;
         while let Some(message) = response.next().await {

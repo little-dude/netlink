@@ -152,8 +152,9 @@ where
     T: Into<NetlinkPayload<T>> + Debug + Clone + Eq + PartialEq,
 {
     fn from(inner_message: T) -> Self {
-        let payload = inner_message.into();
-        let header = NetlinkHeader::new();
-        NetlinkMessage::new(header, payload)
+        NetlinkMessage {
+            header: NetlinkHeader::default(),
+            payload: inner_message.into(),
+        }
     }
 }

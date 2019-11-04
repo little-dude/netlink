@@ -4,22 +4,9 @@ use crate::{
     DecodeError,
 };
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct NsidHeader {
     pub rtgen_family: u8,
-}
-
-impl Default for NsidHeader {
-    fn default() -> Self {
-        NsidHeader::new()
-    }
-}
-
-impl NsidHeader {
-    /// Create a new `NsidHeader`:
-    pub fn new() -> Self {
-        NsidHeader { rtgen_family: 0 }
-    }
 }
 
 impl Emitable for NsidHeader {

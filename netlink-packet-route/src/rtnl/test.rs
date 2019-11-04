@@ -3,8 +3,7 @@
 use crate::{
     nlas::link::{Info, InfoKind, Nla},
     traits::ParseableParametrized,
-    LinkFlags, LinkHeader, LinkLayerType, LinkMessage, NetlinkBuffer, RtnlMessage,
-    RtnlMessageBuffer, RTM_NEWLINK,
+    LinkHeader, LinkMessage, NetlinkBuffer, RtnlMessage, RtnlMessageBuffer, RTM_NEWLINK,
 };
 
 // This test was added because one of the NLA's payload is a string that is not null
@@ -44,13 +43,7 @@ fn test_non_null_terminated_string() {
         0x00, 0x00, // padding
         ];
     let expected = RtnlMessage::NewLink(LinkMessage {
-        header: LinkHeader {
-            interface_family: 0,
-            index: 0,
-            link_layer_type: LinkLayerType::Netrom,
-            flags: LinkFlags(0),
-            change_mask: LinkFlags(0),
-        },
+        header: LinkHeader::default(),
         nlas: vec![
             Nla::IfName(String::from("qemu-br1")),
             Nla::Info(vec![Info::Kind(InfoKind::Bridge)]),
@@ -90,9 +83,9 @@ fn test_attach_to_bridge() {
         header: LinkHeader {
             interface_family: 0,
             index: 6,
-            link_layer_type: LinkLayerType::Netrom,
-            flags: LinkFlags(0),
-            change_mask: LinkFlags(0),
+            link_layer_type: 0,
+            flags: 0,
+            change_mask: 0,
         },
         nlas: vec![Nla::Master(5)],
     });

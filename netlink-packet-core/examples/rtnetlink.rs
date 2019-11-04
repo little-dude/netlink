@@ -1,16 +1,20 @@
-use netlink_packet_core::{NetlinkFlags, NetlinkMessage, NLM_F_DUMP, NLM_F_REQUEST};
-use netlink_packet_route::rtnl::{LinkHeader, LinkMessage, RtnlMessage};
+use netlink_packet_core::{NetlinkHeader, NetlinkMessage, NLM_F_DUMP, NLM_F_REQUEST};
+use netlink_packet_route::rtnl::{LinkMessage, RtnlMessage};
 
 fn main() {
-    // Create the internal message, a rtnetlink message.
-    let rtnl_message = RtnlMessage::GetLink(LinkMessage::from_parts(LinkHeader::new(), vec![]));
-
-    // Create the full netlink message, that contains the rtnetlink
+    // Create the netlink message, that contains the rtnetlink
     // message
-    let mut packet = NetlinkMessage::from(rtnl_message);
+    let mut packet = NetlinkMessage {
+        header: NetlinkHeader {
+            sequence_number: 1,
+            flags: NLM_F_DUMP | NLM_F_REQUEST,
+            ..Default::default()
+        },
+        payload: RtnlMessage::GetLink(LinkMessage::default()).into(),
+    };
 
     // Set a few fields in the packet's header
-    packet.header.flags = NetlinkFlags::from(NLM_F_DUMP | NLM_F_REQUEST);
+    packet.header.flags = NLM_F_DUMP | NLM_F_REQUEST;
     packet.header.sequence_number = 1;
 
     // Before serializing the packet, it is very important to call

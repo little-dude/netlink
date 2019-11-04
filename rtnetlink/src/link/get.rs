@@ -6,8 +6,8 @@ use futures::{
 
 use crate::{
     packet::{
-        nlas::link::Nla, LinkMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage,
-        NLM_F_DUMP, NLM_F_REQUEST,
+        nlas::link::Nla, LinkMessage, NetlinkMessage, NetlinkPayload, RtnlMessage, NLM_F_DUMP,
+        NLM_F_REQUEST,
     },
     Error, ErrorKind, Handle,
 };
@@ -28,7 +28,7 @@ impl LinkGetRequest {
     pub(crate) fn new(handle: Handle) -> Self {
         LinkGetRequest {
             handle,
-            message: LinkMessage::new(),
+            message: LinkMessage::default(),
             dump: true,
             filter_builder: LinkFilterBuilder::new(),
         }
@@ -46,9 +46,9 @@ impl LinkGetRequest {
         let mut req = NetlinkMessage::from(RtnlMessage::GetLink(message));
 
         if dump {
-            req.header.flags = NetlinkFlags::from(NLM_F_REQUEST | NLM_F_DUMP);
+            req.header.flags = NLM_F_REQUEST | NLM_F_DUMP;
         } else {
-            req.header.flags = NetlinkFlags::from(NLM_F_REQUEST);
+            req.header.flags = NLM_F_REQUEST;
         }
 
         let filter = filter_builder.build();

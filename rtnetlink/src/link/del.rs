@@ -2,8 +2,8 @@ use futures::stream::StreamExt;
 
 use crate::{
     packet::{
-        LinkMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload, RtnlMessage, NLM_F_ACK,
-        NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST,
+        LinkMessage, NetlinkMessage, NetlinkPayload, RtnlMessage, NLM_F_ACK, NLM_F_CREATE,
+        NLM_F_EXCL, NLM_F_REQUEST,
     },
     Error, ErrorKind, Handle,
 };
@@ -15,7 +15,7 @@ pub struct LinkDelRequest {
 
 impl LinkDelRequest {
     pub(crate) fn new(handle: Handle, index: u32) -> Self {
-        let mut message = LinkMessage::new();
+        let mut message = LinkMessage::default();
         message.header.index = index;
         LinkDelRequest { handle, message }
     }
@@ -27,8 +27,7 @@ impl LinkDelRequest {
             message,
         } = self;
         let mut req = NetlinkMessage::from(RtnlMessage::DelLink(message));
-        req.header.flags =
-            NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
+        req.header.flags = NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE;
 
         let mut response = handle.request(req)?;
         while let Some(message) = response.next().await {

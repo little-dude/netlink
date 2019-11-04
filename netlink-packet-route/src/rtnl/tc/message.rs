@@ -13,10 +13,6 @@ pub struct TcMessage {
 }
 
 impl TcMessage {
-    pub fn new() -> Self {
-        Default::default()
-    }
-
     pub fn into_parts(self) -> (TcHeader, Vec<Nla>) {
         (self.header, self.nlas)
     }
@@ -26,7 +22,7 @@ impl TcMessage {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct TcHeader {
     family: u8,
     // Interface index
@@ -36,24 +32,6 @@ pub struct TcHeader {
     // Parent Qdisc
     parent: u32,
     info: u32,
-}
-
-impl Default for TcHeader {
-    fn default() -> Self {
-        TcHeader::new()
-    }
-}
-
-impl TcHeader {
-    pub fn new() -> Self {
-        TcHeader {
-            family: 0,
-            index: 0,
-            handle: 0,
-            parent: 0,
-            info: 0,
-        }
-    }
 }
 
 impl Emitable for TcHeader {

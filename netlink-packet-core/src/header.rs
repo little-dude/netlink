@@ -1,5 +1,3 @@
-pub mod flags;
-pub use self::flags::NetlinkFlags;
 use crate::{buffer::NETLINK_HEADER_LEN, DecodeError, Emitable, NetlinkBuffer, Parseable};
 
 /// A Netlink header representation. A netlink header has the following structure:
@@ -24,21 +22,14 @@ pub struct NetlinkHeader {
     /// NetlinkMessage type. The meaning of this field depends on the netlink protocol family in use.
     pub message_type: u16,
 
-    /// Flags
-    pub flags: NetlinkFlags,
+    /// Flags. It should be set to one of the `NLM_F_*` constants.
+    pub flags: u16,
 
     /// Sequence number of the packet
     pub sequence_number: u32,
 
     /// Port number (usually set to the the process ID)
     pub port_number: u32,
-}
-
-impl NetlinkHeader {
-    /// Create a new header, initialized with default values
-    pub fn new() -> Self {
-        Default::default()
-    }
 }
 
 impl Emitable for NetlinkHeader {
@@ -71,7 +62,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NetlinkBuffer<&'a T>> for NetlinkHea
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{constants::*, header::flags::*};
+    use crate::constants::*;
 
     // a packet captured with tcpdump that was sent when running `ip link show`
     #[rustfmt::skip]
@@ -97,10 +88,7 @@ mod tests {
         assert_eq!(repr.message_type, RTM_GETLINK);
         assert_eq!(repr.sequence_number, 1_526_271_540);
         assert_eq!(repr.port_number, 0);
-        assert_eq!(
-            Into::<u16>::into(repr.flags),
-            NLM_F_ROOT | NLM_F_REQUEST | NLM_F_MATCH
-        );
+        assert_eq!(repr.flags, NLM_F_ROOT | NLM_F_REQUEST | NLM_F_MATCH);
     }
 
     #[test]
@@ -109,7 +97,7 @@ mod tests {
             length: 40,
             message_type: RTM_GETLINK,
             sequence_number: 1_526_271_540,
-            flags: NetlinkFlags::from(NLM_F_ROOT | NLM_F_REQUEST | NLM_F_MATCH),
+            flags: NLM_F_ROOT | NLM_F_REQUEST | NLM_F_MATCH,
             port_number: 0,
         };
         assert_eq!(repr.buffer_len(), 16);

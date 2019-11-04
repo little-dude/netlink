@@ -1,6 +1,6 @@
 use byteorder::{ByteOrder, NativeEndian};
 
-use crate::{DecodeError, Field, NetlinkFlags, Rest};
+use crate::{DecodeError, Field, Rest};
 
 const LENGTH: Field = 0..4;
 const MESSAGE_TYPE: Field = 4..6;
@@ -223,9 +223,9 @@ impl<T: AsRef<[u8]>> NetlinkBuffer<T> {
     /// # Panic
     ///
     /// This panic is the underlying storage is too small (see [`new_checked()`](struct.NetlinkBuffer.html#method.new_checked))
-    pub fn flags(&self) -> NetlinkFlags {
+    pub fn flags(&self) -> u16 {
         let data = self.buffer.as_ref();
-        NetlinkFlags::from(NativeEndian::read_u16(&data[FLAGS]))
+        NativeEndian::read_u16(&data[FLAGS])
     }
 
     /// Return the `sequence_number` field
@@ -275,9 +275,9 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> NetlinkBuffer<T> {
     /// # Panic
     ///
     /// This panic is the underlying storage is too small (see [`new_checked()`](struct.NetlinkBuffer.html#method.new_checked))
-    pub fn set_flags(&mut self, value: NetlinkFlags) {
+    pub fn set_flags(&mut self, value: u16) {
         let data = self.buffer.as_mut();
-        NativeEndian::write_u16(&mut data[FLAGS], value.into())
+        NativeEndian::write_u16(&mut data[FLAGS], value)
     }
 
     /// Set the packet header `sequence_number` field
@@ -361,15 +361,12 @@ mod tests {
         assert_eq!(packet.sequence_number(), 1526271540);
         assert_eq!(packet.port_number(), 0);
         let flags = packet.flags();
-        assert!(flags.has_root());
-        assert!(flags.has_request());
-        assert!(flags.has_match());
+        assert!(flags & NLM_F_ROOT == NLM_F_ROOT);
+        assert!(flags & NLM_F_REQUEST == NLM_F_REQUEST);
+        assert!(flags & NLM_F_MATCH == NLM_F_MATCH);
+        assert_eq!(flags, NLM_F_ROOT | NLM_F_REQUEST | NLM_F_MATCH);
         assert_eq!(packet.payload_length(), 24);
         assert_eq!(packet.payload(), &IP_LINK_SHOW_PKT[16..]);
-        assert_eq!(
-            Into::<u16>::into(flags),
-            NLM_F_ROOT | NLM_F_REQUEST | NLM_F_MATCH
-        );
     }
 
     #[test]

@@ -4,7 +4,7 @@ pub(crate) use self::utils::parsers;
 pub use self::utils::{traits, DecodeError};
 
 pub use netlink_packet_core::{
-    ErrorMessage, NetlinkBuffer, NetlinkFlags, NetlinkHeader, NetlinkMessage, NetlinkPayload,
+    ErrorMessage, NetlinkBuffer, NetlinkHeader, NetlinkMessage, NetlinkPayload,
 };
 pub(crate) use netlink_packet_core::{NetlinkDeserializable, NetlinkSerializable};
 

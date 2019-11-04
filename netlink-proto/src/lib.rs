@@ -14,7 +14,7 @@
 //! ```rust,no_run
 //! use futures::stream::StreamExt;
 //! use netlink_packet_audit::{
-//!     NLM_F_ACK, NLM_F_REQUEST, NetlinkFlags, NetlinkMessage, NetlinkPayload,
+//!     NLM_F_ACK, NLM_F_REQUEST, NetlinkMessage, NetlinkPayload,
 //!     AuditMessage, StatusMessage,
 //! };
 //! use std::process;
@@ -59,7 +59,7 @@
 //!         status.mask = AUDIT_STATUS_ENABLED | AUDIT_STATUS_PID;
 //!         let payload = AuditMessage::SetStatus(status);
 //!         let mut nl_msg = NetlinkMessage::from(payload);
-//!         nl_msg.header.flags = NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK);
+//!         nl_msg.header.flags = NLM_F_REQUEST | NLM_F_ACK;
 //!
 //!         // We'll send unicast messages to the kernel.
 //!         let kernel_unicast: SocketAddr = SocketAddr::new(0, 0);
@@ -107,8 +107,7 @@
 //! use futures::StreamExt;
 //!
 //! use netlink_packet_route::{
-//!     NLM_F_DUMP, NLM_F_REQUEST, NetlinkFlags, NetlinkMessage, NetlinkPayload,
-//!     NetlinkHeader, LinkHeader, LinkMessage, RtnlMessage
+//!     NLM_F_DUMP, NLM_F_REQUEST, NetlinkMessage, NetlinkHeader, LinkMessage, RtnlMessage
 //! };
 //!
 //! use netlink_proto::{
@@ -127,14 +126,18 @@
 //!     tokio::spawn(conn);
 //!
 //!     // Create the netlink message that requests the links to be dumped
-//!     let payload: NetlinkPayload<RtnlMessage> =
-//!         RtnlMessage::GetLink(LinkMessage::from_parts(LinkHeader::new(), vec![])).into();
-//!     let mut header = NetlinkHeader::new();
-//!     header.flags = NetlinkFlags::from(NLM_F_DUMP | NLM_F_REQUEST);
+//!     let msg = NetlinkMessage {
+//!         header: NetlinkHeader {
+//!             sequence_number: 1,
+//!             flags: NLM_F_DUMP | NLM_F_REQUEST,
+//!             ..Default::default()
+//!         },
+//!         payload: RtnlMessage::GetLink(LinkMessage::default()).into(),
+//!     };
 //!
 //!     // Send the request
 //!     let mut response = handle
-//!         .request(NetlinkMessage::new(header, payload), SocketAddr::new(0, 0))
+//!         .request(msg, SocketAddr::new(0, 0))
 //!         .map_err(|e| format!("Failed to send request: {}", e))?;
 //!
 //!     // Print all the messages received in response

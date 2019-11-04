@@ -1,8 +1,8 @@
 use futures::StreamExt;
 
 use netlink_packet_route::{
-    LinkHeader, LinkMessage, NetlinkFlags, NetlinkHeader, NetlinkMessage, NetlinkPayload,
-    RtnlMessage, NLM_F_DUMP, NLM_F_REQUEST,
+    LinkMessage, NetlinkHeader, NetlinkMessage, RtnlMessage, NLM_F_DUMP,
+    NLM_F_REQUEST,
 };
 
 use netlink_proto::{
@@ -21,14 +21,14 @@ async fn main() -> Result<(), String> {
     tokio::spawn(conn);
 
     // Create the netlink message that requests the links to be dumped
-    let payload: NetlinkPayload<RtnlMessage> =
-        RtnlMessage::GetLink(LinkMessage::from_parts(LinkHeader::new(), vec![])).into();
-    let mut header = NetlinkHeader::new();
-    header.flags = NetlinkFlags::from(NLM_F_DUMP | NLM_F_REQUEST);
+    let request = NetlinkMessage {
+        header: NetlinkHeader { flags: NLM_F_DUMP | NLM_F_REQUEST, ..Default::default() },
+        payload: RtnlMessage::GetLink(LinkMessage::default()).into()
+    };
 
     // Send the request
     let mut response = handle
-        .request(NetlinkMessage::new(header, payload), SocketAddr::new(0, 0))
+        .request(request, SocketAddr::new(0, 0))
         .map_err(|e| format!("Failed to send request: {}", e))?;
 
     // Print all the messages received in response

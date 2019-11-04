@@ -1,7 +1,7 @@
 use crate::{
     packet::{
-        nlas::link::Nla, LinkFlags, LinkMessage, NetlinkFlags, NetlinkMessage, NetlinkPayload,
-        RtnlMessage, IFF_UP, NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST,
+        nlas::link::Nla, LinkMessage, NetlinkMessage, NetlinkPayload, RtnlMessage, IFF_UP,
+        NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST,
     },
     Error, ErrorKind, Handle,
 };
@@ -15,7 +15,7 @@ pub struct LinkSetRequest {
 
 impl LinkSetRequest {
     pub(crate) fn new(handle: Handle, index: u32) -> Self {
-        let mut message = LinkMessage::new();
+        let mut message = LinkMessage::default();
         message.header.index = index;
         LinkSetRequest { handle, message }
     }
@@ -27,8 +27,7 @@ impl LinkSetRequest {
             message,
         } = self;
         let mut req = NetlinkMessage::from(RtnlMessage::SetLink(message));
-        req.header.flags =
-            NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE);
+        req.header.flags = NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE;
 
         let mut response = handle.request(req)?;
         while let Some(message) = response.next().await {
@@ -53,14 +52,14 @@ impl LinkSetRequest {
 
     /// Set the link with the given index up (equivalent to `ip link set dev DEV up`)
     pub fn up(mut self) -> Self {
-        self.message.header.flags = LinkFlags::from(IFF_UP);
-        self.message.header.change_mask = LinkFlags::from(IFF_UP);
+        self.message.header.flags = IFF_UP;
+        self.message.header.change_mask = IFF_UP;
         self
     }
 
     /// Set the link with the given index down (equivalent to `ip link set dev DEV down`)
     pub fn down(mut self) -> Self {
-        self.message.header.change_mask = LinkFlags::from(IFF_UP);
+        self.message.header.change_mask = IFF_UP;
         self
     }
 

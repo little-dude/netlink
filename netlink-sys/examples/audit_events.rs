@@ -14,8 +14,7 @@
 use std::process;
 
 use netlink_packet_audit::{
-    AuditMessage, NetlinkBuffer, NetlinkFlags, NetlinkMessage, StatusMessage, NLM_F_ACK,
-    NLM_F_REQUEST,
+    AuditMessage, NetlinkBuffer, NetlinkMessage, StatusMessage, NLM_F_ACK, NLM_F_REQUEST,
 };
 
 use netlink_sys::{Protocol, Socket, SocketAddr};
@@ -34,7 +33,7 @@ fn main() {
     status.mask = AUDIT_STATUS_ENABLED | AUDIT_STATUS_PID;
     let payload = AuditMessage::SetStatus(status);
     let mut nl_msg = NetlinkMessage::from(payload);
-    nl_msg.header.flags = NetlinkFlags::from(NLM_F_REQUEST | NLM_F_ACK);
+    nl_msg.header.flags = NLM_F_REQUEST | NLM_F_ACK;
     nl_msg.finalize();
 
     let mut buf = vec![0; 1024 * 8];

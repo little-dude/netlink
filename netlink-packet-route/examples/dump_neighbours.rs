@@ -1,6 +1,6 @@
 use netlink_packet_route::{
-    NeighbourMessage, NetlinkFlags, NetlinkHeader, NetlinkMessage, NetlinkPayload, RtnlMessage,
-    NLM_F_DUMP, NLM_F_REQUEST,
+    NeighbourMessage, NetlinkHeader, NetlinkMessage, NetlinkPayload, RtnlMessage, NLM_F_DUMP,
+    NLM_F_REQUEST,
 };
 use netlink_sys::{Protocol, Socket, SocketAddr};
 
@@ -9,16 +9,15 @@ fn main() {
     let _port_number = socket.bind_auto().unwrap().port_number();
     socket.connect(&SocketAddr::new(0, 0)).unwrap();
 
-    let header = NetlinkHeader::new();
-    let rtnl_message = RtnlMessage::GetNeighbour(NeighbourMessage::default());
-    let mut packet = NetlinkMessage::new(header, NetlinkPayload::from(rtnl_message));
-
-    packet.header.flags = NetlinkFlags::from(NLM_F_DUMP | NLM_F_REQUEST);
+    let mut packet = NetlinkMessage {
+        header: NetlinkHeader::default(),
+        payload: NetlinkPayload::from(RtnlMessage::GetNeighbour(NeighbourMessage::default())),
+    };
+    packet.header.flags = NLM_F_DUMP | NLM_F_REQUEST;
     packet.header.sequence_number = 1;
     packet.finalize();
-    let mut buf = vec![0; packet.header.length as usize];
 
-    assert!(buf.len() == packet.buffer_len());
+    let mut buf = vec![0; packet.header.length as usize];
     packet.serialize(&mut buf[..]);
 
     println!(">>> {:?}", packet);

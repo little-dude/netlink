@@ -1,7 +1,7 @@
 use crate::{
     constants::*,
     traits::{Parseable, ParseableParametrized},
-    AddressHeader, AddressMessage, AddressMessageBuffer, DecodeError, LinkHeader, LinkMessage,
+    AddressHeader, AddressMessage, AddressMessageBuffer, DecodeError, LinkMessage,
     LinkMessageBuffer, NeighbourMessage, NeighbourMessageBuffer, NeighbourTableMessage,
     NeighbourTableMessageBuffer, NsidMessage, NsidMessageBuffer, RouteHeader, RouteMessage,
     RouteMessageBuffer, RtnlMessage, TcMessage, TcMessageBuffer,
@@ -26,10 +26,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> ParseableParametrized<RtnlMessageBuffer<&'a T>
                     // limited to the interface family (1 byte) and 3 bytes of padding.
                     Err(e) => {
                         if buf.inner().len() == 4 && message_type == RTM_GETLINK {
-                            let mut msg = LinkMessage {
-                                header: LinkHeader::new(),
-                                nlas: vec![],
-                            };
+                            let mut msg = LinkMessage::default();
                             msg.header.interface_family = buf.inner()[0];
                             msg
                         } else {
@@ -55,7 +52,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> ParseableParametrized<RtnlMessageBuffer<&'a T>
                     Err(e) => {
                         if buf.inner().len() == 4 && message_type == RTM_GETADDR {
                             let mut msg = AddressMessage {
-                                header: AddressHeader::new(),
+                                header: AddressHeader::default(),
                                 nlas: vec![],
                             };
                             msg.header.family = buf.inner()[0];
@@ -110,7 +107,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> ParseableParametrized<RtnlMessageBuffer<&'a T>
                         // be the case for the route message, hence the buf.length() == 1 check.
                         if (buf.inner().len() == 4 || buf.inner().len() == 1) && message_type == RTM_GETROUTE {
                             let mut msg = RouteMessage {
-                                header: RouteHeader::new(),
+                                header: RouteHeader::default(),
                                 nlas: vec![],
                             };
                             msg.header.address_family = buf.inner()[0];

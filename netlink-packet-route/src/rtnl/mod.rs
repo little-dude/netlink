@@ -2,9 +2,7 @@ pub mod address;
 pub use address::{AddressHeader, AddressMessage, AddressMessageBuffer, ADDRESS_HEADER_LEN};
 
 pub mod link;
-pub use link::{
-    LinkFlags, LinkHeader, LinkLayerType, LinkMessage, LinkMessageBuffer, LINK_HEADER_LEN,
-};
+pub use link::{LinkHeader, LinkMessage, LinkMessageBuffer, LINK_HEADER_LEN};
 
 pub mod neighbour;
 pub use neighbour::{

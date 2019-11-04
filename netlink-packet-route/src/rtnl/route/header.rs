@@ -400,7 +400,7 @@ impl RouteFlags {
 /// use netlink_packet_route::{RouteHeader, RouteFlags, RouteProtocol, RouteTable, RouteScope, RouteKind};
 ///
 /// fn main() {
-///     let mut hdr = RouteHeader::new();
+///     let mut hdr = RouteHeader::default();
 ///     assert_eq!(hdr.address_family, 0u8);
 ///     assert_eq!(hdr.destination_length, 0u8);
 ///     assert_eq!(hdr.source_length, 0u8);
@@ -440,12 +440,6 @@ pub struct RouteHeader {
     pub kind: RouteKind,
 
     pub flags: RouteFlags,
-}
-
-impl RouteHeader {
-    pub fn new() -> Self {
-        Default::default()
-    }
 }
 
 impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<RouteMessageBuffer<&'a T>> for RouteHeader {
