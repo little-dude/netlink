@@ -1,10 +1,10 @@
+use std::{convert::TryFrom, net::IpAddr, string::ToString};
+
 use netlink_packet_route::{
     constants::*, nlas::neighbour::Nla, NeighbourMessage, NetlinkHeader, NetlinkMessage,
     NetlinkPayload, RtnlMessage,
 };
 use netlink_sys::{Protocol, Socket, SocketAddr};
-use std::net::Ipv4Addr;
-use std::string::ToString;
 
 fn main() {
     let mut socket = Socket::new(Protocol::Route).unwrap();
@@ -32,8 +32,6 @@ fn main() {
     let mut receive_buffer = vec![0; 4096];
     let mut offset = 0;
 
-    let mut ipv4_entries = vec![];
-
     'outer: loop {
         let size = socket.recv(&mut receive_buffer[..], 0).unwrap();
 
@@ -45,8 +43,9 @@ fn main() {
             match msg.payload {
                 NetlinkPayload::Done => break 'outer,
                 NetlinkPayload::InnerMessage(RtnlMessage::NewNeighbour(entry)) => {
-                    if entry.header.family as u16 == AF_INET {
-                        ipv4_entries.push(entry);
+                    let address_family = entry.header.family as u16;
+                    if address_family == AF_INET || address_family == AF_INET6 {
+                        print_entry(entry);
                     }
                 }
                 NetlinkPayload::Error(err) => {
@@ -63,44 +62,24 @@ fn main() {
             }
         }
     }
+}
 
-    if !ipv4_entries.is_empty() {
-        println!("IPv4 entries");
-        for entry in ipv4_entries {
-            let state = state_str(entry.header.state);
-            let mut dest: Option<Ipv4Addr> = None;
-            let mut lladdr: Option<String> = None;
-            for nla in entry.nlas {
-                match nla {
-                    Nla::Destination(addr) => {
-                        // address family is AF_INET so we expect an ipv4
-                        assert_eq!(addr.len(), 4);
-                        dest = Some(Ipv4Addr::new(addr[0], addr[1], addr[2], addr[3]));
-                    }
-                    Nla::LinkLocalAddress(addr) => {
-                        // Assume MAC addresses for simplicity,
-                        // although this might not always be the case
-                        lladdr = Some(format!(
-                            "{:<02x}:{:<02x}:{:<02x}:{:<02x}:{:<02x}:{:<02x}",
-                            addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]
-                        ));
-                    }
-                    _ => {}
-                }
-            }
-            println!(
-                "{:<20} {} ({})",
-                dest.as_ref()
-                    .map(ToString::to_string)
-                    .unwrap_or("Unknown".into()),
-                lladdr
-                    .as_ref()
-                    .map(ToString::to_string)
-                    .unwrap_or("Unknown".into()),
-                state
-            );
-        }
+fn format_ip(buf: &[u8]) -> String {
+    if let Ok(bytes) = <&[u8; 4]>::try_from(buf) {
+        IpAddr::from(*bytes).to_string()
+    } else if let Ok(bytes) = <&[u8; 16]>::try_from(buf) {
+        IpAddr::from(*bytes).to_string()
+    } else {
+        panic!("Invalid IP Address");
     }
+}
+
+fn format_mac(buf: &[u8]) -> String {
+    assert_eq!(buf.len(), 6);
+    format!(
+        "{:<02x}:{:<02x}:{:<02x}:{:<02x}:{:<02x}:{:<02x}",
+        buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]
+    )
 }
 
 fn state_str(value: u16) -> &'static str {
@@ -116,4 +95,32 @@ fn state_str(value: u16) -> &'static str {
         NUD_NONE => "NONE",
         _ => "UNKNOWN",
     }
+}
+
+fn print_entry(entry: NeighbourMessage) {
+    let state = state_str(entry.header.state);
+    let dest = entry
+        .nlas
+        .iter()
+        .find_map(|nla| {
+            if let Nla::Destination(addr) = nla {
+                Some(format_ip(&addr[..]))
+            } else {
+                None
+            }
+        })
+        .unwrap();
+    let lladdr = entry
+        .nlas
+        .iter()
+        .find_map(|nla| {
+            if let Nla::LinkLocalAddress(addr) = nla {
+                Some(format_mac(&addr[..]))
+            } else {
+                None
+            }
+        })
+        .unwrap();
+
+    println!("{:<30} {:<20} ({})", dest, lladdr, state);
 }
