@@ -3,7 +3,7 @@ use futures::Stream;
 
 use crate::{
     packet::{NetlinkMessage, RtnlMessage},
-    AddressHandle, Error, ErrorKind, LinkHandle,
+    AddressHandle, Error, ErrorKind, LinkHandle, RouteHandle,
 };
 use netlink_proto::{sys::SocketAddr, ConnectionHandle};
 
@@ -39,5 +39,10 @@ impl Handle {
     /// Create a new handle, specifically for address requests (equivalent to `ip addr` commands)
     pub fn address(&self) -> AddressHandle {
         AddressHandle::new(self.clone())
+    }
+
+    /// Create a new handle, specifically for routing table requests (equivalent to `ip route` commands)
+    pub fn route(&self) -> RouteHandle {
+        RouteHandle::new(self.clone())
     }
 }

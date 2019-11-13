@@ -7,9 +7,9 @@ pub const ROUTE_HEADER_LEN: usize = 12;
 
 buffer!(RouteMessageBuffer(ROUTE_HEADER_LEN) {
     address_family: (u8, 0),
-    destination_length: (u8, 1),
-    source_length: (u8, 2),
-    tos: (u8, 2),
+    destination_prefix_length: (u8, 1),
+    source_prefix_length: (u8, 2),
+    tos: (u8, 3),
     table: (u8, 4),
     protocol: (u8, 5),
     scope: (u8, 6),
