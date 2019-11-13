@@ -17,6 +17,9 @@ pub use crate::link::*;
 mod addr;
 pub use crate::addr::*;
 
+mod route;
+pub use crate::route::*;
+
 mod connection;
 pub use crate::connection::*;
 
