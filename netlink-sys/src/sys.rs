@@ -4,7 +4,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::io::{Error, Result};
 use std::mem;
-use std::os::unix::io::{AsRawFd, RawFd};
+use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
 
 use super::Protocol;
 
@@ -14,6 +14,12 @@ pub struct Socket(RawFd);
 impl AsRawFd for Socket {
     fn as_raw_fd(&self) -> RawFd {
         self.0
+    }
+}
+
+impl FromRawFd for Socket {
+    unsafe fn from_raw_fd(fd: RawFd) -> Self {
+        Socket(fd)
     }
 }
 
