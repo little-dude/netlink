@@ -1,4 +1,6 @@
 #[macro_use]
+extern crate bitflags;
+#[macro_use]
 pub(crate) extern crate netlink_packet_utils as utils;
 pub(crate) use self::utils::parsers;
 pub use self::utils::{traits, DecodeError};

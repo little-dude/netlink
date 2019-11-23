@@ -19,10 +19,7 @@ pub mod nsid;
 pub use nsid::{NsidHeader, NsidMessage, NsidMessageBuffer, NSID_HEADER_LEN};
 
 pub mod route;
-pub use route::{
-    RouteFlags, RouteHeader, RouteKind, RouteMessage, RouteMessageBuffer, RouteProtocol,
-    RouteScope, RouteTable, ROUTE_HEADER_LEN,
-};
+pub use route::{RouteFlags, RouteHeader, RouteMessage, RouteMessageBuffer, ROUTE_HEADER_LEN};
 
 pub mod tc;
 pub use tc::{TcHeader, TcMessage, TcMessageBuffer, TC_HEADER_LEN};
