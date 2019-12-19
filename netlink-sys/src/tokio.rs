@@ -1,9 +1,12 @@
-use std::io;
+use std::{
+    io,
+    task::{Context, Poll},
+};
 
-use futures::{future::poll_fn, ready, task::Context, Poll};
+use futures::{future::poll_fn, ready};
 use log::trace;
 use mio;
-use tokio_net::util::PollEvented;
+use tokio::io::PollEvented;
 
 use crate::{
     sys::{Socket as InnerSocket, SocketAddr},
@@ -27,7 +30,7 @@ impl Socket {
     pub fn new(protocol: Protocol) -> io::Result<Self> {
         let socket = InnerSocket::new(protocol)?;
         socket.set_non_blocking(true)?;
-        Ok(Socket(PollEvented::new(socket)))
+        Ok(Socket(PollEvented::new(socket)?))
     }
 
     pub fn connect(&self, addr: &SocketAddr) -> io::Result<()> {

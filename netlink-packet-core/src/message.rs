@@ -7,12 +7,15 @@ use crate::{
     NetlinkDeserializable, NetlinkHeader, NetlinkPayload, NetlinkSerializable, Parseable,
 };
 
+/// Represent a netlink message.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct NetlinkMessage<I>
 where
     I: Debug + PartialEq + Eq + Clone,
 {
+    /// Message header (this is common to all the netlink protocols)
     pub header: NetlinkHeader,
+    /// Inner message, which depends on the netlink protocol being used.
     pub payload: NetlinkPayload<I>,
 }
 
@@ -20,10 +23,12 @@ impl<I> NetlinkMessage<I>
 where
     I: Debug + PartialEq + Eq + Clone,
 {
+    /// Create a new netlink message from the given header and payload
     pub fn new(header: NetlinkHeader, payload: NetlinkPayload<I>) -> Self {
         NetlinkMessage { header, payload }
     }
 
+    /// Consume this message and return its header and payload
     pub fn into_parts(self) -> (NetlinkHeader, NetlinkPayload<I>) {
         (self.header, self.payload)
     }
@@ -33,6 +38,7 @@ impl<I> NetlinkMessage<I>
 where
     I: NetlinkDeserializable<I> + Debug + PartialEq + Eq + Clone,
 {
+    /// Parse the given buffer as a netlink message
     pub fn deserialize(buffer: &[u8]) -> Result<Self, DecodeError> {
         let netlink_buffer = NetlinkBuffer::new_checked(&buffer)?;
         Ok(<Self as Parseable<NetlinkBuffer<&&[u8]>>>::parse(
@@ -45,6 +51,7 @@ impl<I> NetlinkMessage<I>
 where
     I: NetlinkSerializable<I> + Debug + PartialEq + Eq + Clone,
 {
+    /// Return the length of this message in bytes
     pub fn buffer_len(&self) -> usize {
         <Self as Emitable>::buffer_len(self)
     }

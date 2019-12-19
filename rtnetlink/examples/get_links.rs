@@ -3,6 +3,7 @@ use rtnetlink::{new_connection, packet::rtnl::link::nlas::Nla, Error, Handle};
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {
+    env_logger::init();
     let (connection, handle, _) = new_connection().unwrap();
     tokio::spawn(connection);
 

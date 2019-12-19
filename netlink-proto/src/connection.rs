@@ -1,13 +1,15 @@
-use std::{fmt::Debug, io, pin::Pin};
+use std::{
+    fmt::Debug,
+    io,
+    pin::Pin,
+    task::{Context, Poll},
+};
 
 use futures::{
     channel::mpsc::{UnboundedReceiver, UnboundedSender},
-    task::Context,
-    Future, Poll, Sink, Stream,
+    Future, Sink, Stream,
 };
-
 use log::{error, warn};
-
 use netlink_packet_core::{
     NetlinkDeserializable, NetlinkMessage, NetlinkPayload, NetlinkSerializable,
 };
