@@ -18,8 +18,8 @@ futures = "0.3.1"
 failure = "0.1.6"
 tokio = { version = "0.2.6", default-features = false, features = ["io-util"] }
 tokio-util = { version = "0.2.0", default-features = false, features = ["codec"] }
-netlink-packet-core = { path = "../netlink-packet-core" }
-netlink-sys = { path = "../netlink-sys", default-features = false, features = ["tokio_socket"] }
+netlink-packet-core = { path = "../netlink-packet-core", version = "0.1" }
+netlink-sys = { path = "../netlink-sys", default-features = false, features = ["tokio_socket"], version = "0.2" }
 
 [features]
 default = []
