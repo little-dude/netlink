@@ -37,9 +37,6 @@ used:
 
 ## Other netlink projects in rust
 
-Before starting working on this library, I've checked a bunch of other projects
-but none seems to be really complete.
-
 - https://github.com/jbaublitz/neli: the main alternative to these crates, as it is actively
   developed.
 - Other but less actively developed alternatives:
