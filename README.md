@@ -1,78 +1,62 @@
 [![Build Status](https://travis-ci.org/little-dude/netlink.svg?branch=master)](https://travis-ci.org/little-dude/netlink)
 
-netlink-rs
-==========
+# netlink-rs
 
 This project aims at providing building blocks for [the netlink
 protocol](https://en.wikipedia.org/wiki/Netlink) (see `man 7 netlink`).
 
-The netlink protocol is _huge_ but the two some subprotocols are
-widely used. For instance the [the generic netlink
-protocol](https://lwn.net/Articles/208755/) and [the route netlink
-protocol](https://www.infradead.org/~tgr/libnl/doc/route.html) (see
-`man 7 rtnetlink`).
+The netlink protocol is _huge_ but the some subprotocols are widely
+used:
 
-Organization
-------------
+- the [generic netlink protocol](https://lwn.net/Articles/208755/), used to create custom IPCs
+- the [`rtnetlink` protocol](https://www.infradead.org/~tgr/libnl/doc/route.html) (see `man 7 rtnetlink`), for manipulating the network stack
+- the `audit` protocol to interact with Linux audit system
+- the `sock_diag` protocol (see `man 7 sock_diag`) to monitor sockets
 
-- the [`netlink_sys`](./netlink-sys) crate provides netlink sockets.
-  Integration with [`mio`](https://github.com/carllerche/mio) and
-  [`tokio`](https://github.com/tokio-rs/) is optional.
-- Each netlink protocol has a `netlink-packet-<protocol_name>` crate
-  that provides the packets for this protocol:
-    - [`netlink-packet-route`](./netlink-packet-route) provides
-      `RtnlMessage` which represents messages for the route protocol
-    - [`netlink-packet-audit`](./netlink-packet-audit) provides
-      `AuditMessage` which represents messages for the audit protocol
-- the [`netlink-packet-core`](./netlink-packet-core) is the glue for
-  all the other `netlink-packet-*` crates. I provides a unique
-  `NetlinkMessage<T>` type that represent any netlink message for any
-  sub-protocol.
-- the [`netlink_proto`](./netlink-proto) crate an asynchronous
-  implementation of the netlink protocol. It only depends on
-  `netlink-packet-core` for the `NetlinkMessage` type and
-  `netlink-sys` for the socket.
-- the [`rtnetlink`](./rtnetlink) crate provides higher level
-  abstraction for the [route
-  protocol](https://www.infradead.org/~tgr/libnl/doc/route.html) (see
-  `man 7 rtnetlink`). This is probably what users want to use, if they
-  want to manipulate IP addresses, route tables, etc.
-- the [`audit`](./audit) crate provides higher level abstractions for
-  the audit protocol.
+## Organization
 
-Other netlink projects in rust
-------------------------------
+- the [`netlink_sys`](./netlink-sys) crate provides netlink sockets.  Integration with
+  [`mio`](https://github.com/carllerche/mio) and [`tokio`](https://github.com/tokio-rs/) is
+  optional.
+- Each netlink protocol has a `netlink-packet-<protocol_name>` crate that provides the packets for
+  this protocol:
+    - [`netlink-packet-route`](./netlink-packet-route) provides `RtnlMessage` which represents
+      messages for the route protocol
+    - [`netlink-packet-audit`](./netlink-packet-audit) provides `AuditMessage` which represents
+      messages for the audit protocol
+- the [`netlink-packet-core`](./netlink-packet-core) is the glue for all the other
+  `netlink-packet-*` crates. I provides a unique `NetlinkMessage<T>` type that represent any netlink
+  message for any sub-protocol.
+- the [`netlink_proto`](./netlink-proto) crate an asynchronous implementation of the netlink
+  protocol. It only depends on `netlink-packet-core` for the `NetlinkMessage` type and `netlink-sys`
+  for the socket.
+- the [`rtnetlink`](./rtnetlink) crate provides higher level abstraction for the [route
+  protocol](https://www.infradead.org/~tgr/libnl/doc/route.html) (see `man 7 rtnetlink`). This is
+  probably what users want to use, if they want to manipulate IP addresses, route tables, etc.
+- the [`audit`](./audit) crate provides higher level abstractions for the audit protocol.
+
+## Other netlink projects in rust
 
 Before starting working on this library, I've checked a bunch of other projects
 but none seems to be really complete.
 
-- https://github.com/achanda/netlink: rust bindings for netlink. Does not seem
-  very usable as is, and does not seem to be developped anymore.
-- https://github.com/polachok/pnetlink: very similar to this project, but built
-  on to of [libpnet](https://github.com/libpnet/libpnet). The author seems to
-  be more knowledgeable about netlink than I am. It also has broader coverage
-  of the route netlink protocol (support for the `RTM_{NEW,DEL,GET}ROUTE` and
-  `RTM_{NEW,DEL,GET}ADDRESS` messages). However, many attributes supported by
-  `rtnetlink` are not covered.
-- https://github.com/crhino/netlink-rs: rust bindings for libnl. Very
-  incomplete and not developed.
-- https://github.com/jbaublitz/neli: generic netlink protocol. Pretty recent
-  project, actively developed.
-- https://github.com/carrotsrc/rsnl: bindings for libnl. Maintained but not
-  actively developed.
-- https://github.com/TaborKelly/nl-utils: a netlink packet parser. The goal is
-  not that same than this project.
+- https://github.com/jbaublitz/neli: the main alternative to these crates, as it is actively
+  developed.
+- Other but less actively developed alternatives:
+  - https://github.com/achanda/netlink
+  - https://github.com/polachok/pnetlink
+  - https://github.com/crhino/netlink-rs
+  - https://github.com/carrotsrc/rsnl
+  - https://github.com/TaborKelly/nl-utils
 
-Other non-rust netlink projects
--------------------------------
+## Other non-rust netlink projects
 
 - [`libnl`](https://www.infradead.org/~tgr/libnl/): netlink implementation in
   C. Very complete with awesome documentation.
 - [`pyroute2`](https://github.com/svinota/pyroute2/tree/master/pyroute2/netlink): a very complete and readable implementation in pure python.
 - [`netlink`](https://github.com/vishvananda/netlink): a very complete and very actively maintained go project, seems to be widely used.
 
-Credits
--------
+## Credits
 
 My main resource so far has been the source code of
 [`pyroute2`](https://github.com/svinota/pyroute2/tree/master/pyroute2/netlink)
@@ -97,10 +81,7 @@ they provide. The project structure and code quality are mind blowing,
 and some parts of this projects are basically rip-offs from tokio's
 source code
 
-Finally, thanks to the Rust community, which
-[helped me](https://users.rust-lang.org/t/help-understanding-libc-call/17308)
-in
-[multiple occations](https://users.rust-lang.org/t/implementing-a-trait-for-t-and-iterator-item-t/17891).
+Finally, thanks to the Rust community, which helped me on multiple occasions
 
 Other resources I particularly appreciated:
 
