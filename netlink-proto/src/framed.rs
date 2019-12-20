@@ -1,10 +1,14 @@
-use std::{error::Error as StdError, io, pin::Pin};
-use tokio_codec::{Decoder, Encoder};
-
 use bytes::{BufMut, BytesMut};
-use futures::{task::Context, Poll, Sink, Stream};
+use std::{
+    io,
+    pin::Pin,
+    task::{Context, Poll},
+};
+
+use futures::{Sink, Stream};
 use log::error;
 use netlink_sys::{Socket, SocketAddr};
+use tokio_util::codec::{Decoder, Encoder};
 
 pub struct NetlinkFramed<C> {
     socket: Socket,
@@ -19,7 +23,7 @@ pub struct NetlinkFramed<C> {
 impl<C> Stream for NetlinkFramed<C>
 where
     C: Decoder + Unpin,
-    C::Error: StdError,
+    C::Error: std::error::Error,
 {
     type Item = (C::Item, SocketAddr);
 
@@ -46,7 +50,13 @@ where
             reader.reserve(INITIAL_READER_CAPACITY);
 
             *in_addr = unsafe {
-                match ready!(socket.poll_recv_from(cx, reader.bytes_mut())) {
+                // Read into the buffer without having to initialize the memory.
+                //
+                // safety: we know poll_recv_from never reads from the
+                // memory during a recv so it's fine to turn &mut
+                // [<MaybeUninitialized<u8>>] into &mut[u8]
+                let bytes = &mut *(reader.bytes_mut() as *mut _ as *mut [u8]);
+                match ready!(socket.poll_recv_from(cx, bytes)) {
                     Ok((n, addr)) => {
                         reader.advance_mut(n);
                         addr

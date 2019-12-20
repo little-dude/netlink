@@ -2,12 +2,13 @@ use failure::Fail;
 use std::fmt::Debug;
 use std::io;
 use std::marker::PhantomData;
+use std::mem::MaybeUninit;
 
 use bytes::{BufMut, BytesMut};
 use netlink_packet_core::{
     NetlinkBuffer, NetlinkDeserializable, NetlinkMessage, NetlinkSerializable,
 };
-use tokio_codec::{Decoder, Encoder};
+use tokio_util::codec::{Decoder, Encoder};
 
 pub struct NetlinkCodec<T> {
     phantom: PhantomData<T>,
@@ -158,21 +159,32 @@ where
             buf.resize(new_len, 0);
         }
         let size = msg.buffer_len();
-        // bytes_mut() and advance_mut() are unsafe.
-        // TODO/FIXME: comment on why what we do here is safe.
+        if buf.remaining_mut() < size {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!(
+                    "message is {} bytes, but only {} bytes left in the buffer",
+                    size,
+                    buf.remaining_mut()
+                ),
+            ));
+        }
         unsafe {
-            let bytes = buf.bytes_mut();
-            if bytes.len() < size {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    format!(
-                        "message is {} bytes, but only {} bytes left in the buffer",
-                        size,
-                        bytes.len()
-                    ),
-                ));
+            // Safety: we initialize the buffer we're passing to
+            // NetlinkMessage::serialize(). In theory, `serialize()`
+            // should be safe because it's not supposed to _read_ from
+            // the buffer, which is potentially
+            // un-initialized. However, since we delegate the actual
+            // implementation to users, we cannot guarantee
+            // anything. Therefore we have to initialize the buffer
+            // here.
+            let bytes: &mut [std::mem::MaybeUninit<u8>] = &mut buf.bytes_mut()[..size];
+            for b in &mut bytes[..] {
+                *b.as_mut_ptr() = 0;
             }
-            msg.serialize(&mut buf.bytes_mut()[..size]);
+            let initialized_bytes = &mut *(bytes as *mut [MaybeUninit<u8>] as *mut [u8]);
+
+            msg.serialize(initialized_bytes);
             trace!(">>> {:?}", msg);
             buf.advance_mut(size);
         }

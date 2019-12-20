@@ -1,14 +1,14 @@
-//! `netlink-packet-proto` provides a generic netlink message that is
-//! independant of the sub-protocol: `NetlinkMessage<T>`. Such
+//! `netlink-packet-core` provides a generic netlink message
+//! `NetlinkMessage<T>` that is independant of the sub-protocol. Such
 //! messages are not very useful by themselves, since they are just
 //! used to carry protocol-dependant messages. That is what the `T`
 //! represent: `T` is the `NetlinkMessage`'s protocol-dependant
 //! message. This can be any type that implements
 //! `NetlinkSerializable` and `NetlinkDeserializable`.
 //!
-//! For instance, the `netlink-packet-route` crate provides a whole
-//! set of rtnetlink messages via `netlink_packet_route::RtnlMessage`,
-//! and `netlink-packet-audit` provides audit message via
+//! For instance, the `netlink-packet-route` crate provides rtnetlink
+//! messages via `netlink_packet_route::RtnlMessage`, and
+//! `netlink-packet-audit` provides audit messages via
 //! `netlink_packet_audit::AuditMessage`.
 //!
 //! By itself, the `netlink-packet-core` crate is not very
@@ -42,10 +42,10 @@
 //!         payload: RtnlMessage::GetLink(LinkMessage::default()).into(),
 //!     };
 //!
-//!     // Before serializing the packet, it is very important to call
+//!     // Before serializing the packet, it is important to call
 //!     // finalize() to ensure the header of the message is consistent
 //!     // with its payload. Otherwise, a panic may occur when calling
-//!     // `serialize()`
+//!     // serialize()
 //!     packet.finalize();
 //!
 //!     // Prepare a buffer to serialize the packet. Note that we never

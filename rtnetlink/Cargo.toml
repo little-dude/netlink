@@ -12,13 +12,13 @@ repository = "https://github.com/little-dude/netlink"
 description = "manipulate linux networking resources via netlink"
 
 [dependencies]
-futures-preview = "0.3.0-alpha.18"
+futures = "0.3.1"
 log = "0.4.8"
-failure = "0.1.5"
+failure = "0.1.6"
 netlink-packet-route = { path = "../netlink-packet-route", version = "0.1"}
 netlink-proto = { path = "../netlink-proto", version = "0.2" }
 
 [dev-dependencies]
-env_logger = "0.6.2"
-ipnetwork = "0.14.0"
-tokio = "0.2.0-alpha"
+env_logger = "0.7.1"
+ipnetwork = "0.15.1"
+tokio = { version = "0.2.6", features = ["macros", "rt-core"] }

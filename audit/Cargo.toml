@@ -12,11 +12,11 @@ repository = "https://github.com/little-dude/netlink"
 description = "linux audit via netlink"
 
 [dependencies]
-futures-preview = "0.3.0-alpha.18"
-failure = "0.1.5"
+futures = "0.3.1"
+failure = "0.1.6"
 netlink-packet-audit = { path = "../netlink-packet-audit" }
 netlink-proto = { path = "../netlink-proto", features = ["workaround-audit-bug"] }
 
 [dev-dependencies]
-tokio = "0.2.0-alpha"
-env_logger = "*"
+tokio = { version = "0.2.6", default-features = false, features = ["macros", "rt-core"] }
+env_logger = "0.7.1"
