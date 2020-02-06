@@ -57,27 +57,12 @@ impl nlas::Nla for Nla {
             | Pad(ref bytes)
             | UidRange(ref bytes)
             | SourcePortRange(ref bytes)
-            | DestinationPortRange(ref bytes) => {
-                println!("bytes value len {}", bytes.len());
-                bytes.len()
-            }
-            Iifname(ref s) | OifName(ref s) => {
-                println!("bytes value len {}", s.as_bytes().len());
-                s.as_bytes().len() + 1
-            }
+            | DestinationPortRange(ref bytes) => bytes.len(),
+            Iifname(ref s) | OifName(ref s) => s.as_bytes().len() + 1,
             Priority(_) | FwMark(_) | FwMask(_) | Flow(_) | TunId(_) | Goto(_)
-            | SuppressIfGroup(_) | SuppressPrefixLen(_) | Table(_) => {
-                println!("u32 value len {}", std::mem::size_of::<u32>());
-                4
-            }
-            L3MDev(_) | Protocol(_) | IpProto(_) => {
-                println!("u8 value len {}", std::mem::size_of::<u8>());
-                1
-            }
-            Other(attr) => {
-                println!("other value len {}", attr.value_len());
-                attr.value_len()
-            }
+            | SuppressIfGroup(_) | SuppressPrefixLen(_) | Table(_) => 4,
+            L3MDev(_) | Protocol(_) | IpProto(_) => 1,
+            Other(attr) => attr.value_len(),
         }
     }
 
