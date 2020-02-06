@@ -21,6 +21,9 @@ pub use nsid::{NsidHeader, NsidMessage, NsidMessageBuffer, NSID_HEADER_LEN};
 pub mod route;
 pub use route::{RouteFlags, RouteHeader, RouteMessage, RouteMessageBuffer, ROUTE_HEADER_LEN};
 
+pub mod rule;
+pub use rule::{RuleHeader, RuleMessage, RuleMessageBuffer, RULE_HEADER_LEN};
+
 pub mod tc;
 pub use tc::{TcHeader, TcMessage, TcMessageBuffer, TC_HEADER_LEN};
 
@@ -40,6 +43,7 @@ pub mod nlas {
     pub use super::neighbour_table::nlas as neighbour_table;
     pub use super::nsid::nlas as nsid;
     pub use super::route::nlas as route;
+    pub use super::rule::nlas as rule;
     pub use super::tc::nlas as tc;
     pub use crate::utils::nla::*;
 }
