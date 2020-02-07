@@ -95,7 +95,8 @@ impl<'a, T: AsRef<[u8]> + ?Sized> ParseableParametrized<RtnlMessageBuffer<&'a T>
             }
 
             // Route messages
-            RTM_NEWROUTE | RTM_GETROUTE | RTM_DELROUTE => {
+            RTM_NEWROUTE | RTM_GETROUTE | RTM_DELROUTE |
+            RTM_NEWRULE | RTM_DELRULE | RTM_GETRULE => {
                 let msg = match RouteMessageBuffer::new_checked(&buf.inner()) {
                     Ok(buf) => RouteMessage::parse(&buf).context("invalid route message")?,
                     // HACK: iproute2 sends invalid RTM_GETROUTE message, where the header is
@@ -121,6 +122,9 @@ impl<'a, T: AsRef<[u8]> + ?Sized> ParseableParametrized<RtnlMessageBuffer<&'a T>
                     RTM_NEWROUTE => NewRoute(msg),
                     RTM_GETROUTE => GetRoute(msg),
                     RTM_DELROUTE => DelRoute(msg),
+                    RTM_NEWRULE => NewRule(msg),
+                    RTM_GETRULE => GetRule(msg),
+                    RTM_DELRULE => DelRule(msg),
                     _ => unreachable!(),
                 }
             }

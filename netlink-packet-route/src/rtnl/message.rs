@@ -26,6 +26,9 @@ pub enum RtnlMessage {
     NewRoute(RouteMessage),
     DelRoute(RouteMessage),
     GetRoute(RouteMessage),
+    NewRule(RouteMessage),
+    DelRule(RouteMessage),
+    GetRule(RouteMessage),
     NewQueueDiscipline(TcMessage),
     DelQueueDiscipline(TcMessage),
     GetQueueDiscipline(TcMessage),
@@ -265,6 +268,30 @@ impl RtnlMessage {
         }
     }
 
+    pub fn is_new_rule(&self) -> bool {
+        if let RtnlMessage::NewRule(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_get_rule(&self) -> bool {
+        if let RtnlMessage::GetRule(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_del_rule(&self) -> bool {
+        if let RtnlMessage::DelRule(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn message_type(&self) -> u16 {
         use self::RtnlMessage::*;
 
@@ -285,6 +312,9 @@ impl RtnlMessage {
             NewRoute(_) => RTM_NEWROUTE,
             DelRoute(_) => RTM_DELROUTE,
             GetRoute(_) => RTM_GETROUTE,
+            NewRule(_) => RTM_NEWRULE,
+            DelRule(_) => RTM_DELRULE,
+            GetRule(_) => RTM_GETRULE,
             NewQueueDiscipline(_) => RTM_NEWQDISC,
             DelQueueDiscipline(_) => RTM_DELQDISC,
             GetQueueDiscipline(_) => RTM_GETQDISC,
@@ -330,6 +360,9 @@ impl Emitable for RtnlMessage {
             | NewRoute(ref msg)
             | DelRoute(ref msg)
             | GetRoute(ref msg)
+            | NewRule(ref msg)
+            | DelRule(ref msg)
+            | GetRule(ref msg)
             => msg.buffer_len(),
 
             | NewQueueDiscipline(ref msg)
@@ -378,6 +411,9 @@ impl Emitable for RtnlMessage {
             | NewRoute(ref msg)
             | DelRoute(ref msg)
             | GetRoute(ref msg)
+            | NewRule(ref msg)
+            | DelRule(ref msg)
+            | GetRule(ref msg)
             => msg.emit(buffer),
 
             | NewQueueDiscipline(ref msg)
