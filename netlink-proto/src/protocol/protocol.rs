@@ -11,7 +11,19 @@ use netlink_sys::SocketAddr;
 use super::Request;
 
 #[derive(Debug, Eq, PartialEq, Hash)]
-struct RequestId(u32, SocketAddr);
+struct RequestId {
+    sequence_number: u32,
+    port: u32
+}
+
+impl RequestId {
+    fn new(sequence_number: u32, sock: SocketAddr) -> Self {
+        RequestId {
+            sequence_number,
+            port: sock.port_number(),
+        }
+    }
+}
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Response<T, M>
@@ -63,7 +75,7 @@ where
     }
 
     pub fn handle_message(&mut self, message: NetlinkMessage<T>, source: SocketAddr) {
-        let request_id = RequestId(message.header.sequence_number, source);
+        let request_id = RequestId::new(message.header.sequence_number, source);
         debug!("handling messages (request id = {:?})", request_id);
         if self.pending_requests.get(&request_id).is_some() {
             self.handle_response(request_id, message);
@@ -109,7 +121,7 @@ where
         } = request;
 
         self.set_sequence_id(&mut message);
-        let request_id = RequestId(self.sequence_id, destination);
+        let request_id = RequestId::new(self.sequence_id, destination);
         let flags = message.header.flags;
         self.outgoing_messages.push_back((message, destination));
 
