@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::{hash_map, HashMap, VecDeque},
     fmt::Debug,
 };
 
@@ -36,6 +36,12 @@ where
     pub metadata: M,
 }
 
+#[derive(Debug)]
+struct PendingRequest<M> {
+    expecting_ack: bool,
+    metadata: M,
+}
+
 #[derive(Debug, Default)]
 pub struct Protocol<T, M>
 where
@@ -47,7 +53,7 @@ where
 
     /// Requests for which we're awaiting a response. Metadata are
     /// associated with each request.
-    pending_requests: HashMap<RequestId, M>,
+    pending_requests: HashMap<RequestId, PendingRequest<M>>,
 
     /// Responses to pending requests
     pub incoming_responses: VecDeque<Response<T, M>>,
@@ -77,31 +83,36 @@ where
     pub fn handle_message(&mut self, message: NetlinkMessage<T>, source: SocketAddr) {
         let request_id = RequestId::new(message.header.sequence_number, source);
         debug!("handling messages (request id = {:?})", request_id);
-        if self.pending_requests.get(&request_id).is_some() {
-            self.handle_response(request_id, message);
+        if let hash_map::Entry::Occupied(entry) = self.pending_requests.entry(request_id) {
+            Self::handle_response(&mut self.incoming_responses, entry, message);
         } else {
             self.incoming_requests.push_back((message, source));
         }
     }
 
-    fn handle_response(&mut self, request_id: RequestId, message: NetlinkMessage<T>) {
+    fn handle_response(incoming_responses: &mut VecDeque<Response<T, M>>, entry: hash_map::OccupiedEntry<RequestId, PendingRequest<M>>, message: NetlinkMessage<T>) {
+        let entry_key;
+        let mut request_id = entry.key();
+        debug!("handling response to request {:?}", request_id);
+
         // A request is processed if we receive an Ack, Error,
         // Done, Overrun, or InnerMessage without the
-        // multipart flag
-        debug!("handling response to request {:?}", request_id);
-        let mut done = true;
-        if let NetlinkPayload::InnerMessage(_) = message.payload {
-            if message.header.flags & NLM_F_MULTIPART == NLM_F_MULTIPART {
-                done = false;
-            }
-        }
+        // multipart flag and we were not expecting an Ack
+        let done = match message.payload {
+            NetlinkPayload::InnerMessage(_) if message.header.flags & NLM_F_MULTIPART == NLM_F_MULTIPART => false,
+            NetlinkPayload::InnerMessage(_) => !entry.get().expecting_ack,
+            _ => true,
+        };
 
         let metadata = if done {
             trace!("request {:?} fully processed", request_id);
-            self.pending_requests.remove(&request_id).unwrap()
+            let (k, v) = entry.remove_entry();
+            entry_key = k;
+            request_id = &entry_key;
+            v.metadata
         } else {
             trace!("more responses to request {:?} may come", request_id);
-            self.pending_requests.get(&request_id).unwrap().clone()
+            entry.get().metadata.clone()
         };
 
         let response = Response::<T, M> {
@@ -109,7 +120,7 @@ where
             done,
             metadata,
         };
-        self.incoming_responses.push_back(response);
+        incoming_responses.push_back(response);
         debug!("done handling response to request {:?}", request_id);
     }
 
@@ -132,11 +143,12 @@ where
         //  - when the request has the NLM_F_REQUEST flag
         //  - when the request has the NLM_F_ACK flag
         //  - when the request has the NLM_F_ECHO flag
+        let expecting_ack = flags & NLM_F_ACK == NLM_F_ACK;
         if flags & NLM_F_REQUEST == NLM_F_REQUEST
-            || flags & NLM_F_ACK == NLM_F_ACK
             || flags & NLM_F_ECHO == NLM_F_ECHO
+            || expecting_ack
         {
-            self.pending_requests.insert(request_id, metadata);
+            self.pending_requests.insert(request_id, PendingRequest { expecting_ack, metadata });
         }
     }
 
