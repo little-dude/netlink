@@ -1,17 +1,12 @@
 use netlink_packet_route::{
-    constants::*, nlas::rule::Nla, NetlinkHeader, NetlinkMessage, NetlinkPayload, RtnlMessage,
-    RuleHeader, RuleMessage,
+    constants::*, NetlinkHeader, NetlinkMessage, NetlinkPayload, RtnlMessage, RuleMessage,
 };
 use netlink_sys::{Protocol, Socket, SocketAddr};
-use std::net::Ipv4Addr;
-use std::string::ToString;
 
 fn main() {
     let mut socket = Socket::new(Protocol::Route).unwrap();
     let _port_number = socket.bind_auto().unwrap().port_number();
     socket.connect(&SocketAddr::new(0, 0)).unwrap();
-
-    let msg = RuleMessage::default();
 
     let mut packet = NetlinkMessage {
         header: NetlinkHeader {

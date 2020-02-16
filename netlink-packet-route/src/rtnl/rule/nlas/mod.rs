@@ -1,5 +1,4 @@
 use crate::nlas::DefaultNla;
-use crate::traits::ParseableParametrized;
 use crate::utils::byteorder::{ByteOrder, NativeEndian};
 use crate::utils::nla::NlaBuffer;
 use crate::utils::parsers::{parse_string, parse_u32, parse_u8};

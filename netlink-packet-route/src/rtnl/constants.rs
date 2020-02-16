@@ -650,44 +650,65 @@ pub const NDA_SRC_VNI: u16 = 11;
 /// see `https://github.com/torvalds/linux/blob/master/include/uapi/linux/fib_rules.h`
 
 pub const FR_ACT_UNSPEC: u8 = 0;
-pub const FR_ACT_TO_TBL: u8 = 1; /* Pass to fixed table */
-pub const FR_ACT_GOTO: u8 = 2; /* Jump to another rule */
-pub const FR_ACT_NOP: u8 = 3; /* No operation */
+/// Pass to fixed table
+pub const FR_ACT_TO_TBL: u8 = 1;
+/// Jump to another rule
+pub const FR_ACT_GOTO: u8 = 2;
+/// No operation
+pub const FR_ACT_NOP: u8 = 3;
 pub const FR_ACT_RES3: u8 = 4;
 pub const FR_ACT_RES4: u8 = 5;
-pub const FR_ACT_BLACKHOLE: u8 = 6; /* Drop without notification */
-pub const FR_ACT_UNREACHABLE: u8 = 7; /* Drop with ENETUNREACH */
-pub const FR_ACT_PROHIBIT: u8 = 8; /* Drop with EACCES */
+/// Drop without notification
+pub const FR_ACT_BLACKHOLE: u8 = 6;
+/// Drop with `ENETUNREACH`
+pub const FR_ACT_UNREACHABLE: u8 = 7;
+/// Drop with `EACCES`
+pub const FR_ACT_PROHIBIT: u8 = 8;
 
 pub const FRA_UNSPEC: u16 = 0;
-pub const FRA_DST: u16 = 1; /* destination address */
-pub const FRA_SRC: u16 = 2; /* source address */
-pub const FRA_IIFNAME: u16 = 3; /* interface name */
-pub const FRA_GOTO: u16 = 4; /* target to jump to (FR_ACT_GOTO) */
+/// Destination address
+pub const FRA_DST: u16 = 1;
+/// Source address
+pub const FRA_SRC: u16 = 2;
+/// Interface name
+pub const FRA_IIFNAME: u16 = 3;
+/// Target to jump to
+pub const FRA_GOTO: u16 = 4;
 
-const FRA_UNUSED2: u16 = 5;
+pub const FRA_UNUSED2: u16 = 5;
 
-pub const FRA_PRIORITY: u16 = 6; /* priority/preference */
+/// priority/preference
+pub const FRA_PRIORITY: u16 = 6;
 
-const FRA_UNUSED3: u16 = 7;
-const FRA_UNUSED4: u16 = 8;
-const FRA_UNUSED5: u16 = 9;
+pub const FRA_UNUSED3: u16 = 7;
+pub const FRA_UNUSED4: u16 = 8;
+pub const FRA_UNUSED5: u16 = 9;
 
-pub const FRA_FWMARK: u16 = 10; /* mark */
-pub const FRA_FLOW: u16 = 11; /* flow/class id */
+/// mark
+pub const FRA_FWMARK: u16 = 10;
+/// flow/class id
+pub const FRA_FLOW: u16 = 11;
 pub const FRA_TUN_ID: u16 = 12;
 pub const FRA_SUPPRESS_IFGROUP: u16 = 13;
 pub const FRA_SUPPRESS_PREFIXLEN: u16 = 14;
-pub const FRA_TABLE: u16 = 15; /* Extended table id */
-pub const FRA_FWMASK: u16 = 16; /* mask for netfilter mark */
+/// Extended table id
+pub const FRA_TABLE: u16 = 15;
+/// mask for netfilter mark
+pub const FRA_FWMASK: u16 = 16;
 pub const FRA_OIFNAME: u16 = 17;
 pub const FRA_PAD: u16 = 18;
-pub const FRA_L3MDEV: u16 = 19; /* iif or oif is l3mdev goto its table */
-pub const FRA_UID_RANGE: u16 = 20; /* UID range */
-pub const FRA_PROTOCOL: u16 = 21; /* Originator of the rule */
-pub const FRA_IP_PROTO: u16 = 22; /* ip proto */
-pub const FRA_SPORT_RANGE: u16 = 23; /* sport */
-pub const FRA_DPORT_RANGE: u16 = 24; /* dport */
+/// iif or oif is l3mdev goto its table
+pub const FRA_L3MDEV: u16 = 19;
+/// UID range
+pub const FRA_UID_RANGE: u16 = 20;
+/// Originator of the rule
+pub const FRA_PROTOCOL: u16 = 21;
+/// IP protocol
+pub const FRA_IP_PROTO: u16 = 22;
+/// Source port
+pub const FRA_SPORT_RANGE: u16 = 23;
+/// Destination port
+pub const FRA_DPORT_RANGE: u16 = 24;
 
 pub const FIB_RULE_PERMANENT: u32 = 1;
 pub const FIB_RULE_INVERT: u32 = 2;
@@ -695,5 +716,5 @@ pub const FIB_RULE_UNRESOLVED: u32 = 4;
 pub const FIB_RULE_IIF_DETACHED: u32 = 8;
 pub const FIB_RULE_DEV_DETACHED: u32 = FIB_RULE_IIF_DETACHED;
 pub const FIB_RULE_OIF_DETACHED: u32 = 10;
-/* try to find source address in routing lookups */
+/// try to find source address in routing lookups
 pub const FIB_RULE_FIND_SADDR: u32 = 10000;

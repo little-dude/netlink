@@ -36,14 +36,13 @@ fn main() {
 
     println!(">>> {:?}", msg);
 
-    socket.send(&buf, 0);
+    socket.send(&buf, 0).expect("failed to send netlink message");
 
     let mut receive_buffer = vec![0; 4096];
-    let mut offset = 0;
 
-    while let Ok(size) = socket.recv(&mut receive_buffer, 0) {
+    while let Ok(_size) = socket.recv(&mut receive_buffer, 0) {
         loop {
-            let bytes = &receive_buffer[offset..];
+            let bytes = &receive_buffer[..];
             let rx_packet = <NetlinkMessage<RtnlMessage>>::deserialize(bytes);
             println!("<<< {:?}", rx_packet);
             if let Ok(rx_packet) = rx_packet {

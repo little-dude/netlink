@@ -5,7 +5,7 @@ use crate::{
     traits::{Emitable, ParseableParametrized},
     AddressMessage, DecodeError, LinkMessage, NeighbourMessage, NeighbourTableMessage,
     NetlinkDeserializable, NetlinkHeader, NetlinkPayload, NetlinkSerializable, NsidMessage,
-    RouteMessage, RtnlMessageBuffer, TcMessage, RuleMessage
+    RouteMessage, RtnlMessageBuffer, RuleMessage, TcMessage,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -40,7 +40,7 @@ pub enum RtnlMessage {
     GetNsId(NsidMessage),
     NewRule(RuleMessage),
     DelRule(RuleMessage),
-    GetRule(RuleMessage)
+    GetRule(RuleMessage),
 }
 
 impl RtnlMessage {
@@ -269,15 +269,27 @@ impl RtnlMessage {
     }
 
     pub fn is_get_rule(&self) -> bool {
-        if let RtnlMessage::GetRule(_) = *self { true } else { false }
+        if let RtnlMessage::GetRule(_) = *self {
+            true
+        } else {
+            false
+        }
     }
 
     pub fn is_new_rule(&self) -> bool {
-        if let RtnlMessage::NewRule(_) = *self { true } else { false }
+        if let RtnlMessage::NewRule(_) = *self {
+            true
+        } else {
+            false
+        }
     }
 
     pub fn is_del_rule(&self) -> bool {
-        if let RtnlMessage::DelRule(_) = *self { true } else { false }
+        if let RtnlMessage::DelRule(_) = *self {
+            true
+        } else {
+            false
+        }
     }
 
     pub fn message_type(&self) -> u16 {

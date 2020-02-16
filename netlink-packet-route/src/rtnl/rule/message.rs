@@ -1,11 +1,9 @@
 use super::buffer::RuleMessageBuffer;
-use super::header::{RuleFlags, RuleHeader};
+use super::header::RuleHeader;
 use super::nlas::Nla;
-use crate::utils::parsers::parse_u32;
-use crate::utils::{Emitable, Parseable, ParseableParametrized};
+use crate::utils::{Emitable, Parseable};
 use crate::DecodeError;
 use failure::ResultExt;
-use std::fmt;
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct RuleMessage {
