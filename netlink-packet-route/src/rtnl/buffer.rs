@@ -4,7 +4,8 @@ use crate::{
     AddressHeader, AddressMessage, AddressMessageBuffer, DecodeError, LinkMessage,
     LinkMessageBuffer, NeighbourMessage, NeighbourMessageBuffer, NeighbourTableMessage,
     NeighbourTableMessageBuffer, NsidMessage, NsidMessageBuffer, RouteHeader, RouteMessage,
-    RouteMessageBuffer, RtnlMessage, TcMessage, TcMessageBuffer,
+    RouteMessageBuffer, RtnlMessage, RuleMessage, RuleMessageBuffer, TcMessage,
+    TcMessageBuffer,
 };
 use failure::ResultExt;
 
@@ -125,6 +126,16 @@ impl<'a, T: AsRef<[u8]> + ?Sized> ParseableParametrized<RtnlMessageBuffer<&'a T>
                 }
             }
 
+            RTM_NEWRULE | RTM_GETRULE | RTM_DELRULE => {
+                let err = "invalid fib rule message";
+                let msg = RuleMessage::parse(&RuleMessageBuffer::new_checked(&buf.inner()).context(err)?).context(err)?;
+                match message_type {
+                    RTM_NEWRULE => NewRule(msg),
+                    RTM_DELRULE => DelRule(msg),
+                    RTM_GETRULE => GetRule(msg),
+                    _ => unreachable!()
+                }
+            }
             // TC Messages
             RTM_NEWQDISC | RTM_DELQDISC | RTM_GETQDISC |
             RTM_NEWTCLASS | RTM_DELTCLASS | RTM_GETTCLASS |

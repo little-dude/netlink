@@ -5,7 +5,7 @@ use crate::{
     traits::{Emitable, ParseableParametrized},
     AddressMessage, DecodeError, LinkMessage, NeighbourMessage, NeighbourTableMessage,
     NetlinkDeserializable, NetlinkHeader, NetlinkPayload, NetlinkSerializable, NsidMessage,
-    RouteMessage, RtnlMessageBuffer, TcMessage,
+    RouteMessage, RtnlMessageBuffer, RuleMessage, TcMessage,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -38,6 +38,9 @@ pub enum RtnlMessage {
     NewNsId(NsidMessage),
     DelNsId(NsidMessage),
     GetNsId(NsidMessage),
+    NewRule(RuleMessage),
+    DelRule(RuleMessage),
+    GetRule(RuleMessage),
 }
 
 impl RtnlMessage {
@@ -265,6 +268,30 @@ impl RtnlMessage {
         }
     }
 
+    pub fn is_get_rule(&self) -> bool {
+        if let RtnlMessage::GetRule(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_new_rule(&self) -> bool {
+        if let RtnlMessage::NewRule(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_del_rule(&self) -> bool {
+        if let RtnlMessage::DelRule(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn message_type(&self) -> u16 {
         use self::RtnlMessage::*;
 
@@ -297,6 +324,9 @@ impl RtnlMessage {
             GetNsId(_) => RTM_GETNSID,
             NewNsId(_) => RTM_NEWNSID,
             DelNsId(_) => RTM_DELNSID,
+            GetRule(_) => RTM_GETRULE,
+            NewRule(_) => RTM_NEWRULE,
+            DelRule(_) => RTM_DELRULE,
         }
     }
 }
@@ -346,6 +376,11 @@ impl Emitable for RtnlMessage {
             | NewNsId(ref msg)
             | DelNsId(ref msg)
             | GetNsId(ref msg)
+            => msg.buffer_len(),
+
+            | NewRule(ref msg)
+            | DelRule(ref msg)
+            | GetRule(ref msg)
             => msg.buffer_len()
         }
     }
@@ -395,6 +430,11 @@ impl Emitable for RtnlMessage {
             | DelNsId(ref msg)
             | GetNsId(ref msg)
             => msg.emit(buffer),
+
+            | NewRule(ref msg)
+            | DelRule(ref msg)
+            | GetRule(ref msg)
+            => msg.emit(buffer)
         }
     }
 }
