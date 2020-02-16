@@ -3,7 +3,7 @@ macro_rules! getter {
     ($buffer: ident, $name:ident, slice, $offset:expr) => {
         impl<'a, T: AsRef<[u8]> + ?Sized> $buffer<&'a T> {
             pub fn $name(&self) -> &'a [u8] {
-                & self.buffer.as_ref()[$offset]
+                &self.buffer.as_ref()[$offset]
             }
         }
     };
