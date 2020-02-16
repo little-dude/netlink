@@ -4,8 +4,7 @@ use crate::{
     AddressHeader, AddressMessage, AddressMessageBuffer, DecodeError, LinkMessage,
     LinkMessageBuffer, NeighbourMessage, NeighbourMessageBuffer, NeighbourTableMessage,
     NeighbourTableMessageBuffer, NsidMessage, NsidMessageBuffer, RouteHeader, RouteMessage,
-    RouteMessageBuffer, RtnlMessage, RuleMessage, RuleMessageBuffer, TcMessage,
-    TcMessageBuffer,
+    RouteMessageBuffer, RtnlMessage, RuleMessage, RuleMessageBuffer, TcMessage, TcMessageBuffer,
 };
 use failure::ResultExt;
 

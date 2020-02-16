@@ -36,7 +36,9 @@ fn main() {
 
     println!(">>> {:?}", msg);
 
-    socket.send(&buf, 0).expect("failed to send netlink message");
+    socket
+        .send(&buf, 0)
+        .expect("failed to send netlink message");
 
     let mut receive_buffer = vec![0; 4096];
 
