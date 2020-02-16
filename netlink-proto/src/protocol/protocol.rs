@@ -13,14 +13,14 @@ use super::Request;
 #[derive(Debug, Eq, PartialEq, Hash)]
 struct RequestId {
     sequence_number: u32,
-    port: u32
+    port: u32,
 }
 
 impl RequestId {
-    fn new(sequence_number: u32, sock: SocketAddr) -> Self {
-        RequestId {
+    fn new(sequence_number: u32, port: u32) -> Self {
+        Self {
             sequence_number,
-            port: sock.port_number(),
+            port,
         }
     }
 }
@@ -81,7 +81,7 @@ where
     }
 
     pub fn handle_message(&mut self, message: NetlinkMessage<T>, source: SocketAddr) {
-        let request_id = RequestId::new(message.header.sequence_number, source);
+        let request_id = RequestId::new(message.header.sequence_number, source.port_number());
         debug!("handling messages (request id = {:?})", request_id);
         if let hash_map::Entry::Occupied(entry) = self.pending_requests.entry(request_id) {
             Self::handle_response(&mut self.incoming_responses, entry, message);
@@ -90,7 +90,11 @@ where
         }
     }
 
-    fn handle_response(incoming_responses: &mut VecDeque<Response<T, M>>, entry: hash_map::OccupiedEntry<RequestId, PendingRequest<M>>, message: NetlinkMessage<T>) {
+    fn handle_response(
+        incoming_responses: &mut VecDeque<Response<T, M>>,
+        entry: hash_map::OccupiedEntry<RequestId, PendingRequest<M>>,
+        message: NetlinkMessage<T>,
+    ) {
         let entry_key;
         let mut request_id = entry.key();
         debug!("handling response to request {:?}", request_id);
@@ -99,7 +103,11 @@ where
         // Done, Overrun, or InnerMessage without the
         // multipart flag and we were not expecting an Ack
         let done = match message.payload {
-            NetlinkPayload::InnerMessage(_) if message.header.flags & NLM_F_MULTIPART == NLM_F_MULTIPART => false,
+            NetlinkPayload::InnerMessage(_)
+                if message.header.flags & NLM_F_MULTIPART == NLM_F_MULTIPART =>
+            {
+                false
+            }
             NetlinkPayload::InnerMessage(_) => !entry.get().expecting_ack,
             _ => true,
         };
@@ -132,7 +140,7 @@ where
         } = request;
 
         self.set_sequence_id(&mut message);
-        let request_id = RequestId::new(self.sequence_id, destination);
+        let request_id = RequestId::new(self.sequence_id, destination.port_number());
         let flags = message.header.flags;
         self.outgoing_messages.push_back((message, destination));
 
@@ -148,7 +156,13 @@ where
             || flags & NLM_F_ECHO == NLM_F_ECHO
             || expecting_ack
         {
-            self.pending_requests.insert(request_id, PendingRequest { expecting_ack, metadata });
+            self.pending_requests.insert(
+                request_id,
+                PendingRequest {
+                    expecting_ack,
+                    metadata,
+                },
+            );
         }
     }
 
