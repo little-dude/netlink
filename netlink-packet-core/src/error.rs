@@ -1,6 +1,7 @@
 use crate::{DecodeError, Emitable, Field, Parseable, Rest};
 use byteorder::{ByteOrder, NativeEndian};
 use std::mem::size_of;
+use std::{fmt, io};
 
 const CODE: Field = 0..4;
 const PAYLOAD: Rest = 4..;
@@ -104,5 +105,47 @@ impl<'buffer, T: AsRef<[u8]> + 'buffer> Parseable<ErrorBuffer<&'buffer T>> for E
             code: buf.code(),
             header: buf.payload().to_vec(),
         })
+    }
+}
+
+impl ErrorMessage {
+    /// According to [`netlink(7)`](https://linux.die.net/man/7/netlink)
+    /// the `NLMSG_ERROR` return Negative errno or 0 for acknowledgements.
+    ///
+    /// convert into [`std::io::Error`](https://doc.rust-lang.org/std/io/struct.Error.html)
+    /// using the absolute value from errno code
+    pub fn to_io(&self) -> io::Error {
+        io::Error::from_raw_os_error(self.code.abs())
+    }
+}
+
+impl fmt::Display for ErrorMessage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.to_io(), f)
+    }
+}
+
+impl From<ErrorMessage> for io::Error {
+    fn from(e: ErrorMessage) -> io::Error {
+        e.to_io()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn into_io_error() {
+        let io_err = io::Error::from_raw_os_error(95);
+        let err_msg = ErrorMessage {
+            code: -95,
+            header: vec![],
+        };
+
+        let to_io: io::Error = err_msg.to_io();
+
+        assert_eq!(err_msg.to_string(), io_err.to_string());
+        assert_eq!(to_io.raw_os_error(), io_err.raw_os_error());
     }
 }
