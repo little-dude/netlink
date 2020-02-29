@@ -14,7 +14,7 @@ pub enum ErrorKind {
     #[fail(display = "Received an unexpected message {:?}", _0)]
     UnexpectedMessage(NetlinkMessage<RtnlMessage>),
 
-    #[fail(display = "Received a netlink error message {:?}", _0)]
+    #[fail(display = "Received a netlink error message {}", _0)]
     NetlinkError(ErrorMessage),
 
     #[fail(display = "A netlink request failed")]
