@@ -3,6 +3,20 @@ use crate::{
     DecodeError, NeighbourMessageBuffer, NEIGHBOUR_HEADER_LEN,
 };
 
+/// Neighbour headers have the following structure:
+///
+/// ```no_rust
+/// 0                8                16              24               32
+/// +----------------+----------------+----------------+----------------+
+/// |     family     |                     padding                      |
+/// +----------------+----------------+----------------+----------------+
+/// |                             link index                            |
+/// +----------------+----------------+----------------+----------------+
+/// |              state              |     flags      |     ntype      |
+/// +----------------+----------------+----------------+----------------+
+/// ```
+///
+/// `NeighbourHeader` exposes all these fields.
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct NeighbourHeader {
     pub family: u8,
