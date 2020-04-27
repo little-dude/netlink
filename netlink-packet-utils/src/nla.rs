@@ -180,8 +180,18 @@ impl Nla for DefaultNla {
 
 impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'buffer T>> for DefaultNla {
     fn parse(buf: &NlaBuffer<&'buffer T>) -> Result<Self, DecodeError> {
+        let mut kind = buf.kind();
+
+        if buf.network_byte_order_flag() {
+            kind |= NLA_F_NET_BYTEORDER;
+        }
+
+        if buf.nested_flag() {
+            kind |= NLA_F_NESTED;
+        }
+
         Ok(DefaultNla {
-            kind: buf.kind(),
+            kind,
             value: buf.value().to_vec(),
         })
     }
@@ -191,6 +201,16 @@ pub trait Nla {
     fn value_len(&self) -> usize;
     fn kind(&self) -> u16;
     fn emit_value(&self, buffer: &mut [u8]);
+
+    #[inline]
+    fn is_nested(&self) -> bool {
+        (self.kind() & NLA_F_NESTED) != 0
+    }
+
+    #[inline]
+    fn is_network_byteorder(&self) -> bool {
+        (self.kind() & NLA_F_NET_BYTEORDER) != 0
+    }
 }
 
 impl<T: Nla> Emitable for T {
@@ -201,8 +221,18 @@ impl<T: Nla> Emitable for T {
     fn emit(&self, buffer: &mut [u8]) {
         let mut buffer = NlaBuffer::new(buffer);
         buffer.set_kind(self.kind());
+
+        if self.is_network_byteorder() {
+            buffer.set_network_byte_order_flag()
+        }
+
+        if self.is_nested() {
+            buffer.set_nested_flag()
+        }
+
         // do not include the padding here, but do include the header
         buffer.set_length(self.value_len() as u16 + 4);
+
         self.emit_value(buffer.value_mut());
         // add the padding. this is a bit ugly, not sure how to make it better
         let padding = (4 - self.value_len() % 4) % 4;
@@ -284,5 +314,35 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized + 'buffer> Iterator for NlasIterator<&'buf
                 Some(Err(e))
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn network_byteorder() {
+        // The IPSET_ATTR_TIMEOUT attribute should have the network byte order flag set.
+        // IPSET_ATTR_TIMEOUT(3600)
+        static TEST_ATTRIBUTE: &[u8] = &[0x08, 0x00, 0x06, 0x40, 0x00, 0x00, 0x0e, 0x10];
+        let buffer = NlaBuffer::new(TEST_ATTRIBUTE);
+        let buffer_is_net = buffer.network_byte_order_flag();
+        let buffer_is_nest = buffer.nested_flag();
+
+        let nla = DefaultNla::parse(&buffer).unwrap();
+        let mut emitted_buffer = vec![0; nla.buffer_len()];
+
+        nla.emit(&mut emitted_buffer);
+
+        let attr_is_net = nla.is_network_byteorder();
+        let attr_is_nest = nla.is_nested();
+
+        let emit = NlaBuffer::new(emitted_buffer);
+        let emit_is_net = emit.network_byte_order_flag();
+        let emit_is_nest = emit.nested_flag();
+
+        assert_eq!([buffer_is_net, buffer_is_nest], [attr_is_net, attr_is_nest]);
+        assert_eq!([attr_is_net, attr_is_nest], [emit_is_net, emit_is_nest]);
     }
 }
