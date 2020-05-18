@@ -6,7 +6,7 @@ use crate::{
         LinkMessage, NetlinkMessage, NetlinkPayload, RtnlMessage, IFF_UP, NLM_F_ACK, NLM_F_CREATE,
         NLM_F_EXCL, NLM_F_REQUEST,
     },
-    Error, ErrorKind, Handle,
+    Error, Handle,
 };
 
 /// A request to create a new link. This is equivalent to the `ip link add` commands.
@@ -39,7 +39,7 @@ impl LinkAddRequest {
         let mut response = handle.request(req)?;
         while let Some(message) = response.next().await {
             if let NetlinkPayload::Error(err) = message.payload {
-                return Err(ErrorKind::NetlinkError(err).into());
+                return Err(Error::NetlinkError(err));
             }
         }
         Ok(())

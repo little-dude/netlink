@@ -1,8 +1,8 @@
 mod cache_info;
 pub use self::cache_info::*;
 
+use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
-use failure::ResultExt;
 
 use crate::{
     constants::*,

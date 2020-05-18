@@ -1,5 +1,3 @@
-use failure::{Compat as FailureError, Fail};
-
 use crate::{
     constants::*,
     traits::{Emitable, ParseableParametrized},
@@ -454,11 +452,11 @@ impl NetlinkSerializable<RtnlMessage> for RtnlMessage {
 }
 
 impl NetlinkDeserializable<RtnlMessage> for RtnlMessage {
-    type Error = FailureError<DecodeError>;
+    type Error = DecodeError;
     fn deserialize(header: &NetlinkHeader, payload: &[u8]) -> Result<Self, Self::Error> {
         let buf = RtnlMessageBuffer::new(payload);
         match RtnlMessage::parse_with_param(&buf, header.message_type) {
-            Err(e) => Err(e.compat()),
+            Err(e) => Err(e),
             Ok(message) => Ok(message),
         }
     }

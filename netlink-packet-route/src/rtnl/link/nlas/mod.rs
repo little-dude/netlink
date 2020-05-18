@@ -27,8 +27,8 @@ mod tests;
 
 use std::os::unix::io::RawFd;
 
+use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
-use failure::ResultExt;
 
 use crate::{
     constants::*,

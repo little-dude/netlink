@@ -1,7 +1,7 @@
 use std::mem::size_of;
 
+use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
-use failure::ResultExt;
 
 use crate::DecodeError;
 

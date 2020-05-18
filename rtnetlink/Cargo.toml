@@ -14,8 +14,8 @@ description = "manipulate linux networking resources via netlink"
 [dependencies]
 futures = "0.3.1"
 log = "0.4.8"
-failure = "0.1.6"
-netlink-packet-route = { path = "../netlink-packet-route", version = "0.2"}
+thiserror = "1"
+netlink-packet-route = { path = "../netlink-packet-route", version = "0.2" }
 netlink-proto = { path = "../netlink-proto", version = "0.2" }
 
 [dev-dependencies]

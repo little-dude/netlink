@@ -8,7 +8,7 @@ use netlink_packet_route::{
     constants::*, NetlinkMessage, NetlinkPayload, RouteMessage, RtnlMessage,
 };
 
-use crate::{Error, ErrorKind, Handle};
+use crate::{Error, Handle};
 
 pub struct RouteGetRequest {
     handle: Handle,
@@ -68,10 +68,10 @@ impl RouteGetRequest {
                 let (header, payload) = msg.into_parts();
                 match payload {
                     NetlinkPayload::InnerMessage(RtnlMessage::NewRoute(msg)) => Ok(msg),
-                    NetlinkPayload::Error(err) => Err(ErrorKind::NetlinkError(err).into()),
-                    _ => Err(
-                        ErrorKind::UnexpectedMessage(NetlinkMessage::new(header, payload)).into(),
-                    ),
+                    NetlinkPayload::Error(err) => Err(Error::NetlinkError(err)),
+                    _ => Err(Error::UnexpectedMessage(NetlinkMessage::new(
+                        header, payload,
+                    ))),
                 }
             })),
             Err(e) => Either::Right(future::err::<RouteMessage, Error>(e).into_stream()),

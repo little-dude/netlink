@@ -5,7 +5,7 @@ use crate::{
         LinkMessage, NetlinkMessage, NetlinkPayload, RtnlMessage, NLM_F_ACK, NLM_F_CREATE,
         NLM_F_EXCL, NLM_F_REQUEST,
     },
-    Error, ErrorKind, Handle,
+    Error, Handle,
 };
 
 pub struct LinkDelRequest {
@@ -32,7 +32,7 @@ impl LinkDelRequest {
         let mut response = handle.request(req)?;
         while let Some(message) = response.next().await {
             if let NetlinkPayload::Error(err) = message.payload {
-                return Err(ErrorKind::NetlinkError(err).into());
+                return Err(Error::NetlinkError(err));
             }
         }
         Ok(())

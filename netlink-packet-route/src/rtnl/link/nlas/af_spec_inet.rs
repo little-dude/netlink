@@ -1,4 +1,4 @@
-use failure::ResultExt;
+use anyhow::Context;
 
 use super::{inet, inet6};
 use crate::{

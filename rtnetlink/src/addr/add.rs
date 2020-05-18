@@ -6,7 +6,7 @@ use netlink_packet_route::{
     AF_INET6, NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST,
 };
 
-use crate::{Error, ErrorKind, Handle};
+use crate::{Error, Handle};
 
 /// A request to create a new address. This is equivalent to the `ip address add` commands.
 pub struct AddressAddRequest {
@@ -73,7 +73,7 @@ impl AddressAddRequest {
         let mut response = handle.request(req)?;
         while let Some(message) = response.next().await {
             if let NetlinkPayload::Error(err) = message.payload {
-                return Err(ErrorKind::NetlinkError(err).into());
+                return Err(Error::NetlinkError(err));
             }
         }
         Ok(())

@@ -1,4 +1,3 @@
-use failure::Fail;
 use std::fmt::Debug;
 use std::io;
 use std::marker::PhantomData;
@@ -132,11 +131,7 @@ where
                     return Ok(Some(packet));
                 }
                 Err(e) => {
-                    let mut error_string = format!("failed to decode packet {:#x?}", &bytes);
-                    for cause in Fail::iter_chain(&e) {
-                        error_string += &format!(": {}", cause);
-                    }
-                    error!("{}", error_string);
+                    error!("failed to decode packet {:#x?}: {}", &bytes, e);
                     // continue looping, there may be more datagrams in the buffer
                 }
             }

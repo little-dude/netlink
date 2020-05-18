@@ -6,7 +6,7 @@ use crate::{
     NeighbourTableMessageBuffer, NsidMessage, NsidMessageBuffer, RouteHeader, RouteMessage,
     RouteMessageBuffer, RtnlMessage, RuleMessage, RuleMessageBuffer, TcMessage, TcMessageBuffer,
 };
-use failure::ResultExt;
+use anyhow::Context;
 
 buffer!(RtnlMessageBuffer);
 

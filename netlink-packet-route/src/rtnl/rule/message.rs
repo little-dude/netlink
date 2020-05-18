@@ -3,7 +3,7 @@ use super::header::RuleHeader;
 use super::nlas::Nla;
 use crate::utils::{Emitable, Parseable};
 use crate::DecodeError;
-use failure::ResultExt;
+use anyhow::Context;
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct RuleMessage {

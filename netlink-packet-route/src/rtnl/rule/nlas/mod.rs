@@ -9,7 +9,7 @@ use crate::{
     FRA_SPORT_RANGE, FRA_SRC, FRA_SUPPRESS_IFGROUP, FRA_SUPPRESS_PREFIXLEN, FRA_TABLE, FRA_TUN_ID,
     FRA_UID_RANGE, FRA_UNSPEC,
 };
-use failure::ResultExt;
+use anyhow::Context;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Nla {

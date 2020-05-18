@@ -3,7 +3,7 @@ use crate::{
     traits::{Emitable, Parseable},
     DecodeError, NeighbourTableHeader, NeighbourTableMessageBuffer,
 };
-use failure::ResultExt;
+use anyhow::Context;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct NeighbourTableMessage {

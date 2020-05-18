@@ -4,7 +4,7 @@ use crate::{
     packet::{
         AddressMessage, NetlinkMessage, NetlinkPayload, RtnlMessage, NLM_F_ACK, NLM_F_REQUEST,
     },
-    Error, ErrorKind, Handle,
+    Error, Handle,
 };
 
 pub struct AddressDelRequest {
@@ -29,7 +29,7 @@ impl AddressDelRequest {
         let mut response = handle.request(req)?;
         while let Some(msg) = response.next().await {
             if let NetlinkPayload::Error(e) = msg.payload {
-                return Err(ErrorKind::NetlinkError(e).into());
+                return Err(Error::NetlinkError(e));
             }
         }
         Ok(())

@@ -56,9 +56,9 @@ where
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::ErrorKind::*;
         match self.kind() {
-            SocketIo(ref e) => write!(f, "{}: {}", self.description(), e),
-            ConnectionClosed => write!(f, "{}", self.description()),
-            NetlinkError(ref message) => write!(f, "{}: {:?}", self.description(), message),
+            SocketIo(ref e) => write!(f, "{}: {}", self, e),
+            ConnectionClosed => write!(f, "{}", self),
+            NetlinkError(ref message) => write!(f, "{}: {:?}", self, message),
         }
     }
 }

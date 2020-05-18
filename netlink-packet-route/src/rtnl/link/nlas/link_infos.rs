@@ -5,8 +5,8 @@ use crate::{
     traits::{Emitable, Parseable},
     DecodeError, LinkMessage, LinkMessageBuffer,
 };
+use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
-use failure::ResultExt;
 
 const DUMMY: &str = "dummy";
 const IFB: &str = "ifb";

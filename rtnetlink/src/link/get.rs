@@ -9,7 +9,7 @@ use crate::{
         nlas::link::Nla, LinkMessage, NetlinkMessage, NetlinkPayload, RtnlMessage, NLM_F_DUMP,
         NLM_F_REQUEST,
     },
-    Error, ErrorKind, Handle,
+    Error, Handle,
 };
 
 pub struct LinkGetRequest {
@@ -59,11 +59,10 @@ impl LinkGetRequest {
                         let (header, payload) = msg.into_parts();
                         match payload {
                             NetlinkPayload::InnerMessage(RtnlMessage::NewLink(msg)) => Ok(msg),
-                            NetlinkPayload::Error(err) => Err(ErrorKind::NetlinkError(err).into()),
-                            _ => Err(ErrorKind::UnexpectedMessage(NetlinkMessage::new(
+                            NetlinkPayload::Error(err) => Err(Error::NetlinkError(err)),
+                            _ => Err(Error::UnexpectedMessage(NetlinkMessage::new(
                                 header, payload,
-                            ))
-                            .into()),
+                            ))),
                         }
                     })
                     .try_filter(move |msg| future::ready(filter(msg))),

@@ -1,7 +1,7 @@
 use core::ops::Range;
 
+use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
-use failure::ResultExt;
 
 use crate::{
     traits::{Emitable, Parseable},

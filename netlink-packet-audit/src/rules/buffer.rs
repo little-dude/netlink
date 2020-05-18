@@ -1,5 +1,5 @@
+use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
-use failure::ResultExt;
 
 use crate::{constants::*, rules::*, traits::Parseable, DecodeError, Field};
 
