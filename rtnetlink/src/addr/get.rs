@@ -10,7 +10,7 @@ use netlink_packet_route::{
     NLM_F_REQUEST,
 };
 
-use crate::{Error, ErrorKind, Handle};
+use crate::{Error, Handle};
 
 pub struct AddressGetRequest {
     handle: Handle,
@@ -49,11 +49,10 @@ impl AddressGetRequest {
                         let (header, payload) = msg.into_parts();
                         match payload {
                             NetlinkPayload::InnerMessage(RtnlMessage::NewAddress(msg)) => Ok(msg),
-                            NetlinkPayload::Error(err) => Err(ErrorKind::NetlinkError(err).into()),
-                            _ => Err(ErrorKind::UnexpectedMessage(NetlinkMessage::new(
+                            NetlinkPayload::Error(err) => Err(Error::NetlinkError(err)),
+                            _ => Err(Error::UnexpectedMessage(NetlinkMessage::new(
                                 header, payload,
-                            ))
-                            .into()),
+                            ))),
                         }
                     })
                     .try_filter(move |msg| future::ready(filter(msg))),

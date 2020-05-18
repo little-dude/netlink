@@ -1,9 +1,8 @@
-use failure::{Fail, ResultExt};
 use futures::Stream;
 
 use crate::{
     packet::{NetlinkMessage, RtnlMessage},
-    AddressHandle, Error, ErrorKind, LinkHandle, RouteHandle,
+    AddressHandle, Error, LinkHandle, RouteHandle,
 };
 use netlink_proto::{sys::SocketAddr, ConnectionHandle};
 
@@ -21,13 +20,13 @@ impl Handle {
     ) -> Result<impl Stream<Item = NetlinkMessage<RtnlMessage>>, Error> {
         self.0
             .request(message, SocketAddr::new(0, 0))
-            .map_err(|e| e.context(ErrorKind::RequestFailed).into())
+            .map_err(|_| Error::RequestFailed)
     }
 
     pub fn notify(&mut self, msg: NetlinkMessage<RtnlMessage>) -> Result<(), Error> {
         self.0
             .notify(msg, SocketAddr::new(0, 0))
-            .context(ErrorKind::RequestFailed)?;
+            .map_err(|_| Error::RequestFailed)?;
         Ok(())
     }
 

@@ -3,8 +3,6 @@
 
 #![allow(clippy::module_inception)]
 
-use failure;
-
 mod handle;
 pub use crate::handle::*;
 

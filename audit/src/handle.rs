@@ -1,6 +1,5 @@
 use std::process;
 
-use failure::Fail;
 use futures::{
     future::{self, Either},
     stream::{Stream, StreamExt, TryStream},
@@ -35,7 +34,7 @@ pub const AUDIT_VERSION_LATEST: u32 = 127;
 pub const AUDIT_VERSION_BACKLOG_LIMIT: u32 = 1;
 pub const AUDIT_VERSION_BACKLOG_WAIT_TIME: u32 = 2;
 
-use crate::{Error, ErrorKind};
+use crate::Error;
 
 /// A handle to the netlink connection, used to send and receive netlink messsage
 #[derive(Clone, Debug)]
@@ -53,7 +52,7 @@ impl Handle {
     ) -> Result<impl Stream<Item = NetlinkMessage<AuditMessage>>, Error> {
         self.0
             .request(message, SocketAddr::new(0, 0))
-            .map_err(|e| e.context(ErrorKind::RequestFailed).into())
+            .map_err(|_| Error::RequestFailed)
     }
 
     /// Send a netlink message that expects an acknowledgement. The returned future resolved when
@@ -65,9 +64,11 @@ impl Handle {
             // NetlinkError and AuditMessage are forwarded to the
             // handle. Ack is signaled by the stream finishing.
             if let NetlinkPayload::Error(err_msg) = payload {
-                Err(ErrorKind::NetlinkError(err_msg).into())
+                Err(Error::NetlinkError(err_msg))
             } else {
-                Err(ErrorKind::UnexpectedMessage(NetlinkMessage::new(header, payload)).into())
+                Err(Error::UnexpectedMessage(NetlinkMessage::new(
+                    header, payload,
+                )))
             }
         } else {
             Ok(())
@@ -100,10 +101,10 @@ impl Handle {
                     NetlinkPayload::InnerMessage(AuditMessage::ListRules(Some(rule_msg))) => {
                         Ok(rule_msg)
                     }
-                    NetlinkPayload::Error(err_msg) => Err(ErrorKind::NetlinkError(err_msg).into()),
-                    _ => Err(
-                        ErrorKind::UnexpectedMessage(NetlinkMessage::new(header, payload)).into(),
-                    ),
+                    NetlinkPayload::Error(err_msg) => Err(Error::NetlinkError(err_msg)),
+                    _ => Err(Error::UnexpectedMessage(NetlinkMessage::new(
+                        header, payload,
+                    ))),
                 }
             })),
             Err(e) => Either::Right(future::err::<RuleMessage, Error>(e).into_stream()),

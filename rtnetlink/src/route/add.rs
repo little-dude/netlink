@@ -5,7 +5,7 @@ use netlink_packet_route::{
     constants::*, nlas::route::Nla, NetlinkMessage, NetlinkPayload, RouteMessage, RtnlMessage,
 };
 
-use crate::{Error, ErrorKind, Handle};
+use crate::{Error, Handle};
 
 /// A request to create a new route. This is equivalent to the `ip route add` commands.
 struct RouteAddRequest {
@@ -81,7 +81,7 @@ impl RouteAddRequest {
         let mut response = handle.request(req)?;
         while let Some(message) = response.next().await {
             if let NetlinkPayload::Error(err) = message.payload {
-                return Err(ErrorKind::NetlinkError(err).into());
+                return Err(Error::NetlinkError(err));
             }
         }
         Ok(())

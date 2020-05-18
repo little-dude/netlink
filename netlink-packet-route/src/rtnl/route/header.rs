@@ -134,10 +134,10 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<RouteMessageBuffer<&'a T>> for Route
             destination_prefix_length: buf.destination_prefix_length(),
             source_prefix_length: buf.source_prefix_length(),
             tos: buf.tos(),
-            table: buf.table().into(),
-            protocol: buf.protocol().into(),
-            scope: buf.scope().into(),
-            kind: buf.kind().into(),
+            table: buf.table(),
+            protocol: buf.protocol(),
+            scope: buf.scope(),
+            kind: buf.kind(),
             flags: RouteFlags::from_bits_truncate(buf.flags()),
         })
     }

@@ -1,5 +1,3 @@
-use failure::{Compat as FailureError, Fail};
-
 use crate::{
     constants::*,
     rules::RuleMessage,
@@ -137,13 +135,13 @@ impl NetlinkSerializable<AuditMessage> for AuditMessage {
 }
 
 impl NetlinkDeserializable<AuditMessage> for AuditMessage {
-    type Error = FailureError<DecodeError>;
+    type Error = DecodeError;
     fn deserialize(header: &NetlinkHeader, payload: &[u8]) -> Result<Self, Self::Error> {
         match AuditBuffer::new_checked(payload) {
-            Err(e) => return Err(e.compat()),
+            Err(e) => Err(e),
             Ok(buffer) => match AuditMessage::parse_with_param(&buffer, header.message_type) {
-                Err(e) => return Err(e.compat()),
-                Ok(message) => return Ok(message),
+                Err(e) => Err(e),
+                Ok(message) => Ok(message),
             },
         }
     }

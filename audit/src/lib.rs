@@ -1,6 +1,4 @@
-#![cfg_attr(feature = "cargo-clippy", allow(module_inception))]
-
-use failure;
+#![allow(clippy::module_inception)]
 
 use netlink_proto::{sys::Protocol, Connection};
 

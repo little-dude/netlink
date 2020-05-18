@@ -3,8 +3,8 @@ pub use self::cache_info::*;
 
 use std::mem::size_of;
 
+use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
-use failure::ResultExt;
 
 use crate::{
     constants::*,

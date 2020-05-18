@@ -3,7 +3,7 @@ use crate::{
     traits::{Emitable, Parseable},
     DecodeError, RouteHeader, RouteMessageBuffer,
 };
-use failure::ResultExt;
+use anyhow::Context;
 use std::net::IpAddr;
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]

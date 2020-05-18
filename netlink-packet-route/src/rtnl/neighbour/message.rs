@@ -1,4 +1,4 @@
-use failure::ResultExt;
+use anyhow::Context;
 
 use crate::{
     nlas::neighbour::Nla,
@@ -19,7 +19,9 @@ impl Emitable for NeighbourMessage {
 
     fn emit(&self, buffer: &mut [u8]) {
         self.header.emit(buffer);
-        self.nlas.as_slice().emit(&mut buffer[self.header.buffer_len()..]);
+        self.nlas
+            .as_slice()
+            .emit(&mut buffer[self.header.buffer_len()..]);
     }
 }
 
@@ -46,9 +48,7 @@ impl<'a, T: AsRef<[u8]> + 'a> Parseable<NeighbourMessageBuffer<&'a T>> for Vec<N
 #[cfg(test)]
 mod test {
     use crate::{
-        constants::*,
-        traits::Emitable,
-        NeighbourHeader, NeighbourMessage, NeighbourMessageBuffer
+        constants::*, traits::Emitable, NeighbourHeader, NeighbourMessage, NeighbourMessageBuffer,
     };
 
     // 0020   0a 00 00 00 02 00 00 00 02 00 80 01 14 00 01 00
@@ -56,7 +56,6 @@ mod test {
     // 0040   0a 00 02 00 f4 90 ea 00 2d 83 00 00 08 00 04 00
     // 0050   01 00 00 00 14 00 03 00 00 00 00 00 00 00 00 00
     // 0060   00 00 00 00 02 00 00 00
-
 
     #[rustfmt::skip]
     static HEADER: [u8; 12] = [
@@ -102,7 +101,7 @@ mod test {
             ifindex: 1,
             state: NUD_REACHABLE,
             flags: NTF_ROUTER,
-            ntype: NDA_DST as u8
+            ntype: NDA_DST as u8,
         };
 
         let nlas = vec![];

@@ -4,7 +4,7 @@ use crate::{
     traits::{Parseable, ParseableParametrized},
     AuditMessage, DecodeError, StatusMessage, StatusMessageBuffer,
 };
-use failure::ResultExt;
+use anyhow::Context;
 
 pub struct AuditBuffer<T> {
     buffer: T,

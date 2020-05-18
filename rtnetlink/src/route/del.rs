@@ -2,7 +2,7 @@ use futures::stream::StreamExt;
 
 use crate::{
     packet::{NetlinkMessage, NetlinkPayload, RouteMessage, RtnlMessage, NLM_F_ACK, NLM_F_REQUEST},
-    Error, ErrorKind, Handle,
+    Error, Handle,
 };
 
 pub struct RouteDelRequest {
@@ -27,7 +27,7 @@ impl RouteDelRequest {
         let mut response = handle.request(req)?;
         while let Some(msg) = response.next().await {
             if let NetlinkPayload::Error(e) = msg.payload {
-                return Err(ErrorKind::NetlinkError(e).into());
+                return Err(Error::NetlinkError(e));
             }
         }
         Ok(())

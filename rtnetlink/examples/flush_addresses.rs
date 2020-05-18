@@ -1,4 +1,3 @@
-use failure::Fail;
 use futures::stream::TryStreamExt;
 use rtnetlink::{new_connection, Error, Handle};
 use std::env;
@@ -16,7 +15,7 @@ async fn main() -> Result<(), ()> {
     tokio::spawn(connection);
 
     if let Err(e) = flush_addresses(handle, link_name.to_string()).await {
-        eprintln!("{}", format_failure_error(e));
+        eprintln!("{}", e);
     }
 
     Ok(())
@@ -41,15 +40,6 @@ async fn flush_addresses(handle: Handle, link: String) -> Result<(), Error> {
         eprintln!("link {} not found", link);
         Ok(())
     }
-}
-
-fn format_failure_error<E: Fail>(error: E) -> String {
-    let mut causes = Fail::iter_chain(&error);
-    let mut error_string = causes.next().unwrap().to_string();
-    for cause in causes {
-        error_string += &format!(": {}", cause);
-    }
-    error_string
 }
 
 fn usage() {

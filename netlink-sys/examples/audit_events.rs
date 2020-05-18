@@ -11,12 +11,15 @@
 // ../target/debug/examples/audit_events
 // ```
 
+#[cfg(not(feature = "tokio_socket"))]
 use std::process;
 
+#[cfg(not(feature = "tokio_socket"))]
 use netlink_packet_audit::{
     AuditMessage, NetlinkBuffer, NetlinkMessage, StatusMessage, NLM_F_ACK, NLM_F_REQUEST,
 };
 
+#[cfg(not(feature = "tokio_socket"))]
 use netlink_sys::{Protocol, Socket, SocketAddr};
 
 pub const AUDIT_STATUS_ENABLED: u32 = 1;

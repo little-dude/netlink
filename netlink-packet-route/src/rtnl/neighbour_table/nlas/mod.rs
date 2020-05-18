@@ -4,8 +4,8 @@ pub use config::*;
 mod stats;
 pub use stats::*;
 
+use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
-use failure::ResultExt;
 
 use crate::{
     constants::*,

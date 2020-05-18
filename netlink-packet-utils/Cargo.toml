@@ -10,6 +10,7 @@ description = "macros and helpers for parsing netlink messages"
 
 
 [dependencies]
+anyhow = "1.0.31"
 byteorder = "1.3.2"
-failure = "0.1.6"
 paste = "0.1.6"
+thiserror = "1"

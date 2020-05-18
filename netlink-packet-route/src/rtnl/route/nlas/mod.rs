@@ -7,8 +7,8 @@ pub use self::metrics::*;
 mod mfc_stats;
 pub use self::mfc_stats::*;
 
+use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
-use failure::ResultExt;
 
 use crate::{
     constants::*,
