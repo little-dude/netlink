@@ -1,7 +1,7 @@
 use std::mem::size_of;
 
 use anyhow::Context;
-use byteorder::{ByteOrder, NativeEndian};
+use byteorder::{ByteOrder, NativeEndian, BigEndian};
 
 use crate::DecodeError;
 
@@ -74,4 +74,11 @@ pub fn parse_i32(payload: &[u8]) -> Result<i32, DecodeError> {
         return Err(format!("invalid u32: {:?}", payload).into());
     }
     Ok(NativeEndian::read_i32(payload))
+}
+
+pub fn parse_u16_be(payload: &[u8]) -> Result<u16, DecodeError> {
+    if payload.len() != size_of::<u16>() {
+        return Err(format!("invalid u16: {:?}", payload).into());
+    }
+    Ok(BigEndian::read_u16(payload))
 }

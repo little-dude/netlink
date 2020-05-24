@@ -1,12 +1,14 @@
 use crate::{
     constants::*,
     nlas::{DefaultNla, Nla, NlaBuffer, NlasIterator},
-    parsers::{parse_mac, parse_string, parse_u16, parse_u32, parse_u64, parse_u8},
+    parsers::{parse_mac, parse_string, parse_u16, parse_u16_be, parse_u32,
+        parse_u64, parse_u8
+    },
     traits::{Emitable, Parseable},
     DecodeError, LinkMessage, LinkMessageBuffer,
 };
 use anyhow::Context;
-use byteorder::{ByteOrder, NativeEndian};
+use byteorder::{ByteOrder, NativeEndian, BigEndian};
 
 const DUMMY: &str = "dummy";
 const IFB: &str = "ifb";
@@ -630,11 +632,14 @@ impl Nla for InfoBridge {
                 => NativeEndian::write_u32(buffer, *value),
 
             Priority(ref value)
-                | VlanProtocol(ref value)
                 | GroupFwdMask(ref value)
                 | RootPort(ref value)
                 | VlanDefaultPvid(ref value)
                 => NativeEndian::write_u16(buffer, *value),
+
+            Priority(ref value)
+                | VlanProtocol(ref value)
+                => BigEndian::write_u16(buffer, *value),
 
             RootId((ref priority, ref address))
                 | BridgeId((ref priority, ref address))
@@ -789,7 +794,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoBridge {
                 Priority(parse_u16(payload).context("invalid IFLA_BR_PRIORITY value")?)
             }
             IFLA_BR_VLAN_PROTOCOL => {
-                VlanProtocol(parse_u16(payload).context("invalid IFLA_BR_VLAN_PROTOCOL value")?)
+                VlanProtocol(parse_u16_be(payload).context("invalid IFLA_BR_VLAN_PROTOCOL value")?)
             }
             IFLA_BR_GROUP_FWD_MASK => {
                 GroupFwdMask(parse_u16(payload).context("invalid IFLA_BR_GROUP_FWD_MASK value")?)
@@ -1022,7 +1027,7 @@ mod tests {
 
             0x06, 0x00, // L = 6
             0x08, 0x00, // T = 8 (IFLA_BR_VLAN_PROTOCOL)
-            0x81, 0x00, // V = 129
+            0x81, 0x00, // V = 33024 (big-endian)
             0x00, 0x00, // Padding
 
             0x06, 0x00, // L = 6
@@ -1147,7 +1152,7 @@ mod tests {
             InfoBridge::TopologyChange(0),
             InfoBridge::TopologyChangeDetected(0),
             InfoBridge::GroupAddr([0x01, 0x80, 0xc2, 0x00, 0x00, 0x00]),
-            InfoBridge::VlanProtocol(129),
+            InfoBridge::VlanProtocol(33024),
             InfoBridge::VlanDefaultPvid(1),
             InfoBridge::VlanStatsEnabled(0),
             InfoBridge::MulticastRouter(1),
