@@ -1,6 +1,5 @@
 #![allow(unused)]
 
-use libc;
 use libc::c_int as int;
 
 pub const TCA_ROOT_UNSPEC: int = 0;
