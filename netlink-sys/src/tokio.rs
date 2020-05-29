@@ -5,7 +5,6 @@ use std::{
 
 use futures::{future::poll_fn, ready};
 use log::trace;
-use mio;
 use tokio::io::PollEvented;
 
 use crate::{

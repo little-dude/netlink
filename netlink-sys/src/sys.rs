@@ -1,5 +1,4 @@
 //! Netlink socket related functions
-use libc;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::io::{Error, Result};

@@ -637,8 +637,7 @@ impl Nla for InfoBridge {
                 | VlanDefaultPvid(ref value)
                 => NativeEndian::write_u16(buffer, *value),
 
-            Priority(ref value)
-                | VlanProtocol(ref value)
+            VlanProtocol(ref value)
                 => BigEndian::write_u16(buffer, *value),
 
             RootId((ref priority, ref address))

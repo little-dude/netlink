@@ -16,6 +16,7 @@ use packet::{AuditMessage, NetlinkMessage};
 use std::io;
 use sys::SocketAddr;
 
+#[allow(clippy::type_complexity)]
 pub fn new_connection() -> io::Result<(
     Connection<AuditMessage>,
     Handle,
