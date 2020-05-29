@@ -1,14 +1,12 @@
 use crate::{
     constants::*,
     nlas::{DefaultNla, Nla, NlaBuffer, NlasIterator},
-    parsers::{parse_mac, parse_string, parse_u16, parse_u16_be, parse_u32,
-        parse_u64, parse_u8
-    },
+    parsers::{parse_mac, parse_string, parse_u16, parse_u16_be, parse_u32, parse_u64, parse_u8},
     traits::{Emitable, Parseable},
     DecodeError, LinkMessage, LinkMessageBuffer,
 };
 use anyhow::Context;
-use byteorder::{ByteOrder, NativeEndian, BigEndian};
+use byteorder::{BigEndian, ByteOrder, NativeEndian};
 
 const DUMMY: &str = "dummy";
 const IFB: &str = "ifb";
@@ -531,6 +529,8 @@ pub enum InfoBridge {
     MulticastStatsEnabled(u8),
     MulticastIgmpVersion(u8),
     MulticastMldVersion(u8),
+    VlanStatsPerHost(u8),
+    MultiBoolOpt(u64),
     Other(DefaultNla),
 }
 
@@ -574,6 +574,7 @@ impl Nla for InfoBridge {
 
             RootId(_)
                 | BridgeId(_)
+                | MultiBoolOpt(_)
                 => 8,
 
             GroupAddr(_) => 6,
@@ -592,6 +593,7 @@ impl Nla for InfoBridge {
                 | MulticastStatsEnabled(_)
                 | MulticastIgmpVersion(_)
                 | MulticastMldVersion(_)
+                | VlanStatsPerHost(_)
                 => 1,
             Other(nla)
                 => nla.value_len(),
@@ -617,6 +619,7 @@ impl Nla for InfoBridge {
                 | MulticastQueryResponseInterval(ref value)
                 | MulticastLastMemberInterval(ref value)
                 | MulticastStartupQueryInterval(ref value)
+                | MultiBoolOpt(ref value)
                 => NativeEndian::write_u64(buffer, *value),
 
             ForwardDelay(ref value)
@@ -664,6 +667,7 @@ impl Nla for InfoBridge {
                 | MulticastStatsEnabled(ref value)
                 | MulticastIgmpVersion(ref value)
                 | MulticastMldVersion(ref value)
+                | VlanStatsPerHost(ref value)
                 => buffer[0] = *value,
 
             Other(nla)
@@ -719,6 +723,8 @@ impl Nla for InfoBridge {
             MulticastStatsEnabled(_) => IFLA_BR_MCAST_STATS_ENABLED,
             MulticastIgmpVersion(_) => IFLA_BR_MCAST_IGMP_VERSION,
             MulticastMldVersion(_) => IFLA_BR_MCAST_MLD_VERSION,
+            VlanStatsPerHost(_) => IFLA_BR_VLAN_STATS_PER_PORT,
+            MultiBoolOpt(_) => IFLA_BR_MULTI_BOOLOPT,
             Other(nla) => nla.kind(),
         }
     }
@@ -865,6 +871,12 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoBridge {
             IFLA_BR_MCAST_MLD_VERSION => MulticastMldVersion(
                 parse_u8(payload).context("invalid IFLA_BR_MCAST_MLD_VERSION value")?,
             ),
+            IFLA_BR_VLAN_STATS_PER_PORT => VlanStatsPerHost(
+                parse_u8(payload).context("invalid IFLA_BR_VLAN_STATS_PER_PORT value")?,
+            ),
+            IFLA_BR_MULTI_BOOLOPT => {
+                MultiBoolOpt(parse_u64(payload).context("invalid IFLA_BR_MULTI_BOOLOPT value")?)
+            }
             _ => Other(
                 DefaultNla::parse(buf)
                     .context("invalid link info bridge NLA value (unknown type)")?,
@@ -931,13 +943,13 @@ mod tests {
     use crate::{nlas::link::Nla, traits::Emitable, LinkHeader, LinkMessage};
 
     #[rustfmt::skip]
-    static BRIDGE: [u8; 404] = [
+    static BRIDGE: [u8; 424] = [
         0x0b, 0x00, // L = 11
         0x01, 0x00, // T = 1 (IFLA_INFO_KIND)
         0x62, 0x72, 0x69, 0x64, 0x67, 0x65, 0x00, // V = "bridge"
         0x00, // padding
 
-        0x88, 0x01, // L = 392
+        0x9c, 0x01, // L = 412
         0x02, 0x00, // T = 2 (IFLA_INFO_DATA)
 
             0x0c, 0x00, // L = 12
@@ -1128,7 +1140,17 @@ mod tests {
             0x05, 0x00, // L = 5
             0x26, 0x00, // T = 38 (IFLA_BR_NF_CALL_ARPTABLES)
             0x00, // V = 0
-            0x00, 0x00, 0x00 // Padding
+            0x00, 0x00, 0x00, // Padding
+
+            0x05, 0x00, // L = 5
+            0x2d, 0x00, // T = 45 (IFLA_BR_VLAN_STATS_PER_PORT)
+            0x01, // V = 1
+            0x00, 0x00, 0x00, // Padding
+
+            0x0c, 0x00, // L = 12
+            0x2e, 0x00, // T = 46 (IFLA_BR_MULTI_BOOLOPT)
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // V = 0
+
     ];
 
     lazy_static! {
@@ -1175,6 +1197,8 @@ mod tests {
             InfoBridge::NfCallIpTables(0),
             InfoBridge::NfCallIp6Tables(0),
             InfoBridge::NfCallArpTables(0),
+            InfoBridge::VlanStatsPerHost(1),
+            InfoBridge::MultiBoolOpt(0),
         ];
     }
 
@@ -1269,9 +1293,9 @@ mod tests {
             Info::Data(InfoData::Bridge(BRIDGE_INFO.clone())),
         ];
 
-        assert_eq!(nlas.as_slice().buffer_len(), 404);
+        assert_eq!(nlas.as_slice().buffer_len(), 424);
 
-        let mut vec = vec![0xff; 404];
+        let mut vec = vec![0xff; 424];
         nlas.as_slice().emit(&mut vec);
         assert_eq!(&vec[..], &BRIDGE[..]);
     }
