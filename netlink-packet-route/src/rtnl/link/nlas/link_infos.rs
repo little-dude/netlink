@@ -434,7 +434,7 @@ impl Nla for InfoVlan {
 
             Id(ref value)
                 | Protocol(ref value)
-                => NativeEndian::write_u16(buffer, *value),
+                => BigEndian::write_u16(buffer, *value),
 
             Flags(ref flags) => {
                 NativeEndian::write_u32(buffer, flags.0);
@@ -475,7 +475,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoVlan {
             IFLA_VLAN_EGRESS_QOS => EgressQos(payload.to_vec()),
             IFLA_VLAN_INGRESS_QOS => IngressQos(payload.to_vec()),
             IFLA_VLAN_PROTOCOL => {
-                Protocol(parse_u16(payload).context("invalid IFLA_VLAN_PROTOCOL value")?)
+                Protocol(parse_u16_be(payload).context("invalid IFLA_VLAN_PROTOCOL value")?)
             }
             _ => return Err(format!("unknown NLA type {}", buf.kind()).into()),
         })
