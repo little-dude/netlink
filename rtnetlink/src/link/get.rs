@@ -6,8 +6,8 @@ use futures::{
 
 use crate::{
     packet::{
-        nlas::link::Nla, LinkMessage, NetlinkMessage, NetlinkPayload, RtnlMessage, NLM_F_DUMP,
-        NLM_F_REQUEST,
+        nlas::link::Nla, LinkHeader, LinkMessage, NetlinkMessage, NetlinkPayload, RtnlMessage,
+        NLM_F_DUMP, NLM_F_REQUEST,
     },
     Error, Handle,
 };
@@ -32,6 +32,13 @@ impl LinkGetRequest {
             dump: true,
             filter_builder: LinkFilterBuilder::new(),
         }
+    }
+
+    /// Setting filter mask(e.g. RTEXT_FILTER_BRVLAN and etc)
+    pub fn set_filter_mask(mut self, family: u8, filter_mask: u32) -> Self {
+        self.message.header.interface_family = family;
+        self.message.nlas.push(Nla::ExtMask(filter_mask));
+        self
     }
 
     /// Execute the request
