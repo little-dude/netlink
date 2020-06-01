@@ -511,9 +511,9 @@ pub const RTAX_FEATURE_MASK: int = 15;
 #[allow(overflowing_literals)]
 pub const TCM_IFINDEX_MAGIC_BLOCK: int = 0xffff_ffff;
 pub const TCA_FLAG_LARGE_DUMP_ON: int = 1;
-pub const RTEXT_FILTER_VF: int = 1;
-pub const RTEXT_FILTER_BRVLAN: int = 2;
-pub const RTEXT_FILTER_BRVLAN_COMPRESSED: int = 4;
-pub const RTEXT_FILTER_SKIP_STATS: int = 8;
+pub const RTEXT_FILTER_VF: u32 = 1;
+pub const RTEXT_FILTER_BRVLAN: u32 = 2;
+pub const RTEXT_FILTER_BRVLAN_COMPRESSED: u32 = 4;
+pub const RTEXT_FILTER_SKIP_STATS: u32 = 8;
 pub const ARPOP_REQUEST: int = 1;
 pub const ARPOP_REPLY: int = 2;

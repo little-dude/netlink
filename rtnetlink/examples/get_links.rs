@@ -1,4 +1,6 @@
 use futures::stream::TryStreamExt;
+use netlink_packet_route::rtnl::constants::AF_BRIDGE;
+use netlink_sys::constants::RTEXT_FILTER_BRVLAN;
 use rtnetlink::{new_connection, packet::rtnl::link::nlas::Nla, Error, Handle};
 
 #[tokio::main]
@@ -24,6 +26,11 @@ async fn main() -> Result<(), ()> {
     // Dump all the links and print their index and name
     println!("*** dumping links ***");
     if let Err(e) = dump_links(handle.clone()).await {
+        eprintln!("{}", e);
+    }
+
+    // Dump all the bridge vlan information
+    if let Err(e) = dump_bridge_filter_info(handle.clone()).await {
         eprintln!("{}", e);
     }
 
@@ -76,6 +83,26 @@ async fn dump_links(handle: Handle) -> Result<(), Error> {
             }
         }
         eprintln!("found link {}, but the link has no name", msg.header.index);
+    }
+    Ok(())
+}
+
+async fn dump_bridge_filter_info(handle: Handle) -> Result<(), Error> {
+    let mut links = handle
+        .link()
+        .get()
+        .set_filter_mask(AF_BRIDGE as u8, RTEXT_FILTER_BRVLAN)
+        .execute();
+    'outer: while let Some(msg) = links.try_next().await? {
+        for nla in msg.nlas.into_iter() {
+            if let Nla::AfSpecBridge(data) = nla {
+                println!(
+                    "found interface {} with AfSpecBridge data {:?})",
+                    msg.header.index, data
+                );
+                continue 'outer;
+            }
+        }
     }
     Ok(())
 }
