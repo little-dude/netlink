@@ -1,6 +1,6 @@
 [package]
 name = "rtnetlink"
-version = "0.2.2"
+version = "0.3.0"
 authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 edition = "2018"
 
@@ -15,11 +15,11 @@ description = "manipulate linux networking resources via netlink"
 futures = "0.3.1"
 log = "0.4.8"
 thiserror = "1"
-netlink-packet-route = { path = "../netlink-packet-route", version = "0.2" }
-netlink-proto = { path = "../netlink-proto", version = "0.2" }
+netlink-packet-route = { path = "../netlink-packet-route", version = "0.3" }
+netlink-proto = { path = "../netlink-proto", version = "0.4" }
 
 [dev-dependencies]
 env_logger = "0.7.1"
 ipnetwork = "0.15.1"
 tokio = { version = "0.2.6", features = ["macros", "rt-core"] }
-netlink-sys = {path = "../netlink-sys", version = "0.2" }
+netlink-sys = {path = "../netlink-sys", version = "0.3" }
