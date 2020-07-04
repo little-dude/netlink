@@ -24,14 +24,14 @@ impl TcMessage {
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct TcHeader {
-    family: u8,
+    pub family: u8,
     // Interface index
-    index: i32,
+    pub index: i32,
     // Qdisc handle
-    handle: u32,
+    pub handle: u32,
     // Parent Qdisc
-    parent: u32,
-    info: u32,
+    pub parent: u32,
+    pub info: u32,
 }
 
 impl Emitable for TcHeader {
