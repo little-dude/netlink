@@ -121,4 +121,20 @@ impl Handle {
         req.header.flags = NLM_F_REQUEST | NLM_F_ACK;
         self.acked_request(req).await
     }
+
+    /// Get current audit status
+    pub async fn get_status(&mut self) -> Result<StatusMessage, Error> {
+        let mut req = NetlinkMessage::from(AuditMessage::GetStatus(None));
+        req.header.flags = NLM_F_REQUEST | NLM_F_DUMP;
+        let mut request = self.request(req)?;
+
+        let response = request.next().await.ok_or(Error::RequestFailed)?;
+
+        match response.into_parts() {
+            (_, NetlinkPayload::InnerMessage(AuditMessage::GetStatus(Some(status)))) => Ok(status),
+            (header, payload) => Err(Error::UnexpectedMessage(NetlinkMessage::new(
+                header, payload,
+            ))),
+        }
+    }
 }
