@@ -32,9 +32,9 @@ where
     /// Channel used by the user to pass requests to the connection.
     requests_rx: Option<UnboundedReceiver<Request<T>>>,
 
-    /// Channel used to transmit to the ConnectionHandle the unsollicited messages received from the
+    /// Channel used to transmit to the ConnectionHandle the unsolicited messages received from the
     /// socket (multicast messages for instance).
-    unsollicited_messages_tx: Option<UnboundedSender<(NetlinkMessage<T>, SocketAddr)>>,
+    unsolicited_messages_tx: Option<UnboundedSender<(NetlinkMessage<T>, SocketAddr)>>,
 
     socket_closed: bool,
 }
@@ -45,7 +45,7 @@ where
 {
     pub(crate) fn new(
         requests_rx: UnboundedReceiver<Request<T>>,
-        unsollicited_messages_tx: UnboundedSender<(NetlinkMessage<T>, SocketAddr)>,
+        unsolicited_messages_tx: UnboundedSender<(NetlinkMessage<T>, SocketAddr)>,
         protocol: NetlinkProtocol,
     ) -> io::Result<Self> {
         let socket = Socket::new(protocol)?;
@@ -53,7 +53,7 @@ where
             socket: NetlinkFramed::new(socket, NetlinkCodec::<NetlinkMessage<T>>::new()),
             protocol: Protocol::new(),
             requests_rx: Some(requests_rx),
-            unsollicited_messages_tx: Some(unsollicited_messages_tx),
+            unsolicited_messages_tx: Some(unsolicited_messages_tx),
             socket_closed: false,
         })
     }
@@ -143,28 +143,28 @@ where
         }
     }
 
-    pub fn forward_unsollicited_messages(&mut self) {
-        if self.unsollicited_messages_tx.is_none() {
+    pub fn forward_unsolicited_messages(&mut self) {
+        if self.unsolicited_messages_tx.is_none() {
             while let Some((message, source)) = self.protocol.incoming_requests.pop_front() {
                 warn!(
-                    "ignoring unsollicited message {:?} from {:?}",
+                    "ignoring unsolicited message {:?} from {:?}",
                     message, source
                 );
             }
             return;
         }
 
-        trace!("forward_unsollicited_messages called");
+        trace!("forward_unsolicited_messages called");
         let mut ready = false;
 
         let Connection {
             ref mut protocol,
-            ref mut unsollicited_messages_tx,
+            ref mut unsolicited_messages_tx,
             ..
         } = self;
 
         while let Some((message, source)) = protocol.incoming_requests.pop_front() {
-            if unsollicited_messages_tx
+            if unsolicited_messages_tx
                 .as_mut()
                 .unwrap()
                 .unbounded_send((message, source))
@@ -181,12 +181,12 @@ where
 
         if ready {
             // The channel is closed so we can drop the sender.
-            let _ = self.unsollicited_messages_tx.take();
+            let _ = self.unsolicited_messages_tx.take();
             // purge `protocol.incoming_requests`
-            self.forward_unsollicited_messages();
+            self.forward_unsolicited_messages();
         }
 
-        trace!("forward_unsollicited_messages done");
+        trace!("forward_unsolicited_messages done");
     }
 
     pub fn forward_responses(&mut self) {
@@ -235,8 +235,7 @@ where
     }
 
     pub fn should_shut_down(&self) -> bool {
-        self.socket_closed
-            || (self.unsollicited_messages_tx.is_none() && self.requests_rx.is_none())
+        self.socket_closed || (self.unsolicited_messages_tx.is_none() && self.requests_rx.is_none())
     }
 }
 
@@ -253,8 +252,8 @@ where
         debug!("reading incoming messages");
         pinned.poll_read_messages(cx);
 
-        debug!("forwarding unsollicited messages to the connection handle");
-        pinned.forward_unsollicited_messages();
+        debug!("forwarding unsolicited messages to the connection handle");
+        pinned.forward_unsolicited_messages();
 
         debug!("forwaring responses to previous requests to the connection handle");
         pinned.forward_responses();

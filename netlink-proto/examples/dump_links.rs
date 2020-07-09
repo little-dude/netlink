@@ -12,7 +12,7 @@ use netlink_proto::{
 #[tokio::main]
 async fn main() -> Result<(), String> {
     // Create the netlink socket. Here, we won't use the channel that
-    // receives unsollicited messages.
+    // receives unsolicited messages.
     let (conn, mut handle, _) = new_connection(Protocol::Route)
         .map_err(|e| format!("Failed to create a new netlink connection: {}", e))?;
 

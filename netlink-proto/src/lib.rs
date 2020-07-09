@@ -39,7 +39,7 @@
 //!     //   netlink messages and receive responses to these messages.
 //!     //
 //!     // - `messages` is a channel receiver through which we receive
-//!     //   messages that we have not sollicated, ie that are not
+//!     //   messages that we have not solicited, ie that are not
 //!     //   response to a request we made. In this example, we'll receive
 //!     //   the audit event through that channel.
 //!     let (conn, mut handle, mut messages) = new_connection(Protocol::Audit)
@@ -118,7 +118,7 @@
 //! #[tokio::main]
 //! async fn main() -> Result<(), String> {
 //!     // Create the netlink socket. Here, we won't use the channel that
-//!     // receives unsollicited messages.
+//!     // receives unsolicited messages.
 //!     let (conn, mut handle, _) = new_connection(Protocol::Route)
 //!         .map_err(|e| format!("Failed to create a new netlink connection: {}", e))?;
 //!
@@ -186,7 +186,7 @@ pub use netlink_sys as sys;
 
 /// Create a new Netlink connection for the given Netlink protocol,
 /// and returns a handle to that connection as well as a stream of
-/// un-sollicited messages received by that connection (un-sollicited
+/// unsolicited messages received by that connection (unsolicited
 /// here means messages that are not a response to a request made by
 /// the `Connection`). `Connection<T>` wraps a Netlink socket and
 /// implements the Netlink protocol.
@@ -194,7 +194,7 @@ pub use netlink_sys as sys;
 /// `T` is the type of netlink messages used for this protocol. For
 /// instance, if you're using the AUDIT protocol with the
 /// `netlink-packet-audit` crate, `T` will be
-/// `netlink_packet_audit::AuditMessage`. More generaly, `T` is
+/// `netlink_packet_audit::AuditMessage`. More generally, `T` is
 /// anything that can be serialized and deserialized into a Netlink
 /// message. See the `netlink_packet_core` documentation for details
 /// about the `NetlinkSerializable` and `NetlinkDeserializable`
