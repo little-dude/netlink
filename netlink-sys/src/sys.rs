@@ -263,6 +263,21 @@ impl Socket {
         Ok(res as usize)
     }
 
+    /// Receive a full message.
+    /// Unlike recv_from, which truncates messages that exceed the length of the buffer passed as argument,
+    /// this method always reads a whole message, no matter its size.
+    pub fn recv_from_full(&self) -> Result<(Vec<u8>, SocketAddr)> {
+        // Peek
+        let mut buf = Vec::<u8>::new();
+        let (rlen, _) = self.recv_from(&mut buf, libc::MSG_PEEK | libc::MSG_TRUNC)?;
+
+        // Receive
+        let mut buf = vec![0; rlen as usize];
+        let (_, addr) = self.recv_from(&mut buf, 0)?;
+
+        Ok((buf, addr))
+    }
+
     pub fn send_to(&self, buf: &[u8], addr: &SocketAddr, flags: libc::c_int) -> Result<usize> {
         let (addr_ptr, addr_len) = addr.as_raw();
         let buf_ptr = buf.as_ptr() as *const libc::c_void;

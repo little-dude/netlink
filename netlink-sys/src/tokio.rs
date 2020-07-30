@@ -102,6 +102,10 @@ impl Socket {
         poll_fn(|cx| self.poll_recv_from(cx, buf)).await
     }
 
+    pub async fn recv_from_full(&mut self) -> io::Result<(Vec<u8>, SocketAddr)> {
+        poll_fn(|cx| self.poll_recv_from_full(cx)).await
+    }
+
     pub fn poll_recv_from(
         &mut self,
         cx: &mut Context,
@@ -123,6 +127,28 @@ impl Socket {
             }
         }
     }
+
+    pub fn poll_recv_from_full(
+        &mut self,
+        cx: &mut Context,
+    ) -> Poll<io::Result<(Vec<u8>, SocketAddr)>> {
+        trace!("poll_recv_from_full called");
+        ready!(self.0.poll_read_ready(cx, mio::Ready::readable()))?;
+
+        trace!("poll_recv_from_full socket is ready for reading");
+        match self.0.get_ref().recv_from_full() {
+            Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+                trace!("poll_recv_from_full socket would block");
+                self.0.clear_read_ready(cx, mio::Ready::readable())?;
+                Poll::Pending
+            }
+            x => {
+                trace!("poll_recv_from_full {:?} bytes read", x);
+                Poll::Ready(x)
+            }
+        }
+    }
+
     pub fn set_pktinfo(&mut self, value: bool) -> io::Result<()> {
         self.0.get_mut().set_pktinfo(value)
     }
