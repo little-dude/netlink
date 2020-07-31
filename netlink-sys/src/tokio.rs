@@ -1,5 +1,6 @@
 use std::{
     io,
+    os::unix::io::{FromRawFd, RawFd},
     task::{Context, Poll},
 };
 
@@ -185,5 +186,13 @@ impl Socket {
 
     pub fn get_cap_ack(&self) -> io::Result<bool> {
         self.0.get_ref().get_cap_ack()
+    }
+}
+
+impl FromRawFd for Socket {
+    unsafe fn from_raw_fd(fd: RawFd) -> Self {
+        let socket = InnerSocket::from_raw_fd(fd);
+        socket.set_non_blocking(true).unwrap();
+        Socket(PollEvented::new(socket).unwrap())
     }
 }
