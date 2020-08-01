@@ -11,6 +11,10 @@ readme = "../README.md"
 repository = "https://github.com/little-dude/netlink"
 description = "manipulate linux networking resources via netlink"
 
+[features]
+test_as_root = []
+
+
 [dependencies]
 futures = "0.3.1"
 log = "0.4.8"

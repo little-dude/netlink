@@ -2,7 +2,7 @@ use futures::Stream;
 
 use crate::{
     packet::{NetlinkMessage, RtnlMessage},
-    AddressHandle, Error, LinkHandle, QDiscHandle, RouteHandle,
+    AddressHandle, Error, LinkHandle, QDiscHandle, RouteHandle, TrafficClassHandle,
 };
 use netlink_proto::{sys::SocketAddr, ConnectionHandle};
 
@@ -49,5 +49,11 @@ impl Handle {
     /// (equivalent to `tc qdisc show` commands)
     pub fn qdisc(&self) -> QDiscHandle {
         QDiscHandle::new(self.clone())
+    }
+
+    /// Create a new handle, specifically for traffic control qdisc requests
+    /// (equivalent to `tc class show` commands)
+    pub fn traffic_class(&self, ifindex: i32) -> TrafficClassHandle {
+        TrafficClassHandle::new(self.clone(), ifindex)
     }
 }

@@ -45,6 +45,10 @@ matrix:
       script:
         - cd rtnetlink
         - cargo test
+        - sudo env PATH=${TRAVIS_HOME}/.cargo/bin:$PATH
+          cargo test --features test_as_root
+        - sudo chown -R travis:travis $HOME/.cargo
+        - sudo chown -R travis:travis $TRAVIS_BUILD_DIR/target
 
     - rust: stable
       name: audit
