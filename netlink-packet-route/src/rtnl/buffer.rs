@@ -138,7 +138,8 @@ impl<'a, T: AsRef<[u8]> + ?Sized> ParseableParametrized<RtnlMessageBuffer<&'a T>
             // TC Messages
             RTM_NEWQDISC | RTM_DELQDISC | RTM_GETQDISC |
             RTM_NEWTCLASS | RTM_DELTCLASS | RTM_GETTCLASS |
-            RTM_NEWTFILTER | RTM_DELTFILTER | RTM_GETTFILTER => {
+            RTM_NEWTFILTER | RTM_DELTFILTER | RTM_GETTFILTER |
+            RTM_NEWCHAIN | RTM_DELCHAIN | RTM_GETCHAIN => {
                 let err = "invalid tc message";
                 let msg = TcMessage::parse(&TcMessageBuffer::new_checked(&buf.inner()).context(err)?).context(err)?;
                 match message_type {
@@ -151,6 +152,9 @@ impl<'a, T: AsRef<[u8]> + ?Sized> ParseableParametrized<RtnlMessageBuffer<&'a T>
                     RTM_NEWTFILTER => NewTrafficFilter(msg),
                     RTM_DELTFILTER => DelTrafficFilter(msg),
                     RTM_GETTFILTER => GetTrafficFilter(msg),
+                    RTM_NEWCHAIN => NewTrafficChain(msg),
+                    RTM_DELCHAIN => DelTrafficChain(msg),
+                    RTM_GETCHAIN => GetTrafficChain(msg),
                     _ => unreachable!(),
                 }
             }

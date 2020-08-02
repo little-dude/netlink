@@ -33,6 +33,9 @@ pub enum RtnlMessage {
     NewTrafficFilter(TcMessage),
     DelTrafficFilter(TcMessage),
     GetTrafficFilter(TcMessage),
+    NewTrafficChain(TcMessage),
+    DelTrafficChain(TcMessage),
+    GetTrafficChain(TcMessage),
     NewNsId(NsidMessage),
     DelNsId(NsidMessage),
     GetNsId(NsidMessage),
@@ -242,6 +245,30 @@ impl RtnlMessage {
         }
     }
 
+    pub fn is_new_chain(&self) -> bool {
+        if let RtnlMessage::NewTrafficChain(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_del_chain(&self) -> bool {
+        if let RtnlMessage::DelTrafficChain(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_get_chain(&self) -> bool {
+        if let RtnlMessage::GetTrafficChain(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn is_new_nsid(&self) -> bool {
         if let RtnlMessage::NewNsId(_) = *self {
             true
@@ -319,6 +346,9 @@ impl RtnlMessage {
             NewTrafficFilter(_) => RTM_NEWTFILTER,
             DelTrafficFilter(_) => RTM_DELTFILTER,
             GetTrafficFilter(_) => RTM_GETTFILTER,
+            NewTrafficChain(_) => RTM_NEWCHAIN,
+            DelTrafficChain(_) => RTM_DELCHAIN,
+            GetTrafficChain(_) => RTM_GETCHAIN,
             GetNsId(_) => RTM_GETNSID,
             NewNsId(_) => RTM_NEWNSID,
             DelNsId(_) => RTM_DELNSID,
@@ -369,6 +399,9 @@ impl Emitable for RtnlMessage {
             | NewTrafficFilter(ref msg)
             | DelTrafficFilter(ref msg)
             | GetTrafficFilter(ref msg)
+            | NewTrafficChain(ref msg)
+            | DelTrafficChain(ref msg)
+            | GetTrafficChain(ref msg)
             => msg.buffer_len(),
 
             | NewNsId(ref msg)
@@ -422,6 +455,9 @@ impl Emitable for RtnlMessage {
             | NewTrafficFilter(ref msg)
             | DelTrafficFilter(ref msg)
             | GetTrafficFilter(ref msg)
+            | NewTrafficChain(ref msg)
+            | DelTrafficChain(ref msg)
+            | GetTrafficChain(ref msg)
             => msg.emit(buffer),
 
             | NewNsId(ref msg)

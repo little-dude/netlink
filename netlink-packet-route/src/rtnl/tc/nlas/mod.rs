@@ -32,6 +32,7 @@ pub enum Nla {
     Fcnt(Vec<u8>),
     Stats2(Vec<Stats2>),
     Stab(Vec<u8>),
+    Chain(Vec<u8>),
     HwOffload(u8),
     Other(DefaultNla),
 }
@@ -47,7 +48,8 @@ impl nlas::Nla for Nla {
                 | XStats(ref bytes)
                 | Rate(ref bytes)
                 | Fcnt(ref bytes)
-                | Stab(ref bytes) => bytes.len(),
+                | Stab(ref bytes)
+                | Chain(ref bytes) => bytes.len(),
             HwOffload(_) => 1,
             Stats2(ref thing) => thing.as_slice().buffer_len(),
             Stats(_) => STATS_LEN,
@@ -68,7 +70,8 @@ impl nlas::Nla for Nla {
                 | XStats(ref bytes)
                 | Rate(ref bytes)
                 | Fcnt(ref bytes)
-                | Stab(ref bytes) => buffer.copy_from_slice(bytes.as_slice()),
+                | Stab(ref bytes)
+                | Chain(ref bytes) => buffer.copy_from_slice(bytes.as_slice()),
 
             HwOffload(ref val) => buffer[0] = *val,
             Stats2(ref stats) => stats.as_slice().emit(buffer),
@@ -96,6 +99,7 @@ impl nlas::Nla for Nla {
             Fcnt(_) => TCA_FCNT,
             Stats2(_) => TCA_STATS2,
             Stab(_) => TCA_STAB,
+            Chain(_) => TCA_CHAIN,
             HwOffload(_) => TCA_HW_OFFLOAD,
             Other(ref nla) => nla.kind(),
         }
@@ -121,6 +125,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for Nla {
                 Self::Stats2(nlas)
             }
             TCA_STAB => Self::Stab(payload.to_vec()),
+            TCA_CHAIN => Self::Chain(payload.to_vec()),
             TCA_HW_OFFLOAD => Self::HwOffload(parse_u8(payload)?),
             _ => Self::Other(DefaultNla::parse(buf)?),
         })
