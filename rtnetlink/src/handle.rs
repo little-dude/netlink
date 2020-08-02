@@ -52,8 +52,8 @@ impl Handle {
         QDiscHandle::new(self.clone())
     }
 
-    /// Create a new handle, specifically for traffic control qdisc requests
-    /// (equivalent to `tc class show` commands)
+    /// Create a new handle, specifically for traffic control class requests
+    /// (equivalent to `tc class show dev <interface_name>` commands)
     pub fn traffic_class(&self, ifindex: i32) -> TrafficClassHandle {
         TrafficClassHandle::new(self.clone(), ifindex)
     }

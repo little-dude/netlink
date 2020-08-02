@@ -24,7 +24,8 @@ impl TrafficClassHandle {
         TrafficClassHandle { handle, ifindex }
     }
 
-    /// Retrieve the list of qdisc (equivalent to `tc qdisc show`)
+    /// Retrieve the list of traffic class (equivalent to
+    /// `tc class show dev <interface_name>`)
     pub fn get(&mut self) -> TrafficClassGetRequest {
         TrafficClassGetRequest::new(self.handle.clone(), self.ifindex)
     }
