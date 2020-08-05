@@ -3,6 +3,7 @@ use futures::Stream;
 use crate::{
     packet::{NetlinkMessage, RtnlMessage},
     AddressHandle, Error, LinkHandle, QDiscHandle, RouteHandle, TrafficClassHandle,
+    TrafficFilterHandle,
 };
 use netlink_proto::{sys::SocketAddr, ConnectionHandle};
 
@@ -55,5 +56,11 @@ impl Handle {
     /// (equivalent to `tc class show` commands)
     pub fn traffic_class(&self, ifindex: i32) -> TrafficClassHandle {
         TrafficClassHandle::new(self.clone(), ifindex)
+    }
+
+    /// Create a new handle, specifically for traffic control filter requests
+    /// (equivalent to `tc filter show dev <interface_name>` commands)
+    pub fn traffic_filter(&self, ifindex: i32) -> TrafficFilterHandle {
+        TrafficFilterHandle::new(self.clone(), ifindex)
     }
 }
