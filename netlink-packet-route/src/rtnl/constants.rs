@@ -53,6 +53,9 @@ pub const RTM_GETNSID: u16 = 90;
 pub const RTM_NEWSTATS: u16 = 92;
 pub const RTM_GETSTATS: u16 = 94;
 pub const RTM_NEWCACHEREPORT: u16 = 96;
+pub const RTM_NEWCHAIN: u16 = 100;
+pub const RTM_DELCHAIN: u16 = 101;
+pub const RTM_GETCHAIN: u16 = 102;
 
 /// Unknown route
 pub const RTN_UNSPEC: u8 = 0;

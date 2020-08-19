@@ -1,4 +1,6 @@
-use super::{QDiscGetRequest, TrafficClassGetRequest, TrafficFilterGetRequest};
+use super::{
+    QDiscGetRequest, TrafficChainGetRequest, TrafficClassGetRequest, TrafficFilterGetRequest,
+};
 use crate::Handle;
 
 pub struct QDiscHandle(Handle);
@@ -45,5 +47,22 @@ impl TrafficFilterHandle {
     /// `tc filter show dev <iface_name>`)
     pub fn get(&mut self) -> TrafficFilterGetRequest {
         TrafficFilterGetRequest::new(self.handle.clone(), self.ifindex)
+    }
+}
+
+pub struct TrafficChainHandle {
+    handle: Handle,
+    ifindex: i32,
+}
+
+impl TrafficChainHandle {
+    pub fn new(handle: Handle, ifindex: i32) -> Self {
+        TrafficChainHandle { handle, ifindex }
+    }
+
+    /// Retrieve the list of chain (equivalent to
+    /// `tc chain show dev <iface_name>`)
+    pub fn get(&mut self) -> TrafficChainGetRequest {
+        TrafficChainGetRequest::new(self.handle.clone(), self.ifindex)
     }
 }

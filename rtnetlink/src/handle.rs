@@ -2,8 +2,8 @@ use futures::Stream;
 
 use crate::{
     packet::{NetlinkMessage, RtnlMessage},
-    AddressHandle, Error, LinkHandle, QDiscHandle, RouteHandle, TrafficClassHandle,
-    TrafficFilterHandle,
+    AddressHandle, Error, LinkHandle, QDiscHandle, RouteHandle, TrafficChainHandle,
+    TrafficClassHandle, TrafficFilterHandle,
 };
 use netlink_proto::{sys::SocketAddr, ConnectionHandle};
 
@@ -62,5 +62,11 @@ impl Handle {
     /// (equivalent to `tc filter show dev <interface_name>` commands)
     pub fn traffic_filter(&self, ifindex: i32) -> TrafficFilterHandle {
         TrafficFilterHandle::new(self.clone(), ifindex)
+    }
+
+    /// Create a new handle, specifically for traffic control chain requests
+    /// (equivalent to `tc chain show dev <interface_name>` commands)
+    pub fn traffic_chain(&self, ifindex: i32) -> TrafficChainHandle {
+        TrafficChainHandle::new(self.clone(), ifindex)
     }
 }

@@ -1,7 +1,9 @@
 use crate::new_connection;
+use crate::Error::NetlinkError;
 use futures::stream::TryStreamExt;
+use netlink_packet_route::ErrorMessage;
 use netlink_packet_route::{
-    rtnl::tc::nlas::Nla::{HwOffload, Kind},
+    rtnl::tc::nlas::Nla::{Chain, HwOffload, Kind},
     TcMessage, AF_UNSPEC,
 };
 use std::process::Command;
@@ -210,17 +212,46 @@ async fn _get_filters(ifindex: i32) -> Vec<TcMessage> {
     filters
 }
 
+async fn _get_chains(ifindex: i32) -> Vec<TcMessage> {
+    let (connection, handle, _) = new_connection().unwrap();
+    tokio::spawn(connection);
+    let mut chains_iter = handle.traffic_chain(ifindex).get().execute();
+    let mut chains = Vec::new();
+    // The traffic control chain is only supported by kernel 4.19+,
+    // hence we might get error: 95 Operation not supported
+    loop {
+        match chains_iter.try_next().await {
+            Ok(Some(nl_msg)) => {
+                chains.push(nl_msg.clone());
+            }
+            Ok(None) => {
+                break;
+            }
+            Err(NetlinkError(ErrorMessage { code, header: _ })) => {
+                assert_eq!(code, -95);
+                eprintln!(
+                    "The chain in traffic control is not supported, \
+                     please upgrade your kernel"
+                );
+            }
+            _ => {}
+        }
+    }
+    chains
+}
+
 // The `cargo test` by default run all tests in parallel, in stead
-// of create random named veth/dummy for test, just place class and filter
-// query test in one test case is much simpler.
+// of create random named veth/dummy for test, just place class, filter, and
+// chain query test in one test case is much simpler.
 #[test]
 #[cfg_attr(not(feature = "test_as_root"), ignore)]
-fn test_get_traffic_classes_and_filters() {
+fn test_get_traffic_classes_filters_and_chains() {
     let ifindex = _add_test_dummy_interface();
     _add_test_tclass_to_dummy();
     _add_test_filter_to_dummy();
     let tclasses = Runtime::new().unwrap().block_on(_get_tclasses(ifindex));
     let filters = Runtime::new().unwrap().block_on(_get_filters(ifindex));
+    let chains = Runtime::new().unwrap().block_on(_get_chains(ifindex));
     _remove_test_filter_from_dummy();
     _remove_test_tclass_from_dummy();
     _remove_test_dummy_interface();
@@ -239,4 +270,11 @@ fn test_get_traffic_classes_and_filters() {
     assert_eq!(filters[1].header.index, ifindex);
     assert_eq!(filters[1].header.parent, u16::MAX as u32 + 1);
     assert_eq!(filters[1].nlas[0], Kind("basic".to_string()));
+    assert!(chains.len() <= 1);
+    if chains.len() == 1 {
+        assert_eq!(chains[0].header.family, AF_UNSPEC as u8);
+        assert_eq!(chains[0].header.index, ifindex);
+        assert_eq!(chains[0].header.parent, u16::MAX as u32 + 1);
+        assert_eq!(chains[0].nlas[0], Chain([0u8, 0, 0, 0].to_vec()));
+    }
 }
