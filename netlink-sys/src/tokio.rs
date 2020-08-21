@@ -1,6 +1,6 @@
 use std::{
     io,
-    os::unix::io::{FromRawFd, RawFd},
+    os::unix::io::{AsRawFd, FromRawFd, RawFd},
     task::{Context, Poll},
 };
 
@@ -220,5 +220,11 @@ impl FromRawFd for Socket {
         let socket = InnerSocket::from_raw_fd(fd);
         socket.set_non_blocking(true).unwrap();
         Socket(PollEvented::new(socket).unwrap())
+    }
+}
+
+impl AsRawFd for Socket {
+    fn as_raw_fd(&self) -> RawFd {
+        self.0.get_ref().as_raw_fd()
     }
 }
