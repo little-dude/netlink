@@ -37,7 +37,7 @@ pub struct UnixResponseHeader {
     pub cookie: [u8; 8],
 }
 
-impl<'a, T: AsRef<[u8]> + 'a> Parseable<UnixResponseBuffer<&'a T>> for UnixResponseHeader {
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<UnixResponseBuffer<&'a T>> for UnixResponseHeader {
     fn parse(buf: &UnixResponseBuffer<&'a T>) -> Result<Self, DecodeError> {
         Ok(Self {
             kind: buf.kind(),
@@ -180,7 +180,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> UnixResponseBuffer<&'a T> {
     }
 }
 
-impl<'a, T: AsRef<[u8]> + 'a> Parseable<UnixResponseBuffer<&'a T>> for SmallVec<[Nla; 8]> {
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<UnixResponseBuffer<&'a T>> for SmallVec<[Nla; 8]> {
     fn parse(buf: &UnixResponseBuffer<&'a T>) -> Result<Self, DecodeError> {
         let mut nlas = smallvec![];
         for nla_buf in buf.nlas() {
@@ -190,7 +190,7 @@ impl<'a, T: AsRef<[u8]> + 'a> Parseable<UnixResponseBuffer<&'a T>> for SmallVec<
     }
 }
 
-impl<'a, T: AsRef<[u8]> + 'a> Parseable<UnixResponseBuffer<&'a T>> for UnixResponse {
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<UnixResponseBuffer<&'a T>> for UnixResponse {
     fn parse(buf: &UnixResponseBuffer<&'a T>) -> Result<Self, DecodeError> {
         let header =
             UnixResponseHeader::parse(&buf).context("failed to parse inet response header")?;

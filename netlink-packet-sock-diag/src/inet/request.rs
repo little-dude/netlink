@@ -30,7 +30,7 @@ pub struct InetRequest {
     /// report. Each requested kind of information is reported back as
     /// a netlink attribute.
     pub extensions: ExtensionFlags,
-    /// Bitmask that defines a fiter of TCP socket states
+    /// Bitmask that defines a filter of TCP socket states
     pub states: StateFlags,
     /// A socket ID object that is used in dump requests, in queries
     /// about individual sockets, and is reported back in each

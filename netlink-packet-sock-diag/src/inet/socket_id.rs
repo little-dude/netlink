@@ -40,7 +40,7 @@ impl SocketId {
             source_address: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
             destination_address: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
             interface_id: 0,
-            cookie: [0, 0, 0, 0, 0, 0, 0, 0],
+            cookie: [0; 8],
         }
     }
     pub fn new_v6() -> Self {
@@ -50,7 +50,7 @@ impl SocketId {
             source_address: IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0)),
             destination_address: IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0)),
             interface_id: 0,
-            cookie: [0, 0, 0, 0, 0, 0, 0, 0],
+            cookie: [0; 8],
         }
     }
 }
