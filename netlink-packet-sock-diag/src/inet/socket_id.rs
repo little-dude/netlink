@@ -1,3 +1,4 @@
+use byteorder::{BigEndian, ByteOrder};
 use std::convert::{TryFrom, TryInto};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
@@ -10,8 +11,8 @@ use crate::{
 pub const SOCKET_ID_LEN: usize = 48;
 
 buffer!(SocketIdBuffer(SOCKET_ID_LEN) {
-    source_port: (u16, 0..2),
-    destination_port: (u16, 2..4),
+    source_port: (slice, 0..2),
+    destination_port: (slice, 2..4),
     source_address: (slice, 4..20),
     destination_address: (slice, 20..36),
     interface_id: (u32, 36..40),
@@ -84,8 +85,8 @@ impl<'a, T: AsRef<[u8]> + 'a> ParseableParametrized<SocketIdBuffer<&'a T>, u8> f
         };
 
         Ok(Self {
-            source_port: buf.source_port(),
-            destination_port: buf.destination_port(),
+            source_port: BigEndian::read_u16(buf.source_port()),
+            destination_port: BigEndian::read_u16(buf.destination_port()),
             source_address,
             destination_address,
             interface_id: buf.interface_id(),
@@ -103,8 +104,10 @@ impl Emitable for SocketId {
 
     fn emit(&self, buffer: &mut [u8]) {
         let mut buffer = SocketIdBuffer::new(buffer);
-        buffer.set_source_port(self.source_port);
-        buffer.set_destination_port(self.destination_port);
+
+        BigEndian::write_u16(buffer.source_port_mut(), self.source_port);
+        BigEndian::write_u16(buffer.destination_port_mut(), self.destination_port);
+
         let mut address_buf: [u8; 16] = [0; 16];
         match self.source_address {
             IpAddr::V4(ip) => (&mut address_buf[0..4]).copy_from_slice(&ip.octets()[..]),

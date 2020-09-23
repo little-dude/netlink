@@ -69,8 +69,8 @@ lazy_static! {
             uid: 1000,
             inode: 0x0029_daa8,
             socket_id: SocketId {
-                source_port: 5355,
-                destination_port: 47873,
+                source_port: 60180,
+                destination_port: 443,
                 source_address: IpAddr::V4(Ipv4Addr::new(192, 168, 178, 60)),
                 destination_address: IpAddr::V4(Ipv4Addr::new(172, 217, 23, 131)),
                 interface_id: 0,
