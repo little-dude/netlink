@@ -1,4 +1,4 @@
-use failure::ResultExt;
+use anyhow::Context;
 use smallvec::SmallVec;
 use std::time::Duration;
 
@@ -72,7 +72,7 @@ pub struct InetResponseHeader {
     pub inode: u32,
 }
 
-impl<'a, T: AsRef<[u8]> + 'a> Parseable<InetResponseBuffer<&'a T>> for InetResponseHeader {
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<InetResponseBuffer<&'a T>> for InetResponseHeader {
     fn parse(buf: &InetResponseBuffer<&'a T>) -> Result<Self, DecodeError> {
         let err = "invalid socket_id value";
         let socket_id = SocketId::parse_with_param(
@@ -168,7 +168,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> InetResponseBuffer<&'a T> {
     }
 }
 
-impl<'a, T: AsRef<[u8]> + 'a> Parseable<InetResponseBuffer<&'a T>> for SmallVec<[Nla; 8]> {
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<InetResponseBuffer<&'a T>> for SmallVec<[Nla; 8]> {
     fn parse(buf: &InetResponseBuffer<&'a T>) -> Result<Self, DecodeError> {
         let mut nlas = smallvec![];
         for nla_buf in buf.nlas() {
@@ -178,7 +178,7 @@ impl<'a, T: AsRef<[u8]> + 'a> Parseable<InetResponseBuffer<&'a T>> for SmallVec<
     }
 }
 
-impl<'a, T: AsRef<[u8]> + 'a> Parseable<InetResponseBuffer<&'a T>> for InetResponse {
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<InetResponseBuffer<&'a T>> for InetResponse {
     fn parse(buf: &InetResponseBuffer<&'a T>) -> Result<Self, DecodeError> {
         let header =
             InetResponseHeader::parse(&buf).context("failed to parse inet response header")?;

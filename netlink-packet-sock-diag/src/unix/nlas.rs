@@ -1,5 +1,5 @@
+use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
-use failure::ResultExt;
 
 pub use crate::utils::nla::{DefaultNla, NlaBuffer, NlasIterator};
 
