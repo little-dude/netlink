@@ -22,3 +22,4 @@ smallvec = "*"
 
 [dev-dependencies]
 lazy_static = "1.4.0"
+netlink-sys = { path = "../netlink-sys", version = "0.4" }
