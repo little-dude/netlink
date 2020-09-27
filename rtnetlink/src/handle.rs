@@ -2,8 +2,8 @@ use futures::Stream;
 
 use crate::{
     packet::{NetlinkMessage, RtnlMessage},
-    AddressHandle, Error, LinkHandle, QDiscHandle, RouteHandle, TrafficChainHandle,
-    TrafficClassHandle, TrafficFilterHandle,
+    AddressHandle, Error, LinkHandle, QDiscHandle, RouteHandle, RuleHandle,
+    TrafficChainHandle, TrafficClassHandle, TrafficFilterHandle,
 };
 use netlink_proto::{sys::SocketAddr, ConnectionHandle};
 
@@ -44,6 +44,11 @@ impl Handle {
     /// Create a new handle, specifically for routing table requests (equivalent to `ip route` commands)
     pub fn route(&self) -> RouteHandle {
         RouteHandle::new(self.clone())
+    }
+
+    /// Create a new handle, specifically for routing rule requests (equivalent to `ip rule` commands)
+    pub fn rule(&self) -> RuleHandle {
+        RuleHandle::new(self.clone())
     }
 
     /// Create a new handle, specifically for traffic control qdisc requests
