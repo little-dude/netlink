@@ -150,7 +150,17 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for VecInfo {
                             }
                             InfoKind::Vxlan => InfoData::Vxlan(payload.to_vec()),
                             InfoKind::Bond => InfoData::Bond(payload.to_vec()),
-                            InfoKind::IpVlan => InfoData::IpVlan(payload.to_vec()),
+                            InfoKind::IpVlan => {
+                                let mut v = Vec::new();
+                                let err =
+                                    "failed to parse IFLA_INFO_DATA (IFLA_INFO_KIND is 'ipvlan')";
+                                for nla in NlasIterator::new(payload) {
+                                    let nla = &nla.context(err)?;
+                                    let parsed = InfoIpVlan::parse(nla).context(err)?;
+                                    v.push(parsed);
+                                }
+                                InfoData::IpVlan(v)
+                            }
                             InfoKind::MacVlan => InfoData::MacVlan(payload.to_vec()),
                             InfoKind::MacVtap => InfoData::MacVtap(payload.to_vec()),
                             InfoKind::GreTap => InfoData::GreTap(payload.to_vec()),
@@ -188,7 +198,7 @@ pub enum InfoData {
     Veth(VethInfo),
     Vxlan(Vec<u8>),
     Bond(Vec<u8>),
-    IpVlan(Vec<u8>),
+    IpVlan(Vec<InfoIpVlan>),
     MacVlan(Vec<u8>),
     MacVtap(Vec<u8>),
     GreTap(Vec<u8>),
@@ -211,13 +221,13 @@ impl Nla for InfoData {
             Bridge(ref nlas) => nlas.as_slice().buffer_len(),
             Vlan(ref nlas) =>  nlas.as_slice().buffer_len(),
             Veth(ref msg) => msg.buffer_len(),
+            IpVlan(ref nlas) => nlas.as_slice().buffer_len(),
             Dummy(ref bytes)
                 | Tun(ref bytes)
                 | Nlmon(ref bytes)
                 | Ifb(ref bytes)
                 | Vxlan(ref bytes)
                 | Bond(ref bytes)
-                | IpVlan(ref bytes)
                 | MacVlan(ref bytes)
                 | MacVtap(ref bytes)
                 | GreTap(ref bytes)
@@ -241,13 +251,13 @@ impl Nla for InfoData {
             Bridge(ref nlas) => nlas.as_slice().emit(buffer),
             Vlan(ref nlas) => nlas.as_slice().emit(buffer),
             Veth(ref msg) => msg.emit(buffer),
+            IpVlan(ref nlas) => nlas.as_slice().emit(buffer),
             Dummy(ref bytes)
                 | Tun(ref bytes)
                 | Nlmon(ref bytes)
                 | Ifb(ref bytes)
                 | Vxlan(ref bytes)
                 | Bond(ref bytes)
-                | IpVlan(ref bytes)
                 | MacVlan(ref bytes)
                 | MacVtap(ref bytes)
                 | GreTap(ref bytes)
@@ -930,6 +940,60 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for VethInfo {
                 let err = "failed to parse veth link info";
                 let buffer = LinkMessageBuffer::new_checked(&payload).context(err)?;
                 Peer(LinkMessage::parse(&buffer).context(err)?)
+            }
+            kind => Other(DefaultNla::parse(buf).context(format!("unknown NLA type {}", kind))?),
+        })
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum InfoIpVlan {
+    Unspec(Vec<u8>),
+    Mode(u16),
+    Flags(u16),
+    Other(DefaultNla),
+}
+
+impl Nla for InfoIpVlan {
+    fn value_len(&self) -> usize {
+        use self::InfoIpVlan::*;
+        match self {
+            Unspec(bytes) => bytes.len(),
+            Mode(_) | Flags(_) => 2,
+            Other(nla) => nla.value_len(),
+        }
+    }
+
+    fn emit_value(&self, buffer: &mut [u8]) {
+        use self::InfoIpVlan::*;
+        match self {
+            Unspec(bytes) => buffer.copy_from_slice(bytes.as_slice()),
+            Mode(value) => NativeEndian::write_u16(buffer, *value),
+            Flags(value) => NativeEndian::write_u16(buffer, *value),
+            Other(nla) => nla.emit_value(buffer),
+        }
+    }
+
+    fn kind(&self) -> u16 {
+        use self::InfoIpVlan::*;
+        match self {
+            Unspec(_) => IFLA_IPVLAN_UNSPEC,
+            Mode(_) => IFLA_IPVLAN_MODE,
+            Flags(_) => IFLA_IPVLAN_FLAGS,
+            Other(nla) => nla.kind(),
+        }
+    }
+}
+
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoIpVlan {
+    fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
+        use self::InfoIpVlan::*;
+        let payload = buf.value();
+        Ok(match buf.kind() {
+            IFLA_IPVLAN_UNSPEC => Unspec(payload.to_vec()),
+            IFLA_IPVLAN_MODE => Mode(parse_u16(payload).context("invalid IFLA_IPVLAN_MODE value")?),
+            IFLA_IPVLAN_FLAGS => {
+                Flags(parse_u16(payload).context("invalid IFLA_IPVLAN_FLAGS value")?)
             }
             kind => Other(DefaultNla::parse(buf).context(format!("unknown NLA type {}", kind))?),
         })
