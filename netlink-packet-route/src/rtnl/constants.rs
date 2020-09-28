@@ -443,6 +443,9 @@ pub const IFLA_VLAN_FLAGS: u16 = 2;
 pub const IFLA_VLAN_EGRESS_QOS: u16 = 3;
 pub const IFLA_VLAN_INGRESS_QOS: u16 = 4;
 pub const IFLA_VLAN_PROTOCOL: u16 = 5;
+pub const IFLA_IPVLAN_UNSPEC: u16 = 0;
+pub const IFLA_IPVLAN_MODE: u16 = 1;
+pub const IFLA_IPVLAN_FLAGS: u16 = 2;
 pub const VETH_INFO_UNSPEC: u16 = 0;
 pub const VETH_INFO_PEER: u16 = 1;
 
