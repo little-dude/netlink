@@ -1330,6 +1330,58 @@ mod tests {
         assert_eq!(expected, parsed);
     }
 
+    #[rustfmt::skip]
+    static IPVLAN: [u8; 32] = [
+        0x0b, 0x00, // length = 11
+        0x01, 0x00, // type = 1 = IFLA_INFO_KIND
+        0x69, 0x70, 0x76, 0x6c, 0x61, 0x6e, 0x00, // V = "ipvlan\0"
+        0x00, // padding
+
+        0x14, 0x00, // length = 20
+        0x02, 0x00, // type = 2 = IFLA_INFO_DATA
+            0x06, 0x00, // length = 6
+            0x01, 0x00, // type = 1 = IFLA_IPVLAN_MODE
+            0x01, 0x00, // l3
+            0x00, 0x00, // padding
+
+            0x06, 0x00, // length = 6
+            0x02, 0x00, // type = 2 = IFLA_IPVLAN_FLAGS
+            0x02, 0x00, // vepa flag
+            0x00, 0x00, // padding
+    ];
+
+    lazy_static! {
+        static ref IPVLAN_INFO: Vec<InfoIpVlan> = vec![
+            InfoIpVlan::Mode(1), // L3
+            InfoIpVlan::Flags(2), // vepa flag
+        ];
+    }
+
+    #[test]
+    fn parse_info_ipvlan() {
+        let nla = NlaBuffer::new_checked(&IPVLAN[..]).unwrap();
+        let parsed = VecInfo::parse(&nla).unwrap().0;
+        let expected = vec![
+            Info::Kind(InfoKind::IpVlan),
+            Info::Data(InfoData::IpVlan(IPVLAN_INFO.clone())),
+        ];
+        assert_eq!(expected, parsed);
+    }
+
+    #[test]
+    fn emit_info_ipvlan() {
+        let nlas = vec![
+            Info::Kind(InfoKind::IpVlan),
+            Info::Data(InfoData::IpVlan(IPVLAN_INFO.clone())),
+        ];
+
+        assert_eq!(nlas.as_slice().buffer_len(), 32);
+
+        let mut vec = vec![0xff; 32];
+        nlas.as_slice().emit(&mut vec);
+        assert_eq!(&vec[..], &IPVLAN[..]);
+    }
+
     #[test]
     fn parse() {
         let nla = NlaBuffer::new_checked(&BRIDGE[..]).unwrap();
