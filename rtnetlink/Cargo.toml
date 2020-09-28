@@ -1,6 +1,6 @@
 [package]
 name = "rtnetlink"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 edition = "2018"
 
@@ -19,7 +19,7 @@ test_as_root = []
 futures = "0.3.1"
 log = "0.4.8"
 thiserror = "1"
-netlink-packet-route = { path = "../netlink-packet-route", version = "0.4" }
+netlink-packet-route = { path = "../netlink-packet-route", version = "0.5" }
 netlink-proto = { path = "../netlink-proto", version = "0.4" }
 
 [dev-dependencies]
