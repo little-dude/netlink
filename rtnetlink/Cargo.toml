@@ -1,6 +1,6 @@
 [package]
 name = "rtnetlink"
-version = "0.4.1"
+version = "0.5.0"
 authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 edition = "2018"
 
