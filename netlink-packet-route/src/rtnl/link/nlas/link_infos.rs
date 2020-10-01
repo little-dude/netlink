@@ -29,6 +29,7 @@ const IP6GRE: &str = "ip6gre";
 const VTI: &str = "vti";
 const VRF: &str = "vrf";
 const GTP: &str = "gtp";
+const IPOIB: &str = "ipoib";
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Info {
@@ -172,6 +173,17 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for VecInfo {
                             InfoKind::Vti => InfoData::Vti(payload.to_vec()),
                             InfoKind::Vrf => InfoData::Vrf(payload.to_vec()),
                             InfoKind::Gtp => InfoData::Gtp(payload.to_vec()),
+                            InfoKind::Ipoib => {
+                                let mut v = Vec::new();
+                                let err =
+                                    "failed to parse IFLA_INFO_DATA (IFLA_INFO_KIND is 'ipoib')";
+                                for nla in NlasIterator::new(payload) {
+                                    let nla = &nla.context(err)?;
+                                    let parsed = InfoIpoib::parse(nla).context(err)?;
+                                    v.push(parsed);
+                                }
+                                InfoData::Ipoib(v)
+                            }
                             InfoKind::Other(_) => InfoData::Other(payload.to_vec()),
                         };
                         res.push(Info::Data(info_data));
@@ -210,6 +222,7 @@ pub enum InfoData {
     Vti(Vec<u8>),
     Vrf(Vec<u8>),
     Gtp(Vec<u8>),
+    Ipoib(Vec<InfoIpoib>),
     Other(Vec<u8>),
 }
 
@@ -222,6 +235,7 @@ impl Nla for InfoData {
             Vlan(ref nlas) =>  nlas.as_slice().buffer_len(),
             Veth(ref msg) => msg.buffer_len(),
             IpVlan(ref nlas) => nlas.as_slice().buffer_len(),
+            Ipoib(ref nlas) => nlas.as_slice().buffer_len(),
             Dummy(ref bytes)
                 | Tun(ref bytes)
                 | Nlmon(ref bytes)
@@ -252,6 +266,7 @@ impl Nla for InfoData {
             Vlan(ref nlas) => nlas.as_slice().emit(buffer),
             Veth(ref msg) => msg.emit(buffer),
             IpVlan(ref nlas) => nlas.as_slice().emit(buffer),
+            Ipoib(ref nlas) => nlas.as_slice().emit(buffer),
             Dummy(ref bytes)
                 | Tun(ref bytes)
                 | Nlmon(ref bytes)
@@ -302,6 +317,7 @@ pub enum InfoKind {
     Vti,
     Vrf,
     Gtp,
+    Ipoib,
     Other(String),
 }
 
@@ -330,6 +346,7 @@ impl Nla for InfoKind {
             Vti => VTI.len(),
             Vrf => VRF.len(),
             Gtp => GTP.len(),
+            Ipoib => IPOIB.len(),
             Other(ref s) => s.len(),
         };
         len + 1
@@ -359,6 +376,7 @@ impl Nla for InfoKind {
             Vti => VTI,
             Vrf => VRF,
             Gtp => GTP,
+            Ipoib => IPOIB,
             Other(ref s) => s.as_str(),
         };
         buffer[..s.len()].copy_from_slice(s.as_bytes());
@@ -401,6 +419,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoKind {
             VTI => Vti,
             VRF => Vrf,
             GTP => Gtp,
+            IPOIB => Ipoib,
             _ => Other(s),
         })
     }
@@ -890,6 +909,62 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoBridge {
                 DefaultNla::parse(buf)
                     .context("invalid link info bridge NLA value (unknown type)")?,
             ),
+        })
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum InfoIpoib {
+    Unspec(Vec<u8>),
+    Pkey(u16),
+    Mode(u16),
+    UmCast(u16),
+    Other(DefaultNla),
+}
+
+impl Nla for InfoIpoib {
+    fn value_len(&self) -> usize {
+        use self::InfoIpoib::*;
+        match self {
+            Unspec(bytes) => bytes.len(),
+            Pkey(_) | Mode(_) | UmCast(_) => 2,
+            Other(nla) => nla.value_len(),
+        }
+    }
+
+    fn emit_value(&self, buffer: &mut [u8]) {
+        use self::InfoIpoib::*;
+        match self {
+            Unspec(bytes) => buffer.copy_from_slice(bytes.as_slice()),
+            Pkey(value) => NativeEndian::write_u16(buffer, *value),
+            Mode(value) => NativeEndian::write_u16(buffer, *value),
+            UmCast(value) => NativeEndian::write_u16(buffer, *value),
+            Other(nla) => nla.emit_value(buffer),
+        }
+    }
+
+    fn kind(&self) -> u16 {
+        use self::InfoIpoib::*;
+        match self {
+            Unspec(_) => IFLA_IPOIB_UNSPEC,
+            Pkey(_) => IFLA_IPOIB_PKEY,
+            Mode(_) => IFLA_IPOIB_MODE,
+            UmCast(_) => IFLA_IPOIB_UMCAST,
+            Other(nla) => nla.kind(),
+        }
+    }
+}
+
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoIpoib {
+    fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
+        use self::InfoIpoib::*;
+        let payload = buf.value();
+        Ok(match buf.kind() {
+            IFLA_IPOIB_UNSPEC => Unspec(payload.to_vec()),
+            IFLA_IPOIB_PKEY => Pkey(parse_u16(payload).context("invalid IFLA_IPOIB_PKEY value")?),
+            IFLA_IPOIB_MODE => Mode(parse_u16(payload).context("invalid IFLA_IPOIB_MODE value")?),
+            IFLA_IPOIB_UMCAST => UmCast(parse_u16(payload).context("invalid IFLA_IPOIB_UMCAST value")?),
+            kind => Other(DefaultNla::parse(buf).context(format!("unknown NLA type {}", kind))?),
         })
     }
 }
