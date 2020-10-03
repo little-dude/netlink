@@ -2,13 +2,7 @@
 
 # Netlink
 
-This project aims at providing building blocks for [netlink][man-netlink] (see `man 7 netlink`).  The netlink protocol
-is _huge_ but the some subprotocols are widely used:
-
-- the [generic netlink protocol][generic-netlink-lwn]
-- the [`rtnetlink` protocol][route-proto-doc] (see `man 7 rtnetlink`), for manipulating the network stack
-- the `audit` protocol to interact with Linux audit system
-- the `sock_diag` protocol (see `man 7 sock_diag`) to monitor sockets
+This project aims at providing building blocks for [netlink][man-netlink] (see `man 7 netlink`).
 
 ## Organization
 
