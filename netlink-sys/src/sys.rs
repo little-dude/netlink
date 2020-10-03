@@ -153,6 +153,8 @@ impl Socket {
         Ok(())
     }
 
+    // when building with --features smol we don't need this
+    #[allow(dead_code)]
     pub fn set_non_blocking(&self, non_blocking: bool) -> Result<()> {
         let mut non_blocking = non_blocking as libc::c_int;
         let res = unsafe { libc::ioctl(self.0, libc::FIONBIO, &mut non_blocking) };
