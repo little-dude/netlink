@@ -7,8 +7,9 @@ use std::{
 
 use futures::{Sink, Stream};
 use log::error;
-use netlink_sys::{Socket, SocketAddr};
 use tokio_util::codec::{Decoder, Encoder};
+
+use crate::sys::{Socket, SocketAddr};
 
 pub struct NetlinkFramed<C> {
     socket: Socket,

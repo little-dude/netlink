@@ -1,6 +1,8 @@
-use netlink_packet_core::NetlinkMessage;
-use netlink_sys::SocketAddr;
 use std::fmt::Debug;
+
+use netlink_packet_core::NetlinkMessage;
+
+use crate::sys::SocketAddr;
 
 #[derive(Debug)]
 pub struct Request<T, M>

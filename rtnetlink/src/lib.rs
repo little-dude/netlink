@@ -24,10 +24,13 @@ pub use crate::rule::*;
 mod connection;
 pub use crate::connection::*;
 
+mod traffic_control;
+pub use crate::traffic_control::*;
+
 pub mod constants;
 
 pub use netlink_packet_route as packet;
+pub mod proto {
+    pub use netlink_proto::{Connection, ConnectionHandle, Error, ErrorKind};
+}
 pub use netlink_proto::sys;
-
-mod traffic_control;
-pub use crate::traffic_control::*;

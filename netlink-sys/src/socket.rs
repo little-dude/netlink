@@ -1,12 +1,52 @@
-//! Netlink socket related functions
-use std::fmt;
-use std::hash::{Hash, Hasher};
 use std::io::{Error, Result};
 use std::mem;
 use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
 
-use super::Protocol;
+use crate::SocketAddr;
 
+/// A netlink socket.
+///
+/// # Example
+///
+/// In this example we:
+///
+/// 1. open a new socket
+/// 2. send a message to the kernel
+/// 3. read the reponse
+///
+/// ```rust
+/// use std::process;
+/// use netlink_sys::{
+///     protocols::NETLINK_ROUTE,
+///     SocketAddr, Socket,
+/// };
+///
+/// // open a new socket for the NETLINK_ROUTE subsystem (see "man 7 rtnetlink")
+/// let mut socket = Socket::new(NETLINK_ROUTE).unwrap();
+/// // address of the remote peer we'll send a message to. This particular address is for the kernel
+/// let kernel_addr = SocketAddr::new(0, 0);
+/// // this is a valid message for listing the network links on the system
+/// let pkt = vec![0x14, 0x00, 0x00, 0x00, 0x12, 0x00, 0x01, 0x03, 0xfd, 0xfe, 0x38, 0x5c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+/// // send the message to the kernel
+/// let n_sent = socket.send_to(&pkt[..], &kernel_addr, 0).unwrap();
+/// assert_eq!(n_sent, pkt.len());
+/// // buffer for receiving the response
+/// let mut buf = vec![0; 4096];
+/// loop {
+///     // receive a datagram
+///     let (n_received, sender_addr) = socket.recv_from(&mut buf[..], 0).unwrap();
+///     assert_eq!(sender_addr, kernel_addr);
+///     println!("received datagram {:?}", &buf[..n_received]);
+///     if buf[4] == 2 && buf[5] == 0 {
+///         println!("the kernel responded with an error");
+///         return;
+///     }
+///     if buf[4] == 3 && buf[5] == 0 {
+///         println!("end of dump");
+///         return;
+///     }
+/// }
+/// ```
 #[derive(Clone, Debug)]
 pub struct Socket(RawFd);
 
@@ -28,95 +68,12 @@ impl Drop for Socket {
     }
 }
 
-#[derive(Copy, Clone)]
-pub struct SocketAddr(libc::sockaddr_nl);
-
-impl Hash for SocketAddr {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.nl_family.hash(state);
-        self.0.nl_pid.hash(state);
-        self.0.nl_groups.hash(state);
-    }
-}
-
-impl PartialEq for SocketAddr {
-    fn eq(&self, other: &SocketAddr) -> bool {
-        self.0.nl_family == other.0.nl_family
-            && self.0.nl_pid == other.0.nl_pid
-            && self.0.nl_groups == other.0.nl_groups
-    }
-}
-
-impl fmt::Debug for SocketAddr {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "SocketAddr(nl_family={}, nl_pid={}, nl_groups={})",
-            self.0.nl_family, self.0.nl_pid, self.0.nl_groups
-        )
-    }
-}
-
-impl Eq for SocketAddr {}
-
-impl fmt::Display for SocketAddr {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "address family: {}, pid: {}, multicast groups: {})",
-            self.0.nl_family, self.0.nl_pid, self.0.nl_groups
-        )
-    }
-}
-
-impl SocketAddr {
-    pub fn new(port_number: u32, multicast_groups: u32) -> Self {
-        let mut addr: libc::sockaddr_nl = unsafe { mem::zeroed() };
-        addr.nl_family = libc::PF_NETLINK as libc::sa_family_t;
-        addr.nl_pid = port_number;
-        addr.nl_groups = multicast_groups;
-        SocketAddr(addr)
-    }
-
-    pub fn port_number(&self) -> u32 {
-        self.0.nl_pid
-    }
-
-    pub fn multicast_groups(&self) -> u32 {
-        self.0.nl_groups
-    }
-
-    fn as_raw(&self) -> (*const libc::sockaddr, libc::socklen_t) {
-        let addr_ptr = &self.0 as *const libc::sockaddr_nl as *const libc::sockaddr;
-        //             \                                 / \                      /
-        //              +---------------+---------------+   +----------+---------+
-        //                               |                             |
-        //                               v                             |
-        //             create a raw pointer to the sockaddr_nl         |
-        //                                                             v
-        //                                                cast *sockaddr_nl -> *sockaddr
-        //
-        // This kind of things seems to be pretty usual when using C APIs from Rust. It could be
-        // written in a shorter way thank to type inference:
-        //
-        //      let addr_ptr: *const libc:sockaddr = &self.0 as *const _ as *const _;
-        //
-        // But since this is my first time dealing with this kind of things I chose the most
-        // explicit form.
-
-        let addr_len = mem::size_of::<libc::sockaddr_nl>() as libc::socklen_t;
-        (addr_ptr, addr_len)
-    }
-
-    fn as_raw_mut(&mut self) -> (*mut libc::sockaddr, libc::socklen_t) {
-        let addr_ptr = &mut self.0 as *mut libc::sockaddr_nl as *mut libc::sockaddr;
-        let addr_len = mem::size_of::<libc::sockaddr_nl>() as libc::socklen_t;
-        (addr_ptr, addr_len)
-    }
-}
-
 impl Socket {
-    pub fn new(protocol: Protocol) -> Result<Self> {
+    /// Open a new socket for the given netlink subsystem. `protocol` must be one of the
+    /// [`netlink_sys::protocols`][protos] constants.
+    ///
+    /// [protos]: crate::protocols
+    pub fn new(protocol: isize) -> Result<Self> {
         let res =
             unsafe { libc::socket(libc::PF_NETLINK, libc::SOCK_DGRAM, protocol as libc::c_int) };
         if res < 0 {
@@ -125,6 +82,7 @@ impl Socket {
         Ok(Socket(res))
     }
 
+    /// Bind the socket to the given address
     pub fn bind(&mut self, addr: &SocketAddr) -> Result<()> {
         let (addr_ptr, addr_len) = addr.as_raw();
         let res = unsafe { libc::bind(self.0, addr_ptr, addr_len) };
@@ -134,6 +92,7 @@ impl Socket {
         Ok(())
     }
 
+    /// Bind the socket to an address assigned by the kernel, and return that address.
     pub fn bind_auto(&mut self) -> Result<SocketAddr> {
         let mut addr = SocketAddr::new(0, 0);
         self.bind(&addr)?;
@@ -141,6 +100,7 @@ impl Socket {
         Ok(addr)
     }
 
+    /// Get the socket address
     pub fn get_address(&self, addr: &mut SocketAddr) -> Result<()> {
         let (addr_ptr, mut addr_len) = addr.as_raw_mut();
         let addr_len_copy = addr_len;
@@ -155,6 +115,7 @@ impl Socket {
 
     // when building with --features smol we don't need this
     #[allow(dead_code)]
+    /// Make this socket non-blocking
     pub fn set_non_blocking(&self, non_blocking: bool) -> Result<()> {
         let mut non_blocking = non_blocking as libc::c_int;
         let res = unsafe { libc::ioctl(self.0, libc::FIONBIO, &mut non_blocking) };
@@ -164,8 +125,55 @@ impl Socket {
         Ok(())
     }
 
+    /// Connect the socket to the given address. Netlink is a connection-less protocol, so a socket can communicate with
+    /// multiple peers with the [`Socket::send_to`] and [`Socket::recv_from`] methods. However, if the socket only needs
+    /// to communicate with one peer, it is convenient not to have to bother with the peer address. This is what
+    /// `connect` is for. After calling `connect`, [`Socket::send`] and [`Socket::recv`] respectively send and receive
+    /// datagrams to and from `remote_addr`.
+    ///
+    /// # Examples
+    ///
+    /// In this example we:
+    ///
+    /// 1. open a socket
+    /// 2. connect it to the kernel with [`Socket::connect`]
+    /// 3. send a request to the kernel with [`Socket::send`]
+    /// 4. read the response (which can span over several messages) [`Socket::recv`]
+    ///
+    /// ```rust
+    /// use std::process;
+    /// use netlink_sys::{
+    ///     protocols::NETLINK_ROUTE,
+    ///     SocketAddr, Socket,
+    /// };
+    ///
+    /// let mut socket = Socket::new(NETLINK_ROUTE).unwrap();
+    /// let _ = socket.bind_auto().unwrap();
+    /// let kernel_addr = SocketAddr::new(0, 0);
+    /// socket.connect(&kernel_addr).unwrap();
+    /// // This is a valid message for listing the network links on the system
+    /// let msg = vec![0x14, 0x00, 0x00, 0x00, 0x12, 0x00, 0x01, 0x03, 0xfd, 0xfe, 0x38, 0x5c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+    /// let n_sent = socket.send(&msg[..], 0).unwrap();
+    /// assert_eq!(n_sent, msg.len());
+    /// // buffer for receiving the response
+    /// let mut buf = vec![0; 4096];
+    /// loop {
+    ///     let mut n_received = socket.recv(&mut buf[..], 0).unwrap();
+    ///     println!("received {:?}", &buf[..n_received]);
+    ///     if buf[4] == 2 && buf[5] == 0 {
+    ///         println!("the kernel responded with an error");
+    ///         return;
+    ///     }
+    ///     if buf[4] == 3 && buf[5] == 0 {
+    ///         println!("end of dump");
+    ///         return;
+    ///     }
+    /// }
+    /// ```
     pub fn connect(&self, remote_addr: &SocketAddr) -> Result<()> {
-        // Event though for SOCK_DGRAM sockets there's no IO, since our socket is non-blocking,
+        // FIXME:
+        //
+        // Event though for SOCK_DGRAM sockets there's no IO, if our socket is non-blocking,
         // connect() might return EINPROGRESS. In theory, the right way to treat EINPROGRESS would
         // be to ignore the error, and let the user poll the socket to check when it becomes
         // writable, indicating that the connection succeeded. The code already exists in mio for
@@ -180,9 +188,6 @@ impl Socket {
         // >     }
         // >     Ok(TcpStream {  inner: stream })
         // > }
-        //
-        // The polling to wait for the connection is available in the tokio-tcp crate. See:
-        // https://github.com/tokio-rs/tokio/blob/363b207f2b6c25857c70d76b303356db87212f59/tokio-tcp/src/stream.rs#L706
         //
         // In practice, since the connection does not require any IO for SOCK_DGRAM sockets, it
         // almost never returns EINPROGRESS and so for now, we just return whatever libc::connect
@@ -203,10 +208,15 @@ impl Socket {
     // Most of the comments in this method come from a discussion on rust users forum.
     // [thread]: https://users.rust-lang.org/t/help-understanding-libc-call/17308/9
     //
-    // WARNING: with datagram oriented protocols, `recv` and
-    // `recvfrom` receive normally only ONE datagram, but it seems not
-    // to be verified for Netlink sockets: multiple message can be
-    // received in a single call.
+    /// Read a datagram from the socket and return the number of bytes that have been read and the address of the
+    /// sender. The data being read is copied into `buf`. If `buf` is too small, the datagram is truncated. The
+    /// supported flags are the `MSG_*` described in `man 2 recvmsg`
+    ///
+    /// # Warning
+    ///
+    /// In datagram oriented protocols, `recv` and `recvfrom` receive normally only ONE datagram, but this seems not to
+    /// be always true for netlink sockets: with some protocols like `NETLINK_AUDIT`, multiple netlink packets can be
+    /// read with a single call.
     pub fn recv_from(&self, buf: &mut [u8], flags: libc::c_int) -> Result<(usize, SocketAddr)> {
         // Create an empty storage for the address. Note that Rust standard library create a
         // sockaddr_storage so that it works for any address family, but here, we already know that
@@ -254,6 +264,8 @@ impl Socket {
         Ok((res as usize, SocketAddr(addr)))
     }
 
+    /// For a connected socket, `recv` reads a datagram from the socket. The sender is the remote peer the socket is
+    /// connected to (see [`Socket::connect`]). See also [`Socket::recv_from`]
     pub fn recv(&self, buf: &mut [u8], flags: libc::c_int) -> Result<usize> {
         let buf_ptr = buf.as_mut_ptr() as *mut libc::c_void;
         let buf_len = buf.len() as libc::size_t;
@@ -265,9 +277,8 @@ impl Socket {
         Ok(res as usize)
     }
 
-    /// Receive a full message.
-    /// Unlike recv_from, which truncates messages that exceed the length of the buffer passed as argument,
-    /// this method always reads a whole message, no matter its size.
+    /// Receive a full message. Unlike [`Socket::recv_from`], which truncates messages that exceed the length of the
+    /// buffer passed as argument, this method always reads a whole message, no matter its size.
     pub fn recv_from_full(&self) -> Result<(Vec<u8>, SocketAddr)> {
         // Peek
         let mut buf = Vec::<u8>::new();
@@ -280,6 +291,8 @@ impl Socket {
         Ok((buf, addr))
     }
 
+    /// Send the given buffer `buf` to the remote peer with address `addr`. The supported flags are the `MSG_*` values
+    /// documented in `man 2 send`.
     pub fn send_to(&self, buf: &[u8], addr: &SocketAddr, flags: libc::c_int) -> Result<usize> {
         let (addr_ptr, addr_len) = addr.as_raw();
         let buf_ptr = buf.as_ptr() as *const libc::c_void;
@@ -292,6 +305,8 @@ impl Socket {
         Ok(res as usize)
     }
 
+    /// For a connected socket, `send` sends the given buffer `buf` to the remote peer the socket is connected to. See
+    /// also [`Socket::connect`] and [`Socket::send_to`].
     pub fn send(&self, buf: &[u8], flags: libc::c_int) -> Result<usize> {
         let buf_ptr = buf.as_ptr() as *const libc::c_void;
         let buf_len = buf.len() as libc::size_t;
@@ -454,27 +469,28 @@ fn setsockopt<T>(fd: RawFd, level: libc::c_int, option: libc::c_int, payload: T)
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::protocols::NETLINK_ROUTE;
 
     #[test]
     fn new() {
-        Socket::new(Protocol::Route).unwrap();
+        Socket::new(NETLINK_ROUTE).unwrap();
     }
 
     #[test]
     fn connect() {
-        let sock = Socket::new(Protocol::Route).unwrap();
+        let sock = Socket::new(NETLINK_ROUTE).unwrap();
         sock.connect(&SocketAddr::new(0, 0)).unwrap();
     }
 
     #[test]
     fn bind() {
-        let mut sock = Socket::new(Protocol::Route).unwrap();
+        let mut sock = Socket::new(NETLINK_ROUTE).unwrap();
         sock.bind(&SocketAddr::new(4321, 0)).unwrap();
     }
 
     #[test]
     fn bind_auto() {
-        let mut sock = Socket::new(Protocol::Route).unwrap();
+        let mut sock = Socket::new(NETLINK_ROUTE).unwrap();
         let addr = sock.bind_auto().unwrap();
         // make sure that the address we got from the kernel is there
         assert!(addr.port_number() != 0);
@@ -482,14 +498,14 @@ mod test {
 
     #[test]
     fn set_non_blocking() {
-        let sock = Socket::new(Protocol::Route).unwrap();
+        let sock = Socket::new(NETLINK_ROUTE).unwrap();
         sock.set_non_blocking(true).unwrap();
         sock.set_non_blocking(false).unwrap();
     }
 
     #[test]
     fn options() {
-        let mut sock = Socket::new(Protocol::Route).unwrap();
+        let mut sock = Socket::new(NETLINK_ROUTE).unwrap();
 
         sock.set_cap_ack(true).unwrap();
         assert!(sock.get_cap_ack().unwrap());
@@ -511,30 +527,5 @@ mod test {
         // assert!(sock.get_listen_all_namespaces().unwrap());
         // sock.set_listen_all_namespaces(false).unwrap();
         // assert!(!sock.get_listen_all_namespaces().unwrap());
-    }
-
-    #[test]
-    fn address() {
-        let mut addr = SocketAddr::new(42, 1234);
-        assert_eq!(addr.port_number(), 42);
-        assert_eq!(addr.multicast_groups(), 1234);
-
-        {
-            let (addr_ptr, _) = addr.as_raw();
-            let inner_addr = unsafe { *(addr_ptr as *const libc::sockaddr_nl) };
-            assert_eq!(inner_addr.nl_pid, 42);
-            assert_eq!(inner_addr.nl_groups, 1234);
-        }
-
-        {
-            let (addr_ptr, _) = addr.as_raw_mut();
-            let sockaddr_nl = addr_ptr as *mut libc::sockaddr_nl;
-            unsafe {
-                sockaddr_nl.as_mut().unwrap().nl_pid = 24;
-                sockaddr_nl.as_mut().unwrap().nl_groups = 4321
-            }
-        }
-        assert_eq!(addr.port_number(), 24);
-        assert_eq!(addr.multicast_groups(), 4321);
     }
 }

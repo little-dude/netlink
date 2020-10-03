@@ -6,14 +6,14 @@ use netlink_packet_route::{
 
 use netlink_proto::{
     new_connection,
-    sys::{Protocol, SocketAddr},
+    sys::{protocols::NETLINK_ROUTE, SocketAddr},
 };
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
     // Create the netlink socket. Here, we won't use the channel that
     // receives unsolicited messages.
-    let (conn, mut handle, _) = new_connection(Protocol::Route)
+    let (conn, mut handle, _) = new_connection(NETLINK_ROUTE)
         .map_err(|e| format!("Failed to create a new netlink connection: {}", e))?;
 
     // Spawn the `Connection` in the background

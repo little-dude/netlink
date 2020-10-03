@@ -29,7 +29,7 @@ use std::process;
 
 use netlink_proto::{
     new_connection,
-    sys::{Protocol, SocketAddr},
+    sys::{protocols::NETLINK_AUDIT, SocketAddr},
 };
 
 const AUDIT_STATUS_ENABLED: u32 = 1;
@@ -50,7 +50,7 @@ async fn main() -> Result<(), String> {
     //   messages that we have not sollicated, ie that are not
     //   response to a request we made. In this example, we'll receive
     //   the audit event through that channel.
-    let (conn, mut handle, mut messages) = new_connection(Protocol::Audit)
+    let (conn, mut handle, mut messages) = new_connection(NETLINK_AUDIT)
         .map_err(|e| format!("Failed to create a new netlink connection: {}", e))?;
 
     // Spawn the `Connection` so that it starts polling the netlink

@@ -12,7 +12,6 @@ matrix:
       script:
         - cd netlink-sys
         - cargo test
-        - cargo test --features mio_socket
         - cargo test --features tokio_socket
 
     - rust: stable

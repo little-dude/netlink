@@ -27,8 +27,7 @@ async fn main() -> Result<(), ()> {
 
 async fn add_rule(dest: &Ipv4Network, handle: Handle) -> Result<(), Error> {
     let rule = handle.rule();
-    rule
-        .add_v4()
+    rule.add_v4()
         .destination_prefix(dest.ip(), dest.prefix())
         .execute()
         .await?;
@@ -50,4 +49,3 @@ Then find the binary in the target directory:
     cd ../target/debug/example ; sudo ./add_rule <destination>/<prefix_length> <gateway>"
     );
 }
-

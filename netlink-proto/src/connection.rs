@@ -13,9 +13,13 @@ use log::{error, warn};
 use netlink_packet_core::{
     NetlinkDeserializable, NetlinkMessage, NetlinkPayload, NetlinkSerializable,
 };
-use netlink_sys::{Protocol as NetlinkProtocol, Socket, SocketAddr};
 
-use crate::{codecs::NetlinkCodec, framed::NetlinkFramed, Protocol, Request, Response};
+use crate::{
+    codecs::NetlinkCodec,
+    framed::NetlinkFramed,
+    sys::{Socket, SocketAddr},
+    Protocol, Request, Response,
+};
 
 /// Connection to a Netlink socket, running in the background.
 ///
@@ -46,7 +50,7 @@ where
     pub(crate) fn new(
         requests_rx: UnboundedReceiver<Request<T>>,
         unsolicited_messages_tx: UnboundedSender<(NetlinkMessage<T>, SocketAddr)>,
-        protocol: NetlinkProtocol,
+        protocol: isize,
     ) -> io::Result<Self> {
         let socket = Socket::new(protocol)?;
         Ok(Connection {

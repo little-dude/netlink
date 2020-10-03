@@ -1,7 +1,7 @@
 use futures::stream::StreamExt;
 
 use crate::{
-    packet::{NetlinkMessage, NetlinkPayload, RuleMessage, RtnlMessage, NLM_F_ACK, NLM_F_REQUEST},
+    packet::{NetlinkMessage, NetlinkPayload, RtnlMessage, RuleMessage, NLM_F_ACK, NLM_F_REQUEST},
     Error, Handle,
 };
 
