@@ -1,44 +1,35 @@
 [![Build Status](https://travis-ci.org/little-dude/netlink.svg?branch=master)](https://travis-ci.org/little-dude/netlink)
 
-# netlink-rs
+# Netlink
 
-This project aims at providing building blocks for [the netlink
-protocol](https://en.wikipedia.org/wiki/Netlink) (see `man 7 netlink`).
+This project aims at providing building blocks for [netlink][man-netlink] (see `man 7 netlink`).  The netlink protocol
+is _huge_ but the some subprotocols are widely used:
 
-The netlink protocol is _huge_ but the some subprotocols are widely
-used:
-
-- the [generic netlink protocol](https://lwn.net/Articles/208755/), used to create custom IPCs
-- the [`rtnetlink` protocol](https://www.infradead.org/~tgr/libnl/doc/route.html) (see `man 7 rtnetlink`), for manipulating the network stack
+- the [generic netlink protocol][generic-netlink-lwn]
+- the [`rtnetlink` protocol][route-proto-doc] (see `man 7 rtnetlink`), for manipulating the network stack
 - the `audit` protocol to interact with Linux audit system
 - the `sock_diag` protocol (see `man 7 sock_diag`) to monitor sockets
 
 ## Organization
 
-- the [`netlink_sys`](./netlink-sys) crate provides netlink sockets.  Integration with
-  [`mio`](https://github.com/carllerche/mio) and [`tokio`](https://github.com/tokio-rs/) is
-  optional.
-- Each netlink protocol has a `netlink-packet-<protocol_name>` crate that provides the packets for
-  this protocol:
-    - [`netlink-packet-route`](./netlink-packet-route) provides `RtnlMessage` which represents
-      messages for the route protocol
-    - [`netlink-packet-audit`](./netlink-packet-audit) provides `AuditMessage` which represents
-      messages for the audit protocol
-- the [`netlink-packet-core`](./netlink-packet-core) is the glue for all the other
-  `netlink-packet-*` crates. I provides a unique `NetlinkMessage<T>` type that represent any netlink
-  message for any sub-protocol.
-- the [`netlink_proto`](./netlink-proto) crate an asynchronous implementation of the netlink
-  protocol. It only depends on `netlink-packet-core` for the `NetlinkMessage` type and `netlink-sys`
-  for the socket.
-- the [`rtnetlink`](./rtnetlink) crate provides higher level abstraction for the [route
-  protocol](https://www.infradead.org/~tgr/libnl/doc/route.html) (see `man 7 rtnetlink`). This is
-  probably what users want to use, if they want to manipulate IP addresses, route tables, etc.
+- the [`netlink_sys`](./netlink-sys) crate provides netlink sockets. Integration with [`mio`][mio] and [`tokio`][tokio]
+  is optional.
+- Each netlink protocol has a `netlink-packet-<protocol_name>` crate that provides the packets for this protocol:
+    - [`netlink-packet-route`](./netlink-packet-route) provides messages for the [route protocol][man-rtnetlink]
+    - [`netlink-packet-audit`](./netlink-packet-audit) provides messages for the [audit][man-audit] protocol
+    - [`netlink-packet-sock-diag`](./netlink-packet-sock-diag) provides messages for the [sock-diag][man-sock-diag]
+      protocol
+- the [`netlink-packet-core`](./netlink-packet-core) is the glue for all the other `netlink-packet-*` crates. It
+  provides a `NetlinkMessage<T>` type that represent any netlink message for any sub-protocol.
+- the [`netlink_proto`](./netlink-proto) crate is an asynchronous implementation of the netlink protocol. It only
+  depends on `netlink-packet-core` for the `NetlinkMessage` type and `netlink-sys` for the socket.
+- the [`rtnetlink`](./rtnetlink) crate provides higher level abstraction for the [route protocol][man-rtnetlink]
 - the [`audit`](./audit) crate provides higher level abstractions for the audit protocol.
 
-## Other netlink projects in rust
 
-- https://github.com/jbaublitz/neli: the main alternative to these crates, as it is actively
-  developed.
+## Altnernatives
+
+- https://github.com/jbaublitz/neli: the main alternative to these crates, as it is actively developed.
 - Other but less actively developed alternatives:
   - https://github.com/achanda/netlink
   - https://github.com/polachok/pnetlink
@@ -46,41 +37,32 @@ used:
   - https://github.com/carrotsrc/rsnl
   - https://github.com/TaborKelly/nl-utils
 
-## Other non-rust netlink projects
-
-- [`libnl`](https://www.infradead.org/~tgr/libnl/): netlink implementation in
-  C. Very complete with awesome documentation.
-- [`pyroute2`](https://github.com/svinota/pyroute2/tree/master/pyroute2/netlink): a very complete and readable implementation in pure python.
-- [`netlink`](https://github.com/vishvananda/netlink): a very complete and very actively maintained go project, seems to be widely used.
-
 ## Credits
 
-My main resource so far has been the source code of
-[`pyroute2`](https://github.com/svinota/pyroute2/tree/master/pyroute2/netlink)
-and [`netlink`](https://github.com/vishvananda/netlink) **a lot**. These two
-projects are great, and very nicely written. As someone who does not read C
-fluently, and that does not know much about netlink, they have been invaluable.
+My main resource so far has been the source code of [`pyroute2`][pyroute2] (python) and [`netlink`][netlink-go] (golang)
+a lot. These two projects are great, and very nicely written. As someone who does not read C fluently, and that does not
+know much about netlink, they have been invaluable.
 
-I'd also like to praise [`libnl`](https://www.infradead.org/~tgr/libnl/) for
-its documentation. It helped me a lot in understanding the protocol basics.
+I'd also like to praise [`libnl`][libnl] for its documentation. It helped me a lot in understanding the protocol basics.
 
-The whole packet parsing logic is inspired by @whitequark excellent blog posts
-([part 1](https://lab.whitequark.org/notes/2016-12-13/abstracting-over-mutability-in-rust/),
-[part 2](https://lab.whitequark.org/notes/2016-12-17/owning-collections-in-heap-less-rust/)
-and [part 3](https://lab.whitequark.org/notes/2017-01-16/abstracting-over-mutability-in-rust-macros/),
-although I've only really used the concepts described in the first blog post).
-These ideas are also being used in @m-labs's
-[`smoltcp`](https://github.com/m-labs/smoltcp) project.
+The whole packet parsing logic is inspired by @whitequark excellent blog posts ([part 1][whitequark-1], [part
+2][whitequark-2] and [part 3][whitequark-3], although I've only really used the concepts described in the first blog
+post).
 
-Thanks also to the people behing [tokio](tokio.rs), especially
-@carllerche, for the amazing tool they are building, and the support
-they provide. The project structure and code quality are mind blowing,
-and some parts of this projects are basically rip-offs from tokio's
-source code
+Thanks also to the people behing [tokio](tokio.rs) for the amazing
+tool they are building, and the support they provide.
 
-Finally, thanks to the Rust community, which helped me on multiple occasions
-
-Other resources I particularly appreciated:
-
-- https://www.linuxjournal.com/article/7356
-- https://medium.com/@mdlayher/linux-netlink-and-go-part-1-netlink-4781aaeeaca8
+[man-netlink]: https://www.man7.org/linux/man-pages/man7/netlink.7.html
+[man-audit]: https://man7.org/linux/man-pages/man3/audit_open.3.html
+[man-sock-diag]: https://www.man7.org/linux/man-pages/man7/sock_diag.7.html
+[man-rtnetlink]: https://www.man7.org/linux/man-pages/man7/rtnetlink.7.html
+[generic-netlink-lwn]: https://lwn.net/Articles/208755/
+[mio]: https://github.com/tokio-rs/mio
+[tokio]: https://github.com/tokio-rs/tokio
+[route-proto-doc]: https://www.infradead.org/~tgr/libnl/doc/route.html
+[netlink-go]: https://github.com/vishvananda/netlink
+[pyroute2]: https://github.com/svinota/pyroute2/tree/master/pyroute2/netlink
+[libnl]: https://www.infradead.org/~tgr/libnl
+[whitequark-1]: https://lab.whitequark.org/notes/2016-12-13/abstracting-over-mutability-in-rust
+[whitequark-2]: https://lab.whitequark.org/notes/2016-12-17/owning-collections-in-heap-less-rust
+[whitequark-3]: https://lab.whitequark.org/notes/2017-01-16/abstracting-over-mutability-in-rust-macros
