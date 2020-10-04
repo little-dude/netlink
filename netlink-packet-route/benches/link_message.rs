@@ -3,7 +3,9 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use netlink_packet_route::{
     nlas::link::Nla,
     traits::{Parseable, ParseableParametrized},
-    LinkHeader, LinkMessage, LinkMessageBuffer,
+    LinkHeader,
+    LinkMessage,
+    LinkMessageBuffer,
 };
 
 const LINKMSG1: [u8; 96] = [

@@ -1,7 +1,9 @@
 use super::{buffer::RuleMessageBuffer, RULE_HEADER_LEN};
-use crate::constants::*;
-use crate::utils::{Emitable, Parseable};
-use crate::DecodeError;
+use crate::{
+    constants::*,
+    utils::{Emitable, Parseable},
+    DecodeError,
+};
 
 bitflags! {
     pub struct RuleFlags: u32 {

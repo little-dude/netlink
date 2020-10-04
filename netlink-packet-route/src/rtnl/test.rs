@@ -3,7 +3,12 @@
 use crate::{
     nlas::link::{Info, InfoKind, Nla},
     traits::ParseableParametrized,
-    LinkHeader, LinkMessage, NetlinkBuffer, RtnlMessage, RtnlMessageBuffer, RTM_NEWLINK,
+    LinkHeader,
+    LinkMessage,
+    NetlinkBuffer,
+    RtnlMessage,
+    RtnlMessageBuffer,
+    RTM_NEWLINK,
 };
 
 // This test was added because one of the NLA's payload is a string that is not null

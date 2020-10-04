@@ -1,5 +1,10 @@
 use netlink_packet_route::{
-    LinkMessage, NetlinkHeader, NetlinkMessage, NetlinkPayload, RtnlMessage, NLM_F_DUMP,
+    LinkMessage,
+    NetlinkHeader,
+    NetlinkMessage,
+    NetlinkPayload,
+    RtnlMessage,
+    NLM_F_DUMP,
     NLM_F_REQUEST,
 };
 use netlink_sys::{protocols::NETLINK_ROUTE, Socket, SocketAddr};

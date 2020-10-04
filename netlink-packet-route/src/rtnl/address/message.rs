@@ -3,7 +3,9 @@ use anyhow::Context;
 use crate::{
     nlas::address::Nla,
     traits::{Emitable, Parseable},
-    AddressMessageBuffer, DecodeError, ADDRESS_HEADER_LEN,
+    AddressMessageBuffer,
+    DecodeError,
+    ADDRESS_HEADER_LEN,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]

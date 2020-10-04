@@ -1,8 +1,13 @@
 use std::{convert::TryFrom, net::IpAddr, string::ToString};
 
 use netlink_packet_route::{
-    constants::*, nlas::neighbour::Nla, NeighbourMessage, NetlinkHeader, NetlinkMessage,
-    NetlinkPayload, RtnlMessage,
+    constants::*,
+    nlas::neighbour::Nla,
+    NeighbourMessage,
+    NetlinkHeader,
+    NetlinkMessage,
+    NetlinkPayload,
+    RtnlMessage,
 };
 use netlink_sys::{protocols::NETLINK_ROUTE, Socket, SocketAddr};
 

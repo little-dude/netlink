@@ -1,6 +1,8 @@
-use std::fmt;
-use std::hash::{Hash, Hasher};
-use std::mem;
+use std::{
+    fmt,
+    hash::{Hash, Hasher},
+    mem,
+};
 
 /// The address of a netlink socket
 ///
@@ -49,11 +51,8 @@ use std::mem;
 /// [`Socket::get_address`][get_addr]. To avoid this boilerplate you can use [`Socket::bind_auto`][bind_auto]:
 ///
 /// ```rust
+/// use netlink_sys::{protocols::NETLINK_ROUTE, Socket, SocketAddr};
 /// use std::process;
-/// use netlink_sys::{
-///     protocols::NETLINK_ROUTE,
-///     SocketAddr, Socket,
-/// };
 ///
 /// let mut socket = Socket::new(NETLINK_ROUTE).unwrap();
 /// let addr = socket.bind_auto().unwrap();
@@ -66,11 +65,8 @@ use std::mem;
 /// number. However, it must ensure that this number is unique for each socket created. For instance:
 ///
 /// ```rust
+/// use netlink_sys::{protocols::NETLINK_ROUTE, Socket, SocketAddr};
 /// use std::process;
-/// use netlink_sys::{
-///     protocols::NETLINK_ROUTE,
-///     SocketAddr, Socket,
-/// };
 ///
 /// let mut socket = Socket::new(NETLINK_ROUTE).unwrap();
 /// // set the socket port number to 1

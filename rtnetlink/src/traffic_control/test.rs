@@ -1,13 +1,18 @@
-use crate::new_connection;
-use crate::Error::NetlinkError;
-use futures::stream::TryStreamExt;
-use netlink_packet_route::ErrorMessage;
-use netlink_packet_route::{
-    rtnl::tc::nlas::Nla::{Chain, HwOffload, Kind},
-    TcMessage, AF_UNSPEC,
-};
 use std::process::Command;
+
+use futures::stream::TryStreamExt;
 use tokio::runtime::Runtime;
+
+use crate::{
+    new_connection,
+    packet::{
+        rtnl::tc::nlas::Nla::{Chain, HwOffload, Kind},
+        ErrorMessage,
+        TcMessage,
+        AF_UNSPEC,
+    },
+    Error::NetlinkError,
+};
 
 static TEST_DUMMY_NIC: &str = "netlink-test";
 

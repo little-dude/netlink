@@ -1,7 +1,10 @@
 use netlink_packet_sock_diag::{
     constants::*,
     inet::{ExtensionFlags, InetRequest, SocketId, StateFlags},
-    NetlinkHeader, NetlinkMessage, NetlinkPayload, SockDiagMessage,
+    NetlinkHeader,
+    NetlinkMessage,
+    NetlinkPayload,
+    SockDiagMessage,
 };
 use netlink_sys::{Protocol, Socket, SocketAddr};
 

@@ -18,7 +18,10 @@ use futures::channel::mpsc::UnboundedReceiver;
 pub fn new_connection() -> io::Result<(
     proto::Connection<packet::AuditMessage>,
     Handle,
-    UnboundedReceiver<(packet::NetlinkMessage<packet::AuditMessage>, sys::SocketAddr)>,
+    UnboundedReceiver<(
+        packet::NetlinkMessage<packet::AuditMessage>,
+        sys::SocketAddr,
+    )>,
 )> {
     let (conn, handle, messages) = netlink_proto::new_connection(sys::protocols::NETLINK_AUDIT)?;
     Ok((conn, Handle::new(handle), messages))

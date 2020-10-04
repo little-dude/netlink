@@ -6,9 +6,15 @@ use futures::{
 
 use crate::{
     packet::{
-        constants::*, nlas::link::Nla, LinkMessage, NetlinkMessage, NetlinkPayload, RtnlMessage,
+        constants::*,
+        nlas::link::Nla,
+        LinkMessage,
+        NetlinkMessage,
+        NetlinkPayload,
+        RtnlMessage,
     },
-    Error, Handle,
+    Error,
+    Handle,
 };
 
 pub struct LinkGetRequest {

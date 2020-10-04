@@ -6,12 +6,17 @@ pub use link::{LinkHeader, LinkMessage, LinkMessageBuffer, LINK_HEADER_LEN};
 
 pub mod neighbour;
 pub use neighbour::{
-    NeighbourHeader, NeighbourMessage, NeighbourMessageBuffer, NEIGHBOUR_HEADER_LEN,
+    NeighbourHeader,
+    NeighbourMessage,
+    NeighbourMessageBuffer,
+    NEIGHBOUR_HEADER_LEN,
 };
 
 pub mod neighbour_table;
 pub use neighbour_table::{
-    NeighbourTableHeader, NeighbourTableMessage, NeighbourTableMessageBuffer,
+    NeighbourTableHeader,
+    NeighbourTableMessage,
+    NeighbourTableMessageBuffer,
     NEIGHBOUR_TABLE_HEADER_LEN,
 };
 
@@ -37,14 +42,16 @@ mod message;
 pub use self::message::*;
 
 pub mod nlas {
-    pub use super::address::nlas as address;
-    pub use super::link::nlas as link;
-    pub use super::neighbour::nlas as neighbour;
-    pub use super::neighbour_table::nlas as neighbour_table;
-    pub use super::nsid::nlas as nsid;
-    pub use super::route::nlas as route;
-    pub use super::rule::nlas as rule;
-    pub use super::tc::nlas as tc;
+    pub use super::{
+        address::nlas as address,
+        link::nlas as link,
+        neighbour::nlas as neighbour,
+        neighbour_table::nlas as neighbour_table,
+        nsid::nlas as nsid,
+        route::nlas as route,
+        rule::nlas as rule,
+        tc::nlas as tc,
+    };
     pub use crate::utils::nla::*;
 }
 

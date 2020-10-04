@@ -1,7 +1,9 @@
 use crate::{
     nlas::route::Nla,
     traits::{Emitable, Parseable},
-    DecodeError, RouteHeader, RouteMessageBuffer,
+    DecodeError,
+    RouteHeader,
+    RouteMessageBuffer,
 };
 use anyhow::Context;
 use std::net::IpAddr;

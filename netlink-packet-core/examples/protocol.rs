@@ -1,8 +1,12 @@
+use std::{error::Error, fmt};
+
 use netlink_packet_core::{
-    NetlinkDeserializable, NetlinkHeader, NetlinkMessage, NetlinkPayload, NetlinkSerializable,
+    NetlinkDeserializable,
+    NetlinkHeader,
+    NetlinkMessage,
+    NetlinkPayload,
+    NetlinkSerializable,
 };
-use std::error::Error;
-use std::fmt;
 
 // PingPongMessage represent the messages for the "ping-pong" netlink
 // protocol. There are only two types of messages.

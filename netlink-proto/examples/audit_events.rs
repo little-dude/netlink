@@ -23,7 +23,12 @@
 
 use futures::stream::StreamExt;
 use netlink_packet_audit::{
-    AuditMessage, NetlinkMessage, NetlinkPayload, StatusMessage, NLM_F_ACK, NLM_F_REQUEST,
+    AuditMessage,
+    NetlinkMessage,
+    NetlinkPayload,
+    StatusMessage,
+    NLM_F_ACK,
+    NLM_F_REQUEST,
 };
 use std::process;
 

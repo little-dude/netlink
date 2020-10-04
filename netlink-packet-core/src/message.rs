@@ -3,8 +3,17 @@ use std::fmt::Debug;
 
 use crate::{
     payload::{NLMSG_DONE, NLMSG_ERROR, NLMSG_NOOP, NLMSG_OVERRUN},
-    AckMessage, DecodeError, Emitable, ErrorBuffer, ErrorMessage, NetlinkBuffer,
-    NetlinkDeserializable, NetlinkHeader, NetlinkPayload, NetlinkSerializable, Parseable,
+    AckMessage,
+    DecodeError,
+    Emitable,
+    ErrorBuffer,
+    ErrorMessage,
+    NetlinkBuffer,
+    NetlinkDeserializable,
+    NetlinkHeader,
+    NetlinkPayload,
+    NetlinkSerializable,
+    Parseable,
 };
 
 /// Represent a netlink message.

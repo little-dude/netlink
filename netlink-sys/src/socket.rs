@@ -1,6 +1,8 @@
-use std::io::{Error, Result};
-use std::mem;
-use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
+use std::{
+    io::{Error, Result},
+    mem,
+    os::unix::io::{AsRawFd, FromRawFd, RawFd},
+};
 
 use crate::SocketAddr;
 
@@ -15,18 +17,18 @@ use crate::SocketAddr;
 /// 3. read the reponse
 ///
 /// ```rust
+/// use netlink_sys::{protocols::NETLINK_ROUTE, Socket, SocketAddr};
 /// use std::process;
-/// use netlink_sys::{
-///     protocols::NETLINK_ROUTE,
-///     SocketAddr, Socket,
-/// };
 ///
 /// // open a new socket for the NETLINK_ROUTE subsystem (see "man 7 rtnetlink")
 /// let mut socket = Socket::new(NETLINK_ROUTE).unwrap();
 /// // address of the remote peer we'll send a message to. This particular address is for the kernel
 /// let kernel_addr = SocketAddr::new(0, 0);
 /// // this is a valid message for listing the network links on the system
-/// let pkt = vec![0x14, 0x00, 0x00, 0x00, 0x12, 0x00, 0x01, 0x03, 0xfd, 0xfe, 0x38, 0x5c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+/// let pkt = vec![
+///     0x14, 0x00, 0x00, 0x00, 0x12, 0x00, 0x01, 0x03, 0xfd, 0xfe, 0x38, 0x5c, 0x00, 0x00, 0x00,
+///     0x00, 0x00, 0x00, 0x00, 0x00,
+/// ];
 /// // send the message to the kernel
 /// let n_sent = socket.send_to(&pkt[..], &kernel_addr, 0).unwrap();
 /// assert_eq!(n_sent, pkt.len());
@@ -141,18 +143,18 @@ impl Socket {
     /// 4. read the response (which can span over several messages) [`Socket::recv`]
     ///
     /// ```rust
+    /// use netlink_sys::{protocols::NETLINK_ROUTE, Socket, SocketAddr};
     /// use std::process;
-    /// use netlink_sys::{
-    ///     protocols::NETLINK_ROUTE,
-    ///     SocketAddr, Socket,
-    /// };
     ///
     /// let mut socket = Socket::new(NETLINK_ROUTE).unwrap();
     /// let _ = socket.bind_auto().unwrap();
     /// let kernel_addr = SocketAddr::new(0, 0);
     /// socket.connect(&kernel_addr).unwrap();
     /// // This is a valid message for listing the network links on the system
-    /// let msg = vec![0x14, 0x00, 0x00, 0x00, 0x12, 0x00, 0x01, 0x03, 0xfd, 0xfe, 0x38, 0x5c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+    /// let msg = vec![
+    ///     0x14, 0x00, 0x00, 0x00, 0x12, 0x00, 0x01, 0x03, 0xfd, 0xfe, 0x38, 0x5c, 0x00, 0x00, 0x00,
+    ///     0x00, 0x00, 0x00, 0x00, 0x00,
+    /// ];
     /// let n_sent = socket.send(&msg[..], 0).unwrap();
     /// assert_eq!(n_sent, msg.len());
     /// // buffer for receiving the response

@@ -1,6 +1,8 @@
 use crate::{
     traits::{Emitable, Parseable},
-    DecodeError, NeighbourMessageBuffer, NEIGHBOUR_HEADER_LEN,
+    DecodeError,
+    NeighbourMessageBuffer,
+    NEIGHBOUR_HEADER_LEN,
 };
 
 /// Neighbour headers have the following structure:

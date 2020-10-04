@@ -3,7 +3,9 @@ use anyhow::Context;
 use crate::{
     nlas::nsid::Nla,
     traits::{Emitable, Parseable},
-    DecodeError, NsidHeader, NsidMessageBuffer,
+    DecodeError,
+    NsidHeader,
+    NsidMessageBuffer,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
@@ -47,8 +49,16 @@ impl Emitable for NsidMessage {
 #[cfg(test)]
 mod test {
     use crate::{
-        nlas::nsid::Nla, traits::ParseableParametrized, NetlinkBuffer, NsidHeader, NsidMessage,
-        RtnlMessage, RtnlMessageBuffer, NETNSA_NSID_NOT_ASSIGNED, RTM_GETNSID, RTM_NEWNSID,
+        nlas::nsid::Nla,
+        traits::ParseableParametrized,
+        NetlinkBuffer,
+        NsidHeader,
+        NsidMessage,
+        RtnlMessage,
+        RtnlMessageBuffer,
+        NETNSA_NSID_NOT_ASSIGNED,
+        RTM_GETNSID,
+        RTM_NEWNSID,
     };
 
     #[rustfmt::skip]

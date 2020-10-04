@@ -2,7 +2,8 @@ use futures::stream::StreamExt;
 
 use crate::{
     packet::{NetlinkMessage, NetlinkPayload, RouteMessage, RtnlMessage, NLM_F_ACK, NLM_F_REQUEST},
-    Error, Handle,
+    Error,
+    Handle,
 };
 
 pub struct RouteDelRequest {

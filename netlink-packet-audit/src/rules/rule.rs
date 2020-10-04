@@ -3,7 +3,12 @@ use byteorder::{ByteOrder, NativeEndian};
 use crate::{
     constants::AUDIT_MAX_FIELDS,
     rules::{
-        RuleAction, RuleBuffer, RuleField, RuleFieldFlags, RuleFlags, RuleSyscalls,
+        RuleAction,
+        RuleBuffer,
+        RuleField,
+        RuleFieldFlags,
+        RuleFlags,
+        RuleSyscalls,
         RULE_BUF_MIN_LEN,
     },
     traits::Emitable,

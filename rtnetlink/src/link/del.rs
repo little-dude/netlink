@@ -2,10 +2,17 @@ use futures::stream::StreamExt;
 
 use crate::{
     packet::{
-        LinkMessage, NetlinkMessage, NetlinkPayload, RtnlMessage, NLM_F_ACK, NLM_F_CREATE,
-        NLM_F_EXCL, NLM_F_REQUEST,
+        LinkMessage,
+        NetlinkMessage,
+        NetlinkPayload,
+        RtnlMessage,
+        NLM_F_ACK,
+        NLM_F_CREATE,
+        NLM_F_EXCL,
+        NLM_F_REQUEST,
     },
-    Error, Handle,
+    Error,
+    Handle,
 };
 
 pub struct LinkDelRequest {

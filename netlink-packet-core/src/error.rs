@@ -1,7 +1,8 @@
-use crate::{DecodeError, Emitable, Field, Parseable, Rest};
+use std::{fmt, io, mem::size_of};
+
 use byteorder::{ByteOrder, NativeEndian};
-use std::mem::size_of;
-use std::{fmt, io};
+
+use crate::{DecodeError, Emitable, Field, Parseable, Rest};
 
 const CODE: Field = 0..4;
 const PAYLOAD: Rest = 4..;

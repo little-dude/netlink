@@ -1,9 +1,20 @@
 use crate::{
     constants::*,
     traits::{Emitable, ParseableParametrized},
-    AddressMessage, DecodeError, LinkMessage, NeighbourMessage, NeighbourTableMessage,
-    NetlinkDeserializable, NetlinkHeader, NetlinkPayload, NetlinkSerializable, NsidMessage,
-    RouteMessage, RtnlMessageBuffer, RuleMessage, TcMessage,
+    AddressMessage,
+    DecodeError,
+    LinkMessage,
+    NeighbourMessage,
+    NeighbourTableMessage,
+    NetlinkDeserializable,
+    NetlinkHeader,
+    NetlinkPayload,
+    NetlinkSerializable,
+    NsidMessage,
+    RouteMessage,
+    RtnlMessageBuffer,
+    RuleMessage,
+    TcMessage,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -46,275 +57,139 @@ pub enum RtnlMessage {
 
 impl RtnlMessage {
     pub fn is_new_link(&self) -> bool {
-        if let RtnlMessage::NewLink(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::NewLink(_))
     }
 
     pub fn is_del_link(&self) -> bool {
-        if let RtnlMessage::DelLink(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::DelLink(_))
     }
 
     pub fn is_get_link(&self) -> bool {
-        if let RtnlMessage::GetLink(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::GetLink(_))
     }
 
     pub fn is_set_link(&self) -> bool {
-        if let RtnlMessage::SetLink(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::SetLink(_))
     }
 
     pub fn is_new_address(&self) -> bool {
-        if let RtnlMessage::NewAddress(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::NewAddress(_))
     }
 
     pub fn is_del_address(&self) -> bool {
-        if let RtnlMessage::DelAddress(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::DelAddress(_))
     }
 
     pub fn is_get_address(&self) -> bool {
-        if let RtnlMessage::GetAddress(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::GetAddress(_))
     }
 
     pub fn is_get_neighbour(&self) -> bool {
-        if let RtnlMessage::GetNeighbour(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::GetNeighbour(_))
     }
 
     pub fn is_new_route(&self) -> bool {
-        if let RtnlMessage::NewRoute(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::NewRoute(_))
     }
 
     pub fn is_new_neighbour(&self) -> bool {
-        if let RtnlMessage::NewNeighbour(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::NewNeighbour(_))
     }
 
     pub fn is_get_route(&self) -> bool {
-        if let RtnlMessage::GetRoute(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::GetRoute(_))
     }
 
     pub fn is_del_neighbour(&self) -> bool {
-        if let RtnlMessage::DelNeighbour(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::DelNeighbour(_))
     }
 
     pub fn is_new_neighbour_table(&self) -> bool {
-        if let RtnlMessage::NewNeighbourTable(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::NewNeighbourTable(_))
     }
 
     pub fn is_get_neighbour_table(&self) -> bool {
-        if let RtnlMessage::GetNeighbourTable(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::GetNeighbourTable(_))
     }
 
     pub fn is_set_neighbour_table(&self) -> bool {
-        if let RtnlMessage::SetNeighbourTable(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::SetNeighbourTable(_))
     }
 
     pub fn is_del_route(&self) -> bool {
-        if let RtnlMessage::DelRoute(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::DelRoute(_))
     }
 
     pub fn is_new_qdisc(&self) -> bool {
-        if let RtnlMessage::NewQueueDiscipline(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::NewQueueDiscipline(_))
     }
 
     pub fn is_del_qdisc(&self) -> bool {
-        if let RtnlMessage::DelQueueDiscipline(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::DelQueueDiscipline(_))
     }
 
     pub fn is_get_qdisc(&self) -> bool {
-        if let RtnlMessage::GetQueueDiscipline(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::GetQueueDiscipline(_))
     }
 
     pub fn is_new_class(&self) -> bool {
-        if let RtnlMessage::NewTrafficClass(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::NewTrafficClass(_))
     }
 
     pub fn is_del_class(&self) -> bool {
-        if let RtnlMessage::DelTrafficClass(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::DelTrafficClass(_))
     }
 
     pub fn is_get_class(&self) -> bool {
-        if let RtnlMessage::GetTrafficClass(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::GetTrafficClass(_))
     }
 
     pub fn is_new_filter(&self) -> bool {
-        if let RtnlMessage::NewTrafficFilter(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::NewTrafficFilter(_))
     }
 
     pub fn is_del_filter(&self) -> bool {
-        if let RtnlMessage::DelTrafficFilter(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::DelTrafficFilter(_))
     }
 
     pub fn is_get_filter(&self) -> bool {
-        if let RtnlMessage::GetTrafficFilter(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::GetTrafficFilter(_))
     }
 
     pub fn is_new_chain(&self) -> bool {
-        if let RtnlMessage::NewTrafficChain(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::NewTrafficChain(_))
     }
 
     pub fn is_del_chain(&self) -> bool {
-        if let RtnlMessage::DelTrafficChain(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::DelTrafficChain(_))
     }
 
     pub fn is_get_chain(&self) -> bool {
-        if let RtnlMessage::GetTrafficChain(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::GetTrafficChain(_))
     }
 
     pub fn is_new_nsid(&self) -> bool {
-        if let RtnlMessage::NewNsId(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::NewNsId(_))
     }
 
     pub fn is_get_nsid(&self) -> bool {
-        if let RtnlMessage::GetNsId(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::GetNsId(_))
     }
 
     pub fn is_del_nsid(&self) -> bool {
-        if let RtnlMessage::DelNsId(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::DelNsId(_))
     }
 
     pub fn is_get_rule(&self) -> bool {
-        if let RtnlMessage::GetRule(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::GetRule(_))
     }
 
     pub fn is_new_rule(&self) -> bool {
-        if let RtnlMessage::NewRule(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::NewRule(_))
     }
 
     pub fn is_del_rule(&self) -> bool {
-        if let RtnlMessage::DelRule(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, RtnlMessage::DelRule(_))
     }
 
     pub fn message_type(&self) -> u16 {

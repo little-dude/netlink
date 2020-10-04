@@ -3,10 +3,18 @@ use futures::stream::StreamExt;
 use crate::{
     packet::{
         nlas::link::{Info, InfoData, InfoKind, InfoVlan, Nla, VethInfo},
-        LinkMessage, NetlinkMessage, NetlinkPayload, RtnlMessage, IFF_UP, NLM_F_ACK, NLM_F_CREATE,
-        NLM_F_EXCL, NLM_F_REQUEST,
+        LinkMessage,
+        NetlinkMessage,
+        NetlinkPayload,
+        RtnlMessage,
+        IFF_UP,
+        NLM_F_ACK,
+        NLM_F_CREATE,
+        NLM_F_EXCL,
+        NLM_F_REQUEST,
     },
-    Error, Handle,
+    Error,
+    Handle,
 };
 
 /// A request to create a new link. This is equivalent to the `ip link add` commands.

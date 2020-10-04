@@ -2,7 +2,8 @@ use byteorder::{ByteOrder, NativeEndian};
 
 use crate::{
     traits::{Emitable, Parseable},
-    DecodeError, Field,
+    DecodeError,
+    Field,
 };
 
 const MASK: Field = 0..4;
