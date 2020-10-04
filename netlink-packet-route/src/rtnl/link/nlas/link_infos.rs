@@ -1563,6 +1563,124 @@ mod tests {
         assert_eq!(&vec[..], &IPVLAN[..]);
     }
 
+    #[rustfmt::skip]
+    static MACVLAN: [u8; 24] = [
+        0x0c, 0x00, // length = 12
+        0x01, 0x00, // type = 1 = IFLA_INFO_KIND
+        0x6d, 0x61, 0x63, 0x76, 0x6c, 0x61, 0x6e, 0x00, // V = "macvlan\0"
+        0x0c, 0x00, // length = 12
+        0x02, 0x00, // type = 2 = IFLA_INFO_DATA
+            0x08, 0x00, // length = 8
+            0x01, 0x00, // type = IFLA_MACVLAN_MODE
+            0x04, 0x00, 0x00, 0x00, // V = 4 = bridge
+    ];
+
+    lazy_static! {
+        static ref MACVLAN_INFO: Vec<InfoMacVlan> = vec![
+            InfoMacVlan::Mode(4), // bridge
+        ];
+    }
+
+    #[test]
+    fn parse_info_macvlan() {
+        let nla = NlaBuffer::new_checked(&MACVLAN[..]).unwrap();
+        let parsed = VecInfo::parse(&nla).unwrap().0;
+        let expected = vec![
+            Info::Kind(InfoKind::MacVlan),
+            Info::Data(InfoData::MacVlan(MACVLAN_INFO.clone())),
+        ];
+        assert_eq!(expected, parsed);
+    }
+
+    #[test]
+    fn emit_info_macvlan() {
+        let nlas = vec![
+            Info::Kind(InfoKind::MacVlan),
+            Info::Data(InfoData::MacVlan(MACVLAN_INFO.clone())),
+        ];
+
+        assert_eq!(nlas.as_slice().buffer_len(), 24);
+
+        let mut vec = vec![0xff; 24];
+        nlas.as_slice().emit(&mut vec);
+        assert_eq!(&vec[..], &MACVLAN[..]);
+    }
+
+    #[rustfmt::skip]
+    static MACVLAN_SOURCE_SET: [u8; 84] = [
+        0x0c, 0x00, // length = 12
+        0x01, 0x00, // type = 1 = IFLA_INFO_KIND
+        0x6d, 0x61, 0x63, 0x76, 0x6c, 0x61, 0x6e, 0x00, // V = "macvlan\0"
+        0x48, 0x00, // length = 72
+        0x02, 0x00, // type = 2 = IFLA_INFO_DATA
+            0x08, 0x00, // length = 8
+            0x03, 0x00, // type = 3 = IFLA_MACVLAN_MACADDR_MODE
+            0x03, 0x00, 0x00, 0x00, // V = 3 = set
+
+            0x34, 0x00, // length = 52
+            0x05, 0x00, // type = 5 = IFLA_MACVLAN_MACADDR_DATA
+                0x0a, 0x00, // length = 10
+                0x04, 0x00, // type = 4 = IFLA_MACVLAN_MACADDR
+                0x22, 0xf5, 0x54, 0x09, 0x88, 0xd7, // V = mac address
+                0x00, 0x00, // padding
+
+                0x0a, 0x00, // length = 10
+                0x04, 0x00, // type = 4 = IFLA_MACVLAN_MACADDR
+                0x22, 0xf5, 0x54, 0x09, 0x99, 0x32, // V = mac address
+                0x00, 0x00, // padding
+
+                0x0a, 0x00, // length = 10
+                0x04, 0x00, // type = 4 = IFLA_MACVLAN_MACADDR
+                0x22, 0xf5, 0x54, 0x09, 0x87, 0x45, // V = mac address
+                0x00, 0x00, // padding
+
+                0x0a, 0x00, // length = 10
+                0x04, 0x00, // type = 4 = IFLA_MACVLAN_MACADDR
+                0x22, 0xf5, 0x54, 0x09, 0x11, 0x45, // V = mac address
+                0x00, 0x00, // padding
+            0x08, 0x00, // length = 8
+            0x01, 0x00, // Type = 1 = IFLA_MACVLAN_MODE
+            0x10, 0x00, 0x00, 0x00, // V = 16 = source
+    ];
+
+    lazy_static! {
+        static ref MACVLAN_SOURCE_SET_INFO: Vec<InfoMacVlan> = vec![
+            InfoMacVlan::MacAddrMode(3), // set
+            InfoMacVlan::MacAddrData(vec![
+                                 InfoMacVlan::MacAddr([0x22, 0xf5, 0x54, 0x09, 0x88, 0xd7,]),
+                                 InfoMacVlan::MacAddr([0x22, 0xf5, 0x54, 0x09, 0x99, 0x32,]),
+                                 InfoMacVlan::MacAddr([0x22, 0xf5, 0x54, 0x09, 0x87, 0x45,]),
+                                 InfoMacVlan::MacAddr([0x22, 0xf5, 0x54, 0x09, 0x11, 0x45,]),
+            ]),
+            InfoMacVlan::Mode(16), // source
+        ];
+    }
+
+    #[test]
+    fn parse_info_macvlan_source_set() {
+        let nla = NlaBuffer::new_checked(&MACVLAN_SOURCE_SET[..]).unwrap();
+        let parsed = VecInfo::parse(&nla).unwrap().0;
+        let expected = vec![
+            Info::Kind(InfoKind::MacVlan),
+            Info::Data(InfoData::MacVlan(MACVLAN_SOURCE_SET_INFO.clone())),
+        ];
+        assert_eq!(expected, parsed);
+    }
+
+    #[test]
+    fn emit_info_macvlan_source_set() {
+        let nlas = vec![
+            Info::Kind(InfoKind::MacVlan),
+            Info::Data(InfoData::MacVlan(MACVLAN_SOURCE_SET_INFO.clone())),
+        ];
+
+        assert_eq!(nlas.as_slice().buffer_len(), 84);
+
+        let mut vec = vec![0xff; 84];
+        nlas.as_slice().emit(&mut vec);
+        assert_eq!(&vec[..], &MACVLAN_SOURCE_SET[..]);
+    }
+
     #[test]
     fn parse() {
         let nla = NlaBuffer::new_checked(&BRIDGE[..]).unwrap();
