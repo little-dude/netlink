@@ -2,7 +2,7 @@ use futures::stream::StreamExt;
 use std::net::{Ipv4Addr, Ipv6Addr};
 
 use netlink_packet_route::{
-    constants::*, nlas::rule::Nla, NetlinkMessage, NetlinkPayload, RuleMessage, RtnlMessage,
+    constants::*, nlas::rule::Nla, NetlinkMessage, NetlinkPayload, RtnlMessage, RuleMessage,
 };
 
 use crate::{Error, Handle};
@@ -100,14 +100,20 @@ impl RuleAddIpv4Request {
     /// Sets the source address prefix.
     pub fn source_prefix(mut self, addr: Ipv4Addr, prefix_length: u8) -> Self {
         self.0.message.header.src_len = prefix_length;
-        self.0.message.nlas.push(Nla::Source(addr.octets().to_vec()));
+        self.0
+            .message
+            .nlas
+            .push(Nla::Source(addr.octets().to_vec()));
         self
     }
 
     /// Sets the destination address prefix.
     pub fn destination_prefix(mut self, addr: Ipv4Addr, prefix_length: u8) -> Self {
         self.0.message.header.dst_len = prefix_length;
-        self.0.message.nlas.push(Nla::Destination(addr.octets().to_vec()));
+        self.0
+            .message
+            .nlas
+            .push(Nla::Destination(addr.octets().to_vec()));
         self
     }
 
@@ -160,14 +166,20 @@ impl RuleAddIpv6Request {
     /// Sets the source address prefix.
     pub fn source_prefix(mut self, addr: Ipv6Addr, prefix_length: u8) -> Self {
         self.0.message.header.src_len = prefix_length;
-        self.0.message.nlas.push(Nla::Source(addr.octets().to_vec()));
+        self.0
+            .message
+            .nlas
+            .push(Nla::Source(addr.octets().to_vec()));
         self
     }
 
     /// Sets the destination address prefix.
     pub fn destination_prefix(mut self, addr: Ipv6Addr, prefix_length: u8) -> Self {
         self.0.message.header.dst_len = prefix_length;
-        self.0.message.nlas.push(Nla::Destination(addr.octets().to_vec()));
+        self.0
+            .message
+            .nlas
+            .push(Nla::Destination(addr.octets().to_vec()));
         self
     }
 

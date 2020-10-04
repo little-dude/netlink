@@ -1,10 +1,10 @@
 use netlink_packet_core::{NetlinkHeader, NetlinkMessage, NetlinkPayload};
 use netlink_packet_route::constants::*;
 use netlink_packet_route::{rule, RtnlMessage, RuleHeader, RuleMessage};
-use netlink_sys::{Protocol, Socket, SocketAddr};
+use netlink_sys::{protocols::NETLINK_ROUTE, Socket, SocketAddr};
 
 fn main() {
-    let mut socket = Socket::new(Protocol::Route).unwrap();
+    let mut socket = Socket::new(NETLINK_ROUTE).unwrap();
     let _port_number = socket.bind_auto().unwrap().port_number();
     socket.connect(&SocketAddr::new(0, 0)).unwrap();
 

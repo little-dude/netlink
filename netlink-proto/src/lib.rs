@@ -21,7 +21,7 @@
 //!
 //! use netlink_proto::{
 //!     new_connection,
-//!     sys::{Protocol, SocketAddr},
+//!     sys::{SocketAddr, protocols::NETLINK_AUDIT},
 //! };
 //!
 //! const AUDIT_STATUS_ENABLED: u32 = 1;
@@ -42,7 +42,7 @@
 //!     //   messages that we have not solicited, ie that are not
 //!     //   response to a request we made. In this example, we'll receive
 //!     //   the audit event through that channel.
-//!     let (conn, mut handle, mut messages) = new_connection(Protocol::Audit)
+//!     let (conn, mut handle, mut messages) = new_connection(NETLINK_AUDIT)
 //!         .map_err(|e| format!("Failed to create a new netlink connection: {}", e))?;
 //!
 //!     // Spawn the `Connection` so that it starts polling the netlink
@@ -97,7 +97,7 @@
 //!
 //! This example shows how to use `netlink-proto` with the ROUTE
 //! protocol.
-
+//!
 //! Here we do not use `netlink_proto::new_connection()`, and instead
 //! create the socket manually and use call `send()` and `receive()`
 //! directly. In the previous example, the `NetlinkFramed` was wrapped
@@ -112,14 +112,14 @@
 //!
 //! use netlink_proto::{
 //!     new_connection,
-//!     sys::{Protocol, SocketAddr},
+//!     sys::{SocketAddr, protocols::NETLINK_ROUTE},
 //! };
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), String> {
 //!     // Create the netlink socket. Here, we won't use the channel that
 //!     // receives unsolicited messages.
-//!     let (conn, mut handle, _) = new_connection(Protocol::Route)
+//!     let (conn, mut handle, _) = new_connection(NETLINK_ROUTE)
 //!         .map_err(|e| format!("Failed to create a new netlink connection: {}", e))?;
 //!
 //!     // Spawn the `Connection` in the background
@@ -182,29 +182,33 @@ use std::fmt::Debug;
 use std::io;
 
 pub use netlink_packet_core as packet;
-pub use netlink_sys as sys;
 
-/// Create a new Netlink connection for the given Netlink protocol,
-/// and returns a handle to that connection as well as a stream of
-/// unsolicited messages received by that connection (unsolicited
-/// here means messages that are not a response to a request made by
-/// the `Connection`). `Connection<T>` wraps a Netlink socket and
-/// implements the Netlink protocol.
+pub mod sys {
+    pub use netlink_sys::protocols;
+    pub use netlink_sys::SocketAddr;
+    pub use netlink_sys::TokioSocket as Socket;
+}
+
+/// Create a new Netlink connection for the given Netlink protocol, and returns a handle to that
+/// connection as well as a stream of unsolicited messages received by that connection (unsolicited
+/// here means messages that are not a response to a request made by the `Connection`).
+/// `Connection<T>` wraps a Netlink socket and implements the Netlink protocol.
 ///
-/// `T` is the type of netlink messages used for this protocol. For
-/// instance, if you're using the AUDIT protocol with the
-/// `netlink-packet-audit` crate, `T` will be
-/// `netlink_packet_audit::AuditMessage`. More generally, `T` is
-/// anything that can be serialized and deserialized into a Netlink
-/// message. See the `netlink_packet_core` documentation for details
-/// about the `NetlinkSerializable` and `NetlinkDeserializable`
-/// traits.
+/// `protocol` must be one of the [`crate::sys::protocols`][protos] constants.
 ///
-/// Most of the time, users will want to spawn the `Connection` on an
-/// async runtime, and use the handle to send messages.
+/// `T` is the type of netlink messages used for this protocol. For instance, if you're using the
+/// `NETLINK_AUDIT` protocol with the `netlink-packet-audit` crate, `T` will be
+/// `netlink_packet_audit::AuditMessage`. More generally, `T` is anything that can be serialized
+/// and deserialized into a Netlink message. See the `netlink_packet_core` documentation for
+/// details about the `NetlinkSerializable` and `NetlinkDeserializable` traits.
+///
+/// Most of the time, users will want to spawn the `Connection` on an async runtime, and use the
+/// handle to send messages.
+///
+/// [protos]: crate::sys::protocols
 #[allow(clippy::type_complexity)]
 pub fn new_connection<T>(
-    protocol: netlink_sys::Protocol,
+    protocol: isize,
 ) -> io::Result<(
     Connection<T>,
     ConnectionHandle<T>,

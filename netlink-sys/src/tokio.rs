@@ -6,17 +6,42 @@ use std::{
 
 use futures::{future::poll_fn, ready};
 use log::trace;
+use mio::event::Evented;
+use mio::unix::EventedFd;
 use tokio::io::PollEvented;
 
-use crate::{
-    sys::{Socket as InnerSocket, SocketAddr},
-    Protocol,
-};
+use crate::{Socket, SocketAddr};
+
+impl Evented for Socket {
+    fn register(
+        &self,
+        poll: &mio::Poll,
+        token: mio::Token,
+        interest: mio::Ready,
+        opts: mio::PollOpt,
+    ) -> io::Result<()> {
+        EventedFd(&self.as_raw_fd()).register(poll, token, interest, opts)
+    }
+
+    fn reregister(
+        &self,
+        poll: &mio::Poll,
+        token: mio::Token,
+        interest: mio::Ready,
+        opts: mio::PollOpt,
+    ) -> io::Result<()> {
+        EventedFd(&self.as_raw_fd()).reregister(poll, token, interest, opts)
+    }
+
+    fn deregister(&self, poll: &mio::Poll) -> io::Result<()> {
+        EventedFd(&self.as_raw_fd()).deregister(poll)
+    }
+}
 
 /// An I/O object representing a Netlink socket.
-pub struct Socket(PollEvented<InnerSocket>);
+pub struct TokioSocket(PollEvented<Socket>);
 
-impl Socket {
+impl TokioSocket {
     /// This function will create a new Netlink socket and attempt to bind it to
     /// the `addr` provided.
     pub fn bind(&mut self, addr: &SocketAddr) -> io::Result<()> {
@@ -27,10 +52,10 @@ impl Socket {
         self.0.get_mut().bind_auto()
     }
 
-    pub fn new(protocol: Protocol) -> io::Result<Self> {
-        let socket = InnerSocket::new(protocol)?;
+    pub fn new(protocol: isize) -> io::Result<Self> {
+        let socket = Socket::new(protocol)?;
         socket.set_non_blocking(true)?;
-        Ok(Socket(PollEvented::new(socket)?))
+        Ok(TokioSocket(PollEvented::new(socket)?))
     }
 
     pub fn connect(&self, addr: &SocketAddr) -> io::Result<()> {
@@ -215,15 +240,15 @@ impl Socket {
     }
 }
 
-impl FromRawFd for Socket {
+impl FromRawFd for TokioSocket {
     unsafe fn from_raw_fd(fd: RawFd) -> Self {
-        let socket = InnerSocket::from_raw_fd(fd);
+        let socket = Socket::from_raw_fd(fd);
         socket.set_non_blocking(true).unwrap();
-        Socket(PollEvented::new(socket).unwrap())
+        TokioSocket(PollEvented::new(socket).unwrap())
     }
 }
 
-impl AsRawFd for Socket {
+impl AsRawFd for TokioSocket {
     fn as_raw_fd(&self) -> RawFd {
         self.0.get_ref().as_raw_fd()
     }

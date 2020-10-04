@@ -6,7 +6,7 @@ use futures::{
 };
 
 use netlink_packet_route::{
-    constants::*, NetlinkMessage, NetlinkPayload, RuleMessage, RtnlMessage
+    constants::*, NetlinkMessage, NetlinkPayload, RtnlMessage, RuleMessage,
 };
 
 use crate::{Error, Handle};
@@ -53,7 +53,7 @@ impl RuleGetRequest {
                     NetlinkPayload::InnerMessage(RtnlMessage::NewRule(msg)) => Ok(msg),
                     NetlinkPayload::Error(err) => Err(Error::NetlinkError(err)),
                     _ => Err(Error::UnexpectedMessage(NetlinkMessage::new(
-                        header, payload
+                        header, payload,
                     ))),
                 }
             })),

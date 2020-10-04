@@ -6,8 +6,7 @@ use futures::{
 
 use crate::{
     packet::{
-        nlas::link::Nla, LinkMessage, NetlinkMessage, NetlinkPayload, RtnlMessage, NLM_F_DUMP,
-        NLM_F_REQUEST,
+        constants::*, nlas::link::Nla, LinkMessage, NetlinkMessage, NetlinkPayload, RtnlMessage,
     },
     Error, Handle,
 };

@@ -11,24 +11,20 @@
 // ../target/debug/examples/audit_events
 // ```
 
-#[cfg(not(feature = "tokio_socket"))]
 use std::process;
 
-#[cfg(not(feature = "tokio_socket"))]
 use netlink_packet_audit::{
     AuditMessage, NetlinkBuffer, NetlinkMessage, StatusMessage, NLM_F_ACK, NLM_F_REQUEST,
 };
 
-#[cfg(not(feature = "tokio_socket"))]
-use netlink_sys::{Protocol, Socket, SocketAddr};
+use netlink_sys::{protocols::NETLINK_AUDIT, Socket, SocketAddr};
 
 pub const AUDIT_STATUS_ENABLED: u32 = 1;
 pub const AUDIT_STATUS_PID: u32 = 4;
 
-#[cfg(not(feature = "tokio_socket"))]
 fn main() {
     let kernel_unicast: SocketAddr = SocketAddr::new(0, 0);
-    let socket = Socket::new(Protocol::Audit).unwrap();
+    let socket = Socket::new(NETLINK_AUDIT).unwrap();
 
     let mut status = StatusMessage::new();
     status.enabled = 1;
@@ -62,6 +58,3 @@ fn main() {
         println!("<<< {:?}", parsed);
     }
 }
-
-#[cfg(feature = "tokio_socket")]
-fn main() {}

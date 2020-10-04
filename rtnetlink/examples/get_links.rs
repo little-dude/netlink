@@ -1,7 +1,12 @@
 use futures::stream::TryStreamExt;
-use netlink_packet_route::rtnl::constants::AF_BRIDGE;
-use netlink_sys::constants::RTEXT_FILTER_BRVLAN;
-use rtnetlink::{new_connection, packet::rtnl::link::nlas::Nla, Error, Handle};
+use rtnetlink::{
+    new_connection,
+    packet::rtnl::{
+        constants::{AF_BRIDGE, RTEXT_FILTER_BRVLAN},
+        link::nlas::Nla,
+    },
+    Error, Handle,
+};
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {

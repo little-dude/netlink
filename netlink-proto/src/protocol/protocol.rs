@@ -6,9 +6,9 @@ use std::{
 use netlink_packet_core::{
     constants::*, NetlinkDeserializable, NetlinkMessage, NetlinkPayload, NetlinkSerializable,
 };
-use netlink_sys::SocketAddr;
 
 use super::Request;
+use crate::sys::SocketAddr;
 
 #[derive(Debug, Eq, PartialEq, Hash)]
 struct RequestId {

@@ -2,18 +2,15 @@ use std::io;
 
 use async_io::Async;
 
-use crate::{
-    sys::{Socket as InnerSocket, SocketAddr},
-    Protocol,
-};
+use crate::{Socket, SocketAddr};
 
 /// An I/O object representing a Netlink socket.
-pub struct Socket(Async<InnerSocket>);
+pub struct SmolSocket(Async<Socket>);
 
-impl Socket {
-    pub fn new(protocol: Protocol) -> io::Result<Self> {
-        let socket = InnerSocket::new(protocol)?;
-        Ok(Socket(Async::new(socket)?))
+impl SmolSocket {
+    pub fn new(protocol: isize) -> io::Result<Self> {
+        let socket = Socket::new(protocol)?;
+        Ok(SmolSocket(Async::new(socket)?))
     }
 
     pub fn bind(&mut self, addr: &SocketAddr) -> io::Result<()> {
