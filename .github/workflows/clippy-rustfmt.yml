@@ -1,0 +1,32 @@
+name: Rustfmt and clippy check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - master
+
+jobs:
+  rustfmt_clippy:
+    strategy:
+      fail-fast: true
+
+    name: Rustfmt and clippy check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Rust Nightly
+        run: |
+          rustc -vV
+          rustup toolchain install nightly --allow-downgrade --component=clippy,rustfmt --profile=minimal
+          rustup default nightly
+          rustc -vV
+
+      - name: rustfmt
+        run: cargo fmt --all -- --check
+
+      - name: clippy
+        run: cargo clippy --all-features --workspace
