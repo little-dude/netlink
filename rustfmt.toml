@@ -1,0 +1,4 @@
+# requires unstable rustfmt until the options are stabilized
+format_code_in_doc_comments = true
+imports_layout = "HorizontalVertical"
+merge_imports = true
