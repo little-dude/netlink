@@ -1,9 +1,18 @@
 use crate::{
     packet::{
-        nlas::link::Nla, LinkMessage, NetlinkMessage, NetlinkPayload, RtnlMessage, IFF_UP,
-        NLM_F_ACK, NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST,
+        nlas::link::Nla,
+        LinkMessage,
+        NetlinkMessage,
+        NetlinkPayload,
+        RtnlMessage,
+        IFF_UP,
+        NLM_F_ACK,
+        NLM_F_CREATE,
+        NLM_F_EXCL,
+        NLM_F_REQUEST,
     },
-    Error, Handle,
+    Error,
+    Handle,
 };
 use futures::stream::StreamExt;
 use std::os::unix::io::RawFd;

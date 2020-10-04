@@ -178,15 +178,12 @@ mod handle;
 pub use crate::handle::*;
 
 use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
-use std::fmt::Debug;
-use std::io;
+use std::{fmt::Debug, io};
 
 pub use netlink_packet_core as packet;
 
 pub mod sys {
-    pub use netlink_sys::protocols;
-    pub use netlink_sys::SocketAddr;
-    pub use netlink_sys::TokioSocket as Socket;
+    pub use netlink_sys::{protocols, SocketAddr, TokioSocket as Socket};
 }
 
 /// Create a new Netlink connection for the given Netlink protocol, and returns a handle to that

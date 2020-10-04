@@ -1,5 +1,8 @@
 use super::{
-    QDiscGetRequest, TrafficChainGetRequest, TrafficClassGetRequest, TrafficFilterGetRequest,
+    QDiscGetRequest,
+    TrafficChainGetRequest,
+    TrafficClassGetRequest,
+    TrafficFilterGetRequest,
 };
 use crate::Handle;
 

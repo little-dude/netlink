@@ -6,7 +6,8 @@ use futures::{
 
 use crate::{
     packet::{NetlinkMessage, NetlinkPayload, RtnlMessage, TcMessage, NLM_F_DUMP, NLM_F_REQUEST},
-    Error, Handle,
+    Error,
+    Handle,
 };
 
 pub struct QDiscGetRequest {

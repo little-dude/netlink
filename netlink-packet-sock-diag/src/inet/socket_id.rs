@@ -1,6 +1,8 @@
 use byteorder::{BigEndian, ByteOrder};
-use std::convert::{TryFrom, TryInto};
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::{
+    convert::{TryFrom, TryInto},
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
+};
 
 use crate::{
     constants::*,

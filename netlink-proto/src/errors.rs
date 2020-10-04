@@ -1,6 +1,8 @@
-use std::error::Error as StdError;
-use std::fmt::{self, Debug};
-use std::io;
+use std::{
+    error::Error as StdError,
+    fmt::{self, Debug},
+    io,
+};
 
 use netlink_packet_core::NetlinkMessage;
 

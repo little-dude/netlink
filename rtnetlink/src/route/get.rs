@@ -5,7 +5,11 @@ use futures::{
 };
 
 use netlink_packet_route::{
-    constants::*, NetlinkMessage, NetlinkPayload, RouteMessage, RtnlMessage,
+    constants::*,
+    NetlinkMessage,
+    NetlinkPayload,
+    RouteMessage,
+    RtnlMessage,
 };
 
 use crate::{Error, Handle};

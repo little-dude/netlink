@@ -1,11 +1,11 @@
-use std::fmt::Debug;
-use std::io;
-use std::marker::PhantomData;
-use std::mem::MaybeUninit;
+use std::{fmt::Debug, io, marker::PhantomData, mem::MaybeUninit};
 
 use bytes::{BufMut, BytesMut};
 use netlink_packet_core::{
-    NetlinkBuffer, NetlinkDeserializable, NetlinkMessage, NetlinkSerializable,
+    NetlinkBuffer,
+    NetlinkDeserializable,
+    NetlinkMessage,
+    NetlinkSerializable,
 };
 use tokio_util::codec::{Decoder, Encoder};
 

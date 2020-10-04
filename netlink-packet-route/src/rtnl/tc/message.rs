@@ -3,7 +3,9 @@ use anyhow::Context;
 use crate::{
     nlas::tc::Nla,
     traits::{Emitable, Parseable},
-    DecodeError, TcMessageBuffer, TC_HEADER_LEN,
+    DecodeError,
+    TcMessageBuffer,
+    TC_HEADER_LEN,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]

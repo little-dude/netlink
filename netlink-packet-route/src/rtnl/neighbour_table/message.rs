@@ -1,7 +1,9 @@
 use crate::{
     nlas::neighbour_table::Nla,
     traits::{Emitable, Parseable},
-    DecodeError, NeighbourTableHeader, NeighbourTableMessageBuffer,
+    DecodeError,
+    NeighbourTableHeader,
+    NeighbourTableMessageBuffer,
 };
 use anyhow::Context;
 

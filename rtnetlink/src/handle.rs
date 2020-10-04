@@ -2,8 +2,15 @@ use futures::Stream;
 
 use crate::{
     packet::{NetlinkMessage, RtnlMessage},
-    AddressHandle, Error, LinkHandle, QDiscHandle, RouteHandle, RuleHandle, TrafficChainHandle,
-    TrafficClassHandle, TrafficFilterHandle,
+    AddressHandle,
+    Error,
+    LinkHandle,
+    QDiscHandle,
+    RouteHandle,
+    RuleHandle,
+    TrafficChainHandle,
+    TrafficClassHandle,
+    TrafficFilterHandle,
 };
 use netlink_proto::{sys::SocketAddr, ConnectionHandle};
 

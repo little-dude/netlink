@@ -3,7 +3,9 @@ use anyhow::Context;
 use crate::{
     nlas::link::Nla,
     traits::{Emitable, Parseable, ParseableParametrized},
-    DecodeError, LinkHeader, LinkMessageBuffer,
+    DecodeError,
+    LinkHeader,
+    LinkMessageBuffer,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
@@ -57,7 +59,9 @@ mod test {
         constants::*,
         nlas::link::{Nla, State},
         traits::{Emitable, ParseableParametrized},
-        LinkHeader, LinkMessage, LinkMessageBuffer,
+        LinkHeader,
+        LinkMessage,
+        LinkMessageBuffer,
     };
 
     #[rustfmt::skip]

@@ -7,18 +7,25 @@ use std::{
 
 use futures::{
     channel::mpsc::{UnboundedReceiver, UnboundedSender},
-    Future, Sink, Stream,
+    Future,
+    Sink,
+    Stream,
 };
 use log::{error, warn};
 use netlink_packet_core::{
-    NetlinkDeserializable, NetlinkMessage, NetlinkPayload, NetlinkSerializable,
+    NetlinkDeserializable,
+    NetlinkMessage,
+    NetlinkPayload,
+    NetlinkSerializable,
 };
 
 use crate::{
     codecs::NetlinkCodec,
     framed::NetlinkFramed,
     sys::{Socket, SocketAddr},
-    Protocol, Request, Response,
+    Protocol,
+    Request,
+    Response,
 };
 
 /// Connection to a Netlink socket, running in the background.

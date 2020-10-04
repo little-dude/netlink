@@ -12,6 +12,9 @@ const PAYLOAD: Rest = 16..;
 /// Length of a Netlink packet header
 pub const NETLINK_HEADER_LEN: usize = PAYLOAD.start;
 
+// Prevent some doctest snippers to be formatted, since we cannot add
+// the attribute directly in the doctest
+#[rustfmt::skip]
 #[derive(Debug, PartialEq, Eq, Clone)]
 /// A raw Netlink buffer that provides getters and setter for the various header fields, and to
 /// retrieve the payloads.
@@ -19,7 +22,7 @@ pub const NETLINK_HEADER_LEN: usize = PAYLOAD.start;
 /// # Example: reading a packet
 ///
 /// ```rust
-/// use netlink_packet_core::{NetlinkBuffer, NLM_F_ROOT, NLM_F_REQUEST, NLM_F_MATCH};
+/// use netlink_packet_core::{NetlinkBuffer, NLM_F_MATCH, NLM_F_REQUEST, NLM_F_ROOT};
 ///
 /// const RTM_GETLINK: u16 = 18;
 ///
@@ -49,14 +52,15 @@ pub const NETLINK_HEADER_LEN: usize = PAYLOAD.start;
 ///     assert_eq!(packet.payload(), &buffer[16..]);
 ///     assert_eq!(
 ///         Into::<u16>::into(packet.flags()),
-///         NLM_F_ROOT | NLM_F_REQUEST | NLM_F_MATCH);
+///         NLM_F_ROOT | NLM_F_REQUEST | NLM_F_MATCH
+///     );
 /// }
 /// ```
 ///
 /// # Example: writing a packet
 ///
 /// ```rust
-/// use netlink_packet_core::{NetlinkBuffer, NLM_F_ROOT, NLM_F_REQUEST, NLM_F_MATCH};
+/// use netlink_packet_core::{NetlinkBuffer, NLM_F_MATCH, NLM_F_REQUEST, NLM_F_ROOT};
 ///
 /// const RTM_GETLINK: u16 = 18;
 ///
@@ -87,9 +91,9 @@ pub const NETLINK_HEADER_LEN: usize = PAYLOAD.start;
 ///         packet.set_flags(From::from(NLM_F_ROOT | NLM_F_REQUEST | NLM_F_MATCH));
 ///         // we kind of cheat here to keep the example short
 ///         packet.payload_mut().copy_from_slice(&expected_buffer[16..]);
-///    }
-///    // Check that the storage contains the expected values
-///    assert_eq!(&buf[..], &expected_buffer[..]);
+///     }
+///     // Check that the storage contains the expected values
+///     assert_eq!(&buf[..], &expected_buffer[..]);
 /// }
 /// ```
 ///
@@ -100,16 +104,21 @@ pub struct NetlinkBuffer<T> {
     pub buffer: T,
 }
 
+// Prevent some doc strings to be formatted, since we cannot add the
+// attribute directly in the doctest
+#[rustfmt::skip]
 impl<T: AsRef<[u8]>> NetlinkBuffer<T> {
     /// Create a new `NetlinkBuffer` that uses the given buffer as storage. Note that when calling
     /// this method no check is performed, so trying to access fields may panic. If you're not sure
     /// the given buffer contains a valid netlink packet, use
     /// [`new_checked()`](struct.NetlinkBuffer.html#method.new_checked) instead.
-    ///
     pub fn new(buffer: T) -> NetlinkBuffer<T> {
         NetlinkBuffer { buffer }
     }
 
+    // Prevent some doc strings to be formatted, since we cannot add
+    // the attribute directly in the doctest
+    #[rustfmt::skip]
     /// Check the length of the given buffer and make sure it's big enough so that trying to access
     /// packet fields won't panic. If the buffer is big enough, create a new `NewlinkBuffer` that
     /// uses this buffer as storage.
@@ -119,11 +128,9 @@ impl<T: AsRef<[u8]>> NetlinkBuffer<T> {
     /// With a buffer that does not even contain a full header:
     ///
     /// ```rust
-    /// # use netlink_packet_core::NetlinkBuffer;
-    /// # fn main() {
+    /// use netlink_packet_core::NetlinkBuffer;
     /// static BYTES: [u8; 4] = [0x28, 0x00, 0x00, 0x00];
     /// assert!(NetlinkBuffer::new_checked(&BYTES[..]).is_err());
-    /// # }
     /// ```
     ///
     /// Here is a slightly more tricky error, where technically, the buffer is big enough to
@@ -132,8 +139,7 @@ impl<T: AsRef<[u8]>> NetlinkBuffer<T> {
     /// header:
     ///
     /// ```rust
-    /// # use netlink_packet_core::NetlinkBuffer;
-    /// # fn main() {
+    /// use netlink_packet_core::NetlinkBuffer;
     /// // The buffer is 24 bytes long. It contains a valid header but a truncated payload
     /// static BYTES: [u8; 24] = [
     ///     // The length field says the buffer is 40 bytes long
@@ -145,7 +151,6 @@ impl<T: AsRef<[u8]>> NetlinkBuffer<T> {
     ///     // payload
     ///     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
     /// assert!(NetlinkBuffer::new_checked(&BYTES[..]).is_err());
-    /// # }
     /// ```
     pub fn new_checked(buffer: T) -> Result<NetlinkBuffer<T>, DecodeError> {
         let packet = Self::new(buffer);

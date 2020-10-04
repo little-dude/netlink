@@ -14,7 +14,12 @@
 use std::process;
 
 use netlink_packet_audit::{
-    AuditMessage, NetlinkBuffer, NetlinkMessage, StatusMessage, NLM_F_ACK, NLM_F_REQUEST,
+    AuditMessage,
+    NetlinkBuffer,
+    NetlinkMessage,
+    StatusMessage,
+    NLM_F_ACK,
+    NLM_F_REQUEST,
 };
 
 use netlink_sys::{protocols::NETLINK_AUDIT, Socket, SocketAddr};

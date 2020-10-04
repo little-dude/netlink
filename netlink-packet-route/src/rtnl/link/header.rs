@@ -1,6 +1,8 @@
 use crate::{
     traits::{Emitable, Parseable},
-    DecodeError, LinkMessageBuffer, LINK_HEADER_LEN,
+    DecodeError,
+    LinkMessageBuffer,
+    LINK_HEADER_LEN,
 };
 
 /// High level representation of `RTM_GETLINK`, `RTM_SETLINK`, `RTM_NEWLINK` and `RTM_DELLINK`

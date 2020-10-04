@@ -4,7 +4,11 @@ use std::{
 };
 
 use netlink_packet_core::{
-    constants::*, NetlinkDeserializable, NetlinkMessage, NetlinkPayload, NetlinkSerializable,
+    constants::*,
+    NetlinkDeserializable,
+    NetlinkMessage,
+    NetlinkPayload,
+    NetlinkSerializable,
 };
 
 use super::Request;

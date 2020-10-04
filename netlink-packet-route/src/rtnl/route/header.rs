@@ -1,7 +1,9 @@
 use crate::{
     constants::*,
     traits::{Emitable, Parseable},
-    DecodeError, RouteMessageBuffer, ROUTE_HEADER_LEN,
+    DecodeError,
+    RouteMessageBuffer,
+    ROUTE_HEADER_LEN,
 };
 
 bitflags! {
@@ -56,7 +58,7 @@ impl Default for RouteFlags {
 ///
 /// ```rust
 /// extern crate netlink_packet_route;
-/// use netlink_packet_route::{constants::*, RouteHeader, RouteFlags};
+/// use netlink_packet_route::{constants::*, RouteFlags, RouteHeader};
 ///
 /// fn main() {
 ///     let mut hdr = RouteHeader::default();

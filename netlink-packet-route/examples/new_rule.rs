@@ -1,6 +1,5 @@
 use netlink_packet_core::{NetlinkHeader, NetlinkMessage, NetlinkPayload};
-use netlink_packet_route::constants::*;
-use netlink_packet_route::{rule, RtnlMessage, RuleHeader, RuleMessage};
+use netlink_packet_route::{constants::*, rule, RtnlMessage, RuleHeader, RuleMessage};
 use netlink_sys::{protocols::NETLINK_ROUTE, Socket, SocketAddr};
 
 fn main() {

@@ -1,8 +1,8 @@
-use super::buffer::RuleMessageBuffer;
-use super::header::RuleHeader;
-use super::nlas::Nla;
-use crate::utils::{Emitable, Parseable};
-use crate::DecodeError;
+use super::{buffer::RuleMessageBuffer, header::RuleHeader, nlas::Nla};
+use crate::{
+    utils::{Emitable, Parseable},
+    DecodeError,
+};
 use anyhow::Context;
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]

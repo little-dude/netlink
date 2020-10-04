@@ -1,5 +1,7 @@
-use crate::nlas::{NlaBuffer, NlasIterator};
-use crate::DecodeError;
+use crate::{
+    nlas::{NlaBuffer, NlasIterator},
+    DecodeError,
+};
 
 pub const RULE_HEADER_LEN: usize = 12;
 

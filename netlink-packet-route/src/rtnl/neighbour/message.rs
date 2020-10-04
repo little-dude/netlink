@@ -3,7 +3,9 @@ use anyhow::Context;
 use crate::{
     nlas::neighbour::Nla,
     traits::{Emitable, Parseable},
-    DecodeError, NeighbourHeader, NeighbourMessageBuffer,
+    DecodeError,
+    NeighbourHeader,
+    NeighbourMessageBuffer,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
@@ -48,7 +50,11 @@ impl<'a, T: AsRef<[u8]> + 'a> Parseable<NeighbourMessageBuffer<&'a T>> for Vec<N
 #[cfg(test)]
 mod test {
     use crate::{
-        constants::*, traits::Emitable, NeighbourHeader, NeighbourMessage, NeighbourMessageBuffer,
+        constants::*,
+        traits::Emitable,
+        NeighbourHeader,
+        NeighbourMessage,
+        NeighbourMessageBuffer,
     };
 
     // 0020   0a 00 00 00 02 00 00 00 02 00 80 01 14 00 01 00

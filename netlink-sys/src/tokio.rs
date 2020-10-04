@@ -6,8 +6,7 @@ use std::{
 
 use futures::{future::poll_fn, ready};
 use log::trace;
-use mio::event::Evented;
-use mio::unix::EventedFd;
+use mio::{event::Evented, unix::EventedFd};
 use tokio::io::PollEvented;
 
 use crate::{Socket, SocketAddr};

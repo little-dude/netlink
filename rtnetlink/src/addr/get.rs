@@ -6,7 +6,12 @@ use futures::{
 use std::net::IpAddr;
 
 use netlink_packet_route::{
-    nlas::address::Nla, AddressMessage, NetlinkMessage, NetlinkPayload, RtnlMessage, NLM_F_DUMP,
+    nlas::address::Nla,
+    AddressMessage,
+    NetlinkMessage,
+    NetlinkPayload,
+    RtnlMessage,
+    NLM_F_DUMP,
     NLM_F_REQUEST,
 };
 

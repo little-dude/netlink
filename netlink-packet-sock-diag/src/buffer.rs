@@ -2,7 +2,9 @@ use crate::{
     constants::*,
     inet,
     traits::{Parseable, ParseableParametrized},
-    unix, DecodeError, SockDiagMessage,
+    unix,
+    DecodeError,
+    SockDiagMessage,
 };
 use anyhow::Context;
 

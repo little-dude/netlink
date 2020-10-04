@@ -6,8 +6,16 @@ use std::{
 use crate::{
     constants::*,
     inet::{
-        nlas::Nla, ExtensionFlags, InetRequest, InetRequestBuffer, InetResponse,
-        InetResponseBuffer, InetResponseHeader, SocketId, StateFlags, Timer,
+        nlas::Nla,
+        ExtensionFlags,
+        InetRequest,
+        InetRequestBuffer,
+        InetResponse,
+        InetResponseBuffer,
+        InetResponseHeader,
+        SocketId,
+        StateFlags,
+        Timer,
     },
     traits::{Emitable, Parseable},
 };

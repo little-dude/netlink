@@ -2,7 +2,12 @@ use futures::stream::StreamExt;
 use std::net::{Ipv4Addr, Ipv6Addr};
 
 use netlink_packet_route::{
-    constants::*, nlas::route::Nla, NetlinkMessage, NetlinkPayload, RouteMessage, RtnlMessage,
+    constants::*,
+    nlas::route::Nla,
+    NetlinkMessage,
+    NetlinkPayload,
+    RouteMessage,
+    RtnlMessage,
 };
 
 use crate::{Error, Handle};

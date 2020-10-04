@@ -3,7 +3,9 @@ use crate::{
     nlas::{DefaultNla, Nla, NlaBuffer, NlasIterator},
     parsers::{parse_mac, parse_string, parse_u16, parse_u16_be, parse_u32, parse_u64, parse_u8},
     traits::{Emitable, Parseable},
-    DecodeError, LinkMessage, LinkMessageBuffer,
+    DecodeError,
+    LinkMessage,
+    LinkMessageBuffer,
 };
 use anyhow::Context;
 use byteorder::{BigEndian, ByteOrder, NativeEndian};

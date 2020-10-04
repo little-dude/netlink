@@ -2,8 +2,13 @@ use crate::{
     constants::*,
     rules::RuleMessage,
     traits::{Emitable, ParseableParametrized},
-    AuditBuffer, DecodeError, NetlinkDeserializable, NetlinkHeader, NetlinkPayload,
-    NetlinkSerializable, StatusMessage,
+    AuditBuffer,
+    DecodeError,
+    NetlinkDeserializable,
+    NetlinkHeader,
+    NetlinkPayload,
+    NetlinkSerializable,
+    StatusMessage,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]

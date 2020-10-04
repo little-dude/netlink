@@ -2,9 +2,15 @@ use futures::stream::StreamExt;
 
 use crate::{
     packet::{
-        AddressMessage, NetlinkMessage, NetlinkPayload, RtnlMessage, NLM_F_ACK, NLM_F_REQUEST,
+        AddressMessage,
+        NetlinkMessage,
+        NetlinkPayload,
+        RtnlMessage,
+        NLM_F_ACK,
+        NLM_F_REQUEST,
     },
-    Error, Handle,
+    Error,
+    Handle,
 };
 
 pub struct AddressDelRequest {

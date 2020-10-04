@@ -27,7 +27,7 @@
 //! `netlink-packet-route`.
 //!
 //! ```rust
-//! use netlink_packet_core::{NLM_F_DUMP, NLM_F_REQUEST, NetlinkMessage, NetlinkHeader};
+//! use netlink_packet_core::{NetlinkHeader, NetlinkMessage, NLM_F_DUMP, NLM_F_REQUEST};
 //! use netlink_packet_route::{LinkMessage, RtnlMessage};
 //!
 //! // Create the netlink message, that contains the rtnetlink
@@ -55,7 +55,8 @@
 //! packet.serialize(&mut buf[..]);
 //!
 //! // Deserialize the packet
-//! let deserialized_packet = NetlinkMessage::<RtnlMessage>::deserialize(&buf).expect("Failed to deserialize message");
+//! let deserialized_packet =
+//!     NetlinkMessage::<RtnlMessage>::deserialize(&buf).expect("Failed to deserialize message");
 //!
 //! // Normally, the deserialized packet should be exactly the same
 //! // than the serialized one.

@@ -2,15 +2,20 @@
 //!
 //! auditctl -w /etc/passwd -p rwxa -k my_key
 //! auditctl -a always,exit -F arch=b64 -S personality -F key=bypass
-//!
 
 use audit::{
     new_connection,
     packet::{
-        constants::AUDIT_ARCH_X86_64, RuleAction, RuleField, RuleFieldFlags, RuleFlags,
-        RuleMessage, RuleSyscalls,
+        constants::AUDIT_ARCH_X86_64,
+        RuleAction,
+        RuleField,
+        RuleFieldFlags,
+        RuleFlags,
+        RuleMessage,
+        RuleSyscalls,
     },
-    Error, Handle,
+    Error,
+    Handle,
 };
 
 #[tokio::main]

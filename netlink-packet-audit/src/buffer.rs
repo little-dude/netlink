@@ -2,7 +2,10 @@ use crate::{
     constants::*,
     rules::{RuleBuffer, RuleMessage},
     traits::{Parseable, ParseableParametrized},
-    AuditMessage, DecodeError, StatusMessage, StatusMessageBuffer,
+    AuditMessage,
+    DecodeError,
+    StatusMessage,
+    StatusMessageBuffer,
 };
 use anyhow::Context;
 
