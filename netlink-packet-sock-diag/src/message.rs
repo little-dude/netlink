@@ -8,41 +8,25 @@ use crate::{
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum SockDiagMessage {
     InetRequest(inet::InetRequest),
-    InetResponse(inet::InetResponse),
+    InetResponse(Box<inet::InetResponse>),
     UnixRequest(unix::UnixRequest),
-    UnixResponse(unix::UnixResponse),
+    UnixResponse(Box<unix::UnixResponse>),
 }
 
 impl SockDiagMessage {
     pub fn is_inet_request(&self) -> bool {
-        if let SockDiagMessage::InetRequest(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, SockDiagMessage::InetRequest(_))
     }
 
     pub fn is_inet_response(&self) -> bool {
-        if let SockDiagMessage::InetResponse(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, SockDiagMessage::InetResponse(_))
     }
     pub fn is_unix_request(&self) -> bool {
-        if let SockDiagMessage::UnixRequest(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, SockDiagMessage::UnixRequest(_))
     }
 
     pub fn is_unix_response(&self) -> bool {
-        if let SockDiagMessage::UnixResponse(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, SockDiagMessage::UnixResponse(_))
     }
 
     pub fn message_type(&self) -> u16 {

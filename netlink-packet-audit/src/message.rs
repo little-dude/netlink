@@ -29,51 +29,27 @@ pub enum AuditMessage {
 
 impl AuditMessage {
     pub fn is_event(&self) -> bool {
-        if let AuditMessage::Event(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, AuditMessage::Event(_))
     }
 
     pub fn is_get_status(&self) -> bool {
-        if let AuditMessage::GetStatus(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, AuditMessage::GetStatus(_))
     }
 
     pub fn is_set_status(&self) -> bool {
-        if let AuditMessage::GetStatus(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, AuditMessage::GetStatus(_))
     }
 
     pub fn is_add_rule(&self) -> bool {
-        if let AuditMessage::AddRule(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, AuditMessage::AddRule(_))
     }
 
     pub fn is_del_rule(&self) -> bool {
-        if let AuditMessage::DelRule(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, AuditMessage::DelRule(_))
     }
 
     pub fn is_list_rules(&self) -> bool {
-        if let AuditMessage::ListRules(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(self, AuditMessage::ListRules(_))
     }
 
     pub fn message_type(&self) -> u16 {
