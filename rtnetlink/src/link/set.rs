@@ -5,6 +5,8 @@ use crate::{
         NetlinkMessage,
         NetlinkPayload,
         RtnlMessage,
+        IFF_NOARP,
+        IFF_PROMISC,
         IFF_UP,
         NLM_F_ACK,
         NLM_F_CREATE,
@@ -61,14 +63,37 @@ impl LinkSetRequest {
 
     /// Set the link with the given index up (equivalent to `ip link set dev DEV up`)
     pub fn up(mut self) -> Self {
-        self.message.header.flags = IFF_UP;
-        self.message.header.change_mask = IFF_UP;
+        self.message.header.flags |= IFF_UP;
+        self.message.header.change_mask |= IFF_UP;
         self
     }
 
     /// Set the link with the given index down (equivalent to `ip link set dev DEV down`)
     pub fn down(mut self) -> Self {
-        self.message.header.change_mask = IFF_UP;
+        self.message.header.flags &= !IFF_UP;
+        self.message.header.change_mask |= IFF_UP;
+        self
+    }
+
+    /// Enable or disable promiscious mode of the link with the given index (equivalent to `ip link set dev DEV promisc on/off`)
+    pub fn promiscuous(mut self, enable: bool) -> Self {
+        if enable {
+            self.message.header.flags |= IFF_PROMISC;
+        } else {
+            self.message.header.flags &= !IFF_PROMISC;
+        }
+        self.message.header.change_mask |= IFF_PROMISC;
+        self
+    }
+
+    /// Enable or disable the ARP protocol of the link with the given index (equivalent to `ip link set dev DEV arp on/off`)
+    pub fn arp(mut self, enable: bool) -> Self {
+        if enable {
+            self.message.header.flags &= !IFF_NOARP;
+        } else {
+            self.message.header.flags |= IFF_NOARP;
+        }
+        self.message.header.change_mask |= IFF_NOARP;
         self
     }
 
