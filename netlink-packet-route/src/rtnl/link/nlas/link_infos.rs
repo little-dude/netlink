@@ -164,7 +164,17 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for VecInfo {
                                 }
                                 InfoData::IpVlan(v)
                             }
-                            InfoKind::MacVlan => InfoData::MacVlan(payload.to_vec()),
+                            InfoKind::MacVlan => {
+                                let mut v = Vec::new();
+                                let err =
+                                    "failed to parse IFLA_INFO_DATA (IFLA_INFO_KIND is 'macvlan')";
+                                for nla in NlasIterator::new(payload) {
+                                    let nla = &nla.context(err)?;
+                                    let parsed = InfoMacVlan::parse(nla).context(err)?;
+                                    v.push(parsed);
+                                }
+                                InfoData::MacVlan(v)
+                            }
                             InfoKind::MacVtap => InfoData::MacVtap(payload.to_vec()),
                             InfoKind::GreTap => InfoData::GreTap(payload.to_vec()),
                             InfoKind::GreTap6 => InfoData::GreTap6(payload.to_vec()),
@@ -213,7 +223,7 @@ pub enum InfoData {
     Vxlan(Vec<u8>),
     Bond(Vec<u8>),
     IpVlan(Vec<InfoIpVlan>),
-    MacVlan(Vec<u8>),
+    MacVlan(Vec<InfoMacVlan>),
     MacVtap(Vec<u8>),
     GreTap(Vec<u8>),
     GreTap6(Vec<u8>),
@@ -238,13 +248,13 @@ impl Nla for InfoData {
             Veth(ref msg) => msg.buffer_len(),
             IpVlan(ref nlas) => nlas.as_slice().buffer_len(),
             Ipoib(ref nlas) => nlas.as_slice().buffer_len(),
+            MacVlan(ref nlas) => nlas.as_slice().buffer_len(),
             Dummy(ref bytes)
                 | Tun(ref bytes)
                 | Nlmon(ref bytes)
                 | Ifb(ref bytes)
                 | Vxlan(ref bytes)
                 | Bond(ref bytes)
-                | MacVlan(ref bytes)
                 | MacVtap(ref bytes)
                 | GreTap(ref bytes)
                 | GreTap6(ref bytes)
@@ -269,13 +279,13 @@ impl Nla for InfoData {
             Veth(ref msg) => msg.emit(buffer),
             IpVlan(ref nlas) => nlas.as_slice().emit(buffer),
             Ipoib(ref nlas) => nlas.as_slice().emit(buffer),
+            MacVlan(ref nlas) => nlas.as_slice().emit(buffer),
             Dummy(ref bytes)
                 | Tun(ref bytes)
                 | Nlmon(ref bytes)
                 | Ifb(ref bytes)
                 | Vxlan(ref bytes)
                 | Bond(ref bytes)
-                | MacVlan(ref bytes)
                 | MacVtap(ref bytes)
                 | GreTap(ref bytes)
                 | GreTap6(ref bytes)
@@ -1079,6 +1089,98 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoIpVlan {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum InfoMacVlan {
+    Unspec(Vec<u8>),
+    Mode(u32),
+    Flags(u16),
+    MacAddrMode(u32),
+    MacAddr([u8; 6]),
+    MacAddrData(Vec<InfoMacVlan>),
+    MacAddrCount(u32),
+    Other(DefaultNla),
+}
+
+impl Nla for InfoMacVlan {
+    fn value_len(&self) -> usize {
+        use self::InfoMacVlan::*;
+        match self {
+            Unspec(bytes) => bytes.len(),
+            Mode(_) => 4,
+            Flags(_) => 2,
+            MacAddrMode(_) => 4,
+            MacAddr(_) => 6,
+            MacAddrData(ref nlas) => nlas.as_slice().buffer_len(),
+            MacAddrCount(_) => 4,
+            Other(nla) => nla.value_len(),
+        }
+    }
+
+    fn emit_value(&self, buffer: &mut [u8]) {
+        use self::InfoMacVlan::*;
+        match self {
+            Unspec(bytes) => buffer.copy_from_slice(bytes.as_slice()),
+            Mode(value) => NativeEndian::write_u32(buffer, *value),
+            Flags(value) => NativeEndian::write_u16(buffer, *value),
+            MacAddrMode(value) => NativeEndian::write_u32(buffer, *value),
+            MacAddr(bytes) => buffer.copy_from_slice(bytes),
+            MacAddrData(ref nlas) => nlas.as_slice().emit(buffer),
+            MacAddrCount(value) => NativeEndian::write_u32(buffer, *value),
+            Other(nla) => nla.emit_value(buffer),
+        }
+    }
+
+    fn kind(&self) -> u16 {
+        use self::InfoMacVlan::*;
+        match self {
+            Unspec(_) => IFLA_MACVLAN_UNSPEC,
+            Mode(_) => IFLA_MACVLAN_MODE,
+            Flags(_) => IFLA_MACVLAN_FLAGS,
+            MacAddrMode(_) => IFLA_MACVLAN_MACADDR_MODE,
+            MacAddr(_) => IFLA_MACVLAN_MACADDR,
+            MacAddrData(_) => IFLA_MACVLAN_MACADDR_DATA,
+            MacAddrCount(_) => IFLA_MACVLAN_MACADDR_COUNT,
+            Other(nla) => nla.kind(),
+        }
+    }
+}
+
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoMacVlan {
+    fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
+        use self::InfoMacVlan::*;
+        let payload = buf.value();
+        Ok(match buf.kind() {
+            IFLA_MACVLAN_UNSPEC => Unspec(payload.to_vec()),
+            IFLA_MACVLAN_MODE => {
+                Mode(parse_u32(payload).context("invalid IFLA_MACVLAN_MODE value")?)
+            }
+            IFLA_MACVLAN_FLAGS => {
+                Flags(parse_u16(payload).context("invalid IFLA_MACVLAN_FLAGS value")?)
+            }
+            IFLA_MACVLAN_MACADDR_MODE => {
+                MacAddrMode(parse_u32(payload).context("invalid IFLA_MACVLAN_MACADDR_MODE value")?)
+            }
+            IFLA_MACVLAN_MACADDR => {
+                MacAddr(parse_mac(payload).context("invalid IFLA_MACVLAN_MACADDR value")?)
+            }
+            IFLA_MACVLAN_MACADDR_DATA => {
+                let mut mac_data = Vec::new();
+                let err = "failed to parse IFLA_MACVLAN_MACADDR_DATA";
+                for nla in NlasIterator::new(payload) {
+                    let nla = &nla.context(err)?;
+                    let parsed = InfoMacVlan::parse(nla).context(err)?;
+                    mac_data.push(parsed);
+                }
+                MacAddrData(mac_data)
+            }
+            IFLA_MACVLAN_MACADDR_COUNT => MacAddrCount(
+                parse_u32(payload).context("invalid IFLA_MACVLAN_MACADDR_COUNT value")?,
+            ),
+            kind => Other(DefaultNla::parse(buf).context(format!("unknown NLA type {}", kind))?),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1459,6 +1561,124 @@ mod tests {
         let mut vec = vec![0xff; 32];
         nlas.as_slice().emit(&mut vec);
         assert_eq!(&vec[..], &IPVLAN[..]);
+    }
+
+    #[rustfmt::skip]
+    static MACVLAN: [u8; 24] = [
+        0x0c, 0x00, // length = 12
+        0x01, 0x00, // type = 1 = IFLA_INFO_KIND
+        0x6d, 0x61, 0x63, 0x76, 0x6c, 0x61, 0x6e, 0x00, // V = "macvlan\0"
+        0x0c, 0x00, // length = 12
+        0x02, 0x00, // type = 2 = IFLA_INFO_DATA
+            0x08, 0x00, // length = 8
+            0x01, 0x00, // type = IFLA_MACVLAN_MODE
+            0x04, 0x00, 0x00, 0x00, // V = 4 = bridge
+    ];
+
+    lazy_static! {
+        static ref MACVLAN_INFO: Vec<InfoMacVlan> = vec![
+            InfoMacVlan::Mode(4), // bridge
+        ];
+    }
+
+    #[test]
+    fn parse_info_macvlan() {
+        let nla = NlaBuffer::new_checked(&MACVLAN[..]).unwrap();
+        let parsed = VecInfo::parse(&nla).unwrap().0;
+        let expected = vec![
+            Info::Kind(InfoKind::MacVlan),
+            Info::Data(InfoData::MacVlan(MACVLAN_INFO.clone())),
+        ];
+        assert_eq!(expected, parsed);
+    }
+
+    #[test]
+    fn emit_info_macvlan() {
+        let nlas = vec![
+            Info::Kind(InfoKind::MacVlan),
+            Info::Data(InfoData::MacVlan(MACVLAN_INFO.clone())),
+        ];
+
+        assert_eq!(nlas.as_slice().buffer_len(), 24);
+
+        let mut vec = vec![0xff; 24];
+        nlas.as_slice().emit(&mut vec);
+        assert_eq!(&vec[..], &MACVLAN[..]);
+    }
+
+    #[rustfmt::skip]
+    static MACVLAN_SOURCE_SET: [u8; 84] = [
+        0x0c, 0x00, // length = 12
+        0x01, 0x00, // type = 1 = IFLA_INFO_KIND
+        0x6d, 0x61, 0x63, 0x76, 0x6c, 0x61, 0x6e, 0x00, // V = "macvlan\0"
+        0x48, 0x00, // length = 72
+        0x02, 0x00, // type = 2 = IFLA_INFO_DATA
+            0x08, 0x00, // length = 8
+            0x03, 0x00, // type = 3 = IFLA_MACVLAN_MACADDR_MODE
+            0x03, 0x00, 0x00, 0x00, // V = 3 = set
+
+            0x34, 0x00, // length = 52
+            0x05, 0x00, // type = 5 = IFLA_MACVLAN_MACADDR_DATA
+                0x0a, 0x00, // length = 10
+                0x04, 0x00, // type = 4 = IFLA_MACVLAN_MACADDR
+                0x22, 0xf5, 0x54, 0x09, 0x88, 0xd7, // V = mac address
+                0x00, 0x00, // padding
+
+                0x0a, 0x00, // length = 10
+                0x04, 0x00, // type = 4 = IFLA_MACVLAN_MACADDR
+                0x22, 0xf5, 0x54, 0x09, 0x99, 0x32, // V = mac address
+                0x00, 0x00, // padding
+
+                0x0a, 0x00, // length = 10
+                0x04, 0x00, // type = 4 = IFLA_MACVLAN_MACADDR
+                0x22, 0xf5, 0x54, 0x09, 0x87, 0x45, // V = mac address
+                0x00, 0x00, // padding
+
+                0x0a, 0x00, // length = 10
+                0x04, 0x00, // type = 4 = IFLA_MACVLAN_MACADDR
+                0x22, 0xf5, 0x54, 0x09, 0x11, 0x45, // V = mac address
+                0x00, 0x00, // padding
+            0x08, 0x00, // length = 8
+            0x01, 0x00, // Type = 1 = IFLA_MACVLAN_MODE
+            0x10, 0x00, 0x00, 0x00, // V = 16 = source
+    ];
+
+    lazy_static! {
+        static ref MACVLAN_SOURCE_SET_INFO: Vec<InfoMacVlan> = vec![
+            InfoMacVlan::MacAddrMode(3), // set
+            InfoMacVlan::MacAddrData(vec![
+                                 InfoMacVlan::MacAddr([0x22, 0xf5, 0x54, 0x09, 0x88, 0xd7,]),
+                                 InfoMacVlan::MacAddr([0x22, 0xf5, 0x54, 0x09, 0x99, 0x32,]),
+                                 InfoMacVlan::MacAddr([0x22, 0xf5, 0x54, 0x09, 0x87, 0x45,]),
+                                 InfoMacVlan::MacAddr([0x22, 0xf5, 0x54, 0x09, 0x11, 0x45,]),
+            ]),
+            InfoMacVlan::Mode(16), // source
+        ];
+    }
+
+    #[test]
+    fn parse_info_macvlan_source_set() {
+        let nla = NlaBuffer::new_checked(&MACVLAN_SOURCE_SET[..]).unwrap();
+        let parsed = VecInfo::parse(&nla).unwrap().0;
+        let expected = vec![
+            Info::Kind(InfoKind::MacVlan),
+            Info::Data(InfoData::MacVlan(MACVLAN_SOURCE_SET_INFO.clone())),
+        ];
+        assert_eq!(expected, parsed);
+    }
+
+    #[test]
+    fn emit_info_macvlan_source_set() {
+        let nlas = vec![
+            Info::Kind(InfoKind::MacVlan),
+            Info::Data(InfoData::MacVlan(MACVLAN_SOURCE_SET_INFO.clone())),
+        ];
+
+        assert_eq!(nlas.as_slice().buffer_len(), 84);
+
+        let mut vec = vec![0xff; 84];
+        nlas.as_slice().emit(&mut vec);
+        assert_eq!(&vec[..], &MACVLAN_SOURCE_SET[..]);
     }
 
     #[test]
