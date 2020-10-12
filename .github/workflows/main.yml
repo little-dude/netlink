@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - master
+
+jobs:
+  ci:
+    strategy:
+      fail-fast: true
+
+    name: CI (stable)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Rust Stable
+        run: |
+          rustc -vV
+          rustup update stable
+          rustup default stable
+          rustc -vV
+
+      - name: test (netlink-sys)
+        run: |
+          cd netlink-sys
+          cargo test
+          cargo test --features tokio_socket
+
+      - name: test (netlink-packet-audit)
+        run: |
+          cd netlink-packet-audit
+          cargo test
+
+      - name: test (netlink-packet-core)
+        run: |
+          cd netlink-packet-core
+          cargo test
+
+      - name: test (netlink-packet-route)
+        run: |
+          cd netlink-packet-route
+          cargo test
+
+      - name: test (netlink-packet-sock-diag)
+        run: |
+          cd netlink-packet-sock-diag
+          cargo test
+
+      - name: test (netlink-packet-utils)
+        run: |
+          cd netlink-packet-utils
+          cargo test
+
+      - name: test (netlink-proto)
+        run: |
+          cd netlink-proto
+          cargo test
+          cargo test --features workaround-audit-bug
+
+      - name: test (rtnetlink)
+        run: |
+          cd rtnetlink
+          cargo test
+
+      - name: test (audit)
+        run: |
+          cd audit
+          cargo test

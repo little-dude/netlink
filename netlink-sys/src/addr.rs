@@ -69,16 +69,16 @@ use std::{
 /// use std::process;
 ///
 /// let mut socket = Socket::new(NETLINK_ROUTE).unwrap();
-/// // set the socket port number to 1
-/// let mut addr = SocketAddr::new(1, 0);
+/// // set the socket port number to 2
+/// let mut addr = SocketAddr::new(2, 0);
 /// socket.bind(&addr).unwrap();
 /// // Retrieve the socket address
 /// socket.get_address(&mut addr).unwrap();
-/// assert_eq!(1, addr.port_number());
+/// assert_eq!(2, addr.port_number());
 ///
 /// // Creating a second socket with the same port number fails
 /// let mut socket2 = Socket::new(NETLINK_ROUTE).unwrap();
-/// let mut addr2 = SocketAddr::new(1, 0);
+/// let mut addr2 = SocketAddr::new(2, 0);
 /// socket2.bind(&addr2).unwrap_err();
 /// ```
 ///

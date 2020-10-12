@@ -6,10 +6,10 @@ use netlink_packet_sock_diag::{
     NetlinkPayload,
     SockDiagMessage,
 };
-use netlink_sys::{Protocol, Socket, SocketAddr};
+use netlink_sys::{protocols::NETLINK_SOCK_DIAG, Socket, SocketAddr};
 
 fn main() {
-    let mut socket = Socket::new(Protocol::SockDiag).unwrap();
+    let mut socket = Socket::new(NETLINK_SOCK_DIAG).unwrap();
     let _port_number = socket.bind_auto().unwrap().port_number();
     socket.connect(&SocketAddr::new(0, 0)).unwrap();
 
