@@ -160,7 +160,17 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for VecInfo {
                                 let parsed = VethInfo::parse(&nla_buf).context(err)?;
                                 InfoData::Veth(parsed)
                             }
-                            InfoKind::Vxlan => InfoData::Vxlan(payload.to_vec()),
+                            InfoKind::Vxlan => {
+                                let mut v = Vec::new();
+                                let err =
+                                    "failed to parse IFLA_INFO_DATA (IFLA_INFO_KIND is 'vxlan')";
+                                for nla in NlasIterator::new(payload) {
+                                    let nla = &nla.context(err)?;
+                                    let parsed = InfoVxlan::parse(nla).context(err)?;
+                                    v.push(parsed);
+                                }
+                                InfoData::Vxlan(v)
+                            }
                             InfoKind::Bond => InfoData::Bond(payload.to_vec()),
                             InfoKind::IpVlan => {
                                 let mut v = Vec::new();
@@ -229,7 +239,7 @@ pub enum InfoData {
     Dummy(Vec<u8>),
     Ifb(Vec<u8>),
     Veth(VethInfo),
-    Vxlan(Vec<u8>),
+    Vxlan(Vec<InfoVxlan>),
     Bond(Vec<u8>),
     IpVlan(Vec<InfoIpVlan>),
     MacVlan(Vec<InfoMacVlan>),
@@ -258,11 +268,11 @@ impl Nla for InfoData {
             IpVlan(ref nlas) => nlas.as_slice().buffer_len(),
             Ipoib(ref nlas) => nlas.as_slice().buffer_len(),
             MacVlan(ref nlas) => nlas.as_slice().buffer_len(),
+            Vxlan(ref nlas) => nlas.as_slice().buffer_len(),
             Dummy(ref bytes)
                 | Tun(ref bytes)
                 | Nlmon(ref bytes)
                 | Ifb(ref bytes)
-                | Vxlan(ref bytes)
                 | Bond(ref bytes)
                 | MacVtap(ref bytes)
                 | GreTap(ref bytes)
@@ -289,11 +299,11 @@ impl Nla for InfoData {
             IpVlan(ref nlas) => nlas.as_slice().emit(buffer),
             Ipoib(ref nlas) => nlas.as_slice().emit(buffer),
             MacVlan(ref nlas) => nlas.as_slice().emit(buffer),
+            Vxlan(ref nlas) => nlas.as_slice().emit(buffer),
             Dummy(ref bytes)
                 | Tun(ref bytes)
                 | Nlmon(ref bytes)
                 | Ifb(ref bytes)
-                | Vxlan(ref bytes)
                 | Bond(ref bytes)
                 | MacVtap(ref bytes)
                 | GreTap(ref bytes)
