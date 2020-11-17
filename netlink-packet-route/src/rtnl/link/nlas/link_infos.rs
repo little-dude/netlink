@@ -532,7 +532,6 @@ impl Nla for InfoVxlan {
         }
     }
 
-
     fn kind(&self) -> u16 {
         use self::InfoVxlan::*;
 
@@ -557,7 +556,7 @@ impl Nla for InfoVxlan {
             RemCsumTX(_) => IFLA_VXLAN_REMCSUM_TX,
             RemCsumRX(_) => IFLA_VXLAN_REMCSUM_RX,
             Df(_) => IFLA_VXLAN_UNSPEC, // IFLA_VXLAN_DF is missing...
-            Unspec(_) => IFLA_VXLAN_UNSPEC
+            Unspec(_) => IFLA_VXLAN_UNSPEC,
         }
     }
 }
@@ -569,25 +568,44 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoVxlan {
         Ok(match buf.kind() {
             IFLA_VLAN_UNSPEC => Unspec(payload.to_vec()),
             IFLA_VXLAN_ID => Id(parse_u32(payload).context("invalid IFLA_VXLAN_ID value")?),
-            // IFLA_VLAN_FLAGS => {
-            //     let err = "invalid IFLA_VLAN_FLAGS value";
-            //     if payload.len() != 8 {
-            //         return Err(err.into());
-            //     }
-            //     let flags = parse_u32(&payload[0..4]).context(err)?;
-            //     let mask = parse_u32(&payload[4..]).context(err)?;
-            //     Flags((flags, mask))
-            // }
-            // IFLA_VLAN_EGRESS_QOS => EgressQos(payload.to_vec()),
-            // IFLA_VLAN_INGRESS_QOS => IngressQos(payload.to_vec()),
-            // IFLA_VLAN_PROTOCOL => {
-            //     Protocol(parse_u16_be(payload).context("invalid IFLA_VLAN_PROTOCOL value")?)
-            // }
+            IFLA_VXLAN_LINK => Link(parse_u32(payload).context("invalid IFLA_VXLAN_LINK value")?),
+            IFLA_VXLAN_TOS => Tos(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?),
+            IFLA_VXLAN_TTL => Ttl(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?),
+            IFLA_VXLAN_LABEL => Label(parse_u32(payload).context("invalid IFLA_VXLAN_TOS value")?),
+            IFLA_VXLAN_LEARNING => {
+                Learning(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?)
+            }
+            IFLA_VXLAN_AGEING => {
+                Ageing(parse_u32(payload).context("invalid IFLA_VXLAN_TOS value")?)
+            }
+            IFLA_VXLAN_LIMIT => Limit(parse_u32(payload).context("invalid IFLA_VXLAN_TOS value")?),
+            IFLA_VXLAN_PROXY => Proxy(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?),
+            IFLA_VXLAN_RSC => Rsc(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?),
+            IFLA_VXLAN_L2MISS => L2Miss(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?),
+            IFLA_VXLAN_L3MISS => L3Miss(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?),
+            IFLA_VXLAN_COLLECT_METADATA => {
+                CollectMetadata(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?)
+            }
+            IFLA_VXLAN_PORT => Port(parse_u16(payload).context("invalid IFLA_VXLAN_TOS value")?),
+            IFLA_VXLAN_UDP_CSUM => {
+                UDPCsum(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?)
+            }
+            IFLA_VXLAN_UDP_ZERO_CSUM6_TX => {
+                UDPZeroCsumTX(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?)
+            }
+            IFLA_VXLAN_UDP_ZERO_CSUM6_RX => {
+                UDPZeroCsumRX(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?)
+            }
+            IFLA_VXLAN_REMCSUM_TX => {
+                RemCsumTX(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?)
+            }
+            IFLA_VXLAN_REMCSUM_RX => {
+                RemCsumRX(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?)
+            }
             _ => return Err(format!("unknown NLA type {}", buf.kind()).into()),
         })
     }
 }
-
 
 // https://elixir.bootlin.com/linux/latest/source/net/8021q/vlan_netlink.c#L21
 #[derive(Debug, PartialEq, Eq, Clone)]
