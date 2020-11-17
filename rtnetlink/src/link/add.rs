@@ -2,7 +2,7 @@ use futures::stream::StreamExt;
 
 use crate::{
     packet::{
-        nlas::link::{Info, InfoData, InfoKind, InfoVlan, Nla, VethInfo},
+        nlas::link::{Info, InfoData, InfoKind, InfoVlan, InfoVxlan, Nla, VethInfo},
         LinkMessage,
         NetlinkMessage,
         NetlinkPayload,
@@ -114,6 +114,22 @@ impl LinkAddRequest {
                 Some(InfoData::Vlan(vec![InfoVlan::Id(vlan_id)])),
             )
             .append_nla(Nla::Link(index))
+            .up()
+    }
+
+    /// Create a VxLAN on a link
+    /// This is equivalent to ip link add name NAME type vxlan id VNI dev LINK
+    /// but instead of specifying a link name (`LINK`), we specify a link index.
+    pub fn vxlan(self, name: String, index: u32, vni: u32) -> Self {
+        self.name(name)
+            .link_info(
+                InfoKind::Vxlan,
+                Some(InfoData::Vxlan(vec![
+                    InfoVxlan::Id(vni),
+                    InfoVxlan::Link(index),
+                    InfoVxlan::Port(4789u16),
+                ])),
+            )
             .up()
     }
 

@@ -460,12 +460,12 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoKind {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum InfoVxlan {
     Unspec(Vec<u8>),
+    Id(u32),
     Group(u32),
     Group6(u128),
-    Id(u32),
+    Link(u32),
     Local(u32),
     Local6(u128),
-    Link(u32),
     Tos(u8),
     Ttl(u8),
     Label(u32),
@@ -539,7 +539,7 @@ impl Nla for InfoVxlan {
                 | Link(ref value)
                 | Ageing(ref value)
                 | Limit(ref value)
-                => BigEndian::write_u32(buffer, *value),
+                => NativeEndian::write_u32(buffer, *value),
             Tos(ref value)
                 | Ttl(ref value)
                 | Learning (ref value)
@@ -557,11 +557,11 @@ impl Nla for InfoVxlan {
                 =>  buffer[0] = *value,
             Group6(ref value) |
                 Local6(ref value)
-            => BigEndian::write_u128(buffer, *value),
-            Port(ref value) => BigEndian::write_u16(buffer, *value),
+            => NativeEndian::write_u128(buffer, *value),
+            Port(ref value) => NativeEndian::write_u16(buffer, *value),
             PortRange(ref range) => {
-                BigEndian::write_u16(buffer, range.0);
-                BigEndian::write_u16(buffer, range.1)
+                NativeEndian::write_u16(buffer, range.0);
+                NativeEndian::write_u16(buffer, range.1)
             }
         }
     }
