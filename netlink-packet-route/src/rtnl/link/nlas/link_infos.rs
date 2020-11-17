@@ -1,7 +1,16 @@
 use crate::{
     constants::*,
     nlas::{DefaultNla, Nla, NlaBuffer, NlasIterator},
-    parsers::{parse_mac, parse_string, parse_u16, parse_u16_be, parse_u32, parse_u64, parse_u8},
+    parsers::{
+        parse_mac,
+        parse_string,
+        parse_u128,
+        parse_u16,
+        parse_u16_be,
+        parse_u32,
+        parse_u64,
+        parse_u8,
+    },
     traits::{Emitable, Parseable},
     DecodeError,
     LinkMessage,
@@ -441,11 +450,11 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoKind {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum InfoVxlan {
     Unspec(Vec<u8>),
-    //Group(...),
-    //Group6(...),
+    Group(u32),
+    Group6(u128),
     Id(u32),
-    //Local(...),
-    //Local6(...),
+    Local(u32),
+    Local6(u128),
     Link(u32),
     Tos(u8),
     Ttl(u8),
@@ -453,7 +462,7 @@ pub enum InfoVxlan {
     Learning(u8),
     Ageing(u32),
     Limit(u32),
-    //PortRange(...),
+    PortRange((u16, u16)),
     Proxy(u8),
     Rsc(u8),
     L2Miss(u8),
@@ -493,11 +502,17 @@ impl Nla for InfoVxlan {
             => 1,
             Port(_) => 2,
             Id(_) |
+                Group(_) |
+                Local(_) |
                 Label(_) |
                 Link(_) |
                 Ageing(_) |
-                Limit(_)
+                Limit(_) |
+                PortRange(_)
             => 4,
+            Group6(_) |
+                Local6(_)
+            => 16,
             Unspec(bytes) => bytes.len()
         }
     }
@@ -508,6 +523,8 @@ impl Nla for InfoVxlan {
         match self {
             Unspec(ref bytes) => buffer.copy_from_slice(bytes),
             Id(ref value)
+                | Group(ref value)
+                | Local(ref value)
                 | Label(ref value)
                 | Link(ref value)
                 | Ageing(ref value)
@@ -528,7 +545,14 @@ impl Nla for InfoVxlan {
                 | RemCsumRX(ref value)
                 | Df(ref value)
                 =>  buffer[0] = *value,
+            Group6(ref value) |
+                Local6(ref value)
+            => BigEndian::write_u128(buffer, *value),
             Port(ref value) => BigEndian::write_u16(buffer, *value),
+            PortRange(ref range) => {
+                BigEndian::write_u16(buffer, range.0);
+                BigEndian::write_u16(buffer, range.1)
+            }
         }
     }
 
@@ -537,13 +561,18 @@ impl Nla for InfoVxlan {
 
         match self {
             Id(_) => IFLA_VXLAN_ID,
+            Group(_) => IFLA_VXLAN_GROUP,
+            Group6(_) => IFLA_VXLAN_GROUP6,
             Link(_) => IFLA_VXLAN_LINK,
+            Local(_) => IFLA_VXLAN_LOCAL,
+            Local6(_) => IFLA_VXLAN_LOCAL,
             Tos(_) => IFLA_VXLAN_TOS,
             Ttl(_) => IFLA_VXLAN_TTL,
             Label(_) => IFLA_VXLAN_LABEL,
             Learning(_) => IFLA_VXLAN_LEARNING,
             Ageing(_) => IFLA_VXLAN_AGEING,
             Limit(_) => IFLA_VXLAN_LIMIT,
+            PortRange(_) => IFLA_VXLAN_PORT_RANGE,
             Proxy(_) => IFLA_VXLAN_PROXY,
             Rsc(_) => IFLA_VXLAN_RSC,
             L2Miss(_) => IFLA_VXLAN_L2MISS,
@@ -568,39 +597,68 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoVxlan {
         Ok(match buf.kind() {
             IFLA_VLAN_UNSPEC => Unspec(payload.to_vec()),
             IFLA_VXLAN_ID => Id(parse_u32(payload).context("invalid IFLA_VXLAN_ID value")?),
+            IFLA_VXLAN_GROUP => {
+                Group(parse_u32(payload).context("invalid IFLA_VXLAN_GROUP value")?)
+            }
+            IFLA_VXLAN_GROUP6 => {
+                Group6(parse_u128(payload).context("invalid IFLA_VXLAN_GROUP6 value")?)
+            }
             IFLA_VXLAN_LINK => Link(parse_u32(payload).context("invalid IFLA_VXLAN_LINK value")?),
+            IFLA_VXLAN_LOCAL => {
+                Local(parse_u32(payload).context("invalid IFLA_VXLAN_LOCAL value")?)
+            }
+            IFLA_VXLAN_LOCAL6 => {
+                Local6(parse_u128(payload).context("invalid IFLA_VXLAN_LOCAL6 value")?)
+            }
             IFLA_VXLAN_TOS => Tos(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?),
-            IFLA_VXLAN_TTL => Ttl(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?),
-            IFLA_VXLAN_LABEL => Label(parse_u32(payload).context("invalid IFLA_VXLAN_TOS value")?),
+            IFLA_VXLAN_TTL => Ttl(parse_u8(payload).context("invalid IFLA_VXLAN_TTL value")?),
+            IFLA_VXLAN_LABEL => {
+                Label(parse_u32(payload).context("invalid IFLA_VXLAN_LABEL value")?)
+            }
             IFLA_VXLAN_LEARNING => {
-                Learning(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?)
+                Learning(parse_u8(payload).context("invalid IFLA_VXLAN_LEARNING value")?)
             }
             IFLA_VXLAN_AGEING => {
-                Ageing(parse_u32(payload).context("invalid IFLA_VXLAN_TOS value")?)
+                Ageing(parse_u32(payload).context("invalid IFLA_VXLAN_AGEING value")?)
             }
-            IFLA_VXLAN_LIMIT => Limit(parse_u32(payload).context("invalid IFLA_VXLAN_TOS value")?),
-            IFLA_VXLAN_PROXY => Proxy(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?),
-            IFLA_VXLAN_RSC => Rsc(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?),
-            IFLA_VXLAN_L2MISS => L2Miss(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?),
-            IFLA_VXLAN_L3MISS => L3Miss(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?),
-            IFLA_VXLAN_COLLECT_METADATA => {
-                CollectMetadata(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?)
+            IFLA_VXLAN_LIMIT => {
+                Limit(parse_u32(payload).context("invalid IFLA_VXLAN_LIMIT value")?)
             }
-            IFLA_VXLAN_PORT => Port(parse_u16(payload).context("invalid IFLA_VXLAN_TOS value")?),
+            IFLA_VXLAN_PROXY => Proxy(parse_u8(payload).context("invalid IFLA_VXLAN_PROXY value")?),
+            IFLA_VXLAN_RSC => Rsc(parse_u8(payload).context("invalid IFLA_VXLAN_RSC value")?),
+            IFLA_VXLAN_L2MISS => {
+                L2Miss(parse_u8(payload).context("invalid IFLA_VXLAN_L2MISS value")?)
+            }
+            IFLA_VXLAN_L3MISS => {
+                L3Miss(parse_u8(payload).context("invalid IFLA_VXLAN_L3MISS value")?)
+            }
+            IFLA_VXLAN_COLLECT_METADATA => CollectMetadata(
+                parse_u8(payload).context("invalid IFLA_VXLAN_COLLECT_METADATA value")?,
+            ),
+            IFLA_VXLAN_PORT_RANGE => {
+                let err = "invalid IFLA_VXLAN_PORT value";
+                if payload.len() != 4 {
+                    return Err(err.into());
+                }
+                let low = parse_u16(&payload[0..2]).context(err)?;
+                let high = parse_u16(&payload[2..]).context(err)?;
+                PortRange((low, high))
+            }
+            IFLA_VXLAN_PORT => Port(parse_u16(payload).context("invalid IFLA_VXLAN_PORT value")?),
             IFLA_VXLAN_UDP_CSUM => {
-                UDPCsum(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?)
+                UDPCsum(parse_u8(payload).context("invalid IFLA_VXLAN_UDP_CSUM value")?)
             }
-            IFLA_VXLAN_UDP_ZERO_CSUM6_TX => {
-                UDPZeroCsumTX(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?)
-            }
-            IFLA_VXLAN_UDP_ZERO_CSUM6_RX => {
-                UDPZeroCsumRX(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?)
-            }
+            IFLA_VXLAN_UDP_ZERO_CSUM6_TX => UDPZeroCsumTX(
+                parse_u8(payload).context("invalid IFLA_VXLAN_UDP_ZERO_CSUM6_TX value")?,
+            ),
+            IFLA_VXLAN_UDP_ZERO_CSUM6_RX => UDPZeroCsumRX(
+                parse_u8(payload).context("invalid IFLA_VXLAN_UDP_ZERO_CSUM6_RX value")?,
+            ),
             IFLA_VXLAN_REMCSUM_TX => {
-                RemCsumTX(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?)
+                RemCsumTX(parse_u8(payload).context("invalid IFLA_VXLAN_REMCSUM_TX value")?)
             }
             IFLA_VXLAN_REMCSUM_RX => {
-                RemCsumRX(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?)
+                RemCsumRX(parse_u8(payload).context("invalid IFLA_VXLAN_REMCSUM_RX value")?)
             }
             _ => return Err(format!("unknown NLA type {}", buf.kind()).into()),
         })
