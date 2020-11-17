@@ -437,6 +437,158 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoKind {
     }
 }
 
+// https://elixir.bootlin.com/linux/v5.9.8/source/drivers/net/vxlan.c#L3332
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum InfoVxlan {
+    Unspec(Vec<u8>),
+    //Group(...),
+    //Group6(...),
+    Id(u32),
+    //Local(...),
+    //Local6(...),
+    Link(u32),
+    Tos(u8),
+    Ttl(u8),
+    Label(u32),
+    Learning(u8),
+    Ageing(u32),
+    Limit(u32),
+    //PortRange(...),
+    Proxy(u8),
+    Rsc(u8),
+    L2Miss(u8),
+    L3Miss(u8),
+    CollectMetadata(u8),
+    Port(u16),
+    UDPCsum(u8),
+    UDPZeroCsumTX(u8),
+    UDPZeroCsumRX(u8),
+    RemCsumTX(u8),
+    RemCsumRX(u8),
+    //Gbp(...),
+    //Gpe(...),
+    //RemCsumNoPartial(...),
+    Df(u8),
+}
+
+impl Nla for InfoVxlan {
+    #[rustfmt::skip]
+    fn value_len(&self) -> usize {
+        use self::InfoVxlan::*;
+        match self {
+            Tos(_) |
+                Ttl(_) |
+                Learning(_) |
+                Proxy(_) |
+                Rsc(_) |
+                L2Miss(_) |
+                L3Miss(_) |
+                CollectMetadata(_) |
+                UDPCsum(_) |
+                UDPZeroCsumTX(_) |
+                UDPZeroCsumRX(_) |
+                RemCsumTX(_) |
+                RemCsumRX(_) |
+                Df(_)
+            => 1,
+            Port(_) => 2,
+            Id(_) |
+                Label(_) |
+                Link(_) |
+                Ageing(_) |
+                Limit(_)
+            => 4,
+            Unspec(bytes) => bytes.len()
+        }
+    }
+
+    #[rustfmt::skip]
+    fn emit_value(&self, buffer: &mut [u8]) {
+        use self::InfoVxlan::*;
+        match self {
+            Unspec(ref bytes) => buffer.copy_from_slice(bytes),
+            Id(ref value)
+                | Label(ref value)
+                | Link(ref value)
+                | Ageing(ref value)
+                | Limit(ref value)
+                => BigEndian::write_u32(buffer, *value),
+            Tos(ref value)
+                | Ttl(ref value)
+                | Learning (ref value)
+                | Proxy(ref value)
+                | Rsc(ref value)
+                | L2Miss(ref value)
+                | L3Miss(ref value)
+                | CollectMetadata(ref value)
+                | UDPCsum(ref value)
+                | UDPZeroCsumTX(ref value)
+                | UDPZeroCsumRX(ref value)
+                | RemCsumTX(ref value)
+                | RemCsumRX(ref value)
+                | Df(ref value)
+                =>  buffer[0] = *value,
+            Port(ref value) => BigEndian::write_u16(buffer, *value),
+        }
+    }
+
+
+    fn kind(&self) -> u16 {
+        use self::InfoVxlan::*;
+
+        match self {
+            Id(_) => IFLA_VXLAN_ID,
+            Link(_) => IFLA_VXLAN_LINK,
+            Tos(_) => IFLA_VXLAN_TOS,
+            Ttl(_) => IFLA_VXLAN_TTL,
+            Label(_) => IFLA_VXLAN_LABEL,
+            Learning(_) => IFLA_VXLAN_LEARNING,
+            Ageing(_) => IFLA_VXLAN_AGEING,
+            Limit(_) => IFLA_VXLAN_LIMIT,
+            Proxy(_) => IFLA_VXLAN_PROXY,
+            Rsc(_) => IFLA_VXLAN_RSC,
+            L2Miss(_) => IFLA_VXLAN_L2MISS,
+            L3Miss(_) => IFLA_VXLAN_L3MISS,
+            CollectMetadata(_) => IFLA_VXLAN_COLLECT_METADATA,
+            Port(_) => IFLA_VXLAN_PORT,
+            UDPCsum(_) => IFLA_VXLAN_UDP_CSUM,
+            UDPZeroCsumTX(_) => IFLA_VXLAN_UDP_ZERO_CSUM6_TX,
+            UDPZeroCsumRX(_) => IFLA_VXLAN_UDP_ZERO_CSUM6_RX,
+            RemCsumTX(_) => IFLA_VXLAN_REMCSUM_TX,
+            RemCsumRX(_) => IFLA_VXLAN_REMCSUM_RX,
+            Df(_) => IFLA_VXLAN_UNSPEC, // IFLA_VXLAN_DF is missing...
+            Unspec(_) => IFLA_VXLAN_UNSPEC
+        }
+    }
+}
+
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoVxlan {
+    fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
+        use self::InfoVxlan::*;
+        let payload = buf.value();
+        Ok(match buf.kind() {
+            IFLA_VLAN_UNSPEC => Unspec(payload.to_vec()),
+            IFLA_VXLAN_ID => Id(parse_u32(payload).context("invalid IFLA_VXLAN_ID value")?),
+            // IFLA_VLAN_FLAGS => {
+            //     let err = "invalid IFLA_VLAN_FLAGS value";
+            //     if payload.len() != 8 {
+            //         return Err(err.into());
+            //     }
+            //     let flags = parse_u32(&payload[0..4]).context(err)?;
+            //     let mask = parse_u32(&payload[4..]).context(err)?;
+            //     Flags((flags, mask))
+            // }
+            // IFLA_VLAN_EGRESS_QOS => EgressQos(payload.to_vec()),
+            // IFLA_VLAN_INGRESS_QOS => IngressQos(payload.to_vec()),
+            // IFLA_VLAN_PROTOCOL => {
+            //     Protocol(parse_u16_be(payload).context("invalid IFLA_VLAN_PROTOCOL value")?)
+            // }
+            _ => return Err(format!("unknown NLA type {}", buf.kind()).into()),
+        })
+    }
+}
+
+
 // https://elixir.bootlin.com/linux/latest/source/net/8021q/vlan_netlink.c#L21
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum InfoVlan {
