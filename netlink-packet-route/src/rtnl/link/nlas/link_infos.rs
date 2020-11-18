@@ -487,6 +487,7 @@ pub enum InfoVxlan {
     //Gbp(...),
     //Gpe(...),
     //RemCsumNoPartial(...),
+    //TtlInherit
     Df(u8),
 }
 
@@ -594,7 +595,7 @@ impl Nla for InfoVxlan {
             UDPZeroCsumRX(_) => IFLA_VXLAN_UDP_ZERO_CSUM6_RX,
             RemCsumTX(_) => IFLA_VXLAN_REMCSUM_TX,
             RemCsumRX(_) => IFLA_VXLAN_REMCSUM_RX,
-            Df(_) => IFLA_VXLAN_UNSPEC, // IFLA_VXLAN_DF is missing...
+            Df(_) => IFLA_VXLAN_DF,
             Unspec(_) => IFLA_VXLAN_UNSPEC,
         }
     }
@@ -670,6 +671,9 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoVxlan {
             IFLA_VXLAN_REMCSUM_RX => {
                 RemCsumRX(parse_u8(payload).context("invalid IFLA_VXLAN_REMCSUM_RX value")?)
             }
+            IFLA_VXLAN_DF => Df(parse_u8(payload).context("invalid IFLA_VXLAN_DF value")?),
+            IFLA_VXLAN_TTL_INHERIT => Unspec(payload.to_vec()),
+            __IFLA_VXLAN_MAX => Unspec(payload.to_vec()),
             _ => return Err(format!("unknown NLA type {}", buf.kind()).into()),
         })
     }

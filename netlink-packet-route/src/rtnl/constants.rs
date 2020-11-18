@@ -893,6 +893,7 @@ pub const RTEXT_FILTER_SKIP_STATS: u32 = 8;
 // pub const IPVLAN_MODE_L3S: int = 2;
 // pub const IPVLAN_MODE_MAX: int = 3;
 //
+// FROM https://elixir.bootlin.com/linux/v5.9.8/source/include/uapi/linux/if_link.h#L531
 pub const IFLA_VXLAN_UNSPEC: u16 = 0;
 pub const IFLA_VXLAN_ID: u16 = 1;
 pub const IFLA_VXLAN_GROUP: u16 = 2;
@@ -921,6 +922,9 @@ pub const IFLA_VXLAN_REMCSUM_NOPARTIAL: u16 = 24;
 pub const IFLA_VXLAN_COLLECT_METADATA: u16 = 25;
 pub const IFLA_VXLAN_LABEL: u16 = 26;
 pub const IFLA_VXLAN_GPE: u16 = 27;
+pub const IFLA_VXLAN_TTL_INHERIT: u16 = 28;
+pub const IFLA_VXLAN_DF: u16 = 29;
+pub const __IFLA_VXLAN_MAX: u16 = 30;
 //
 // pub const IFLA_GENEVE_UNSPEC: int = 0;
 // pub const IFLA_GENEVE_ID: int = 1;
