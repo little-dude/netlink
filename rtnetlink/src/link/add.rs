@@ -49,29 +49,45 @@ impl VxlanAddRequest {
         self
     }
 
-    // pub fn group(mut self, addr : std::net::Ipv4Addr) -> Self {
-    //     // Conversion from Ipv4Addr to u32...
-    //     // self.request.append_nla(InfoData::Vxlan(vec![InfoVxlan::Port(port)]));
-    //     self
-    // }
+    pub fn group(mut self, addr: std::net::Ipv4Addr) -> Result<Self, Error> {
+        if addr.is_multicast() {
+            let octets = addr.octets();
+            let ip: u32 = (octets[0] as u32) << 24
+                & (octets[1] as u32) << 16
+                & (octets[2] as u32) << 8
+                & (octets[3] as u32);
+            self.info_data.push(InfoVxlan::Group(ip));
+            Ok(self)
+        } else {
+            Err(Error::InvalidIp(addr.octets().to_vec()))
+        }
+    }
 
-    // pub fn group6(mut self, addr : std::net::Ipv6Addr) -> Self {
-    //     // Conversion from Ipv6Addr to u128...
-    //     // self.request.append_nla(InfoData::Vxlan(vec![InfoVxlan::Port(port)]));
-    //     self
-    // }
+    pub fn group6(mut self, addr: std::net::Ipv6Addr) -> Result<Self, Error> {
+        if addr.is_multicast() {
+            let ip: u128 = u128::from_le_bytes(addr.octets());
+            self.info_data.push(InfoVxlan::Group6(ip));
+            Ok(self)
+        } else {
+            Err(Error::InvalidIp(addr.octets().to_vec()))
+        }
+    }
 
-    // pub fn local(mut self, addr : std::net::Ipv4Addr) -> Self {
-    //     // Conversion from Ipv4Addr to u32...
-    //     // self.request.append_nla(InfoData::Vxlan(vec![InfoVxlan::Port(port)]));
-    //     self
-    // }
+    pub fn local(mut self, addr: std::net::Ipv4Addr) -> Self {
+        let octets = addr.octets();
+        let ip: u32 = (octets[0] as u32) << 24
+            & (octets[1] as u32) << 16
+            & (octets[2] as u32) << 8
+            & (octets[3] as u32);
+        self.info_data.push(InfoVxlan::Local(ip));
+        self
+    }
 
-    // pub fn local6(mut self, addr : std::net::Ipv6Addr) -> Self {
-    //     // Conversion from Ipv6Addr to u128...
-    //     // self.request.append_nla(InfoData::Vxlan(vec![InfoVxlan::Port(port)]));
-    //     self
-    // }
+    pub fn local6(mut self, addr: std::net::Ipv6Addr) -> Self {
+        let ip: u128 = u128::from_le_bytes(addr.octets());
+        self.info_data.push(InfoVxlan::Local6(ip));
+        self
+    }
 
     pub fn tos(mut self, tos: u8) -> Self {
         self.info_data.push(InfoVxlan::Tos(tos));
@@ -129,7 +145,8 @@ impl VxlanAddRequest {
     }
 
     pub fn collect_metadata(mut self, collect_metadata: u8) -> Self {
-        self.info_data.push(InfoVxlan::CollectMetadata(collect_metadata));
+        self.info_data
+            .push(InfoVxlan::CollectMetadata(collect_metadata));
         self
     }
 
