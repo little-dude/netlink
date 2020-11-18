@@ -17,6 +17,128 @@ use crate::{
     Handle,
 };
 
+/// A request to create a new vxlan link. This is equivalent to the `ip link add NAME vxlan id ID ...` commands.
+///
+/// It provides methods to customize the creation of
+/// the vxlan interface
+pub struct VxlanAddRequest {
+    request: LinkAddRequest,
+    info_data: Vec<InfoVxlan>,
+}
+
+impl VxlanAddRequest {
+    pub async fn execute(self) -> Result<(), Error> {
+        let s = self
+            .request
+            .link_info(InfoKind::Vxlan, Some(InfoData::Vxlan(self.info_data)));
+        s.execute().await
+    }
+
+    pub fn up(mut self) -> Self {
+        self.request = self.request.up();
+        self
+    }
+
+    pub fn link(mut self, index: u32) -> Self {
+        self.info_data.push(InfoVxlan::Link(index));
+        self
+    }
+
+    pub fn port(mut self, port: u16) -> Self {
+        self.info_data.push(InfoVxlan::Port(port));
+        self
+    }
+
+    // pub fn group(mut self, addr : std::net::Ipv4Addr) -> Self {
+    //     // Conversion from Ipv4Addr to u32...
+    //     // self.request.append_nla(InfoData::Vxlan(vec![InfoVxlan::Port(port)]));
+    //     self
+    // }
+
+    // pub fn group6(mut self, addr : std::net::Ipv6Addr) -> Self {
+    //     // Conversion from Ipv6Addr to u128...
+    //     // self.request.append_nla(InfoData::Vxlan(vec![InfoVxlan::Port(port)]));
+    //     self
+    // }
+
+    // pub fn local(mut self, addr : std::net::Ipv4Addr) -> Self {
+    //     // Conversion from Ipv4Addr to u32...
+    //     // self.request.append_nla(InfoData::Vxlan(vec![InfoVxlan::Port(port)]));
+    //     self
+    // }
+
+    // pub fn local6(mut self, addr : std::net::Ipv6Addr) -> Self {
+    //     // Conversion from Ipv6Addr to u128...
+    //     // self.request.append_nla(InfoData::Vxlan(vec![InfoVxlan::Port(port)]));
+    //     self
+    // }
+
+    pub fn tos(mut self, tos: u8) -> Self {
+        self.info_data.push(InfoVxlan::Tos(tos));
+        self
+    }
+
+    pub fn ttl(mut self, ttl: u8) -> Self {
+        self.info_data.push(InfoVxlan::Ttl(ttl));
+        self
+    }
+
+    pub fn label(mut self, label: u32) -> Self {
+        self.info_data.push(InfoVxlan::Label(label));
+        self
+    }
+
+    pub fn learning(mut self, learning: u8) -> Self {
+        self.info_data.push(InfoVxlan::Learning(learning));
+        self
+    }
+
+    pub fn ageing(mut self, ageing: u32) -> Self {
+        self.info_data.push(InfoVxlan::Ageing(ageing));
+        self
+    }
+
+    pub fn limit(mut self, limit: u32) -> Self {
+        self.info_data.push(InfoVxlan::Limit(limit));
+        self
+    }
+
+    pub fn port_range(mut self, min: u16, max: u16) -> Self {
+        self.info_data.push(InfoVxlan::PortRange((min, max)));
+        self
+    }
+
+    pub fn proxy(mut self, proxy: u8) -> Self {
+        self.info_data.push(InfoVxlan::Proxy(proxy));
+        self
+    }
+
+    pub fn rsc(mut self, rsc: u8) -> Self {
+        self.info_data.push(InfoVxlan::Rsc(rsc));
+        self
+    }
+
+    pub fn l2miss(mut self, l2miss: u8) -> Self {
+        self.info_data.push(InfoVxlan::L2Miss(l2miss));
+        self
+    }
+
+    pub fn l3miss(mut self, l3miss: u8) -> Self {
+        self.info_data.push(InfoVxlan::L3Miss(l3miss));
+        self
+    }
+
+    pub fn collect_metadata(mut self, collect_metadata: u8) -> Self {
+        self.info_data.push(InfoVxlan::CollectMetadata(collect_metadata));
+        self
+    }
+
+    pub fn udp_csum(mut self, udp_csum: u8) -> Self {
+        self.info_data.push(InfoVxlan::UDPCsum(udp_csum));
+        self
+    }
+}
+
 /// A request to create a new link. This is equivalent to the `ip link add` commands.
 ///
 /// A few methods for common actions (creating a veth pair, creating a vlan interface, etc.) are
@@ -120,17 +242,12 @@ impl LinkAddRequest {
     /// Create a VxLAN on a link
     /// This is equivalent to ip link add name NAME type vxlan id VNI dev LINK
     /// but instead of specifying a link name (`LINK`), we specify a link index.
-    pub fn vxlan(self, name: String, index: u32, vni: u32) -> Self {
-        self.name(name)
-            .link_info(
-                InfoKind::Vxlan,
-                Some(InfoData::Vxlan(vec![
-                    InfoVxlan::Id(vni),
-                    InfoVxlan::Link(index),
-                    InfoVxlan::Port(4789u16),
-                ])),
-            )
-            .up()
+    pub fn vxlan(self, name: String, vni: u32) -> VxlanAddRequest {
+        let s = self.name(name);
+        VxlanAddRequest {
+            request: s,
+            info_data: vec![InfoVxlan::Id(vni)],
+        }
     }
 
     /// Create a new bridge.

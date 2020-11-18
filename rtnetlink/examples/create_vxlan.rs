@@ -25,7 +25,10 @@ async fn create_vxlan(handle: Handle, name: String) -> Result<(), Error> {
         handle
             .link()
             .add()
-            .vxlan("vxlan0".into(), link.header.index, 1u32)
+            .vxlan("vxlan0".into(), 10u32)
+            .link(link.header.index)
+            .port(4789)
+            .up()
             .execute()
             .await?
     } else {
