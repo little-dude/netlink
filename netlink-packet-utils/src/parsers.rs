@@ -62,6 +62,13 @@ pub fn parse_u64(payload: &[u8]) -> Result<u64, DecodeError> {
     Ok(NativeEndian::read_u64(payload))
 }
 
+pub fn parse_u128(payload: &[u8]) -> Result<u128, DecodeError> {
+    if payload.len() != size_of::<u128>() {
+        return Err(format!("invalid u128: {:?}", payload).into());
+    }
+    Ok(NativeEndian::read_u128(payload))
+}
+
 pub fn parse_u16(payload: &[u8]) -> Result<u16, DecodeError> {
     if payload.len() != size_of::<u16>() {
         return Err(format!("invalid u16: {:?}", payload).into());
