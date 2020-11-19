@@ -1,3 +1,4 @@
+use byteordered::Endianness;
 use futures::stream::StreamExt;
 
 use crate::{
@@ -17,16 +18,17 @@ use crate::{
     Handle,
 };
 
-/// A request to create a new vxlan link. This is equivalent to the `ip link add NAME vxlan id ID ...` commands.
-///
-/// It provides methods to customize the creation of
-/// the vxlan interface
+/// A request to create a new vxlan link.
+///  This is equivalent to `ip link add NAME vxlan id ID ...` commands.
+/// It provides methods to customize the creation of the vxlan interface
+/// It provides almost all parameters that are listed by `man ip link`.
 pub struct VxlanAddRequest {
     request: LinkAddRequest,
     info_data: Vec<InfoVxlan>,
 }
 
 impl VxlanAddRequest {
+    /// Execute the request.
     pub async fn execute(self) -> Result<(), Error> {
         let s = self
             .request
@@ -34,103 +36,201 @@ impl VxlanAddRequest {
         s.execute().await
     }
 
+    /// Sets the interface up
+    /// This is equivalent to `ip link set up dev NAME`.
     pub fn up(mut self) -> Self {
         self.request = self.request.up();
         self
     }
 
+    /// Adds the `dev` attribute to the VXLAN
+    /// This is equivalent to `ip link add name NAME type vxlan id VNI dev LINK`,
+    ///  dev LINK - specifies the physical device to use
+    ///  for tunnel endpoint communication.
+    /// But instead of specifing a link name (`LINK`), we specify a link index.
     pub fn link(mut self, index: u32) -> Self {
         self.info_data.push(InfoVxlan::Link(index));
         self
     }
 
+    /// Adds the `dstport` attribute to the VXLAN
+    /// This is equivalent to `ip link add name NAME type vxlan id VNI dstport PORT`.
+    /// dstport PORT - specifies the UDP destination port to
+    /// communicate to the remote VXLAN tunnel endpoint.
     pub fn port(mut self, port: u16) -> Self {
         self.info_data.push(InfoVxlan::Port(port));
         self
     }
 
+    /// Adds the `group` attribute to the VXLAN
+    /// This is equivalent to `ip link add name NAME type vxlan id VNI group IPADDR`,
+    /// group IPADDR - specifies the multicast IP address to join.
+    /// This function takes an IPv4 address
+    /// WARNING: only one between `remote` and `group` can be present.
     pub fn group(mut self, addr: std::net::Ipv4Addr) -> Self {
-        let octets = addr.octets();
-        let ip: u32 = (octets[0] as u32) << 24
-            & (octets[1] as u32) << 16
-            & (octets[2] as u32) << 8
-            & (octets[3] as u32);
+        let ip = match Endianness::native() {
+            Endianness::Little => u32::from_le_bytes(addr.octets()),
+            Endianness::Big => u32::from_be_bytes(addr.octets()),
+        };
         self.info_data.push(InfoVxlan::Group(ip));
         self
     }
 
+    /// Adds the `group` attribute to the VXLAN
+    /// This is equivalent to `ip link add name NAME type vxlan id VNI group IPADDR`,
+    /// group IPADDR - specifies the multicast IP address to join.
+    /// This function takes an IPv6 address
+    /// WARNING: only one between `remote` and `group` can be present.
     pub fn group6(mut self, addr: std::net::Ipv6Addr) -> Self {
-        let ip: u128 = u128::from_le_bytes(addr.octets());
+        let ip: u128 = match Endianness::native() {
+            Endianness::Little => u128::from_le_bytes(addr.octets()),
+            Endianness::Big => u128::from_be_bytes(addr.octets()),
+        };
         self.info_data.push(InfoVxlan::Group6(ip));
         self
     }
 
+    /// Adds the `remote` attribute to the VXLAN
+    /// This is equivalent to `ip link add name NAME type vxlan id VNI remote IPADDR`,
+    /// remote IPADDR - specifies the unicast destination IP
+    /// address to use in outgoing packets when the
+    /// destination link layer address is not known in the
+    /// VXLAN device forwarding database.
+    /// This function takes an IPv4 address.
+    /// WARNING: only one between `remote` and `group` can be present.
+    pub fn remote(self, addr: std::net::Ipv4Addr) -> Self {
+        self.group(addr)
+    }
+
+    /// Adds the `remote` attribute to the VXLAN
+    /// This is equivalent to `ip link add name NAME type vxlan id VNI remote IPADDR`,
+    /// remote IPADDR - specifies the unicast destination IP
+    /// address to use in outgoing packets when the
+    /// destination link layer address is not known in the
+    /// VXLAN device forwarding database.
+    /// This function takes an IPv6 address.
+    /// WARNING: only one between `remote` and `group` can be present.
+    pub fn remote6(self, addr: std::net::Ipv6Addr) -> Self {
+        self.group6(addr)
+    }
+
+    /// Adds the `local` attribute to the VXLAN
+    /// This is equivalent to `ip link add name NAME type vxlan id VNI local IPADDR`,
+    /// local IPADDR - specifies the source IP address to use in outgoing packets.
+    /// This function takes an IPv4 address.
     pub fn local(mut self, addr: std::net::Ipv4Addr) -> Self {
-        let octets = addr.octets();
-        let ip: u32 = (octets[0] as u32) << 24
-            & (octets[1] as u32) << 16
-            & (octets[2] as u32) << 8
-            & (octets[3] as u32);
+        let ip = match Endianness::native() {
+            Endianness::Little => u32::from_le_bytes(addr.octets()),
+            Endianness::Big => u32::from_be_bytes(addr.octets()),
+        };
+
         self.info_data.push(InfoVxlan::Local(ip));
         self
     }
 
+    /// Adds the `local` attribute to the VXLAN
+    /// This is equivalent to `ip link add name NAME type vxlan id VNI local IPADDR`,
+    /// local IPADDR - specifies the source IP address to use in outgoing packets.
+    /// This function takes an IPv6 address.
     pub fn local6(mut self, addr: std::net::Ipv6Addr) -> Self {
-        let ip: u128 = u128::from_le_bytes(addr.octets());
+        let ip: u128 = match Endianness::native() {
+            Endianness::Little => u128::from_le_bytes(addr.octets()),
+            Endianness::Big => u128::from_be_bytes(addr.octets()),
+        };
+
         self.info_data.push(InfoVxlan::Local6(ip));
         self
     }
 
+    /// Adds the `tos` attribute to the VXLAN
+    /// This is equivalent to `ip link add name NAME type vxlan id VNI tos TOS`.
+    /// tos TOS - specifies the TOS value to use in outgoing packets.
     pub fn tos(mut self, tos: u8) -> Self {
         self.info_data.push(InfoVxlan::Tos(tos));
         self
     }
 
+    /// Adds the `ttl` attribute to the VXLAN
+    /// This is equivalent to `ip link add name NAME type vxlan id VNI ttl TTL`.
+    /// ttl TTL - specifies the TTL value to use in outgoing packets.
     pub fn ttl(mut self, ttl: u8) -> Self {
         self.info_data.push(InfoVxlan::Ttl(ttl));
         self
     }
 
+    /// Adds the `flowlabel` attribute to the VXLAN
+    /// This is equivalent to `ip link add name NAME type vxlan id VNI flowlabel LABEL`.
+    /// flowlabel LABEL - specifies the flow label to use in outgoing packets.
     pub fn label(mut self, label: u32) -> Self {
         self.info_data.push(InfoVxlan::Label(label));
         self
     }
 
+    /// Adds the `learning` attribute to the VXLAN
+    /// This is equivalent to `ip link add name NAME type vxlan id VNI [no]learning`.
+    /// [no]learning - specifies if unknown source link layer
+    /// addresses and IP addresses are entered into the VXLAN
+    /// device forwarding database.
     pub fn learning(mut self, learning: u8) -> Self {
         self.info_data.push(InfoVxlan::Learning(learning));
         self
     }
 
-    pub fn ageing(mut self, ageing: u32) -> Self {
-        self.info_data.push(InfoVxlan::Ageing(ageing));
+    /// Adds the `ageing` attribute to the VXLAN
+    /// This is equivalent to `ip link add name NAME type vxlan id VNI ageing SECONDS`.
+    /// ageing SECONDS - specifies the lifetime in seconds of
+    /// FDB entries learnt by the kernel.
+    pub fn ageing(mut self, seconds: u32) -> Self {
+        self.info_data.push(InfoVxlan::Ageing(seconds));
         self
     }
 
+    /// Adds the `maxaddress` attribute to the VXLAN
+    /// This is equivalent to `ip link add name NAME type vxlan id VNI maxaddress LIMIT`.
+    /// maxaddress LIMIT - specifies the maximum number of
+    /// FDB entries.
     pub fn limit(mut self, limit: u32) -> Self {
         self.info_data.push(InfoVxlan::Limit(limit));
         self
     }
 
+    /// Adds the `srcport` attribute to the VXLAN
+    /// This is equivalent to `ip link add name NAME type vxlan id VNI srcport MIN MAX`.
+    /// srcport MIN MAX - specifies the range of port numbers
+    /// to use as UDP source ports to communicate to the
+    /// remote VXLAN tunnel endpoint.
     pub fn port_range(mut self, min: u16, max: u16) -> Self {
         self.info_data.push(InfoVxlan::PortRange((min, max)));
         self
     }
 
+    /// Adds the `proxy` attribute to the VXLAN
+    /// This is equivalent to `ip link add name NAME type vxlan id VNI [no]proxy`.
+    /// [no]proxy - specifies ARP proxy is turned on.
     pub fn proxy(mut self, proxy: u8) -> Self {
         self.info_data.push(InfoVxlan::Proxy(proxy));
         self
     }
 
+    /// Adds the `rsc` attribute to the VXLAN
+    /// This is equivalent to `ip link add name NAME type vxlan id VNI [no]rsc`.
+    /// [no]rsc - specifies if route short circuit is turned on.
     pub fn rsc(mut self, rsc: u8) -> Self {
         self.info_data.push(InfoVxlan::Rsc(rsc));
         self
     }
 
+    // Adds the `l2miss` attribute to the VXLAN
+    /// This is equivalent to `ip link add name NAME type vxlan id VNI [no]l2miss`.
+    /// [no]l2miss - specifies if netlink LLADDR miss notifications are generated.
     pub fn l2miss(mut self, l2miss: u8) -> Self {
         self.info_data.push(InfoVxlan::L2Miss(l2miss));
         self
     }
 
+    // Adds the `l3miss` attribute to the VXLAN
+    /// This is equivalent to `ip link add name NAME type vxlan id VNI [no]l3miss`.
+    /// [no]l3miss - specifies if netlink IP ADDR miss notifications are generated.
     pub fn l3miss(mut self, l3miss: u8) -> Self {
         self.info_data.push(InfoVxlan::L3Miss(l3miss));
         self
@@ -142,6 +242,9 @@ impl VxlanAddRequest {
         self
     }
 
+    // Adds the `udp_csum` attribute to the VXLAN
+    /// This is equivalent to `ip link add name NAME type vxlan id VNI [no]udp_csum`.
+    /// [no]udpcsum - specifies if UDP checksum is calculated for transmitted packets over IPv4.
     pub fn udp_csum(mut self, udp_csum: u8) -> Self {
         self.info_data.push(InfoVxlan::UDPCsum(udp_csum));
         self
@@ -248,9 +351,10 @@ impl LinkAddRequest {
             .up()
     }
 
-    /// Create a VxLAN on a link
-    /// This is equivalent to ip link add name NAME type vxlan id VNI dev LINK
-    /// but instead of specifying a link name (`LINK`), we specify a link index.
+    /// Create a VxLAN
+    /// This is equivalent to `ip link add name NAME type vxlan id VNI`,
+    /// it returns a VxlanAddRequest to further customize the vxlan
+    /// interface creation.
     pub fn vxlan(self, name: String, vni: u32) -> VxlanAddRequest {
         let s = self.name(name);
         VxlanAddRequest {

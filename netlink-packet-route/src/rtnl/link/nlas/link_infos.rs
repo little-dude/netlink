@@ -496,33 +496,33 @@ impl Nla for InfoVxlan {
     fn value_len(&self) -> usize {
         use self::InfoVxlan::*;
         match self {
-            Tos(_) |
-                Ttl(_) |
-                Learning(_) |
-                Proxy(_) |
-                Rsc(_) |
-                L2Miss(_) |
-                L3Miss(_) |
-                CollectMetadata(_) |
-                UDPCsum(_) |
-                UDPZeroCsumTX(_) |
-                UDPZeroCsumRX(_) |
-                RemCsumTX(_) |
-                RemCsumRX(_) |
-                Df(_)
+            Tos(_)
+                | Ttl(_)
+                | Learning(_)
+                | Proxy(_)
+                | Rsc(_)
+                | L2Miss(_)
+                | L3Miss(_)
+                | CollectMetadata(_)
+                | UDPCsum(_)
+                | UDPZeroCsumTX(_)
+                | UDPZeroCsumRX(_)
+                | RemCsumTX(_)
+                | RemCsumRX(_)
+                | Df(_)
             => 1,
             Port(_) => 2,
-            Id(_) |
-                Group(_) |
-                Local(_) |
-                Label(_) |
-                Link(_) |
-                Ageing(_) |
-                Limit(_) |
-                PortRange(_)
+            Id(_)
+                | Group(_)
+                | Local(_)
+                | Label(_)
+                | Link(_)
+                | Ageing(_)
+                | Limit(_)
+                | PortRange(_)
             => 4,
-            Group6(_) |
-                Local6(_)
+            Group6(_)
+                | Local6(_)
             => 16,
             Unspec(bytes) => bytes.len()
         }
@@ -540,7 +540,7 @@ impl Nla for InfoVxlan {
                 | Link(ref value)
                 | Ageing(ref value)
                 | Limit(ref value)
-                => NativeEndian::write_u32(buffer, *value),
+            => NativeEndian::write_u32(buffer, *value),
             Tos(ref value)
                 | Ttl(ref value)
                 | Learning (ref value)
@@ -555,7 +555,7 @@ impl Nla for InfoVxlan {
                 | RemCsumTX(ref value)
                 | RemCsumRX(ref value)
                 | Df(ref value)
-                =>  buffer[0] = *value,
+            =>  buffer[0] = *value,
             Group6(ref value) |
                 Local6(ref value)
             => NativeEndian::write_u128(buffer, *value),
