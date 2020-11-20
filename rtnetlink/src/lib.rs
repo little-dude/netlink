@@ -6,6 +6,10 @@
 mod handle;
 pub use crate::handle::*;
 
+
+mod ns;
+pub use crate::ns::*;
+
 mod errors;
 pub use crate::errors::*;
 
