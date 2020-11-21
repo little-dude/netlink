@@ -25,10 +25,10 @@ version = "0.6.21"
 
 [dependencies.tokio]
 optional = true
-version = "0.2.6"
+version = "0.2"
 default-features = false
 # We only depend on tokio for PollEvented
-features = ["io-driver"]
+features = ["io-driver" ]
 
 [dependencies.async-io]
 optional = true
@@ -44,14 +44,18 @@ smol_socket = ["async-io"]
 netlink-packet-audit = { path = "../netlink-packet-audit" }
 
 [dev-dependencies.tokio]
-version = "0.2.6"
+version = "0.2"
 default-features = false
 # We only depend on tokio for PollEvented
-features = ["io-driver", "macros"]
+features = ["io-driver", "macros", "rt-threaded"]
 
 [[example]]
 name = "audit_events"
 
 [[example]]
 name = "audit_events_async"
+required-features = ["tokio_socket"]
+
+[[example]]
+name = "man_test0"
 required-features = ["tokio_socket"]
