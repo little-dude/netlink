@@ -18,5 +18,5 @@ netlink-packet-audit = { path = "../netlink-packet-audit", version = "0.2" }
 netlink-proto = { path = "../netlink-proto", features = ["workaround-audit-bug"], version = "0.4" }
 
 [dev-dependencies]
-tokio = { version = "0.2.6", default-features = false, features = ["macros", "rt-core"] }
+tokio      = { version = "0.3" }
 env_logger = "0.7.1"
