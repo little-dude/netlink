@@ -17,7 +17,6 @@ pub const NETNS_PATH: &str = "/var/run/netns/";
 pub const SELF_NS_PATH: &str = "/proc/self/ns/net";
 pub const NONE_FS: &str = "none";
 
-
 pub struct NetworkNamespace();
 
 impl NetworkNamespace {
