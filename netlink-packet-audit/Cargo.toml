@@ -15,7 +15,7 @@ description = "netlink packet types"
 anyhow = "1.0.31"
 byteorder = "1.3.2"
 netlink-packet-core = { path = "../netlink-packet-core", version = "0.2" }
-netlink-packet-utils = { path = "../netlink-packet-utils", version = "0.3" }
+netlink-packet-utils = { path = "../netlink-packet-utils", version = ">= 0.3, <0.5" }
 
 [dev-dependencies]
 lazy_static = "1.4.0"
