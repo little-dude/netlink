@@ -61,10 +61,28 @@ pub enum Nla {
     Info(Vec<Info>),
     Wireless(Vec<u8>),
     ProtoInfo(Vec<u8>),
+    /// A list of properties for the device. For additional context see the related linux kernel
+    /// threads<sup>[1][1],[2][2]</sup>. In particular see [this message][defining message] from
+    /// the first thread describing the design.
+    ///
+    /// [1]: https://lwn.net/ml/netdev/20190719110029.29466-1-jiri@resnulli.us/
+    /// [2]: https://lwn.net/ml/netdev/20190930094820.11281-1-jiri@resnulli.us/
+    /// [defining message]: https://lwn.net/ml/netdev/20190913145012.GB2276@nanopsycho.orion/
+    PropList(Vec<u8>),
+    /// `protodown` is a mechanism that allows protocols to hold an interface down.
+    /// This field is used to specify the reason why it is held down.
+    /// For additional context see the related linux kernel threads<sup>[1][1],[2][2]</sup>.
+    ///
+    /// [1]: https://lwn.net/ml/netdev/1595877677-45849-1-git-send-email-roopa%40cumulusnetworks.com/
+    /// [2]: https://lwn.net/ml/netdev/1596242041-14347-1-git-send-email-roopa%40cumulusnetworks.com/
+    ProtoDownReason(Vec<u8>),
     // mac address (use to be [u8; 6] but it turns out MAC != HW address, for instance for IP over
     // GRE where it's an IPv4!)
     Address(Vec<u8>),
     Broadcast(Vec<u8>),
+    /// Permanent hardware address of the device. The provides the same information
+    /// as the ethtool ioctl interface.
+    PermAddress(Vec<u8>),
 
     // string
     // FIXME: for empty string, should we encode the NLA as \0 or should we not set a payload? It
@@ -74,6 +92,12 @@ pub enum Nla {
     Qdisc(String),
     IfAlias(String),
     PhysPortName(String),
+    /// Alternate name for the device.
+    /// For additional context see the related linux kernel threads<sup>[1][1],[2][2]</sup>.
+    ///
+    /// [1]: https://lwn.net/ml/netdev/20190719110029.29466-1-jiri@resnulli.us/
+    /// [2]: https://lwn.net/ml/netdev/20190930094820.11281-1-jiri@resnulli.us/
+    AltIfName(String),
     // byte
     Mode(u8),
     Carrier(u8),
@@ -94,6 +118,16 @@ pub enum Nla {
     CarrierChanges(u32),
     GsoMaxSegs(u32),
     GsoMaxSize(u32),
+    /// The minimum MTU for the device.
+    /// For additional context see the related [linux kernel message][1].
+    ///
+    /// [1]: https://lwn.net/ml/netdev/20180727204323.19408-3-sthemmin%40microsoft.com/
+    MinMtu(u32),
+    /// The maximum MTU for the device.
+    /// For additional context see the related [linux kernel message][1].
+    ///
+    /// [1]: https://lwn.net/ml/netdev/20180727204323.19408-3-sthemmin%40microsoft.com/
+    MaxMtu(u32),
     // i32
     NetnsId(i32),
     // custom
@@ -136,9 +170,12 @@ impl nlas::Nla for Nla {
                 | NewIfIndex(ref bytes)
                 | Address(ref bytes)
                 | Broadcast(ref bytes)
+                | PermAddress(ref bytes)
                 | AfSpecUnknown(ref bytes)
                 | AfSpecBridge(ref bytes)
                 | Map(ref bytes)
+                | PropList(ref bytes)
+                | ProtoDownReason(ref bytes)
                 => bytes.len(),
 
             // strings: +1 because we need to append a nul byte
@@ -146,6 +183,7 @@ impl nlas::Nla for Nla {
                 | Qdisc(ref string)
                 | IfAlias(ref string)
                 | PhysPortName(ref string)
+                | AltIfName(ref string)
                 => string.as_bytes().len() + 1,
 
             // u8
@@ -170,7 +208,9 @@ impl nlas::Nla for Nla {
                 | CarrierChanges(_)
                 | GsoMaxSegs(_)
                 | GsoMaxSize(_)
-                | NetnsId(_) => 4,
+                | NetnsId(_)
+                | MinMtu(_)
+                | MaxMtu(_) => 4,
 
             // Defaults
             OperState(_) => 1,
@@ -211,11 +251,14 @@ impl nlas::Nla for Nla {
                 // a separate type for them
                 | Address(ref bytes)
                 | Broadcast(ref bytes)
+                | PermAddress(ref bytes)
                 | AfSpecUnknown(ref bytes)
                 | AfSpecBridge(ref bytes)
                 | Stats(ref bytes)
                 | Stats64(ref bytes)
                 | Map(ref bytes)
+                | PropList(ref bytes)
+                | ProtoDownReason(ref bytes)
                 => buffer.copy_from_slice(bytes.as_slice()),
 
             // String
@@ -223,6 +266,7 @@ impl nlas::Nla for Nla {
                 | Qdisc(ref string)
                 | IfAlias(ref string)
                 | PhysPortName(ref string)
+                | AltIfName(ref string)
                 => {
                     buffer[..string.len()].copy_from_slice(string.as_bytes());
                     buffer[string.len()] = 0;
@@ -249,6 +293,8 @@ impl nlas::Nla for Nla {
                 | CarrierChanges(ref value)
                 | GsoMaxSegs(ref value)
                 | GsoMaxSize(ref value)
+                | MinMtu(ref value)
+                | MaxMtu(ref value)
                 => NativeEndian::write_u32(buffer, *value),
 
             NetnsId(ref value)
@@ -288,14 +334,18 @@ impl nlas::Nla for Nla {
             CarrierUpCount(_) => IFLA_CARRIER_UP_COUNT,
             CarrierDownCount(_) => IFLA_CARRIER_DOWN_COUNT,
             NewIfIndex(_) => IFLA_NEW_IFINDEX,
+            PropList(_) => IFLA_PROP_LIST,
+            ProtoDownReason(_) => IFLA_PROTO_DOWN_REASON,
             // Mac address
             Address(_) => IFLA_ADDRESS,
             Broadcast(_) => IFLA_BROADCAST,
+            PermAddress(_) => IFLA_PERM_ADDRESS,
             // String
             IfName(_) => IFLA_IFNAME,
             Qdisc(_) => IFLA_QDISC,
             IfAlias(_) => IFLA_IFALIAS,
             PhysPortName(_) => IFLA_PHYS_PORT_NAME,
+            AltIfName(_) => IFLA_ALT_IFNAME,
             // u8
             Mode(_) => IFLA_LINKMODE,
             Carrier(_) => IFLA_CARRIER,
@@ -316,6 +366,8 @@ impl nlas::Nla for Nla {
             CarrierChanges(_) => IFLA_CARRIER_CHANGES,
             GsoMaxSegs(_) => IFLA_GSO_MAX_SEGS,
             GsoMaxSize(_) => IFLA_GSO_MAX_SIZE,
+            MinMtu(_) => IFLA_MIN_MTU,
+            MaxMtu(_) => IFLA_MAX_MTU,
             // i32
             NetnsId(_) => IFLA_LINK_NETNSID,
             // custom
@@ -357,16 +409,22 @@ impl<'a, T: AsRef<[u8]> + ?Sized> ParseableParametrized<NlaBuffer<&'a T>, u16> f
             IFLA_CARRIER_UP_COUNT => CarrierUpCount(payload.to_vec()),
             IFLA_CARRIER_DOWN_COUNT => CarrierDownCount(payload.to_vec()),
             IFLA_NEW_IFINDEX => NewIfIndex(payload.to_vec()),
+            IFLA_PROP_LIST => PropList(payload.to_vec()),
+            IFLA_PROTO_DOWN_REASON => ProtoDownReason(payload.to_vec()),
             // HW address (we parse them as Vec for now, because for IP over GRE, the HW address is
             // an IP instead of a MAC for example
             IFLA_ADDRESS => Address(payload.to_vec()),
             IFLA_BROADCAST => Broadcast(payload.to_vec()),
+            IFLA_PERM_ADDRESS => PermAddress(payload.to_vec()),
             // String
             IFLA_IFNAME => IfName(parse_string(payload).context("invalid IFLA_IFNAME value")?),
             IFLA_QDISC => Qdisc(parse_string(payload).context("invalid IFLA_QDISC value")?),
             IFLA_IFALIAS => IfAlias(parse_string(payload).context("invalid IFLA_IFALIAS value")?),
             IFLA_PHYS_PORT_NAME => {
                 PhysPortName(parse_string(payload).context("invalid IFLA_PHYS_PORT_NAME value")?)
+            }
+            IFLA_ALT_IFNAME => {
+                AltIfName(parse_string(payload).context("invalid IFLA_ALT_IFNAME value")?)
             }
 
             // u8
@@ -405,6 +463,8 @@ impl<'a, T: AsRef<[u8]> + ?Sized> ParseableParametrized<NlaBuffer<&'a T>, u16> f
             IFLA_GSO_MAX_SIZE => {
                 GsoMaxSize(parse_u32(payload).context("invalid IFLA_GSO_MAX_SIZE value")?)
             }
+            IFLA_MIN_MTU => MinMtu(parse_u32(payload).context("invalid IFLA_MIN_MTU value")?),
+            IFLA_MAX_MTU => MaxMtu(parse_u32(payload).context("invalid IFLA_MAX_MTU value")?),
             IFLA_LINK_NETNSID => {
                 NetnsId(parse_i32(payload).context("invalid IFLA_LINK_NETNSID value")?)
             }
