@@ -194,7 +194,7 @@ impl NetworkNamespace {
     /// Remove a network namespace
     /// This is equivalent to `ip netns del NS_NAME`.
     pub async fn del(ns_name: String) -> Result<(), Error> {
-        let jh = task::spawn_blocking(move || {
+        let res = task::spawn_blocking(move || {
             let mut netns_path = String::new();
             netns_path.push_str(NETNS_PATH);
             netns_path.push_str(&ns_name);
@@ -212,7 +212,7 @@ impl NetworkNamespace {
             }
             Ok(())
         });
-        match jh.await {
+        match res.await {
             Ok(r) => r,
             Err(e) => {
                 let err_msg = format!("Namespace removal failed: {}", e);
