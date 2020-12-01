@@ -61,12 +61,27 @@ pub enum Nla {
     Info(Vec<Info>),
     Wireless(Vec<u8>),
     ProtoInfo(Vec<u8>),
+    /// A list of properties for the device. For additional context see the related linux kernel
+    /// threads<sup>[1][1],[2][2]</sup>. In particular see [this message][defining message] from
+    /// the first thread describing the design.
+    ///
+    /// [1]: https://lwn.net/ml/netdev/20190719110029.29466-1-jiri@resnulli.us/
+    /// [2]: https://lwn.net/ml/netdev/20190930094820.11281-1-jiri@resnulli.us/
+    /// [defining message]: https://lwn.net/ml/netdev/20190913145012.GB2276@nanopsycho.orion/
     PropList(Vec<u8>),
+    /// `protodown` is a mechanism that allows protocols to hold an interface down.
+    /// This field is used to specify the reason why it is held down.
+    /// For additional context see the related linux kernel threads<sup>[1][1],[2][2]</sup>.
+    ///
+    /// [1]: https://lwn.net/ml/netdev/1595877677-45849-1-git-send-email-roopa%40cumulusnetworks.com/
+    /// [2]: https://lwn.net/ml/netdev/1596242041-14347-1-git-send-email-roopa%40cumulusnetworks.com/
     ProtoDownReason(Vec<u8>),
     // mac address (use to be [u8; 6] but it turns out MAC != HW address, for instance for IP over
     // GRE where it's an IPv4!)
     Address(Vec<u8>),
     Broadcast(Vec<u8>),
+    /// Permanent hardware address of the device. The provides the same information
+    /// as the ethtool ioctl interface.
     PermAddress(Vec<u8>),
 
     // string
@@ -77,6 +92,11 @@ pub enum Nla {
     Qdisc(String),
     IfAlias(String),
     PhysPortName(String),
+    /// Alternate name for the device.
+    /// For additional context see the related linux kernel threads<sup>[1][1],[2][2]</sup>.
+    ///
+    /// [1]: https://lwn.net/ml/netdev/20190719110029.29466-1-jiri@resnulli.us/
+    /// [2]: https://lwn.net/ml/netdev/20190930094820.11281-1-jiri@resnulli.us/
     AltIfName(String),
     // byte
     Mode(u8),
@@ -98,7 +118,15 @@ pub enum Nla {
     CarrierChanges(u32),
     GsoMaxSegs(u32),
     GsoMaxSize(u32),
+    /// The minimum MTU for the device.
+    /// For additional context see the related [linux kernel message][1].
+    ///
+    /// [1]: https://lwn.net/ml/netdev/20180727204323.19408-3-sthemmin%40microsoft.com/
     MinMtu(u32),
+    /// The maximum MTU for the device.
+    /// For additional context see the related [linux kernel message][1].
+    ///
+    /// [1]: https://lwn.net/ml/netdev/20180727204323.19408-3-sthemmin%40microsoft.com/
     MaxMtu(u32),
     // i32
     NetnsId(i32),
