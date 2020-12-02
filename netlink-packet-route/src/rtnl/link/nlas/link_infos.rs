@@ -484,10 +484,10 @@ pub enum InfoVxlan {
     UDPZeroCsumRX(u8),
     RemCsumTX(u8),
     RemCsumRX(u8),
-    //Gbp(...),
-    //Gpe(...),
-    //RemCsumNoPartial(...),
-    //TtlInherit
+    Gbp(u8),
+    Gpe(u8),
+    RemCsumNoPartial(u8),
+    TtlInherit(u8),
     Df(u8),
 }
 
@@ -509,6 +509,10 @@ impl Nla for InfoVxlan {
                 | UDPZeroCsumRX(_)
                 | RemCsumTX(_)
                 | RemCsumRX(_)
+                | Gbp(_)
+                | Gpe(_)
+                | RemCsumNoPartial(_)
+                | TtlInherit(_)
                 | Df(_)
             => 1,
             Port(_) => 2,
@@ -554,6 +558,10 @@ impl Nla for InfoVxlan {
                 | UDPZeroCsumRX(ref value)
                 | RemCsumTX(ref value)
                 | RemCsumRX(ref value)
+                | Gbp(ref value)
+                | Gpe(ref value)
+                | RemCsumNoPartial(ref value)
+                | TtlInherit(ref value)
                 | Df(ref value)
             =>  buffer[0] = *value,
             Group6(ref value) |
@@ -595,6 +603,10 @@ impl Nla for InfoVxlan {
             UDPZeroCsumRX(_) => IFLA_VXLAN_UDP_ZERO_CSUM6_RX,
             RemCsumTX(_) => IFLA_VXLAN_REMCSUM_TX,
             RemCsumRX(_) => IFLA_VXLAN_REMCSUM_RX,
+            Gbp(_) => IFLA_VXLAN_GBP,
+            Gpe(_) => IFLA_VXLAN_GPE,
+            RemCsumNoPartial(_) => IFLA_VXLAN_REMCSUM_NOPARTIAL,
+            TtlInherit(_) => IFLA_VXLAN_TTL_INHERIT,
             Df(_) => IFLA_VXLAN_DF,
             Unspec(_) => IFLA_VXLAN_UNSPEC,
         }
@@ -672,7 +684,14 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoVxlan {
                 RemCsumRX(parse_u8(payload).context("invalid IFLA_VXLAN_REMCSUM_RX value")?)
             }
             IFLA_VXLAN_DF => Df(parse_u8(payload).context("invalid IFLA_VXLAN_DF value")?),
-            IFLA_VXLAN_TTL_INHERIT => Unspec(payload.to_vec()),
+            IFLA_VXLAN_GBP => Gbp(parse_u8(payload).context("invalid IFLA_VXLAN_GBP value")?),
+            IFLA_VXLAN_GPE => Gpe(parse_u8(payload).context("invalid IFLA_VXLAN_GPE value")?),
+            IFLA_VXLAN_REMCSUM_NOPARTIAL => RemCsumNoPartial(
+                parse_u8(payload).context("invalid IFLA_VXLAN_REMCSUM_NO_PARTIAL")?,
+            ),
+            IFLA_VXLAN_TTL_INHERIT => {
+                TtlInherit(parse_u8(payload).context("invalid IFLA_VXLAN_TTL_INHERIT value")?)
+            }
             __IFLA_VXLAN_MAX => Unspec(payload.to_vec()),
             _ => return Err(format!("unknown NLA type {}", buf.kind()).into()),
         })
