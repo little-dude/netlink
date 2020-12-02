@@ -1,4 +1,3 @@
-use byteordered::Endianness;
 use futures::stream::StreamExt;
 
 use crate::{
@@ -68,11 +67,8 @@ impl VxlanAddRequest {
     /// This function takes an IPv4 address
     /// WARNING: only one between `remote` and `group` can be present.
     pub fn group(mut self, addr: std::net::Ipv4Addr) -> Self {
-        let ip = match Endianness::native() {
-            Endianness::Little => u32::from_le_bytes(addr.octets()),
-            Endianness::Big => u32::from_be_bytes(addr.octets()),
-        };
-        self.info_data.push(InfoVxlan::Group(ip));
+        self.info_data
+            .push(InfoVxlan::Group(addr.octets().to_vec()));
         self
     }
 
@@ -82,11 +78,8 @@ impl VxlanAddRequest {
     /// This function takes an IPv6 address
     /// WARNING: only one between `remote` and `group` can be present.
     pub fn group6(mut self, addr: std::net::Ipv6Addr) -> Self {
-        let ip: u128 = match Endianness::native() {
-            Endianness::Little => u128::from_le_bytes(addr.octets()),
-            Endianness::Big => u128::from_be_bytes(addr.octets()),
-        };
-        self.info_data.push(InfoVxlan::Group6(ip));
+        self.info_data
+            .push(InfoVxlan::Group6(addr.octets().to_vec()));
         self
     }
 
@@ -119,12 +112,8 @@ impl VxlanAddRequest {
     /// local IPADDR - specifies the source IP address to use in outgoing packets.
     /// This function takes an IPv4 address.
     pub fn local(mut self, addr: std::net::Ipv4Addr) -> Self {
-        let ip = match Endianness::native() {
-            Endianness::Little => u32::from_le_bytes(addr.octets()),
-            Endianness::Big => u32::from_be_bytes(addr.octets()),
-        };
-
-        self.info_data.push(InfoVxlan::Local(ip));
+        self.info_data
+            .push(InfoVxlan::Local(addr.octets().to_vec()));
         self
     }
 
@@ -133,12 +122,8 @@ impl VxlanAddRequest {
     /// local IPADDR - specifies the source IP address to use in outgoing packets.
     /// This function takes an IPv6 address.
     pub fn local6(mut self, addr: std::net::Ipv6Addr) -> Self {
-        let ip: u128 = match Endianness::native() {
-            Endianness::Little => u128::from_le_bytes(addr.octets()),
-            Endianness::Big => u128::from_be_bytes(addr.octets()),
-        };
-
-        self.info_data.push(InfoVxlan::Local6(ip));
+        self.info_data
+            .push(InfoVxlan::Local6(addr.octets().to_vec()));
         self
     }
 
