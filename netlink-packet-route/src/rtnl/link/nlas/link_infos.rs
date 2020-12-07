@@ -1,16 +1,7 @@
 use crate::{
     constants::*,
     nlas::{DefaultNla, Nla, NlaBuffer, NlasIterator},
-    parsers::{
-        parse_mac,
-        parse_string,
-        parse_u128,
-        parse_u16,
-        parse_u16_be,
-        parse_u32,
-        parse_u64,
-        parse_u8,
-    },
+    parsers::{parse_mac, parse_string, parse_u16, parse_u16_be, parse_u32, parse_u64, parse_u8},
     traits::{Emitable, Parseable},
     DecodeError,
     LinkMessage,
@@ -461,11 +452,11 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoKind {
 pub enum InfoVxlan {
     Unspec(Vec<u8>),
     Id(u32),
-    Group(u32),
-    Group6(u128),
+    Group(Vec<u8>),
+    Group6(Vec<u8>),
     Link(u32),
-    Local(u32),
-    Local6(u128),
+    Local(Vec<u8>),
+    Local6(Vec<u8>),
     Tos(u8),
     Ttl(u8),
     Label(u32),
@@ -484,10 +475,10 @@ pub enum InfoVxlan {
     UDPZeroCsumRX(u8),
     RemCsumTX(u8),
     RemCsumRX(u8),
-    //Gbp(...),
-    //Gpe(...),
-    //RemCsumNoPartial(...),
-    //TtlInherit
+    Gbp(u8),
+    Gpe(u8),
+    RemCsumNoPartial(u8),
+    TtlInherit(u8),
     Df(u8),
 }
 
@@ -495,7 +486,7 @@ impl Nla for InfoVxlan {
     #[rustfmt::skip]
     fn value_len(&self) -> usize {
         use self::InfoVxlan::*;
-        match self {
+        match *self {
             Tos(_)
                 | Ttl(_)
                 | Learning(_)
@@ -509,22 +500,26 @@ impl Nla for InfoVxlan {
                 | UDPZeroCsumRX(_)
                 | RemCsumTX(_)
                 | RemCsumRX(_)
+                | Gbp(_)
+                | Gpe(_)
+                | RemCsumNoPartial(_)
+                | TtlInherit(_)
                 | Df(_)
             => 1,
             Port(_) => 2,
             Id(_)
-                | Group(_)
-                | Local(_)
                 | Label(_)
                 | Link(_)
                 | Ageing(_)
                 | Limit(_)
                 | PortRange(_)
             => 4,
-            Group6(_)
-                | Local6(_)
-            => 16,
-            Unspec(bytes) => bytes.len()
+            Local(ref bytes)
+                | Local6(ref bytes)
+                | Group(ref bytes)
+                | Group6(ref bytes)
+                | Unspec(ref bytes)
+            => bytes.len(),
         }
     }
 
@@ -534,8 +529,6 @@ impl Nla for InfoVxlan {
         match self {
             Unspec(ref bytes) => buffer.copy_from_slice(bytes),
             Id(ref value)
-                | Group(ref value)
-                | Local(ref value)
                 | Label(ref value)
                 | Link(ref value)
                 | Ageing(ref value)
@@ -554,11 +547,17 @@ impl Nla for InfoVxlan {
                 | UDPZeroCsumRX(ref value)
                 | RemCsumTX(ref value)
                 | RemCsumRX(ref value)
+                | Gbp(ref value)
+                | Gpe(ref value)
+                | RemCsumNoPartial(ref value)
+                | TtlInherit(ref value)
                 | Df(ref value)
             =>  buffer[0] = *value,
-            Group6(ref value) |
-                Local6(ref value)
-            => NativeEndian::write_u128(buffer, *value),
+            Local(ref value)
+                | Group(ref value)
+                | Group6(ref value)
+                | Local6(ref value)
+            => buffer.copy_from_slice(value.as_slice()),
             Port(ref value) => NativeEndian::write_u16(buffer, *value),
             PortRange(ref range) => {
                 NativeEndian::write_u16(buffer, range.0);
@@ -595,6 +594,10 @@ impl Nla for InfoVxlan {
             UDPZeroCsumRX(_) => IFLA_VXLAN_UDP_ZERO_CSUM6_RX,
             RemCsumTX(_) => IFLA_VXLAN_REMCSUM_TX,
             RemCsumRX(_) => IFLA_VXLAN_REMCSUM_RX,
+            Gbp(_) => IFLA_VXLAN_GBP,
+            Gpe(_) => IFLA_VXLAN_GPE,
+            RemCsumNoPartial(_) => IFLA_VXLAN_REMCSUM_NOPARTIAL,
+            TtlInherit(_) => IFLA_VXLAN_TTL_INHERIT,
             Df(_) => IFLA_VXLAN_DF,
             Unspec(_) => IFLA_VXLAN_UNSPEC,
         }
@@ -608,19 +611,11 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoVxlan {
         Ok(match buf.kind() {
             IFLA_VLAN_UNSPEC => Unspec(payload.to_vec()),
             IFLA_VXLAN_ID => Id(parse_u32(payload).context("invalid IFLA_VXLAN_ID value")?),
-            IFLA_VXLAN_GROUP => {
-                Group(parse_u32(payload).context("invalid IFLA_VXLAN_GROUP value")?)
-            }
-            IFLA_VXLAN_GROUP6 => {
-                Group6(parse_u128(payload).context("invalid IFLA_VXLAN_GROUP6 value")?)
-            }
+            IFLA_VXLAN_GROUP => Group(payload.to_vec()),
+            IFLA_VXLAN_GROUP6 => Group6(payload.to_vec()),
             IFLA_VXLAN_LINK => Link(parse_u32(payload).context("invalid IFLA_VXLAN_LINK value")?),
-            IFLA_VXLAN_LOCAL => {
-                Local(parse_u32(payload).context("invalid IFLA_VXLAN_LOCAL value")?)
-            }
-            IFLA_VXLAN_LOCAL6 => {
-                Local6(parse_u128(payload).context("invalid IFLA_VXLAN_LOCAL6 value")?)
-            }
+            IFLA_VXLAN_LOCAL => Local(payload.to_vec()),
+            IFLA_VXLAN_LOCAL6 => Local6(payload.to_vec()),
             IFLA_VXLAN_TOS => Tos(parse_u8(payload).context("invalid IFLA_VXLAN_TOS value")?),
             IFLA_VXLAN_TTL => Ttl(parse_u8(payload).context("invalid IFLA_VXLAN_TTL value")?),
             IFLA_VXLAN_LABEL => {
@@ -672,7 +667,14 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoVxlan {
                 RemCsumRX(parse_u8(payload).context("invalid IFLA_VXLAN_REMCSUM_RX value")?)
             }
             IFLA_VXLAN_DF => Df(parse_u8(payload).context("invalid IFLA_VXLAN_DF value")?),
-            IFLA_VXLAN_TTL_INHERIT => Unspec(payload.to_vec()),
+            IFLA_VXLAN_GBP => Gbp(parse_u8(payload).context("invalid IFLA_VXLAN_GBP value")?),
+            IFLA_VXLAN_GPE => Gpe(parse_u8(payload).context("invalid IFLA_VXLAN_GPE value")?),
+            IFLA_VXLAN_REMCSUM_NOPARTIAL => RemCsumNoPartial(
+                parse_u8(payload).context("invalid IFLA_VXLAN_REMCSUM_NO_PARTIAL")?,
+            ),
+            IFLA_VXLAN_TTL_INHERIT => {
+                TtlInherit(parse_u8(payload).context("invalid IFLA_VXLAN_TTL_INHERIT value")?)
+            }
             __IFLA_VXLAN_MAX => Unspec(payload.to_vec()),
             _ => return Err(format!("unknown NLA type {}", buf.kind()).into()),
         })
