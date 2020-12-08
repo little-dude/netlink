@@ -650,7 +650,9 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoVxlan {
                 let high = parse_u16(&payload[2..]).context(err)?;
                 PortRange((low, high))
             }
-            IFLA_VXLAN_PORT => Port(parse_u16(payload).context("invalid IFLA_VXLAN_PORT value")?),
+            IFLA_VXLAN_PORT => {
+                Port(parse_u16_be(payload).context("invalid IFLA_VXLAN_PORT value")?)
+            }
             IFLA_VXLAN_UDP_CSUM => {
                 UDPCsum(parse_u8(payload).context("invalid IFLA_VXLAN_UDP_CSUM value")?)
             }
