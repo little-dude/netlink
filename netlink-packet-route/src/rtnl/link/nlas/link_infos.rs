@@ -185,7 +185,17 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for VecInfo {
                                 }
                                 InfoData::MacVlan(v)
                             }
-                            InfoKind::MacVtap => InfoData::MacVtap(payload.to_vec()),
+                            InfoKind::MacVtap => {
+                                let mut v = Vec::new();
+                                let err =
+                                    "failed to parse IFLA_INFO_DATA (IFLA_INFO_KIND is 'macvtap')";
+                                for nla in NlasIterator::new(payload) {
+                                    let nla = &nla.context(err)?;
+                                    let parsed = InfoMacVtap::parse(nla).context(err)?;
+                                    v.push(parsed);
+                                }
+                                InfoData::MacVtap(v)
+                            }
                             InfoKind::GreTap => InfoData::GreTap(payload.to_vec()),
                             InfoKind::GreTap6 => InfoData::GreTap6(payload.to_vec()),
                             InfoKind::IpTun => InfoData::IpTun(payload.to_vec()),
@@ -234,7 +244,7 @@ pub enum InfoData {
     Bond(Vec<u8>),
     IpVlan(Vec<InfoIpVlan>),
     MacVlan(Vec<InfoMacVlan>),
-    MacVtap(Vec<u8>),
+    MacVtap(Vec<InfoMacVtap>),
     GreTap(Vec<u8>),
     GreTap6(Vec<u8>),
     IpTun(Vec<u8>),
@@ -259,13 +269,13 @@ impl Nla for InfoData {
             IpVlan(ref nlas) => nlas.as_slice().buffer_len(),
             Ipoib(ref nlas) => nlas.as_slice().buffer_len(),
             MacVlan(ref nlas) => nlas.as_slice().buffer_len(),
+            MacVtap(ref nlas) => nlas.as_slice().buffer_len(),
             Vxlan(ref nlas) => nlas.as_slice().buffer_len(),
             Dummy(ref bytes)
                 | Tun(ref bytes)
                 | Nlmon(ref bytes)
                 | Ifb(ref bytes)
                 | Bond(ref bytes)
-                | MacVtap(ref bytes)
                 | GreTap(ref bytes)
                 | GreTap6(ref bytes)
                 | IpTun(ref bytes)
@@ -290,13 +300,13 @@ impl Nla for InfoData {
             IpVlan(ref nlas) => nlas.as_slice().emit(buffer),
             Ipoib(ref nlas) => nlas.as_slice().emit(buffer),
             MacVlan(ref nlas) => nlas.as_slice().emit(buffer),
+            MacVtap(ref nlas) => nlas.as_slice().emit(buffer),
             Vxlan(ref nlas) => nlas.as_slice().emit(buffer),
             Dummy(ref bytes)
                 | Tun(ref bytes)
                 | Nlmon(ref bytes)
                 | Ifb(ref bytes)
                 | Bond(ref bytes)
-                | MacVtap(ref bytes)
                 | GreTap(ref bytes)
                 | GreTap6(ref bytes)
                 | IpTun(ref bytes)
@@ -1415,6 +1425,98 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoMacVlan {
                 for nla in NlasIterator::new(payload) {
                     let nla = &nla.context(err)?;
                     let parsed = InfoMacVlan::parse(nla).context(err)?;
+                    mac_data.push(parsed);
+                }
+                MacAddrData(mac_data)
+            }
+            IFLA_MACVLAN_MACADDR_COUNT => MacAddrCount(
+                parse_u32(payload).context("invalid IFLA_MACVLAN_MACADDR_COUNT value")?,
+            ),
+            kind => Other(DefaultNla::parse(buf).context(format!("unknown NLA type {}", kind))?),
+        })
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum InfoMacVtap {
+    Unspec(Vec<u8>),
+    Mode(u32),
+    Flags(u16),
+    MacAddrMode(u32),
+    MacAddr([u8; 6]),
+    MacAddrData(Vec<InfoMacVtap>),
+    MacAddrCount(u32),
+    Other(DefaultNla),
+}
+
+impl Nla for InfoMacVtap {
+    fn value_len(&self) -> usize {
+        use self::InfoMacVtap::*;
+        match self {
+            Unspec(bytes) => bytes.len(),
+            Mode(_) => 4,
+            Flags(_) => 2,
+            MacAddrMode(_) => 4,
+            MacAddr(_) => 6,
+            MacAddrData(ref nlas) => nlas.as_slice().buffer_len(),
+            MacAddrCount(_) => 4,
+            Other(nla) => nla.value_len(),
+        }
+    }
+
+    fn emit_value(&self, buffer: &mut [u8]) {
+        use self::InfoMacVtap::*;
+        match self {
+            Unspec(bytes) => buffer.copy_from_slice(bytes.as_slice()),
+            Mode(value) => NativeEndian::write_u32(buffer, *value),
+            Flags(value) => NativeEndian::write_u16(buffer, *value),
+            MacAddrMode(value) => NativeEndian::write_u32(buffer, *value),
+            MacAddr(bytes) => buffer.copy_from_slice(bytes),
+            MacAddrData(ref nlas) => nlas.as_slice().emit(buffer),
+            MacAddrCount(value) => NativeEndian::write_u32(buffer, *value),
+            Other(nla) => nla.emit_value(buffer),
+        }
+    }
+
+    fn kind(&self) -> u16 {
+        use self::InfoMacVtap::*;
+        match self {
+            Unspec(_) => IFLA_MACVLAN_UNSPEC,
+            Mode(_) => IFLA_MACVLAN_MODE,
+            Flags(_) => IFLA_MACVLAN_FLAGS,
+            MacAddrMode(_) => IFLA_MACVLAN_MACADDR_MODE,
+            MacAddr(_) => IFLA_MACVLAN_MACADDR,
+            MacAddrData(_) => IFLA_MACVLAN_MACADDR_DATA,
+            MacAddrCount(_) => IFLA_MACVLAN_MACADDR_COUNT,
+            Other(nla) => nla.kind(),
+        }
+    }
+}
+
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoMacVtap {
+    fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
+        use self::InfoMacVtap::*;
+        let payload = buf.value();
+        Ok(match buf.kind() {
+            IFLA_MACVLAN_UNSPEC => Unspec(payload.to_vec()),
+            IFLA_MACVLAN_MODE => {
+                Mode(parse_u32(payload).context("invalid IFLA_MACVLAN_MODE value")?)
+            }
+            IFLA_MACVLAN_FLAGS => {
+                Flags(parse_u16(payload).context("invalid IFLA_MACVLAN_FLAGS value")?)
+            }
+            IFLA_MACVLAN_MACADDR_MODE => {
+                MacAddrMode(parse_u32(payload).context("invalid IFLA_MACVLAN_MACADDR_MODE value")?)
+            }
+            IFLA_MACVLAN_MACADDR => {
+                MacAddr(parse_mac(payload).context("invalid IFLA_MACVLAN_MACADDR value")?)
+            }
+            IFLA_MACVLAN_MACADDR_DATA => {
+                let mut mac_data = Vec::new();
+                let err = "failed to parse IFLA_MACVLAN_MACADDR_DATA";
+                for nla in NlasIterator::new(payload) {
+                    let nla = &nla.context(err)?;
+                    let parsed = InfoMacVtap::parse(nla).context(err)?;
                     mac_data.push(parsed);
                 }
                 MacAddrData(mac_data)
