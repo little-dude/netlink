@@ -70,6 +70,10 @@ impl AddressAddRequest {
         AddressAddRequest { handle, message }
     }
 
+    pub(crate) fn new_raw(handle: Handle, message: AddressMessage) -> Self {
+        AddressAddRequest { handle, message }
+    }
+
     /// Execute the request.
     pub async fn execute(self) -> Result<(), Error> {
         let AddressAddRequest {
