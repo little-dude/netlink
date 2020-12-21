@@ -61,6 +61,13 @@ impl LinkSetRequest {
         self
     }
 
+    /// Detach the link from its _master_. This is equivalent to `ip link set LINK nomaster`.
+    ///To succeed, the link that is being detached must be UP.
+    pub fn nomaster(mut self) -> Self {
+        self.message.nlas.push(Nla::Master(0u32));
+        self
+    }
+
     /// Set the link with the given index up (equivalent to `ip link set dev DEV up`)
     pub fn up(mut self) -> Self {
         self.message.header.flags |= IFF_UP;
