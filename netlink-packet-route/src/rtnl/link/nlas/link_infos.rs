@@ -32,6 +32,7 @@ const VTI: &str = "vti";
 const VRF: &str = "vrf";
 const GTP: &str = "gtp";
 const IPOIB: &str = "ipoib";
+const WIREGUARD: &str = "wireguard";
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Info {
@@ -226,6 +227,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for VecInfo {
                                 }
                                 InfoData::Ipoib(v)
                             }
+                            InfoKind::Wireguard => InfoData::Wireguard(payload.to_vec()),
                             InfoKind::Other(_) => InfoData::Other(payload.to_vec()),
                         };
                         res.push(Info::Data(info_data));
@@ -265,6 +267,7 @@ pub enum InfoData {
     Vrf(Vec<InfoVrf>),
     Gtp(Vec<u8>),
     Ipoib(Vec<InfoIpoib>),
+    Wireguard(Vec<u8>),
     Other(Vec<u8>),
 }
 
@@ -295,6 +298,7 @@ impl Nla for InfoData {
                 | GreTun6(ref bytes)
                 | Vti(ref bytes)
                 | Gtp(ref bytes)
+                | Wireguard(ref bytes)
                 | Other(ref bytes)
                 => bytes.len(),
         }
@@ -326,6 +330,7 @@ impl Nla for InfoData {
                 | GreTun6(ref bytes)
                 | Vti(ref bytes)
                 | Gtp(ref bytes)
+                | Wireguard(ref bytes)
                 | Other(ref bytes)
                 => buffer.copy_from_slice(bytes),
         }
@@ -360,6 +365,7 @@ pub enum InfoKind {
     Vrf,
     Gtp,
     Ipoib,
+    Wireguard,
     Other(String),
 }
 
@@ -389,6 +395,7 @@ impl Nla for InfoKind {
             Vrf => VRF.len(),
             Gtp => GTP.len(),
             Ipoib => IPOIB.len(),
+            Wireguard => WIREGUARD.len(),
             Other(ref s) => s.len(),
         };
         len + 1
@@ -419,6 +426,7 @@ impl Nla for InfoKind {
             Vrf => VRF,
             Gtp => GTP,
             Ipoib => IPOIB,
+            Wireguard => WIREGUARD,
             Other(ref s) => s.as_str(),
         };
         buffer[..s.len()].copy_from_slice(s.as_bytes());
@@ -462,6 +470,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoKind {
             VRF => Vrf,
             GTP => Gtp,
             IPOIB => Ipoib,
+            WIREGUARD => Wireguard,
             _ => Other(s),
         })
     }
