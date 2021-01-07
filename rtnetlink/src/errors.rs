@@ -13,6 +13,9 @@ pub enum Error {
     #[error("A netlink request failed")]
     RequestFailed,
 
+    #[error("Namespace error {0}")]
+    NamespaceError(String),
+
     #[error(
         "Received a link message (RTM_GETLINK, RTM_NEWLINK, RTM_SETLINK or RTMGETLINK) with an invalid hardware address attribute: {0:?}."
     )]
