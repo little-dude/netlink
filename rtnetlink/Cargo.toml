@@ -23,7 +23,7 @@ netlink-packet-route = { path = "../netlink-packet-route", version = "0.6" }
 netlink-proto = { path = "../netlink-proto", version = "0.5" }
 byteordered = "0.5.0"
 nix = "0.19.0"
-tokio = { version = "0.2.6", features = ["full"] }
+tokio = { version = "0.2.6", features = ["rt-core", "blocking"] }
 
 [dev-dependencies]
 env_logger = "0.7.1"
