@@ -56,6 +56,9 @@ impl LinkSetRequest {
 
     /// Attach the link to a bridge (its _master_). This is equivalent to `ip link set LINK master
     /// BRIDGE`. To succeed, both the bridge and the link that is being attached must be UP.
+    ///
+    /// To Remove a link from a bridge, set its master to zero.
+    /// This is equvalent to `ip link set LINK nomaster`
     pub fn master(mut self, master_index: u32) -> Self {
         self.message.nlas.push(Nla::Master(master_index));
         self
