@@ -14,8 +14,8 @@ description = "async netlink protocol"
 [dependencies]
 bytes = "0.5.3"
 log = "0.4.8"
-futures = "0.3.1"
-tokio = { version = "0.2.6", default-features = false, features = ["io-util"] }
+futures = "0.3.11"
+tokio = { version = "1.0.1", default-features = false, features = ["io-util"] }
 tokio-util = { version = "0.2.0", default-features = false, features = ["codec"] }
 netlink-packet-core = { path = "../netlink-packet-core", version = "0.2" }
 netlink-sys = { path = "../netlink-sys", default-features = false, features = ["tokio_socket"], version = "0.5" }
@@ -26,7 +26,7 @@ workaround-audit-bug = []
 
 [dev-dependencies]
 env_logger = "0.7.1"
-tokio = { version = "0.2.6", default-features = false, features = ["macros", "rt-core"] }
+tokio = { version = "1.0.1", default-features = false, features = ["macros", "rt-multi-thread"] }
 netlink-packet-route = { path = "../netlink-packet-route" }
 netlink-packet-audit = { path = "../netlink-packet-audit" }
 

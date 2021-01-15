@@ -8,7 +8,7 @@
 //! dependencies:
 //!
 //! - `futures = "^0.3"`
-//! - `tokio = "^0.2"`
+//! - `tokio = "^1.0"`
 //! - `netlink-packet-audit = "^0.1"`
 //!
 //! ```rust,no_run

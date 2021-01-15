@@ -9,7 +9,7 @@ keywords = ["netlink", "ip", "linux"]
 license = "MIT"
 readme = "../README.md"
 repository = "https://github.com/little-dude/netlink"
-description = "netlink sockets, with optional integration with mio and tokio"
+description = "netlink sockets, with optional integration with tokio"
 
 [dependencies]
 libc = "0.2.66"
@@ -19,16 +19,12 @@ log = "0.4.8"
 optional = true
 version = "0.3.1"
 
-[dependencies.mio]
-optional = true
-version = "0.6.21"
-
 [dependencies.tokio]
 optional = true
-version = "0.2.6"
+version = "1.0.1"
 default-features = false
 # We only depend on tokio for PollEvented
-features = ["io-driver"]
+features = ["net"]
 
 [dependencies.async-io]
 optional = true
@@ -36,7 +32,7 @@ version = "1.1"
 
 [features]
 default = []
-tokio_socket = ["mio", "tokio", "futures"]
+tokio_socket = ["tokio", "futures"]
 smol_socket = ["async-io"]
 
 
@@ -44,10 +40,10 @@ smol_socket = ["async-io"]
 netlink-packet-audit = { path = "../netlink-packet-audit" }
 
 [dev-dependencies.tokio]
-version = "0.2.6"
+version = "1.0.1"
 default-features = false
 # We only depend on tokio for PollEvented
-features = ["io-driver", "macros"]
+features = ["net", "macros", "rt-multi-thread"]
 
 [[example]]
 name = "audit_events"
