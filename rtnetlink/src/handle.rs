@@ -5,6 +5,7 @@ use crate::{
     AddressHandle,
     Error,
     LinkHandle,
+    NeighbourHandle,
     QDiscHandle,
     RouteHandle,
     RuleHandle,
@@ -56,6 +57,11 @@ impl Handle {
     /// Create a new handle, specifically for routing rule requests (equivalent to `ip rule` commands)
     pub fn rule(&self) -> RuleHandle {
         RuleHandle::new(self.clone())
+    }
+
+    /// Create a new handle, specifically for routing neighbours requests (equivalent to `ip neighbour` commands)
+    pub fn neighbours(&self) -> NeighbourHandle {
+        NeighbourHandle::new(self.clone())
     }
 
     /// Create a new handle, specifically for traffic control qdisc requests
