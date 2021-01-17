@@ -38,21 +38,28 @@ impl NeighbourAddRequest {
         NeighbourAddRequest { handle, message }
     }
 
+    /// Set a bitmask of states for the neighbor cache entry.
+    /// It should be a combination of `NUD_*` constants.
     pub fn state(mut self, state: u16) -> Self {
         self.message.header.state = state;
         self
     }
 
+    /// Set flags for the neighbor cache entry.
+    /// It should be a combination of `NTF_*` constants.
     pub fn flags(mut self, flags: u8) -> Self {
         self.message.header.flags = flags;
         self
     }
 
+    /// Set attributes applicable to the the neighbor cache entry.
+    /// It should be one of `NDA_*` constants.
     pub fn ntype(mut self, ntype: u8) -> Self {
         self.message.header.ntype = ntype;
         self
     }
 
+    /// Set a neighbor cache link layer address (see `NDA_LLADDR` for details).
     pub fn link_local_address(mut self, addr: &[u8]) -> Self {
         self.message.nlas.push(Nla::LinkLocalAddress(addr.to_vec()));
         self
