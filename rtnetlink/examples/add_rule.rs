@@ -27,10 +27,12 @@ async fn main() -> Result<(), ()> {
 
 async fn add_rule(dest: &Ipv4Network, handle: Handle) -> Result<(), Error> {
     let rule = handle.rule();
-    rule.add_v4()
+    rule.add()
+        .v4()
         .destination_prefix(dest.ip(), dest.prefix())
         .execute()
         .await?;
+
     Ok(())
 }
 
