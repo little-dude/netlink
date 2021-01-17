@@ -29,12 +29,12 @@ where
     }
 }
 
-impl<T, M> Into<(NetlinkMessage<T>, SocketAddr, M)> for Request<T, M>
+impl<T, M> From<Request<T, M>> for (NetlinkMessage<T>, SocketAddr, M)
 where
     T: Debug + PartialEq + Eq + Clone,
     M: Debug,
 {
-    fn into(self) -> (NetlinkMessage<T>, SocketAddr, M) {
-        (self.message, self.destination, self.metadata)
+    fn from(req: Request<T, M>) -> (NetlinkMessage<T>, SocketAddr, M) {
+        (req.message, req.destination, req.metadata)
     }
 }

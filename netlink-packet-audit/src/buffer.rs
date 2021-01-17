@@ -70,7 +70,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> ParseableParametrized<AuditBuffer<&'a T>, u16>
                 let buf = RuleBuffer::new_checked(buf.inner()).context(err)?;
                 ListRules(Some(RuleMessage::parse(&buf).context(err)?))
             }
-            i if i >= AUDIT_EVENT_MESSAGE_MIN && i <= AUDIT_EVENT_MESSAGE_MAX => {
+            i if (AUDIT_EVENT_MESSAGE_MIN..AUDIT_EVENT_MESSAGE_MAX).contains(&i) => {
                 let data = String::from_utf8(buf.inner().to_vec())
                     .context("failed to parse audit event data as a valid string")?;
                 Event((i, data))
