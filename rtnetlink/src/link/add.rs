@@ -5,7 +5,6 @@ use crate::{
         nlas::link::{Info, InfoData, InfoKind, InfoVlan, InfoVxlan, Nla, VethInfo},
         LinkMessage,
         NetlinkMessage,
-        NetlinkPayload,
         RtnlMessage,
         IFF_UP,
         NLM_F_ACK,
@@ -13,6 +12,7 @@ use crate::{
         NLM_F_EXCL,
         NLM_F_REQUEST,
     },
+    try_nl,
     Error,
     Handle,
 };
@@ -265,9 +265,7 @@ impl LinkAddRequest {
 
         let mut response = handle.request(req)?;
         while let Some(message) = response.next().await {
-            if let NetlinkPayload::Error(err) = message.payload {
-                return Err(Error::NetlinkError(err));
-            }
+            try_nl!(message);
         }
         Ok(())
     }

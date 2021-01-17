@@ -5,14 +5,8 @@ use futures::{
 };
 
 use crate::{
-    packet::{
-        constants::*,
-        nlas::link::Nla,
-        LinkMessage,
-        NetlinkMessage,
-        NetlinkPayload,
-        RtnlMessage,
-    },
+    packet::{constants::*, nlas::link::Nla, LinkMessage, NetlinkMessage, RtnlMessage},
+    try_rtnl,
     Error,
     Handle,
 };
@@ -67,16 +61,7 @@ impl LinkGetRequest {
         match handle.request(req) {
             Ok(response) => Either::Left(
                 response
-                    .map(move |msg| {
-                        let (header, payload) = msg.into_parts();
-                        match payload {
-                            NetlinkPayload::InnerMessage(RtnlMessage::NewLink(msg)) => Ok(msg),
-                            NetlinkPayload::Error(err) => Err(Error::NetlinkError(err)),
-                            _ => Err(Error::UnexpectedMessage(NetlinkMessage::new(
-                                header, payload,
-                            ))),
-                        }
-                    })
+                    .map(move |msg| Ok(try_rtnl!(msg, RtnlMessage::NewLink)))
                     .try_filter(move |msg| future::ready(filter(msg))),
             ),
             Err(e) => Either::Right(future::err::<LinkMessage, Error>(e).into_stream()),

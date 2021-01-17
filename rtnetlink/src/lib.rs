@@ -37,3 +37,5 @@ pub mod proto {
     pub use netlink_proto::{Connection, ConnectionHandle, Error, ErrorKind};
 }
 pub use netlink_proto::sys;
+
+mod macros;

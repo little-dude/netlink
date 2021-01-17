@@ -1,7 +1,8 @@
 use futures::stream::StreamExt;
 
 use crate::{
-    packet::{NetlinkMessage, NetlinkPayload, RtnlMessage, RuleMessage, NLM_F_ACK, NLM_F_REQUEST},
+    packet::{NetlinkMessage, RtnlMessage, RuleMessage, NLM_F_ACK, NLM_F_REQUEST},
+    try_nl,
     Error,
     Handle,
 };
@@ -27,9 +28,7 @@ impl RuleDelRequest {
         req.header.flags = NLM_F_REQUEST | NLM_F_ACK;
         let mut response = handle.request(req)?;
         while let Some(msg) = response.next().await {
-            if let NetlinkPayload::Error(e) = msg.payload {
-                return Err(Error::NetlinkError(e));
-            }
+            try_nl!(msg);
         }
         Ok(())
     }
