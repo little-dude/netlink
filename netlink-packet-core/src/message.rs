@@ -50,9 +50,7 @@ where
     /// Parse the given buffer as a netlink message
     pub fn deserialize(buffer: &[u8]) -> Result<Self, DecodeError> {
         let netlink_buffer = NetlinkBuffer::new_checked(&buffer)?;
-        Ok(<Self as Parseable<NetlinkBuffer<&&[u8]>>>::parse(
-            &netlink_buffer,
-        )?)
+        <Self as Parseable<NetlinkBuffer<&&[u8]>>>::parse(&netlink_buffer)
     }
 }
 

@@ -1,6 +1,6 @@
 [package]
 name = "audit"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 edition = "2018"
 
@@ -15,8 +15,8 @@ description = "linux audit via netlink"
 futures = "0.3.11"
 thiserror = "1"
 netlink-packet-audit = { path = "../netlink-packet-audit", version = "0.2" }
-netlink-proto = { path = "../netlink-proto", features = ["workaround-audit-bug"], version = "0.5" }
+netlink-proto = { path = "../netlink-proto", features = ["workaround-audit-bug"], version = "0.6" }
 
 [dev-dependencies]
 tokio = { version = "1.0.1", default-features = false, features = ["macros", "rt-multi-thread"] }
-env_logger = "0.7.1"
+env_logger = "0.8.2"
