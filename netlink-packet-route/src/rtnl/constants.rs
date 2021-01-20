@@ -759,19 +759,21 @@ pub const FIB_RULE_FIND_SADDR: u32 = 10000;
 // pub const XDP_FLAGS_HW_MODE: int = 8;
 // pub const XDP_FLAGS_MODES: int = 14;
 // pub const XDP_FLAGS_MASK: int = 15;
-// pub const IFA_F_SECONDARY: int = 1;
-// pub const IFA_F_TEMPORARY: int = 1;
-// pub const IFA_F_NODAD: int = 2;
-// pub const IFA_F_OPTIMISTIC: int = 4;
-// pub const IFA_F_DADFAILED: int = 8;
-// pub const IFA_F_HOMEADDRESS: int = 16;
-// pub const IFA_F_DEPRECATED: int = 32;
-// pub const IFA_F_TENTATIVE: int = 64;
-// pub const IFA_F_PERMANENT: int = 128;
-// pub const IFA_F_MANAGETEMPADDR: int = 256;
-// pub const IFA_F_NOPREFIXROUTE: int = 512;
-// pub const IFA_F_MCAUTOJOIN: int = 1024;
-// pub const IFA_F_STABLE_PRIVACY: int = 2048;
+
+pub const IFA_F_SECONDARY: u32 = 1;
+pub const IFA_F_TEMPORARY: u32 = 1;
+pub const IFA_F_NODAD: u32 = 2;
+pub const IFA_F_OPTIMISTIC: u32 = 4;
+pub const IFA_F_DADFAILED: u32 = 8;
+pub const IFA_F_HOMEADDRESS: u32 = 16;
+pub const IFA_F_DEPRECATED: u32 = 32;
+pub const IFA_F_TENTATIVE: u32 = 64;
+pub const IFA_F_PERMANENT: u32 = 128;
+pub const IFA_F_MANAGETEMPADDR: u32 = 256;
+pub const IFA_F_NOPREFIXROUTE: u32 = 512;
+pub const IFA_F_MCAUTOJOIN: u32 = 1024;
+pub const IFA_F_STABLE_PRIVACY: u32 = 2048;
+
 // pub const RTNL_FAMILY_IPMR: int = 128;
 // pub const RTNL_FAMILY_IP6MR: int = 129;
 // pub const RTNL_FAMILY_MAX: int = 129;
@@ -794,10 +796,12 @@ pub const FIB_RULE_FIND_SADDR: u32 = 10000;
 // #[allow(overflowing_literals)]
 // pub const TCM_IFINDEX_MAGIC_BLOCK: int = 0xffff_ffff;
 // pub const TCA_FLAG_LARGE_DUMP_ON: int = 1;
+
 pub const RTEXT_FILTER_VF: u32 = 1;
 pub const RTEXT_FILTER_BRVLAN: u32 = 2;
 pub const RTEXT_FILTER_BRVLAN_COMPRESSED: u32 = 4;
 pub const RTEXT_FILTER_SKIP_STATS: u32 = 8;
+
 // pub const ARPOP_REQUEST: int = 1;
 // pub const ARPOP_REPLY: int = 2;
 //

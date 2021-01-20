@@ -30,6 +30,9 @@ pub use crate::connection::*;
 mod traffic_control;
 pub use crate::traffic_control::*;
 
+mod neighbour;
+pub use crate::neighbour::*;
+
 pub mod constants;
 
 pub use netlink_packet_route as packet;

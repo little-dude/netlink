@@ -23,10 +23,7 @@ pub struct RuleGetRequest {
 impl RuleGetRequest {
     pub(crate) fn new(handle: Handle, ip_version: IpVersion) -> Self {
         let mut message = RuleMessage::default();
-        message.header.family = match ip_version {
-            IpVersion::V4 => AF_INET as u8,
-            IpVersion::V6 => AF_INET6 as u8,
-        };
+        message.header.family = ip_version.family();
 
         message.header.dst_len = 0;
         message.header.src_len = 0;

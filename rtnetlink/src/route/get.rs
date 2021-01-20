@@ -28,13 +28,20 @@ pub enum IpVersion {
     V6,
 }
 
+impl IpVersion {
+    pub(crate) fn family(self) -> u8 {
+        match self {
+            IpVersion::V4 => AF_INET as u8,
+            IpVersion::V6 => AF_INET6 as u8,
+        }
+    }
+}
+
 impl RouteGetRequest {
     pub(crate) fn new(handle: Handle, ip_version: IpVersion) -> Self {
         let mut message = RouteMessage::default();
-        message.header.address_family = match ip_version {
-            IpVersion::V4 => AF_INET as u8,
-            IpVersion::V6 => AF_INET6 as u8,
-        };
+        message.header.address_family = ip_version.family();
+
         // As per rtnetlink(7) documentation, setting the following
         // fields to 0 gets us all the routes from all the tables
         //
