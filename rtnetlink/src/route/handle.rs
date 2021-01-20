@@ -1,7 +1,4 @@
-//use std::net::IpAddr;
-
-use super::{RouteAddIpv4Request, RouteAddIpv6Request};
-use crate::{Handle, IpVersion, RouteDelRequest, RouteGetRequest};
+use crate::{Handle, IpVersion, RouteAddRequest, RouteDelRequest, RouteGetRequest};
 use netlink_packet_route::RouteMessage;
 
 pub struct RouteHandle(Handle);
@@ -17,13 +14,8 @@ impl RouteHandle {
     }
 
     /// Add an routing table entry (equivalent to `ip route add`)
-    pub fn add_v4(&self) -> RouteAddIpv4Request {
-        RouteAddIpv4Request::new(self.0.clone())
-    }
-
-    /// Add an routing table entry (equivalent to `ip route add`)
-    pub fn add_v6(&self) -> RouteAddIpv6Request {
-        RouteAddIpv6Request::new(self.0.clone())
+    pub fn add(&self) -> RouteAddRequest {
+        RouteAddRequest::new(self.0.clone())
     }
 
     /// Delete the given routing table entry (equivalent to `ip route del`)
