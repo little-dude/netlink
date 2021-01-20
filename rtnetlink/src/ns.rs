@@ -144,19 +144,16 @@ impl NetworkNamespace {
         // creating namespaces folder if not exists
         #[allow(clippy::collapsible_if)]
         if nix::sys::stat::stat(dir_path).is_err() {
-            match nix::unistd::mkdir(dir_path, mkdir_mode) {
-                Err(e) => {
-                    log::error!("mkdir error: {}", e);
-                    let err_msg = format!("mkdir error: {}", e);
-                    return Err(Error::NamespaceError(err_msg));
-                }
-                Ok(_) => (),
+            if let Err(e) = nix::unistd::mkdir(dir_path, mkdir_mode) {
+                log::error!("mkdir error: {}", e);
+                let err_msg = format!("mkdir error: {}", e);
+                return Err(Error::NamespaceError(err_msg));
             }
         }
 
-        // Check try to mount /run/netns, with MS_REC | MS_SHARED
-        // if fails creates the mount with MS_BIND | MS_REC
-        // this is the same strategy used by `ip netns add NS`
+        // Try to mount /run/netns, with MS_REC | MS_SHARED
+        // If it fails, creates the mount with MS_BIND | MS_REC
+        // This is the same strategy used by `ip netns add NS`
         mount_flags.insert(nix::mount::MsFlags::MS_REC);
         mount_flags.insert(nix::mount::MsFlags::MS_SHARED);
         if nix::mount::mount(
@@ -172,38 +169,32 @@ impl NetworkNamespace {
             mount_flags.insert(nix::mount::MsFlags::MS_BIND);
             mount_flags.insert(nix::mount::MsFlags::MS_REC);
 
-            match nix::mount::mount(
+            if let Err(e) = nix::mount::mount(
                 Some(Path::new(dir_path)),
                 dir_path,
                 Some(none_fs),
                 mount_flags,
                 none_p4,
             ) {
-                Err(e) => {
-                    log::error!("mount error: {}", e);
-                    let err_msg = format!("mount error: {}", e);
-                    return Err(Error::NamespaceError(err_msg));
-                }
-                Ok(_) => (),
+                log::error!("mount error: {}", e);
+                let err_msg = format!("mount error: {}", e);
+                return Err(Error::NamespaceError(err_msg));
             }
         }
 
         mount_flags = nix::mount::MsFlags::empty();
         mount_flags.insert(nix::mount::MsFlags::MS_REC);
         mount_flags.insert(nix::mount::MsFlags::MS_SHARED);
-        match nix::mount::mount(
+        if let Err(e) = nix::mount::mount(
             Some(Path::new("")),
             dir_path,
             Some(none_fs),
             mount_flags,
             none_p4,
         ) {
-            Err(e) => {
-                log::error!("mount error: {}", e);
-                let err_msg = format!("mount error: {}", e);
-                return Err(Error::NamespaceError(err_msg));
-            }
-            Ok(_) => (),
+            log::error!("mount error: {}", e);
+            let err_msg = format!("mount error: {}", e);
+            return Err(Error::NamespaceError(err_msg));
         }
 
         let ns_path = Path::new(&netns_path);
@@ -218,14 +209,11 @@ impl NetworkNamespace {
             }
         };
 
-        match nix::unistd::close(fd) {
-            Err(e) => {
-                log::error!("close error: {}", e);
-                let err_msg = format!("close error: {}", e);
-                let _ = nix::unistd::unlink(ns_path);
-                return Err(Error::NamespaceError(err_msg));
-            }
-            Ok(_) => (),
+        if let Err(e) = nix::unistd::close(fd) {
+            log::error!("close error: {}", e);
+            let err_msg = format!("close error: {}", e);
+            let _ = nix::unistd::unlink(ns_path);
+            return Err(Error::NamespaceError(err_msg));
         }
 
         Ok(netns_path)
@@ -243,14 +231,11 @@ impl NetworkNamespace {
         let none_p4: Option<&Path> = None;
 
         // unshare to the new network namespace
-        match nix::sched::unshare(CloneFlags::CLONE_NEWNET) {
-            Err(e) => {
-                log::error!("unshare error: {}", e);
-                let err_msg = format!("unshare error: {}", e);
-                let _ = nix::unistd::unlink(ns_path);
-                return Err(Error::NamespaceError(err_msg));
-            }
-            Ok(_) => (),
+        if let Err(e) = nix::sched::unshare(CloneFlags::CLONE_NEWNET) {
+            log::error!("unshare error: {}", e);
+            let err_msg = format!("unshare error: {}", e);
+            let _ = nix::unistd::unlink(ns_path);
+            return Err(Error::NamespaceError(err_msg));
         }
 
         open_flags = OFlag::empty();
@@ -269,31 +254,25 @@ impl NetworkNamespace {
         let self_path = Path::new(&SELF_NS_PATH);
 
         // bind to the netns
-        match nix::mount::mount(
+        if let Err(e) = nix::mount::mount(
             Some(self_path),
             ns_path,
             Some(none_fs),
             nix::mount::MsFlags::MS_BIND,
             none_p4,
         ) {
-            Err(e) => {
-                log::error!("mount error: {}", e);
-                let err_msg = format!("mount error: {}", e);
-                let _ = nix::unistd::unlink(ns_path);
-                return Err(Error::NamespaceError(err_msg));
-            }
-            Ok(_) => (),
+            log::error!("mount error: {}", e);
+            let err_msg = format!("mount error: {}", e);
+            let _ = nix::unistd::unlink(ns_path);
+            return Err(Error::NamespaceError(err_msg));
         }
 
         setns_flags.insert(CloneFlags::CLONE_NEWNET);
-        match nix::sched::setns(fd, setns_flags) {
-            Err(e) => {
-                log::error!("setns error: {}", e);
-                let err_msg = format!("setns error: {}", e);
-                let _ = nix::unistd::unlink(ns_path);
-                return Err(Error::NamespaceError(err_msg));
-            }
-            Ok(_) => (),
+        if let Err(e) = nix::sched::setns(fd, setns_flags) {
+            log::error!("setns error: {}", e);
+            let err_msg = format!("setns error: {}", e);
+            let _ = nix::unistd::unlink(ns_path);
+            return Err(Error::NamespaceError(err_msg));
         }
 
         Ok(())

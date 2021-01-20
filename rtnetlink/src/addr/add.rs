@@ -63,7 +63,7 @@ impl AddressAddRequest {
                     address_vec[2],
                     address_vec[3],
                 ));
-                let brd = Ipv4Addr::from((0xffff_ffff as u32) >> u32::from(prefix_len) | ip_addr);
+                let brd = Ipv4Addr::from((0xffff_ffff_u32) >> u32::from(prefix_len) | ip_addr);
                 message.nlas.push(Nla::Broadcast(brd.octets().to_vec()));
             };
         }
