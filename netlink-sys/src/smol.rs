@@ -1,6 +1,14 @@
-use std::io;
+use std::{
+    io,
+    os::unix::io::{AsRawFd, FromRawFd, RawFd},
+    task::{Context, Poll},
+};
 
 use async_io::Async;
+
+use futures::{future::poll_fn, ready};
+
+use log::trace;
 
 use crate::{Socket, SocketAddr};
 
@@ -45,6 +53,45 @@ impl SmolSocket {
 
     pub async fn recv_from_full(&mut self) -> io::Result<(Vec<u8>, SocketAddr)> {
         self.0.read_with_mut(|sock| sock.recv_from_full()).await
+    }
+
+    pub fn poll_recv_from(
+        &mut self,
+        cx: &mut Context,
+        buf: &mut [u8],
+    ) -> Poll<io::Result<(usize, SocketAddr)>> {
+        loop {
+            trace!("poll_recv_from called");
+            let _guard = ready!(self.0.poll_readable(cx))?;
+            trace!("poll_recv_from socket is ready for reading");
+
+            match self.0.get_ref().recv_from(buf, 0) {
+                Ok(x) => {
+                    trace!("poll_recv_from {:?} bytes read", x);
+                    return Poll::Ready(Ok(x));
+                }
+                Err(_would_block) => {
+                    trace!("poll_recv_from socket would block");
+                    continue;
+                }
+            }
+        }
+    }
+
+    pub fn poll_send_to(
+        &mut self,
+        cx: &mut Context,
+        buf: &[u8],
+        addr: &SocketAddr,
+    ) -> Poll<io::Result<usize>> {
+        loop {
+            let _guard = ready!(self.0.poll_writable(cx))?;
+
+            match self.0.get_ref().send_to(buf, addr, 0) {
+                Ok(x) => return Poll::Ready(Ok(x)),
+                Err(_would_block) => continue,
+            }
+        }
     }
 
     pub fn set_pktinfo(&mut self, value: bool) -> io::Result<()> {
@@ -109,5 +156,20 @@ impl SmolSocket {
 
     pub fn get_cap_ack(&self) -> io::Result<bool> {
         self.0.get_ref().get_cap_ack()
+    }
+}
+
+
+impl FromRawFd for SmolSocket {
+    unsafe fn from_raw_fd(fd: RawFd) -> Self {
+        let socket = Socket::from_raw_fd(fd);
+        socket.set_non_blocking(true).unwrap();
+        SmolSocket(Async::new(socket).unwrap())
+    }
+}
+
+impl AsRawFd for SmolSocket {
+    fn as_raw_fd(&self) -> RawFd {
+        self.0.get_ref().as_raw_fd()
     }
 }

@@ -22,7 +22,7 @@ use netlink_packet_audit::{
     NLM_F_REQUEST,
 };
 
-use netlink_sys::{protocols::NETLINK_AUDIT, AsyncStdSocket, SocketAddr};
+use netlink_sys::{protocols::NETLINK_AUDIT, SmolSocket, SocketAddr};
 
 const AUDIT_STATUS_ENABLED: u32 = 1;
 const AUDIT_STATUS_PID: u32 = 4;
@@ -30,7 +30,7 @@ const AUDIT_STATUS_PID: u32 = 4;
 #[async_std::main]
 async fn main() {
     let kernel_unicast: SocketAddr = SocketAddr::new(0, 0);
-    let mut socket = AsyncStdSocket::new(NETLINK_AUDIT).unwrap();
+    let mut socket = SmolSocket::new(NETLINK_AUDIT).unwrap();
 
     let mut status = StatusMessage::new();
     status.enabled = 1;

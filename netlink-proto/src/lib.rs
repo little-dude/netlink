@@ -183,7 +183,13 @@ use std::{fmt::Debug, io};
 pub use netlink_packet_core as packet;
 
 pub mod sys {
-    pub use netlink_sys::{protocols, SocketAddr, TokioSocket as Socket};
+    pub use netlink_sys::{protocols, SocketAddr};
+
+    #[cfg(feature = "tokio_socket")]
+    pub use netlink_sys::TokioSocket as Socket;
+
+    #[cfg(feature = "smol_socket")]
+    pub use netlink_sys::SmolSocket as Socket;
 }
 
 /// Create a new Netlink connection for the given Netlink protocol, and returns a handle to that
