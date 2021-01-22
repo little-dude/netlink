@@ -6,7 +6,7 @@ use std::{
 
 use async_io::Async;
 
-use futures::{future::poll_fn, ready};
+use futures::ready;
 
 use log::trace;
 
@@ -158,7 +158,6 @@ impl SmolSocket {
         self.0.get_ref().get_cap_ack()
     }
 }
-
 
 impl FromRawFd for SmolSocket {
     unsafe fn from_raw_fd(fd: RawFd) -> Self {

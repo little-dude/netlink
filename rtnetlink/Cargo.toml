@@ -13,6 +13,9 @@ description = "manipulate linux networking resources via netlink"
 
 [features]
 test_as_root = []
+default = ["tokio_socket"]
+tokio_socket = ["netlink-proto/tokio_socket","netlink-proto/workaround-audit-bug", "tokio"]
+smol_socket = ["netlink-proto/smol_socket","netlink-proto/workaround-audit-bug","async-std"]
 
 
 [dependencies]
@@ -20,12 +23,14 @@ futures = "0.3.11"
 log = "0.4.8"
 thiserror = "1"
 netlink-packet-route = { path = "../netlink-packet-route", version = "0.7" }
-netlink-proto = { path = "../netlink-proto", version = "0.6" }
+netlink-proto = { path = "../netlink-proto", default-features = false, version = "0.6" }
 byteordered = "0.5.0"
 nix = "0.19.0"
-tokio = { version = "1.0.1", features = ["rt"] }
+tokio = { version = "1.0.1", features = ["rt"], optional = true}
+async-std = { version = "1.9.0", features = ["unstable"], optional = true}
 
 [dev-dependencies]
 env_logger = "0.8.2"
 ipnetwork = "0.17.0"
 tokio = { version = "1.0.1", features = ["macros", "rt", "rt-multi-thread"] }
+async-std = { version = "1.9.0", features = ["attributes"]}

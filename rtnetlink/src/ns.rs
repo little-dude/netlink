@@ -1,4 +1,8 @@
+#[cfg(feature = "tokio_socket")]
 use tokio::task;
+
+#[cfg(feature = "smol_socket")]
+use async_std::task;
 
 use crate::Error;
 use nix::{
@@ -58,8 +62,13 @@ impl NetworkNamespace {
                     String::from("Namespace file remove failed (are you running as root?)");
                 return Err(Error::NamespaceError(err_msg));
             }
-            Ok(())
+            #[cfg(feature = "tokio_socket")]
+            return Ok(());
+
+            #[cfg(feature = "smol_socket")]
+            return Ok(Ok(()));
         });
+
         match res.await {
             Ok(r) => r,
             Err(e) => {
