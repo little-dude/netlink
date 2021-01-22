@@ -36,6 +36,11 @@ mod tokio;
 #[cfg(feature = "tokio_socket")]
 pub use self::tokio::TokioSocket;
 
+#[cfg(all(feature = "async_std_socket", feature = "smol_socket"))]
+mod async_std;
+#[cfg(all(feature = "async_std_socket", feature = "smol_socket"))]
+pub use self::async_std::AsyncStdSocket;
+
 #[cfg(feature = "smol_socket")]
 mod smol;
 #[cfg(feature = "smol_socket")]
