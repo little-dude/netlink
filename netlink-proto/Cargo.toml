@@ -18,10 +18,12 @@ futures = "0.3.11"
 tokio = { version = "1.0.1", default-features = false, features = ["io-util"] }
 tokio-util = { version = "0.2.0", default-features = false, features = ["codec"] }
 netlink-packet-core = { path = "../netlink-packet-core", version = "0.2" }
-netlink-sys = { path = "../netlink-sys", default-features = false, features = ["tokio_socket"], version = "0.6" }
+netlink-sys = { path = "../netlink-sys", default-features = false, version = "0.6" }
 
 [features]
-default = []
+default = ["tokio_socket"]
+tokio_socket = ["netlink-sys/tokio_socket"]
+smol_socket = ["netlink-sys/smol_socket"]
 workaround-audit-bug = []
 
 [dev-dependencies]
@@ -29,9 +31,14 @@ env_logger = "0.8.2"
 tokio = { version = "1.0.1", default-features = false, features = ["macros", "rt-multi-thread"] }
 netlink-packet-route = { path = "../netlink-packet-route" }
 netlink-packet-audit = { path = "../netlink-packet-audit" }
+async-std = {version = "1.9.0", features = ["attributes"]}
 
 [[example]]
 name = "dump_links"
+
+[[example]]
+name = "dump_links_async"
+required-features = ["smol_socket"]
 
 [[example]]
 name = "audit_events"

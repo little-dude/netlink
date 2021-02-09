@@ -28,5 +28,8 @@ jobs:
       - name: rustfmt
         run: cargo fmt --all -- --check
 
-      - name: clippy
-        run: cargo clippy --all-features --workspace
+      - name: clippy-tokio-socket
+        run: cargo clippy --workspace --all
+
+      - name: clippy-smol-socket
+        run: cargo clippy --no-default-features --features smol_socket --workspace --all
