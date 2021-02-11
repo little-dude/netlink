@@ -10,6 +10,9 @@ pub use self::af_spec_inet::*;
 mod link_infos;
 pub use self::link_infos::*;
 
+mod prop_list;
+pub use self::prop_list::*;
+
 mod map;
 pub use self::map::*;
 
@@ -32,7 +35,7 @@ use byteorder::{ByteOrder, NativeEndian};
 
 use crate::{
     constants::*,
-    nlas::{self, DefaultNla, NlaBuffer, NlasIterator},
+    nlas::{self, DefaultNla, NlaBuffer, NlasIterator, NLA_F_NESTED},
     parsers::{parse_i32, parse_string, parse_u32, parse_u8},
     traits::{Emitable, Parseable, ParseableParametrized},
     DecodeError,
@@ -68,7 +71,7 @@ pub enum Nla {
     /// [1]: https://lwn.net/ml/netdev/20190719110029.29466-1-jiri@resnulli.us/
     /// [2]: https://lwn.net/ml/netdev/20190930094820.11281-1-jiri@resnulli.us/
     /// [defining message]: https://lwn.net/ml/netdev/20190913145012.GB2276@nanopsycho.orion/
-    PropList(Vec<u8>),
+    PropList(Vec<Prop>),
     /// `protodown` is a mechanism that allows protocols to hold an interface down.
     /// This field is used to specify the reason why it is held down.
     /// For additional context see the related linux kernel threads<sup>[1][1],[2][2]</sup>.
@@ -174,7 +177,6 @@ impl nlas::Nla for Nla {
                 | AfSpecUnknown(ref bytes)
                 | AfSpecBridge(ref bytes)
                 | Map(ref bytes)
-                | PropList(ref bytes)
                 | ProtoDownReason(ref bytes)
                 => bytes.len(),
 
@@ -217,6 +219,7 @@ impl nlas::Nla for Nla {
             Stats(_) => LINK_STATS_LEN,
             Stats64(_) => LINK_STATS64_LEN,
             Info(ref nlas) => nlas.as_slice().buffer_len(),
+            PropList(ref nlas) => nlas.as_slice().buffer_len(),
             AfSpecInet(ref nlas) => nlas.as_slice().buffer_len(),
             // AfSpecBridge(ref nlas) => nlas.as_slice().buffer_len(),
             Other(ref attr)  => attr.value_len(),
@@ -257,7 +260,6 @@ impl nlas::Nla for Nla {
                 | Stats(ref bytes)
                 | Stats64(ref bytes)
                 | Map(ref bytes)
-                | PropList(ref bytes)
                 | ProtoDownReason(ref bytes)
                 => buffer.copy_from_slice(bytes.as_slice()),
 
@@ -303,6 +305,7 @@ impl nlas::Nla for Nla {
 
             OperState(state) => buffer[0] = state.into(),
             Info(ref nlas) => nlas.as_slice().emit(buffer),
+            PropList(ref nlas) => nlas.as_slice().emit(buffer),
             AfSpecInet(ref nlas) => nlas.as_slice().emit(buffer),
             // AfSpecBridge(ref nlas) => nlas.as_slice().emit(buffer),
             // default nlas
@@ -334,7 +337,7 @@ impl nlas::Nla for Nla {
             CarrierUpCount(_) => IFLA_CARRIER_UP_COUNT,
             CarrierDownCount(_) => IFLA_CARRIER_DOWN_COUNT,
             NewIfIndex(_) => IFLA_NEW_IFINDEX,
-            PropList(_) => IFLA_PROP_LIST,
+            PropList(_) => IFLA_PROP_LIST | NLA_F_NESTED,
             ProtoDownReason(_) => IFLA_PROTO_DOWN_REASON,
             // Mac address
             Address(_) => IFLA_ADDRESS,
@@ -409,7 +412,16 @@ impl<'a, T: AsRef<[u8]> + ?Sized> ParseableParametrized<NlaBuffer<&'a T>, u16> f
             IFLA_CARRIER_UP_COUNT => CarrierUpCount(payload.to_vec()),
             IFLA_CARRIER_DOWN_COUNT => CarrierDownCount(payload.to_vec()),
             IFLA_NEW_IFINDEX => NewIfIndex(payload.to_vec()),
-            IFLA_PROP_LIST => PropList(payload.to_vec()),
+            IFLA_PROP_LIST => {
+                let error_msg = "invalid IFLA_PROP_LIST value";
+                let mut nlas = vec![];
+                for nla in NlasIterator::new(payload) {
+                    let nla = &nla.context(error_msg)?;
+                    let parsed = Prop::parse(nla).context(error_msg)?;
+                    nlas.push(parsed);
+                }
+                PropList(nlas)
+            }
             IFLA_PROTO_DOWN_REASON => ProtoDownReason(payload.to_vec()),
             // HW address (we parse them as Vec for now, because for IP over GRE, the HW address is
             // an IP instead of a MAC for example
