@@ -23,6 +23,8 @@ pub enum RtnlMessage {
     DelLink(LinkMessage),
     GetLink(LinkMessage),
     SetLink(LinkMessage),
+    NewLinkProp(LinkMessage),
+    DelLinkProp(LinkMessage),
     NewAddress(AddressMessage),
     DelAddress(AddressMessage),
     GetAddress(AddressMessage),
@@ -200,6 +202,8 @@ impl RtnlMessage {
             DelLink(_) => RTM_DELLINK,
             GetLink(_) => RTM_GETLINK,
             SetLink(_) => RTM_SETLINK,
+            NewLinkProp(_) => RTM_NEWLINKPROP,
+            DelLinkProp(_) => RTM_DELLINKPROP,
             NewAddress(_) => RTM_NEWADDR,
             DelAddress(_) => RTM_DELADDR,
             GetAddress(_) => RTM_GETADDR,
@@ -243,6 +247,8 @@ impl Emitable for RtnlMessage {
             | DelLink(ref msg)
             | GetLink(ref msg)
             | SetLink(ref msg)
+            | NewLinkProp(ref msg)
+            | DelLinkProp(ref msg)
             =>  msg.buffer_len(),
 
             | NewAddress(ref msg)
@@ -299,6 +305,8 @@ impl Emitable for RtnlMessage {
             | DelLink(ref msg)
             | GetLink(ref msg)
             | SetLink(ref msg)
+            | NewLinkProp(ref msg)
+            | DelLinkProp(ref msg)
             => msg.emit(buffer),
 
             | NewAddress(ref msg)
