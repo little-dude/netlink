@@ -13,5 +13,11 @@ pub use self::get::*;
 mod set;
 pub use self::set::*;
 
+mod property_add;
+pub use self::property_add::*;
+
+mod property_del;
+pub use self::property_del::*;
+
 #[cfg(test)]
 mod test;
