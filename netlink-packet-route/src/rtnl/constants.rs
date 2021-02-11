@@ -56,6 +56,8 @@ pub const RTM_NEWCACHEREPORT: u16 = 96;
 pub const RTM_NEWCHAIN: u16 = 100;
 pub const RTM_DELCHAIN: u16 = 101;
 pub const RTM_GETCHAIN: u16 = 102;
+pub const RTM_NEWLINKPROP: u16 = 108;
+pub const RTM_DELLINKPROP: u16 = 109;
 
 /// Unknown route
 pub const RTN_UNSPEC: u8 = 0;
