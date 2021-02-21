@@ -16,7 +16,7 @@ pub trait Emitable {
     fn emit(&self, buffer: &mut [u8]);
 }
 
-/// A `Parseable` type can be used to deserialize data into the target type `T` for which it is
+/// A `Parseable` type can be used to deserialize data from the type `T` for which it is
 /// implemented.
 pub trait Parseable<T>
 where
@@ -27,7 +27,7 @@ where
     fn parse(buf: &T) -> Result<Self, DecodeError>;
 }
 
-/// A `Parseable` type can be used to deserialize data into the target type `T` for which it is
+/// A `Parseable` type can be used to deserialize data from the type `T` for which it is
 /// implemented.
 pub trait ParseableParametrized<T, P>
 where
