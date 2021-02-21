@@ -21,6 +21,7 @@ pub trait Emitable {
 pub trait Parseable<T>
 where
     Self: Sized,
+    T: ?Sized,
 {
     /// Deserialize the current type.
     fn parse(buf: &T) -> Result<Self, DecodeError>;
@@ -31,6 +32,7 @@ where
 pub trait ParseableParametrized<T, P>
 where
     Self: Sized,
+    T: ?Sized,
 {
     /// Deserialize the current type.
     fn parse_with_param(buf: &T, params: P) -> Result<Self, DecodeError>;
