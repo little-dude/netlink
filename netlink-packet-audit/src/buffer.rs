@@ -75,7 +75,11 @@ impl<'a, T: AsRef<[u8]> + ?Sized> ParseableParametrized<AuditBuffer<&'a T>, u16>
                     .context("failed to parse audit event data as a valid string")?;
                 Event((i, data))
             }
-            _ => return Err(format!("unknown message type {}", message_type).into()),
+            i => {
+                let data = String::from_utf8(buf.inner().to_vec())
+                    .context("failed to parse audit event data as a valid string")?;
+                Other((i, data))
+            }
         };
         Ok(message)
     }

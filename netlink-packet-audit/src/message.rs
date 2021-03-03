@@ -30,6 +30,8 @@ pub enum AuditMessage {
     ///
     /// The first element of the tuple is the message type, and the second is the event data.
     Event((u16, String)),
+    /// All the other events are parsed as such as they can be parsed also.
+    Other((u16, String)),
 }
 
 impl AuditMessage {
@@ -67,6 +69,7 @@ impl AuditMessage {
             AddRule(_) => AUDIT_ADD_RULE,
             DelRule(_) => AUDIT_DEL_RULE,
             Event((message_type, _)) => *message_type,
+            Other((message_type, _)) => *message_type,
         }
     }
 }
@@ -83,6 +86,7 @@ impl Emitable for AuditMessage {
             ListRules(Some(ref msg)) => msg.buffer_len(),
             GetStatus(None) | ListRules(None) => 0,
             Event((_, ref data)) => data.len(),
+            Other((_, ref data)) => data.len(),
         }
     }
 
@@ -97,6 +101,7 @@ impl Emitable for AuditMessage {
             ListRules(Some(ref msg)) => msg.emit(buffer),
             ListRules(None) | GetStatus(None) => {}
             Event((_, ref data)) => buffer.copy_from_slice(data.as_bytes()),
+            Other((_, ref data)) => buffer.copy_from_slice(data.as_bytes()),
         }
     }
 }
