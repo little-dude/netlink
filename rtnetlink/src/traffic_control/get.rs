@@ -5,7 +5,8 @@ use futures::{
 };
 
 use crate::{
-    packet::{NetlinkMessage, NetlinkPayload, RtnlMessage, TcMessage, NLM_F_DUMP, NLM_F_REQUEST},
+    packet::{NetlinkMessage, RtnlMessage, TcMessage, NLM_F_DUMP, NLM_F_REQUEST},
+    try_rtnl,
     Error,
     Handle,
 };
@@ -34,17 +35,9 @@ impl QDiscGetRequest {
         req.header.flags = NLM_F_REQUEST | NLM_F_DUMP;
 
         match handle.request(req) {
-            Ok(response) => Either::Left(response.map(move |msg| {
-                let (header, payload) = msg.into_parts();
-                match payload {
-                    // The kernel use RTM_NEWQDISC for returned message
-                    NetlinkPayload::InnerMessage(RtnlMessage::NewQueueDiscipline(msg)) => Ok(msg),
-                    NetlinkPayload::Error(err) => Err(Error::NetlinkError(err)),
-                    _ => Err(Error::UnexpectedMessage(NetlinkMessage::new(
-                        header, payload,
-                    ))),
-                }
-            })),
+            Ok(response) => Either::Left(
+                response.map(move |msg| Ok(try_rtnl!(msg, RtnlMessage::NewQueueDiscipline))),
+            ),
             Err(e) => Either::Right(future::err::<TcMessage, Error>(e).into_stream()),
         }
     }
@@ -73,17 +66,9 @@ impl TrafficClassGetRequest {
         req.header.flags = NLM_F_REQUEST | NLM_F_DUMP;
 
         match handle.request(req) {
-            Ok(response) => Either::Left(response.map(move |msg| {
-                let (header, payload) = msg.into_parts();
-                match payload {
-                    // The kernel use RTM_NEWTCLASS for returned message
-                    NetlinkPayload::InnerMessage(RtnlMessage::NewTrafficClass(msg)) => Ok(msg),
-                    NetlinkPayload::Error(err) => Err(Error::NetlinkError(err)),
-                    _ => Err(Error::UnexpectedMessage(NetlinkMessage::new(
-                        header, payload,
-                    ))),
-                }
-            })),
+            Ok(response) => Either::Left(
+                response.map(move |msg| Ok(try_rtnl!(msg, RtnlMessage::NewTrafficClass))),
+            ),
             Err(e) => Either::Right(future::err::<TcMessage, Error>(e).into_stream()),
         }
     }
@@ -112,17 +97,9 @@ impl TrafficFilterGetRequest {
         req.header.flags = NLM_F_REQUEST | NLM_F_DUMP;
 
         match handle.request(req) {
-            Ok(response) => Either::Left(response.map(move |msg| {
-                let (header, payload) = msg.into_parts();
-                match payload {
-                    // The kernel use RTM_NEWTFILTER for returned message
-                    NetlinkPayload::InnerMessage(RtnlMessage::NewTrafficFilter(msg)) => Ok(msg),
-                    NetlinkPayload::Error(err) => Err(Error::NetlinkError(err)),
-                    _ => Err(Error::UnexpectedMessage(NetlinkMessage::new(
-                        header, payload,
-                    ))),
-                }
-            })),
+            Ok(response) => Either::Left(
+                response.map(move |msg| Ok(try_rtnl!(msg, RtnlMessage::NewTrafficFilter))),
+            ),
             Err(e) => Either::Right(future::err::<TcMessage, Error>(e).into_stream()),
         }
     }
@@ -151,17 +128,9 @@ impl TrafficChainGetRequest {
         req.header.flags = NLM_F_REQUEST | NLM_F_DUMP;
 
         match handle.request(req) {
-            Ok(response) => Either::Left(response.map(move |msg| {
-                let (header, payload) = msg.into_parts();
-                match payload {
-                    // The kernel use RTM_NEWCHAIN for returned message
-                    NetlinkPayload::InnerMessage(RtnlMessage::NewTrafficChain(msg)) => Ok(msg),
-                    NetlinkPayload::Error(err) => Err(Error::NetlinkError(err)),
-                    _ => Err(Error::UnexpectedMessage(NetlinkMessage::new(
-                        header, payload,
-                    ))),
-                }
-            })),
+            Ok(response) => Either::Left(
+                response.map(move |msg| Ok(try_rtnl!(msg, RtnlMessage::NewTrafficChain))),
+            ),
             Err(e) => Either::Right(future::err::<TcMessage, Error>(e).into_stream()),
         }
     }

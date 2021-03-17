@@ -5,7 +5,6 @@ use netlink_packet_route::{
     nlas::address::Nla,
     AddressMessage,
     NetlinkMessage,
-    NetlinkPayload,
     RtnlMessage,
     AF_INET,
     AF_INET6,
@@ -15,7 +14,7 @@ use netlink_packet_route::{
     NLM_F_REQUEST,
 };
 
-use crate::{Error, Handle};
+use crate::{try_nl, Error, Handle};
 
 /// A request to create a new address. This is equivalent to the `ip address add` commands.
 pub struct AddressAddRequest {
@@ -81,9 +80,7 @@ impl AddressAddRequest {
 
         let mut response = handle.request(req)?;
         while let Some(message) = response.next().await {
-            if let NetlinkPayload::Error(err) = message.payload {
-                return Err(Error::NetlinkError(err));
-            }
+            try_nl!(message);
         }
         Ok(())
     }

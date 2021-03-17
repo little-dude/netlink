@@ -222,7 +222,7 @@ where
                     // hence closing the channel and signaling the
                     // handle that no more messages are expected.
                     Noop | Done | Ack(_) => {
-                        trace!("not forwarding Ack/Done message to the handle");
+                        trace!("not forwarding Noop/Ack/Done message to the handle");
                         continue;
                     }
                     // I'm not sure how we should handle overrun messages

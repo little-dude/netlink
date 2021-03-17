@@ -9,13 +9,12 @@ use netlink_packet_route::{
     nlas::address::Nla,
     AddressMessage,
     NetlinkMessage,
-    NetlinkPayload,
     RtnlMessage,
     NLM_F_DUMP,
     NLM_F_REQUEST,
 };
 
-use crate::{Error, Handle};
+use crate::{try_rtnl, Error, Handle};
 
 pub struct AddressGetRequest {
     handle: Handle,
@@ -50,16 +49,7 @@ impl AddressGetRequest {
         match handle.request(req) {
             Ok(response) => Either::Left(
                 response
-                    .map(move |msg| {
-                        let (header, payload) = msg.into_parts();
-                        match payload {
-                            NetlinkPayload::InnerMessage(RtnlMessage::NewAddress(msg)) => Ok(msg),
-                            NetlinkPayload::Error(err) => Err(Error::NetlinkError(err)),
-                            _ => Err(Error::UnexpectedMessage(NetlinkMessage::new(
-                                header, payload,
-                            ))),
-                        }
-                    })
+                    .map(move |msg| Ok(try_rtnl!(msg, RtnlMessage::NewAddress)))
                     .try_filter(move |msg| future::ready(filter(msg))),
             ),
             Err(e) => Either::Right(future::err::<AddressMessage, Error>(e).into_stream()),

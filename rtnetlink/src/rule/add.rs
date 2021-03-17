@@ -8,12 +8,11 @@ use netlink_packet_route::{
     constants::*,
     nlas::rule::Nla,
     NetlinkMessage,
-    NetlinkPayload,
     RtnlMessage,
     RuleMessage,
 };
 
-use crate::{Error, Handle};
+use crate::{try_nl, Error, Handle};
 
 /// A request to create a new rule. This is equivalent to the `ip rule add` command.
 pub struct RuleAddRequest<T = ()> {
@@ -100,9 +99,7 @@ impl<T> RuleAddRequest<T> {
 
         let mut response = handle.request(req)?;
         while let Some(message) = response.next().await {
-            if let NetlinkPayload::Error(err) = message.payload {
-                return Err(Error::NetlinkError(err));
-            }
+            try_nl!(message);
         }
 
         Ok(())

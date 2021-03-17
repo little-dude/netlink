@@ -4,13 +4,13 @@ use crate::{
     packet::{
         LinkMessage,
         NetlinkMessage,
-        NetlinkPayload,
         RtnlMessage,
         NLM_F_ACK,
         NLM_F_CREATE,
         NLM_F_EXCL,
         NLM_F_REQUEST,
     },
+    try_nl,
     Error,
     Handle,
 };
@@ -38,9 +38,7 @@ impl LinkDelRequest {
 
         let mut response = handle.request(req)?;
         while let Some(message) = response.next().await {
-            if let NetlinkPayload::Error(err) = message.payload {
-                return Err(Error::NetlinkError(err));
-            }
+            try_nl!(message)
         }
         Ok(())
     }
