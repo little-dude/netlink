@@ -2,6 +2,7 @@ use bytes::{BufMut, BytesMut};
 use std::{
     io,
     pin::Pin,
+    slice,
     task::{Context, Poll},
 };
 
@@ -56,7 +57,8 @@ where
                 // safety: we know poll_recv_from never reads from the
                 // memory during a recv so it's fine to turn &mut
                 // [<MaybeUninitialized<u8>>] into &mut[u8]
-                let bytes = &mut *(reader.bytes_mut() as *mut _ as *mut [u8]);
+                let bytes = reader.chunk_mut();
+                let bytes = slice::from_raw_parts_mut(bytes.as_mut_ptr(), bytes.len());
                 match ready!(socket.poll_recv_from(cx, bytes)) {
                     Ok((n, addr)) => {
                         reader.advance_mut(n);
@@ -72,7 +74,7 @@ where
     }
 }
 
-impl<C: Encoder + Unpin> Sink<(C::Item, SocketAddr)> for NetlinkFramed<C> {
+impl<C: Encoder<Item> + Unpin, Item> Sink<(Item, SocketAddr)> for NetlinkFramed<C> {
     type Error = C::Error;
 
     fn poll_ready(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
@@ -86,7 +88,7 @@ impl<C: Encoder + Unpin> Sink<(C::Item, SocketAddr)> for NetlinkFramed<C> {
         Poll::Ready(Ok(()))
     }
 
-    fn start_send(self: Pin<&mut Self>, item: (C::Item, SocketAddr)) -> Result<(), Self::Error> {
+    fn start_send(self: Pin<&mut Self>, item: (Item, SocketAddr)) -> Result<(), Self::Error> {
         trace!("sending frame");
         let (frame, out_addr) = item;
         let pin = self.get_mut();

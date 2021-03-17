@@ -1,4 +1,4 @@
-use std::{fmt::Debug, io, marker::PhantomData, mem::MaybeUninit};
+use std::{fmt::Debug, io, marker::PhantomData, slice};
 
 use bytes::{BufMut, BytesMut};
 use netlink_packet_core::{
@@ -139,14 +139,13 @@ where
     }
 }
 
-impl<T> Encoder for NetlinkCodec<NetlinkMessage<T>>
+impl<T> Encoder<NetlinkMessage<T>> for NetlinkCodec<NetlinkMessage<T>>
 where
     T: Debug + Eq + PartialEq + Clone + NetlinkSerializable<T>,
 {
-    type Item = NetlinkMessage<T>;
     type Error = io::Error;
 
-    fn encode(&mut self, msg: Self::Item, buf: &mut BytesMut) -> Result<(), Self::Error> {
+    fn encode(&mut self, msg: NetlinkMessage<T>, buf: &mut BytesMut) -> Result<(), Self::Error> {
         let msg_len = msg.buffer_len();
         // FIXME: we should have a max length for the buffer
         while buf.remaining_mut() < msg_len {
@@ -164,20 +163,22 @@ where
                 ),
             ));
         }
+
+        // Safety: we initialize the buffer we're passing to
+        // NetlinkMessage::serialize(). In theory, `serialize()`
+        // should be safe because it's not supposed to _read_ from
+        // the buffer, which is potentially
+        // un-initialized. However, since we delegate the actual
+        // implementation to users, we cannot guarantee
+        // anything. Therefore we have to initialize the buffer
+        // here.
+        let bytes = &mut buf.chunk_mut()[..size];
+        for i in 0..bytes.len() {
+            bytes.write_byte(i, 0);
+        }
+
         unsafe {
-            // Safety: we initialize the buffer we're passing to
-            // NetlinkMessage::serialize(). In theory, `serialize()`
-            // should be safe because it's not supposed to _read_ from
-            // the buffer, which is potentially
-            // un-initialized. However, since we delegate the actual
-            // implementation to users, we cannot guarantee
-            // anything. Therefore we have to initialize the buffer
-            // here.
-            let bytes: &mut [std::mem::MaybeUninit<u8>] = &mut buf.bytes_mut()[..size];
-            for b in &mut bytes[..] {
-                *b.as_mut_ptr() = 0;
-            }
-            let initialized_bytes = &mut *(bytes as *mut [MaybeUninit<u8>] as *mut [u8]);
+            let initialized_bytes = slice::from_raw_parts_mut(bytes.as_mut_ptr(), bytes.len());
 
             msg.serialize(initialized_bytes);
             trace!(">>> {:?}", msg);
