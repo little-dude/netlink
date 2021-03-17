@@ -75,7 +75,7 @@ impl Nla for GenlCtrlAttrs {
             FamilyName(s) => {
                 buffer[..s.len()].copy_from_slice(s.as_bytes());
                 buffer[s.len()] = 0;
-            },
+            }
             Version(v) => NativeEndian::write_u32(buffer, *v),
             HdrSize(v) => NativeEndian::write_u32(buffer, *v),
             MaxAttr(v) => NativeEndian::write_u32(buffer, *v),

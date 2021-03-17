@@ -1,9 +1,16 @@
+//! Generic netlink controller implementation
+//!
+//! This module provide the definition of the controller packet.
+//! It also serves as an example for creating a generic family.
+
 use crate::constants::*;
 use crate::traits::*;
 
+/// Netlink attributes for this family
 pub mod nlas;
 
-#[derive(Debug)]
+/// Payload of generic netlink controller
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum GenlCtrl {
     Unspec,
     /// Notify from event

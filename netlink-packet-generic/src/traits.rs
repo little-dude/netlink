@@ -1,3 +1,9 @@
+/// Provide the definition for generic netlink family
+///
+/// Your netlink packet should implement this trait to make it serializable.
+///
+/// If you are looking for an example implementation, you can refer to the
+/// [`crate::ctrl`] module.
 pub trait GenlFamily {
     /// Return the unique family name
     ///
