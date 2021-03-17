@@ -26,7 +26,7 @@ fn create_get_delete_wg() {
         &msg,
         &Nla::Info(vec![Info::Kind(InfoKind::Wireguard)])
     ));
-    assert!(rt.block_on(_del_wg(&mut handle, msg.header.index)).is_ok());
+    rt.block_on(_del_wg(&mut handle, msg.header.index)).unwrap();
 }
 
 fn has_nla(msg: &LinkMessage, nla: &Nla) -> bool {
