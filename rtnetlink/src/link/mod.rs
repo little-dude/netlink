@@ -12,3 +12,6 @@ pub use self::get::*;
 
 mod set;
 pub use self::set::*;
+
+#[cfg(test)]
+mod test;
