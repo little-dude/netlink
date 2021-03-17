@@ -128,8 +128,8 @@ where
         };
 
         let response = Response::<T, M> {
-            message,
             done,
+            message,
             metadata,
         };
         incoming_responses.push_back(response);

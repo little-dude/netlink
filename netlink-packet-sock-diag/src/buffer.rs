@@ -48,13 +48,13 @@ impl<T: AsRef<[u8]>> SockDiagBuffer<T> {
 
 impl<'a, T: AsRef<[u8]> + ?Sized> SockDiagBuffer<&'a T> {
     pub fn inner(&self) -> &'a [u8] {
-        &self.buffer.as_ref()[..]
+        &self.buffer.as_ref()
     }
 }
 
 impl<'a, T: AsRef<[u8]> + AsMut<[u8]> + ?Sized> SockDiagBuffer<&'a mut T> {
     pub fn inner_mut(&mut self) -> &mut [u8] {
-        &mut self.buffer.as_mut()[..]
+        self.buffer.as_mut()
     }
 }
 

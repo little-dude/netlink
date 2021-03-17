@@ -11,19 +11,21 @@ use crate::{
     LinkHandle,
 };
 
-
 const IFACE_NAME: &str = "wg142"; // rand?
 
 #[test]
 fn create_get_delete_wg() {
-    let mut rt = Runtime::new().unwrap();
+    let rt = Runtime::new().unwrap();
     let handle = rt.block_on(_create_wg());
     assert!(handle.is_ok());
     let mut handle = handle.unwrap();
     let msg = rt.block_on(_get_wg(&mut handle));
     assert!(msg.is_ok());
     let msg = msg.unwrap();
-    assert!(has_nla(&msg, &Nla::Info(vec![Info::Kind(InfoKind::Wireguard)])));
+    assert!(has_nla(
+        &msg,
+        &Nla::Info(vec![Info::Kind(InfoKind::Wireguard)])
+    ));
     assert!(rt.block_on(_del_wg(&mut handle, msg.header.index)).is_ok());
 }
 
@@ -45,7 +47,10 @@ async fn _create_wg() -> Result<LinkHandle, Error> {
 }
 
 async fn _get_wg(handle: &mut LinkHandle) -> Result<LinkMessage, Error> {
-    let mut links = handle.get().set_name_filter(IFACE_NAME.to_owned()).execute();
+    let mut links = handle
+        .get()
+        .set_name_filter(IFACE_NAME.to_owned())
+        .execute();
     let msg = links.try_next().await?;
     msg.ok_or_else(|| Error::RequestFailed)
 }
