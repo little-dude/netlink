@@ -21,6 +21,51 @@ where
     pub payload: F,
 }
 
+impl<F> GenlMessage<F>
+where
+    F: Clone + Debug + PartialEq + Eq,
+{
+    /// Construct the message by the given header and payload
+    pub fn new(header: GenlHeader, payload: F) -> Self {
+        Self { header, payload }
+    }
+
+    /// Consume this message and return its header and payload
+    pub fn into_parts(self) -> (GenlHeader, F) {
+        (self.header, self.payload)
+    }
+}
+
+impl<F> GenlMessage<F>
+where
+    F: GenlFamily + Clone + Debug + PartialEq + Eq,
+{
+    /// Build the message from the payload
+    ///
+    /// This function would automatically fill the header for you. You can directly emit
+    /// the message without having to call [`finalize()`](Self::finalize).
+    pub fn from_payload(payload: F) -> Self {
+        Self {
+            header: GenlHeader {
+                cmd: payload.command(),
+                version: payload.version(),
+            },
+            payload,
+        }
+    }
+
+    /// Ensure the header ([`GenlHeader`]) is consistent with the payload (`F: GenlFamily`):
+    ///
+    /// - Fill the command and version number into the header
+    ///
+    /// If you are not 100% sure the header is correct, this method should be called before calling
+    /// [`Emitable::emit()`], as it could get error result if the header is inconsistent with the message.
+    pub fn finalize(&mut self) {
+        self.header.cmd = self.payload.command();
+        self.header.version = self.payload.version();
+    }
+}
+
 impl<F> Emitable for GenlMessage<F>
 where
     F: GenlFamily + Emitable + Clone + Debug + PartialEq + Eq,
