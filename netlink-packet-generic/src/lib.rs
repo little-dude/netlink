@@ -1,3 +1,11 @@
+//! This crate provides the packet of generic netlink family and its controller.
+//!
+//! The `[GenlMessage]` provides a generic netlink family message which is sub-protocol independant.
+//! You can wrap your message into the type, then it can be used in `netlink-proto` crate.
+//!
+//! # Implementing a generic netlink family
+//! TODO
+
 #[macro_use]
 extern crate netlink_packet_utils;
 

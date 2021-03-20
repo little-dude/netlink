@@ -7,6 +7,11 @@ use netlink_packet_core::{
 use netlink_packet_utils::{Emitable, ParseableParametrized};
 use std::fmt::Debug;
 
+/// Represent the generic netlink messages
+///
+/// This type can wrap data types `F` which represents a generic family payload.
+/// The message can be serialize/deserialize if the type `F` implements [`GenlFamily`],
+/// [`Emitable`], and [`ParseableParametrized<[u8], GenlHeader>`](ParseableParametrized).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GenlMessage<F>
 where
@@ -18,7 +23,7 @@ where
 
 impl<F> Emitable for GenlMessage<F>
 where
-    F: Emitable + Clone + Debug + PartialEq + Eq,
+    F: GenlFamily + Emitable + Clone + Debug + PartialEq + Eq,
 {
     fn buffer_len(&self) -> usize {
         self.header.buffer_len() + self.payload.buffer_len()

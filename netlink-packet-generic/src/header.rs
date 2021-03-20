@@ -5,8 +5,8 @@ use netlink_packet_utils::{Emitable, Parseable};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct GenlHeader {
-    cmd: u8,
-    version: u8,
+    pub cmd: u8,
+    pub version: u8,
 }
 
 impl Emitable for GenlHeader {

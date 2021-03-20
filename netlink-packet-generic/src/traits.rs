@@ -1,6 +1,6 @@
 /// Provide the definition for generic netlink family
 ///
-/// Your netlink packet should implement this trait to make it serializable.
+/// Your payload type should implement this trait to make the whole message serializable.
 ///
 /// If you are looking for an example implementation, you can refer to the
 /// [`crate::ctrl`] module.
