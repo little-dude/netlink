@@ -133,6 +133,13 @@ impl RouteAddRequest<Ipv4Addr> {
         self
     }
 
+    /// Sets the preferred source address.
+    pub fn pref_source(mut self, addr: Ipv4Addr) -> Self {
+        let src = addr.octets().to_vec();
+        self.message.nlas.push(Nla::PrefSource(src));
+        self
+    }
+
     /// Sets the destination address prefix.
     pub fn destination_prefix(mut self, addr: Ipv4Addr, prefix_length: u8) -> Self {
         self.message.header.destination_prefix_length = prefix_length;
@@ -155,6 +162,13 @@ impl RouteAddRequest<Ipv6Addr> {
         self.message.header.source_prefix_length = prefix_length;
         let src = addr.octets().to_vec();
         self.message.nlas.push(Nla::Source(src));
+        self
+    }
+
+    /// Sets the preferred source address.
+    pub fn pref_source(mut self, addr: Ipv6Addr) -> Self {
+        let src = addr.octets().to_vec();
+        self.message.nlas.push(Nla::PrefSource(src));
         self
     }
 
