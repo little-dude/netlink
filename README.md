@@ -43,7 +43,7 @@ The whole packet parsing logic is inspired by @whitequark excellent blog posts (
 2][whitequark-2] and [part 3][whitequark-3], although I've only really used the concepts described in the first blog
 post).
 
-Thanks also to the people behing [tokio](tokio.rs) for the amazing
+Thanks also to the people behind [tokio](tokio.rs) for the amazing
 tool they are building, and the support they provide.
 
 [man-netlink]: https://www.man7.org/linux/man-pages/man7/netlink.7.html
