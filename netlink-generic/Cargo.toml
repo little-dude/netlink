@@ -1,0 +1,30 @@
+[package]
+name = "netlink-generic"
+version = "0.1.0"
+authors = ["Gris Ge <cnfourt@gmail.com>"]
+license = "MIT"
+edition = "2018"
+description = "Linux Generic Netlink Communication Library"
+keywords = ["network"]
+categories = ["network-programming", "os"]
+
+[lib]
+name = "netlink_generic"
+path = "lib.rs"
+crate-type = ["lib"]
+
+[dependencies]
+netlink-packet-route = {path="../netlink-packet-route"}
+netlink-sys = {path="../netlink-sys"}
+netlink-packet-utils = {path="../netlink-packet-utils"}
+netlink-packet-core = {path="../netlink-packet-core"}
+netlink-proto = {path="../netlink-proto"}
+tokio = { version = "1.0.1", features = ["rt"], optional = true}
+futures = "0.3.11"
+anyhow = "1.0.31"
+thiserror = "1"
+byteorder = "1.3.2"
+
+[dev-dependencies]
+tokio = { version = "1.0.1", features = ["macros", "rt", "rt-multi-thread"] }
+async-std = { version = "1.9.0", features = ["attributes"]}
