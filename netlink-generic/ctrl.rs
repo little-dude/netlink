@@ -156,13 +156,7 @@ impl nla::Nla for CtrlAttr {
         match self {
             Self::Unspec(ref bytes) => bytes.len(),
             Self::FamilyId(_) => 2,
-            Self::FamilyName(s) => {
-                if s.len() > GENL_NAMSIZ - 1 {
-                    GENL_NAMSIZ
-                } else {
-                    s.len() + 1
-                }
-            }
+            Self::FamilyName(_) => GENL_NAMSIZ,
             Self::Version(_) | Self::HeaderSize(_) | Self::MaxAttr(_) => 4,
             Self::Ops(ref ops) => {
                 let mut len = 0;

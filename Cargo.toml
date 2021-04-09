@@ -11,4 +11,5 @@ members = [
     "rtnetlink",
     "audit",
     "netlink-generic",
+    "netlink-ethtool",
 ]
