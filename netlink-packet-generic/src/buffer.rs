@@ -25,12 +25,13 @@ where
     F: ParseableParametrized<[u8], GenlHeader> + Clone + Debug + PartialEq + Eq,
     T: AsRef<[u8]> + ?Sized,
 {
-    fn parse_with_param(buf: &GenlBuffer<&'a T>, _message_type: u16) -> Result<Self, DecodeError> {
+    fn parse_with_param(buf: &GenlBuffer<&'a T>, message_type: u16) -> Result<Self, DecodeError> {
         let header = GenlHeader::parse(buf)?;
         let payload_buf = buf.payload();
-        Ok(GenlMessage {
+        Ok(GenlMessage::new(
             header,
-            payload: F::parse_with_param(&payload_buf, header)?,
-        })
+            F::parse_with_param(&payload_buf, header)?,
+            message_type,
+        ))
     }
 }

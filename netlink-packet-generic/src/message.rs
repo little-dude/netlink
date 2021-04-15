@@ -19,20 +19,51 @@ where
 {
     pub header: GenlHeader,
     pub payload: F,
+    dynamic_family_id: u16,
 }
 
 impl<F> GenlMessage<F>
 where
     F: Clone + Debug + PartialEq + Eq,
 {
+    /// Construct the message
+    pub fn new(header: GenlHeader, payload: F, family_id: u16) -> Self {
+        Self {
+            header,
+            payload,
+            dynamic_family_id: family_id,
+        }
+    }
+
     /// Construct the message by the given header and payload
-    pub fn new(header: GenlHeader, payload: F) -> Self {
-        Self { header, payload }
+    pub fn from_parts(header: GenlHeader, payload: F) -> Self {
+        Self {
+            header,
+            payload,
+            dynamic_family_id: 0,
+        }
     }
 
     /// Consume this message and return its header and payload
     pub fn into_parts(self) -> (GenlHeader, F) {
         (self.header, self.payload)
+    }
+
+    /// This method return the dynamic family ID set in this message.
+    ///
+    /// This value would be used to serialize the message only if
+    /// the ([`GenlFamily::family_id()`]) return 0 in the underlying type.
+    pub fn dynamic_family_id(&self) -> u16 {
+        self.dynamic_family_id
+    }
+
+    /// Set the dynamic family ID of the message, if the generic family
+    /// uses dynamic generated ID by kernel.
+    ///
+    /// This method is a interface to provide other high level library to
+    /// set the resolved family ID before the message is serialized.
+    pub fn set_family_id(&mut self, family_id: u16) {
+        self.dynamic_family_id = family_id;
     }
 }
 
@@ -51,6 +82,7 @@ where
                 version: payload.version(),
             },
             payload,
+            dynamic_family_id: 0,
         }
     }
 
@@ -63,6 +95,16 @@ where
     pub fn finalize(&mut self) {
         self.header.cmd = self.payload.command();
         self.header.version = self.payload.version();
+    }
+
+    /// Return family ID which would be used to serialize into the message.
+    pub fn family_id(&self) -> u16 {
+        let static_id = self.payload.family_id();
+        if static_id == 0 {
+            self.dynamic_family_id
+        } else {
+            static_id
+        }
     }
 }
 
@@ -87,7 +129,7 @@ where
     F: GenlFamily + Emitable + Clone + Debug + PartialEq + Eq,
 {
     fn message_type(&self) -> u16 {
-        self.payload.family_id()
+        self.family_id()
     }
 
     fn buffer_len(&self) -> usize {
