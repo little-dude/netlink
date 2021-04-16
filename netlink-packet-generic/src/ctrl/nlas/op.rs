@@ -1,6 +1,12 @@
 use crate::constants::*;
+use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
-use netlink_packet_utils::nla::{DefaultNla, Nla};
+use netlink_packet_utils::{
+    nla::{DefaultNla, Nla, NlaBuffer},
+    parsers::*,
+    traits::*,
+    DecodeError,
+};
 use std::mem::size_of_val;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -40,5 +46,21 @@ impl Nla for OpAttrs {
             Flags(v) => NativeEndian::write_u32(buffer, *v),
             Other(nla) => nla.emit_value(buffer),
         }
+    }
+}
+
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for OpAttrs {
+    fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
+        let payload = buf.value();
+        Ok(match buf.kind() {
+            CTRL_ATTR_OP_UNSPEC => Self::Unspec(payload.to_vec()),
+            CTRL_ATTR_OP_ID => {
+                Self::Id(parse_u32(payload).context("invalid CTRL_ATTR_OP_ID value")?)
+            }
+            CTRL_ATTR_OP_FLAGS => {
+                Self::Flags(parse_u32(payload).context("invalid CTRL_ATTR_OP_FLAGS value")?)
+            }
+            _ => Self::Other(DefaultNla::parse(buf).context("invalid NLA (unknown kind)")?),
+        })
     }
 }

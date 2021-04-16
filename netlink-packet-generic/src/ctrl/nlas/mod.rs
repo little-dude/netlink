@@ -1,8 +1,11 @@
 use crate::constants::*;
+use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
 use netlink_packet_utils::{
-    nla::{DefaultNla, Nla},
-    Emitable,
+    nla::{DefaultNla, Nla, NlaBuffer, NlasIterator},
+    parsers::*,
+    traits::*,
+    DecodeError,
 };
 use std::mem::size_of_val;
 
@@ -22,9 +25,11 @@ pub enum GenlCtrlAttrs {
     Version(u32),
     HdrSize(u32),
     MaxAttr(u32),
-    Ops(Vec<OpAttrs>),
-    McastGroups(Vec<McastGrpAttrs>),
+    Ops(Vec<Vec<OpAttrs>>),
+    McastGroups(Vec<Vec<McastGrpAttrs>>),
+    // TODO
     Policy(Vec<u8>),
+    // TODO
     OpPolicy(Vec<u8>),
     Op(u32),
     Other(DefaultNla),
@@ -40,8 +45,8 @@ impl Nla for GenlCtrlAttrs {
             Version(v) => size_of_val(v),
             HdrSize(v) => size_of_val(v),
             MaxAttr(v) => size_of_val(v),
-            Ops(nlas) => nlas.as_slice().buffer_len(),
-            McastGroups(nlas) => nlas.as_slice().buffer_len(),
+            Ops(nlas) => nlas.iter().map(|op| op.as_slice().buffer_len()).sum(),
+            McastGroups(nlas) => nlas.iter().map(|op| op.as_slice().buffer_len()).sum(),
             Policy(bytes) => bytes.len(),
             OpPolicy(bytes) => bytes.len(),
             Op(v) => size_of_val(v),
@@ -79,12 +84,82 @@ impl Nla for GenlCtrlAttrs {
             Version(v) => NativeEndian::write_u32(buffer, *v),
             HdrSize(v) => NativeEndian::write_u32(buffer, *v),
             MaxAttr(v) => NativeEndian::write_u32(buffer, *v),
-            Ops(nlas) => nlas.as_slice().emit(buffer),
-            McastGroups(nlas) => nlas.as_slice().emit(buffer),
+            Ops(nlas) => {
+                let mut len = 0;
+                for op in nlas {
+                    op.as_slice().emit(&mut buffer[len..]);
+                    len += op.as_slice().buffer_len();
+                }
+            }
+            McastGroups(nlas) => {
+                let mut len = 0;
+                for op in nlas {
+                    op.as_slice().emit(&mut buffer[len..]);
+                    len += op.as_slice().buffer_len();
+                }
+            }
             Policy(bytes) => buffer.copy_from_slice(bytes),
             OpPolicy(bytes) => buffer.copy_from_slice(bytes),
             Op(v) => NativeEndian::write_u32(buffer, *v),
             Other(nla) => nla.emit_value(buffer),
         }
+    }
+}
+
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for GenlCtrlAttrs {
+    fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
+        let payload = buf.value();
+        Ok(match buf.kind() {
+            CTRL_ATTR_UNSPEC => Self::Unspec(payload.to_vec()),
+            CTRL_ATTR_FAMILY_ID => {
+                Self::FamilyId(parse_u16(payload).context("invalid CTRL_ATTR_FAMILY_ID value")?)
+            }
+            CTRL_ATTR_FAMILY_NAME => Self::FamilyName(
+                parse_string(payload).context("invalid CTRL_ATTR_FAMILY_NAME value")?,
+            ),
+            CTRL_ATTR_VERSION => {
+                Self::Version(parse_u32(payload).context("invalid CTRL_ATTR_VERSION value")?)
+            }
+            CTRL_ATTR_HDRSIZE => {
+                Self::HdrSize(parse_u32(payload).context("invalid CTRL_ATTR_HDRSIZE value")?)
+            }
+            CTRL_ATTR_MAXATTR => {
+                Self::MaxAttr(parse_u32(payload).context("invalid CTRL_ATTR_MAXATTR value")?)
+            }
+            CTRL_ATTR_OPS => {
+                let mut ops = Vec::new();
+                let error_msg = "failed to parse CTRL_ATTR_OPS";
+                for nlas in NlasIterator::new(payload) {
+                    let nlas = &nlas.context(error_msg)?;
+                    let mut op = Vec::new();
+                    for nla in NlasIterator::new(nlas.value()) {
+                        let nla = &nla.context(error_msg)?;
+                        let parsed = OpAttrs::parse(nla).context(error_msg)?;
+                        op.push(parsed);
+                    }
+                    ops.push(op);
+                }
+                Self::Ops(ops)
+            }
+            CTRL_ATTR_MCAST_GROUPS => {
+                let mut groups = Vec::new();
+                let error_msg = "failed to parse CTRL_ATTR_MCAST_GROUPS";
+                for nlas in NlasIterator::new(payload) {
+                    let nlas = &nlas.context(error_msg)?;
+                    let mut group = Vec::new();
+                    for nla in NlasIterator::new(nlas.value()) {
+                        let nla = &nla.context(error_msg)?;
+                        let parsed = McastGrpAttrs::parse(nla).context(error_msg)?;
+                        group.push(parsed);
+                    }
+                    groups.push(group);
+                }
+                Self::McastGroups(groups)
+            }
+            CTRL_ATTR_POLICY => Self::Policy(payload.to_vec()),
+            CTRL_ATTR_OP_POLICY => Self::OpPolicy(payload.to_vec()),
+            CTRL_ATTR_OP => Self::Op(parse_u32(payload)?),
+            _ => Self::Other(DefaultNla::parse(buf).context("invalid NLA (unknown kind)")?),
+        })
     }
 }
