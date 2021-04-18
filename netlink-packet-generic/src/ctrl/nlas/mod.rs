@@ -27,10 +27,8 @@ pub enum GenlCtrlAttrs {
     MaxAttr(u32),
     Ops(Vec<Vec<OpAttrs>>),
     McastGroups(Vec<Vec<McastGrpAttrs>>),
-    // TODO
-    Policy(Vec<u8>),
-    // TODO
-    OpPolicy(Vec<u8>),
+    Policy(Vec<DefaultNla>),
+    OpPolicy(DefaultNla),
     Op(u32),
     Other(DefaultNla),
 }
@@ -47,8 +45,8 @@ impl Nla for GenlCtrlAttrs {
             MaxAttr(v) => size_of_val(v),
             Ops(nlas) => nlas.iter().map(|op| op.as_slice().buffer_len()).sum(),
             McastGroups(nlas) => nlas.iter().map(|op| op.as_slice().buffer_len()).sum(),
-            Policy(bytes) => bytes.len(),
-            OpPolicy(bytes) => bytes.len(),
+            Policy(nlas) => nlas.as_slice().buffer_len(),
+            OpPolicy(nla) => nla.buffer_len(),
             Op(v) => size_of_val(v),
             Other(nla) => nla.value_len(),
         }
@@ -98,8 +96,8 @@ impl Nla for GenlCtrlAttrs {
                     len += op.as_slice().buffer_len();
                 }
             }
-            Policy(bytes) => buffer.copy_from_slice(bytes),
-            OpPolicy(bytes) => buffer.copy_from_slice(bytes),
+            Policy(nlas) => nlas.as_slice().emit(buffer),
+            OpPolicy(nla) => nla.emit_value(buffer),
             Op(v) => NativeEndian::write_u32(buffer, *v),
             Other(nla) => nla.emit_value(buffer),
         }
@@ -142,8 +140,8 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for GenlCtrlAttrs 
                 Self::Ops(ops)
             }
             CTRL_ATTR_MCAST_GROUPS => {
-                let mut groups = Vec::new();
                 let error_msg = "failed to parse CTRL_ATTR_MCAST_GROUPS";
+                let mut groups = Vec::new();
                 for nlas in NlasIterator::new(payload) {
                     let nlas = &nlas.context(error_msg)?;
                     let mut group = Vec::new();
@@ -156,8 +154,17 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for GenlCtrlAttrs 
                 }
                 Self::McastGroups(groups)
             }
-            CTRL_ATTR_POLICY => Self::Policy(payload.to_vec()),
-            CTRL_ATTR_OP_POLICY => Self::OpPolicy(payload.to_vec()),
+            CTRL_ATTR_POLICY => {
+                let error_msg = "failed to parse CTRL_ATTR_POLICY";
+                let mut policies = Vec::new();
+                for nla in NlasIterator::new(payload) {
+                    let nla = &nla.context(error_msg)?;
+                    let parsed = DefaultNla::parse(nla).context(error_msg)?;
+                    policies.push(parsed);
+                }
+                Self::Policy(policies)
+            },
+            CTRL_ATTR_OP_POLICY => Self::OpPolicy(DefaultNla::parse(buf).context("failed to parse CTRL_ATTR_OP_POLICY")?),
             CTRL_ATTR_OP => Self::Op(parse_u32(payload)?),
             _ => Self::Other(DefaultNla::parse(buf).context("invalid NLA (unknown kind)")?),
         })
