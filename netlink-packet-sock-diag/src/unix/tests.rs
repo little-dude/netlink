@@ -1,8 +1,36 @@
 use crate::{
     constants::*,
     traits::{Emitable, Parseable},
-    unix::{nlas::Nla, UnixResponse, UnixResponseBuffer, UnixResponseHeader},
+    unix::{
+        nlas::Nla,
+        ShowFlags,
+        StateFlags,
+        UnixRequest,
+        UnixResponse,
+        UnixResponseBuffer,
+        UnixResponseHeader,
+    },
 };
+
+lazy_static! {
+    static ref SOCKET_INFO: UnixRequest = UnixRequest {
+        state_flags: StateFlags::all(),
+        inode: 0x1234,
+        show_flags: ShowFlags::PEER,
+        cookie: [0xff; 8]
+    };
+}
+
+#[rustfmt::skip]
+static SOCKET_INFO_BUF: [u8; 24] = [
+    0x01, // family: AF_UNIX
+    0x00, // protocol
+    0x00, 0x00, // padding
+    0x02, 0x04, 0x00, 0x00, // state_flags - 1 << TCP_ESTABLISHED | 1 << TCP_LISTEN
+    0x34, 0x12, 0x00, 0x00, // inode number
+    0x04, 0x00, 0x00, 0x00, // show_flags - UDIAG_SHOW_PEER
+    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // cookie
+];
 
 lazy_static! {
     static ref LISTENING: UnixResponse = UnixResponse {
@@ -128,4 +156,12 @@ fn emit_established() {
     let mut buf = vec![0xff; ESTABLISHED.buffer_len()];
     ESTABLISHED.emit(&mut buf);
     assert_eq!(&buf[..], &ESTABLISHED_BUF[..]);
+}
+
+#[test]
+fn emit_socket_info() {
+    assert_eq!(SOCKET_INFO.buffer_len(), 24);
+    let mut buf = vec![0xff; SOCKET_INFO.buffer_len()];
+    SOCKET_INFO.emit(&mut buf);
+    assert_eq!(&buf[..], &SOCKET_INFO_BUF[..]);
 }
