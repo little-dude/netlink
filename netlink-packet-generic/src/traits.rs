@@ -17,7 +17,7 @@ pub trait GenlFamily {
     /// So the controller can dynamically assign the family ID.
     ///
     /// Regarding to the reason above, you should not have to implement the function
-    /// unless the family uses the static ID.
+    /// unless the family uses static ID.
     fn family_id(&self) -> u16 {
         0
     }

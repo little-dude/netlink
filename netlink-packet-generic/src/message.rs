@@ -19,7 +19,7 @@ where
 {
     pub header: GenlHeader,
     pub payload: F,
-    dynamic_family_id: u16,
+    resolved_family_id: u16,
 }
 
 impl<F> GenlMessage<F>
@@ -31,7 +31,7 @@ where
         Self {
             header,
             payload,
-            dynamic_family_id: family_id,
+            resolved_family_id: family_id,
         }
     }
 
@@ -40,7 +40,7 @@ where
         Self {
             header,
             payload,
-            dynamic_family_id: 0,
+            resolved_family_id: 0,
         }
     }
 
@@ -49,21 +49,30 @@ where
         (self.header, self.payload)
     }
 
-    /// This method return the dynamic family ID set in this message.
+    /// This method return the resolved family ID set in this message.
     ///
     /// This value would be used to serialize the message only if
     /// the ([`GenlFamily::family_id()`]) return 0 in the underlying type.
-    pub fn dynamic_family_id(&self) -> u16 {
-        self.dynamic_family_id
+    pub fn resolved_family_id(&self) -> u16 {
+        self.resolved_family_id
     }
 
-    /// Set the dynamic family ID of the message, if the generic family
+    /// Set the resolved dynamic family ID of the message, if the generic family
     /// uses dynamic generated ID by kernel.
     ///
     /// This method is a interface to provide other high level library to
     /// set the resolved family ID before the message is serialized.
-    pub fn set_family_id(&mut self, family_id: u16) {
-        self.dynamic_family_id = family_id;
+    ///
+    /// # Usage
+    /// Normally, you don't have to call this function directly if you are
+    /// using library which helps you handle the dynamic family id.
+    ///
+    /// If you are the developer of some high level generic netlink library,
+    /// you can call this method to set the family id resolved by your resolver.
+    /// Without having to modify the message type field of the serialized
+    /// netlink packet header before sending it.
+    pub fn set_resolved_family_id(&mut self, family_id: u16) {
+        self.resolved_family_id = family_id;
     }
 }
 
@@ -82,7 +91,7 @@ where
                 version: payload.version(),
             },
             payload,
-            dynamic_family_id: 0,
+            resolved_family_id: 0,
         }
     }
 
@@ -101,7 +110,7 @@ where
     pub fn family_id(&self) -> u16 {
         let static_id = self.payload.family_id();
         if static_id == 0 {
-            self.dynamic_family_id
+            self.resolved_family_id
         } else {
             static_id
         }

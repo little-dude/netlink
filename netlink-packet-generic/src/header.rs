@@ -3,6 +3,7 @@ use crate::constants::GENL_HDRLEN;
 use netlink_packet_core::DecodeError;
 use netlink_packet_utils::{Emitable, Parseable};
 
+/// Generic Netlink header
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct GenlHeader {
     pub cmd: u8,
