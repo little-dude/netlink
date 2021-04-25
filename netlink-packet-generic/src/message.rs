@@ -1,8 +1,10 @@
-use crate::buffer::GenlBuffer;
-use crate::header::GenlHeader;
-use crate::traits::*;
+use crate::{buffer::GenlBuffer, header::GenlHeader, traits::*};
 use netlink_packet_core::{
-    DecodeError, NetlinkDeserializable, NetlinkHeader, NetlinkPayload, NetlinkSerializable,
+    DecodeError,
+    NetlinkDeserializable,
+    NetlinkHeader,
+    NetlinkPayload,
+    NetlinkSerializable,
 };
 use netlink_packet_utils::{Emitable, ParseableParametrized};
 use std::fmt::Debug;

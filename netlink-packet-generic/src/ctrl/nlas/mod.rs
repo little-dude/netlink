@@ -163,8 +163,10 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for GenlCtrlAttrs 
                     policies.push(parsed);
                 }
                 Self::Policy(policies)
-            },
-            CTRL_ATTR_OP_POLICY => Self::OpPolicy(DefaultNla::parse(buf).context("failed to parse CTRL_ATTR_OP_POLICY")?),
+            }
+            CTRL_ATTR_OP_POLICY => Self::OpPolicy(
+                DefaultNla::parse(buf).context("failed to parse CTRL_ATTR_OP_POLICY")?,
+            ),
             CTRL_ATTR_OP => Self::Op(parse_u32(payload)?),
             _ => Self::Other(DefaultNla::parse(buf).context("invalid NLA (unknown kind)")?),
         })

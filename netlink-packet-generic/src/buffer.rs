@@ -1,5 +1,4 @@
-use crate::message::GenlMessage;
-use crate::{constants::GENL_HDRLEN, header::GenlHeader};
+use crate::{constants::GENL_HDRLEN, header::GenlHeader, message::GenlMessage};
 use netlink_packet_core::DecodeError;
 use netlink_packet_utils::{Parseable, ParseableParametrized};
 use std::fmt::Debug;

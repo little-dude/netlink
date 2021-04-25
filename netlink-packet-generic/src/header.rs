@@ -1,5 +1,4 @@
-use crate::buffer::GenlBuffer;
-use crate::constants::GENL_HDRLEN;
+use crate::{buffer::GenlBuffer, constants::GENL_HDRLEN};
 use netlink_packet_core::DecodeError;
 use netlink_packet_utils::{Emitable, Parseable};
 

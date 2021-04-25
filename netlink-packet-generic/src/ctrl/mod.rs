@@ -4,15 +4,10 @@
 //! It also serves as an example for creating a generic family.
 
 use self::nlas::*;
-use crate::{GenlHeader, constants::*};
-use crate::traits::*;
+use crate::{constants::*, traits::*, GenlHeader};
 
 use anyhow::Context;
-use netlink_packet_utils::{
-    nla::{NlasIterator},
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{nla::NlasIterator, traits::*, DecodeError};
 
 /// Netlink attributes for this family
 pub mod nlas;
@@ -116,15 +111,15 @@ impl ParseableParametrized<[u8], GenlHeader> for GenlCtrl {
         Ok(match header.cmd {
             CTRL_CMD_UNSPEC => Unspec(buf.to_vec()),
             CTRL_CMD_NEWFAMILY => NewFamily(parse_ctrlnlas(buf)?),
-            CTRL_CMD_DELFAMILY=> NewFamily(parse_ctrlnlas(buf)?),
-            CTRL_CMD_GETFAMILY=> NewFamily(parse_ctrlnlas(buf)?),
-            CTRL_CMD_NEWOPS=> NewOps(buf.to_vec()),
-            CTRL_CMD_DELOPS=> DelOps(buf.to_vec()),
-            CTRL_CMD_GETOPS=> GetOps(buf.to_vec()),
-            CTRL_CMD_NEWMCAST_GRP=> NewFamily(parse_ctrlnlas(buf)?),
-            CTRL_CMD_DELMCAST_GRP=> NewFamily(parse_ctrlnlas(buf)?),
-            CTRL_CMD_GETMCAST_GRP=> GetMcastGrp(buf.to_vec()),
-            CTRL_CMD_GETPOLICY=> NewFamily(parse_ctrlnlas(buf)?),
+            CTRL_CMD_DELFAMILY => NewFamily(parse_ctrlnlas(buf)?),
+            CTRL_CMD_GETFAMILY => NewFamily(parse_ctrlnlas(buf)?),
+            CTRL_CMD_NEWOPS => NewOps(buf.to_vec()),
+            CTRL_CMD_DELOPS => DelOps(buf.to_vec()),
+            CTRL_CMD_GETOPS => GetOps(buf.to_vec()),
+            CTRL_CMD_NEWMCAST_GRP => NewFamily(parse_ctrlnlas(buf)?),
+            CTRL_CMD_DELMCAST_GRP => NewFamily(parse_ctrlnlas(buf)?),
+            CTRL_CMD_GETMCAST_GRP => GetMcastGrp(buf.to_vec()),
+            CTRL_CMD_GETPOLICY => NewFamily(parse_ctrlnlas(buf)?),
             _ => return Err(DecodeError::from("Unknown control command")),
         })
     }
