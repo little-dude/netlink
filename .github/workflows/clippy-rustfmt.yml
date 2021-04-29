@@ -29,7 +29,7 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: clippy-tokio-socket
-        run: cargo clippy --workspace --all
+        run: cargo clippy --workspace
 
       - name: clippy-smol-socket
-        run: cargo clippy --no-default-features --features smol_socket --workspace --all
+        run: cargo clippy --no-default-features --features smol_socket --workspace
