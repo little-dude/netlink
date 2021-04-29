@@ -9,9 +9,6 @@ on:
 
 jobs:
   ci:
-    strategy:
-      fail-fast: true
-
     name: CI (stable)
     runs-on: ubuntu-latest
 
@@ -63,6 +60,9 @@ jobs:
           cargo test --features workaround-audit-bug
 
       - name: test (rtnetlink)
+        env:
+          # Needed for the `link::test::create_get_delete_w` test to pass.
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER: "sudo -E"
         run: |
           cd rtnetlink
           cargo test
