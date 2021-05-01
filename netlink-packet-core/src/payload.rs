@@ -25,7 +25,7 @@ pub enum NetlinkPayload<I> {
 
 impl<I> NetlinkPayload<I>
 where
-    I: NetlinkSerializable + Debug,
+    I: NetlinkSerializable,
 {
     pub fn message_type(&self) -> u16 {
         match self {
