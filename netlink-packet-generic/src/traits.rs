@@ -8,7 +8,7 @@ pub trait GenlFamily {
     /// Return the unique family name
     ///
     /// Used to lookup the dynamically assigned ID
-    fn family_name(&self) -> &'static str;
+    fn family_name() -> &'static str;
 
     /// Return the assigned family ID
     ///

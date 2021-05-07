@@ -39,7 +39,7 @@ pub enum GenlCtrl {
 }
 
 impl GenlFamily for GenlCtrl {
-    fn family_name(&self) -> &'static str {
+    fn family_name() -> &'static str {
         "nlctrl"
     }
 
