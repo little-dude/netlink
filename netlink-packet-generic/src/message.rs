@@ -1,3 +1,5 @@
+//! Message definition and method implementations
+
 use crate::{buffer::GenlBuffer, header::GenlHeader, traits::*};
 use netlink_packet_core::{
     DecodeError,

@@ -1,3 +1,4 @@
+//! header definition of generic netlink packet
 use crate::{buffer::GenlBuffer, constants::GENL_HDRLEN};
 use netlink_packet_core::DecodeError;
 use netlink_packet_utils::{Emitable, Parseable};

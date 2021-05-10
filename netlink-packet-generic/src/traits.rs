@@ -1,13 +1,16 @@
+//! Traits for implementing generic netlink family
+
 /// Provide the definition for generic netlink family
 ///
-/// Your payload type should implement this trait to make the whole message serializable.
+/// Family payload type should implement this trait to provide necessary
+/// informations in order to build the packet headers (`nlmsghdr` and `genlmsghdr`).
 ///
 /// If you are looking for an example implementation, you can refer to the
 /// [`crate::ctrl`] module.
 pub trait GenlFamily {
-    /// Return the unique family name
+    /// Return the unique family name registered in the kernel
     ///
-    /// Used to lookup the dynamically assigned ID
+    /// Let the resolver lookup the dynamically assigned ID
     fn family_name() -> &'static str;
 
     /// Return the assigned family ID
@@ -22,7 +25,7 @@ pub trait GenlFamily {
         0
     }
 
-    /// Return the command type of the message
+    /// Return the command type of the current message
     fn command(&self) -> u8;
 
     /// Indicate the protocol version

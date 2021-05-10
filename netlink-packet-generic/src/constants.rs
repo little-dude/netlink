@@ -1,3 +1,4 @@
+//! Define constants related to generic netlink
 pub const GENL_ID_CTRL: u16 = libc::GENL_ID_CTRL as u16;
 pub const GENL_HDRLEN: usize = 4;
 

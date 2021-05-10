@@ -1,6 +1,6 @@
 //! Generic netlink controller implementation
 //!
-//! This module provide the definition of the controller packet.
+//! This module provides the definition of the controller packet.
 //! It also serves as an example for creating a generic family.
 
 use self::nlas::*;
