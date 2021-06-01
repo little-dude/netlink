@@ -76,8 +76,13 @@ impl Socket {
     ///
     /// [protos]: crate::protocols
     pub fn new(protocol: isize) -> Result<Self> {
-        let res =
-            unsafe { libc::socket(libc::PF_NETLINK, libc::SOCK_DGRAM, protocol as libc::c_int) };
+        let res = unsafe {
+            libc::socket(
+                libc::PF_NETLINK,
+                libc::SOCK_DGRAM | libc::SOCK_CLOEXEC,
+                protocol as libc::c_int,
+            )
+        };
         if res < 0 {
             return Err(Error::last_os_error());
         }
