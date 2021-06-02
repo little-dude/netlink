@@ -1,6 +1,6 @@
 use futures::stream::StreamExt;
 
-use netlink_proto::sys::constants::*;
+use netlink_packet_route::constants::*;
 use rtnetlink::{new_connection, sys::SocketAddr};
 
 #[tokio::main]
