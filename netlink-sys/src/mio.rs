@@ -1,8 +1,7 @@
 use crate::Socket;
 use std::os::unix::io::AsRawFd;
 
-use mio::event::Source;
-use mio::unix::SourceFd;
+use mio::{event::Source, unix::SourceFd};
 
 impl Source for Socket {
     fn register(
