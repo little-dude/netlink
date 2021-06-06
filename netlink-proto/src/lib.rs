@@ -164,7 +164,7 @@ mod framed;
 pub use crate::framed::*;
 
 mod protocol;
-pub(crate) use self::protocol::{Protocol, Response};
+pub(crate) use self::protocol::{BatchQueueElem, Protocol, Response};
 pub(crate) type Request<T> =
     self::protocol::Request<T, UnboundedSender<crate::packet::NetlinkMessage<T>>>;
 

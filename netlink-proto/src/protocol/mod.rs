@@ -2,5 +2,5 @@
 mod protocol;
 mod request;
 
-pub use protocol::{Protocol, Response};
+pub use protocol::{BatchQueueElem, Protocol, Response};
 pub use request::Request;

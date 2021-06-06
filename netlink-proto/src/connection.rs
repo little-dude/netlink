@@ -23,6 +23,7 @@ use crate::{
     codecs::NetlinkCodec,
     framed::NetlinkFramed,
     sys::{Socket, SocketAddr},
+    BatchQueueElem,
     Protocol,
     Request,
     Response,
@@ -92,14 +93,29 @@ where
                 return;
             }
 
-            let (mut message, addr) = protocol.outgoing_messages.pop_front().unwrap();
-            message.finalize();
+            match protocol.outgoing_messages.pop_front().unwrap() {
+                BatchQueueElem::Single(mut message, addr) => {
+                    message.finalize();
 
-            trace!("sending outgoing message");
-            if let Err(e) = Pin::as_mut(&mut socket).start_send((message, addr)) {
-                error!("failed to send message: {:?}", e);
-                self.socket_closed = true;
-                return;
+                    trace!("sending outgoing message");
+                    if let Err(e) = Pin::as_mut(&mut socket).start_send((message, addr)) {
+                        error!("failed to send message: {:?}", e);
+                        self.socket_closed = true;
+                        return;
+                    }
+                }
+                BatchQueueElem::Batch(mut messages, addr) => {
+                    for message in &mut messages {
+                        message.finalize();
+                    }
+
+                    trace!("sending outgoing message");
+                    if let Err(e) = Pin::as_mut(&mut socket).start_send((messages, addr)) {
+                        error!("failed to send message: {:?}", e);
+                        self.socket_closed = true;
+                        return;
+                    }
+                }
             }
         }
 
