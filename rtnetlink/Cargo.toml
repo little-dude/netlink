@@ -22,8 +22,8 @@ smol_socket = ["netlink-proto/smol_socket","netlink-proto/workaround-audit-bug",
 futures = "0.3.11"
 log = "0.4.8"
 thiserror = "1"
-netlink-packet-route = { path = "../netlink-packet-route", version = "0.7" }
-netlink-proto = { path = "../netlink-proto", default-features = false, version = "0.6" }
+netlink-packet-route = "0.7"
+netlink-proto = { default-features = false, version = "0.6" }
 byteordered = "0.5.0"
 nix = "0.19.0"
 tokio = { version = "1.0.1", features = ["rt"], optional = true}

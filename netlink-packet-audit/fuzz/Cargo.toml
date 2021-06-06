@@ -9,8 +9,8 @@ edition = "2018"
 cargo-fuzz = true
 
 [dependencies]
-netlink-packet-audit = { path = ".." }
-netlink-packet-core = { path = "../../netlink-packet-core" }
+netlink-packet-audit = "0.2"
+netlink-packet-core = "0.2"
 libfuzzer-sys = { git = "https://github.com/rust-fuzz/libfuzzer-sys.git" }
 
 # Prevent this from interfering with workspaces
@@ -20,3 +20,8 @@ members = ["."]
 [[bin]]
 name = "netlink-audit"
 path = "fuzz_targets/netlink.rs"
+
+[patch.crates-io]
+netlink-packet-core = { path = "../../netlink-packet-core" }
+netlink-packet-utils = { path = "../../netlink-packet-utils" }
+netlink-packet-audit = { path = ".." }
