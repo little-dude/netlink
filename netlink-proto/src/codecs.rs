@@ -152,13 +152,12 @@ where
             let new_len = buf.len() + 2048;
             buf.resize(new_len, 0);
         }
-        let size = msg.buffer_len();
-        if buf.remaining_mut() < size {
+        if buf.remaining_mut() < msg_len {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
                 format!(
                     "message is {} bytes, but only {} bytes left in the buffer",
-                    size,
+                    msg_len,
                     buf.remaining_mut()
                 ),
             ));
@@ -172,7 +171,7 @@ where
         // implementation to users, we cannot guarantee
         // anything. Therefore we have to initialize the buffer
         // here.
-        let bytes = &mut buf.chunk_mut()[..size];
+        let bytes = &mut buf.chunk_mut()[..msg_len];
         for i in 0..bytes.len() {
             bytes.write_byte(i, 0);
         }
@@ -182,7 +181,7 @@ where
 
             msg.serialize(initialized_bytes);
             trace!(">>> {:?}", msg);
-            buf.advance_mut(size);
+            buf.advance_mut(msg_len);
         }
         Ok(())
     }
