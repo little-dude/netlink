@@ -22,6 +22,60 @@ pub struct NetlinkFramed<C> {
     flushed: bool,
 }
 
+impl<C> NetlinkFramed<C>
+where
+    C: Unpin,
+{
+    // independent of Sink item type
+    pub(crate) fn poll_ready(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        if !self.flushed {
+            match self.poll_flush(cx)? {
+                Poll::Ready(()) => {}
+                Poll::Pending => return Poll::Pending,
+            }
+        }
+
+        Poll::Ready(Ok(()))
+    }
+
+    // independent of Sink item type
+    pub(crate) fn poll_flush(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<io::Result<()>> {
+        if self.flushed {
+            return Poll::Ready(Ok(()));
+        }
+
+        trace!("flushing frame; length={}", self.writer.len());
+        let Self {
+            ref mut socket,
+            ref mut out_addr,
+            ref mut writer,
+            ..
+        } = *self;
+
+        let n = ready!(socket.poll_send_to(cx, &writer, &out_addr))?;
+        trace!("written {}", n);
+
+        let wrote_all = n == self.writer.len();
+        self.writer.clear();
+        self.flushed = true;
+
+        let res = if wrote_all {
+            Ok(())
+        } else {
+            Err(io::Error::new(
+                io::ErrorKind::Other,
+                "failed to write entire datagram to socket",
+            )
+            .into())
+        };
+
+        Poll::Ready(res)
+    }
+}
+
 impl<C> Stream for NetlinkFramed<C>
 where
     C: Decoder + Unpin,
@@ -78,13 +132,7 @@ impl<C: Encoder<Item> + Unpin, Item> Sink<(Item, SocketAddr)> for NetlinkFramed<
     type Error = C::Error;
 
     fn poll_ready(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        if !self.flushed {
-            match self.poll_flush(cx)? {
-                Poll::Ready(()) => {}
-                Poll::Pending => return Poll::Pending,
-            }
-        }
-
+        ready!(Self::poll_ready(self, cx))?;
         Poll::Ready(Ok(()))
     }
 
@@ -99,41 +147,13 @@ impl<C: Encoder<Item> + Unpin, Item> Sink<(Item, SocketAddr)> for NetlinkFramed<
         Ok(())
     }
 
-    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        if self.flushed {
-            return Poll::Ready(Ok(()));
-        }
-
-        trace!("flushing frame; length={}", self.writer.len());
-        let Self {
-            ref mut socket,
-            ref mut out_addr,
-            ref mut writer,
-            ..
-        } = *self;
-
-        let n = ready!(socket.poll_send_to(cx, &writer, &out_addr))?;
-        trace!("written {}", n);
-
-        let wrote_all = n == self.writer.len();
-        self.writer.clear();
-        self.flushed = true;
-
-        let res = if wrote_all {
-            Ok(())
-        } else {
-            Err(io::Error::new(
-                io::ErrorKind::Other,
-                "failed to write entire datagram to socket",
-            )
-            .into())
-        };
-
-        Poll::Ready(res)
+    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        ready!(Self::poll_flush(self, cx))?;
+        Poll::Ready(Ok(()))
     }
 
     fn poll_close(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        ready!(self.poll_flush(cx))?;
+        ready!(Self::poll_flush(self, cx))?;
         Poll::Ready(Ok(()))
     }
 }
