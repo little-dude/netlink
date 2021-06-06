@@ -10,4 +10,5 @@ members = [
     "netlink-proto",
     "rtnetlink",
     "audit",
+    "netlink-generic",
 ]
