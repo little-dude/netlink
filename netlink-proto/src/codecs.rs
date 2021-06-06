@@ -147,12 +147,8 @@ where
 
     fn encode(&mut self, msg: NetlinkMessage<T>, buf: &mut BytesMut) -> Result<(), Self::Error> {
         let msg_len = msg.buffer_len();
-        // FIXME: we should have a max length for the buffer
-        while buf.remaining_mut() < msg_len {
-            let new_len = buf.len() + 2048;
-            buf.resize(new_len, 0);
-        }
         if buf.remaining_mut() < msg_len {
+            // BytesMut can expand till usize::MAX... unlikely to hit this one.
             return Err(io::Error::new(
                 io::ErrorKind::Other,
                 format!(
@@ -171,6 +167,7 @@ where
         // implementation to users, we cannot guarantee
         // anything. Therefore we have to initialize the buffer
         // here.
+        buf.reserve(msg_len);
         let bytes = &mut buf.chunk_mut()[..msg_len];
         for i in 0..bytes.len() {
             bytes.write_byte(i, 0);
