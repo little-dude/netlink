@@ -1,4 +1,4 @@
-use std::{fmt::Debug, io, marker::PhantomData, slice};
+use std::{fmt::Debug, io, marker::PhantomData};
 
 use bytes::{BufMut, BytesMut};
 use netlink_packet_core::{
@@ -159,27 +159,13 @@ where
             ));
         }
 
-        // Safety: we initialize the buffer we're passing to
-        // NetlinkMessage::serialize(). In theory, `serialize()`
-        // should be safe because it's not supposed to _read_ from
-        // the buffer, which is potentially
-        // un-initialized. However, since we delegate the actual
-        // implementation to users, we cannot guarantee
-        // anything. Therefore we have to initialize the buffer
-        // here.
-        buf.reserve(msg_len);
-        let bytes = &mut buf.chunk_mut()[..msg_len];
-        for i in 0..bytes.len() {
-            bytes.write_byte(i, 0);
-        }
-
-        unsafe {
-            let initialized_bytes = slice::from_raw_parts_mut(bytes.as_mut_ptr(), bytes.len());
-
-            msg.serialize(initialized_bytes);
-            trace!(">>> {:?}", msg);
-            buf.advance_mut(msg_len);
-        }
+        // As NetlinkMessage::serialize needs an initialized buffer anyway
+        // no need for any `unsafe` magic.
+        let old_len = buf.len();
+        let new_len = old_len + msg_len;
+        buf.resize(new_len, 0);
+        msg.serialize(&mut buf[old_len..][..msg_len]);
+        trace!(">>> {:?}", msg);
         Ok(())
     }
 }
