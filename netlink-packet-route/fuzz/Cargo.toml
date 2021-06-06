@@ -1,5 +1,5 @@
 [package]
-name = "netlink-packet-fuzz"
+name = "netlink-packet-route-fuzz"
 version = "0.0.1"
 authors = ["Automatically generated"]
 publish = false
@@ -12,15 +12,6 @@ cargo-fuzz = true
 netlink-packet-route = "0.7"
 libfuzzer-sys = { git = "https://github.com/rust-fuzz/libfuzzer-sys.git" }
 
-# Prevent this from interfering with workspaces
-[workspace]
-members = ["."]
-
 [[bin]]
 name = "netlink-route"
 path = "fuzz_targets/netlink.rs"
-
-[patch.crates-io]
-netlink-packet-core = { path = "../../netlink-packet-core" }
-netlink-packet-utils = { path = "../../netlink-packet-utils" }
-netlink-packet-route = { path = ".." }

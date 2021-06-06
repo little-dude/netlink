@@ -5,6 +5,21 @@ members = [
     "netlink-packet-core",
     "netlink-packet-utils",
     "netlink-packet-route",
+    "netlink-packet-route/fuzz",
+    "netlink-packet-audit",
+    "netlink-packet-audit/fuzz",
+    "netlink-packet-sock-diag",
+    "netlink-proto",
+    "rtnetlink",
+    "audit",
+]
+
+# omit fuzz projects
+default-members = [
+    "netlink-sys",
+    "netlink-packet-core",
+    "netlink-packet-utils",
+    "netlink-packet-route",
     "netlink-packet-audit",
     "netlink-packet-sock-diag",
     "netlink-proto",
