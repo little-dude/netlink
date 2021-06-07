@@ -17,8 +17,8 @@ log = "0.4.8"
 futures = "0.3"
 tokio = { version = "1.0", default-features = false, features = ["io-util"] }
 tokio-util = { version = "0.6", default-features = false, features = ["codec"] }
-netlink-packet-core = { path = "../netlink-packet-core", version = "0.2" }
-netlink-sys = { path = "../netlink-sys", default-features = false, version = "0.6" }
+netlink-packet-core = "0.2"
+netlink-sys = { default-features = false, version = "0.6" }
 
 [features]
 default = ["tokio_socket"]
@@ -29,8 +29,8 @@ workaround-audit-bug = []
 [dev-dependencies]
 env_logger = "0.8.2"
 tokio = { version = "1.0.1", default-features = false, features = ["macros", "rt-multi-thread"] }
-netlink-packet-route = { path = "../netlink-packet-route" }
-netlink-packet-audit = { path = "../netlink-packet-audit" }
+netlink-packet-route = "0.7"
+netlink-packet-audit = "0.2"
 async-std = {version = "1.9.0", features = ["attributes"]}
 
 [[example]]

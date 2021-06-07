@@ -1,5 +1,5 @@
 [package]
-name = "netlink-packet-fuzz"
+name = "netlink-packet-route-fuzz"
 version = "0.0.1"
 authors = ["Automatically generated"]
 publish = false
@@ -9,12 +9,8 @@ edition = "2018"
 cargo-fuzz = true
 
 [dependencies]
-netlink-packet-route = { path = ".." }
+netlink-packet-route = "0.7"
 libfuzzer-sys = { git = "https://github.com/rust-fuzz/libfuzzer-sys.git" }
-
-# Prevent this from interfering with workspaces
-[workspace]
-members = ["."]
 
 [[bin]]
 name = "netlink-route"
