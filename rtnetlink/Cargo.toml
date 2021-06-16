@@ -21,7 +21,7 @@ smol_socket = ["netlink-proto/smol_socket", "async-std"]
 futures = "0.3.11"
 log = "0.4.8"
 thiserror = "1"
-netlink-packet-route = "0.7"
+netlink-packet-route = "0.8"
 netlink-proto = { default-features = false, version = "0.7" }
 byteordered = "0.5.0"
 nix = "0.22.0"
