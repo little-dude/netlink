@@ -1143,13 +1143,13 @@ pub const RTNLGRP_IPV6_MROUTE_R: u32 = 31;
 // pub const XDP_ATTACHED_DRV: int = 1;
 // pub const XDP_ATTACHED_SKB: int = 2;
 // pub const XDP_ATTACHED_HW: int = 3;
-//
-// pub const IFLA_XDP_UNSPEC: int = 0;
-// pub const IFLA_XDP_FD: int = 1;
-// pub const IFLA_XDP_ATTACHED: int = 2;
-// pub const IFLA_XDP_FLAGS: int = 3;
-// pub const IFLA_XDP_PROG_ID: int = 4;
-//
+
+pub const IFLA_XDP_UNSPEC: u32 = 0;
+pub const IFLA_XDP_FD: u32 = 1;
+pub const IFLA_XDP_ATTACHED: u32 = 2;
+pub const IFLA_XDP_FLAGS: u32 = 3;
+pub const IFLA_XDP_PROG_ID: u32 = 4;
+
 // pub const IFLA_EVENT_NONE: int = 0;
 // pub const IFLA_EVENT_REBOOT: int = 1;
 // pub const IFLA_EVENT_FEATURES: int = 2;
