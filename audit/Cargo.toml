@@ -1,6 +1,6 @@
 [package]
 name = "audit"
-version = "0.3.1"
+version = "0.4.0"
 authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 edition = "2018"
 
@@ -15,7 +15,7 @@ description = "linux audit via netlink"
 futures = "0.3.11"
 thiserror = "1"
 netlink-packet-audit = "0.2"
-netlink-proto = { default-features = false, version = "0.6" }
+netlink-proto = { default-features = false, version = "0.7" }
 
 [features]
 default = ["tokio_socket"]
