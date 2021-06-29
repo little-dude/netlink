@@ -1,6 +1,6 @@
 [package]
 name = "netlink-packet-utils"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 edition = "2018"
 homepage = "https://github.com/little-dude/netlink"

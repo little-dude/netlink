@@ -22,4 +22,4 @@ smallvec = "1.4.2"
 
 [dev-dependencies]
 lazy_static = "1.4.0"
-netlink-sys = "0.6"
+netlink-sys = "0.7"
