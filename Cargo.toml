@@ -4,6 +4,7 @@ members = [
     "netlink-sys",
     "netlink-packet-core",
     "netlink-packet-utils",
+    "netlink-packet-generic",
     "netlink-packet-route",
     "netlink-packet-route/fuzz",
     "netlink-packet-audit",
