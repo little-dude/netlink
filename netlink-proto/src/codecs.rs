@@ -169,3 +169,21 @@ where
         Ok(())
     }
 }
+
+impl<T> Encoder<Vec<NetlinkMessage<T>>> for NetlinkCodec<NetlinkMessage<T>>
+where
+    T: Debug + Eq + PartialEq + Clone + NetlinkSerializable<T>,
+{
+    type Error = io::Error;
+
+    fn encode(
+        &mut self,
+        batch: Vec<NetlinkMessage<T>>,
+        buf: &mut BytesMut,
+    ) -> Result<(), Self::Error> {
+        for msg in batch {
+            self.encode(msg, buf)?;
+        }
+        Ok(())
+    }
+}

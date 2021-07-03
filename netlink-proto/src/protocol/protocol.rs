@@ -46,6 +46,15 @@ struct PendingRequest<M> {
     metadata: M,
 }
 
+#[derive(Debug)]
+pub enum BatchQueueElem<T>
+where
+    T: Debug + Clone + PartialEq + Eq + NetlinkSerializable<T> + NetlinkDeserializable<T>,
+{
+    Single(NetlinkMessage<T>, SocketAddr),
+    Batch(Vec<NetlinkMessage<T>>, SocketAddr),
+}
+
 #[derive(Debug, Default)]
 pub struct Protocol<T, M>
 where
@@ -66,7 +75,7 @@ where
     pub incoming_requests: VecDeque<(NetlinkMessage<T>, SocketAddr)>,
 
     /// The messages to be sent out
-    pub outgoing_messages: VecDeque<(NetlinkMessage<T>, SocketAddr)>,
+    pub outgoing_messages: VecDeque<BatchQueueElem<T>>,
 }
 
 impl<T, M> Protocol<T, M>
@@ -136,17 +145,15 @@ where
         debug!("done handling response to request {:?}", request_id);
     }
 
-    pub fn request(&mut self, request: Request<T, M>) {
-        let Request {
-            mut message,
-            metadata,
-            destination,
-        } = request;
-
-        self.set_sequence_id(&mut message);
+    fn request_single(
+        &mut self,
+        message: &mut NetlinkMessage<T>,
+        metadata: M,
+        destination: &SocketAddr,
+    ) {
+        self.set_sequence_id(message);
         let request_id = RequestId::new(self.sequence_id, destination.port_number());
         let flags = message.header.flags;
-        self.outgoing_messages.push_back((message, destination));
 
         // If we expect a response, we store the request id so that we
         // can map the response to this specific request.
@@ -167,6 +174,32 @@ where
                     metadata,
                 },
             );
+        }
+    }
+
+    pub fn request(&mut self, request: Request<T, M>) {
+        match request {
+            Request::Single {
+                mut message,
+                metadata,
+                destination,
+            } => {
+                self.request_single(&mut message, metadata, &destination);
+                self.outgoing_messages
+                    .push_back(BatchQueueElem::Single(message, destination));
+            }
+            Request::Batch {
+                mut messages,
+                metadata,
+                destination,
+            } => {
+                assert_eq!(messages.len(), metadata.len());
+                for (msg, md) in messages.iter_mut().zip(metadata.into_iter()) {
+                    self.request_single(msg, md, &destination);
+                }
+                self.outgoing_messages
+                    .push_back(BatchQueueElem::Batch(messages, destination));
+            }
         }
     }
 
