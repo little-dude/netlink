@@ -22,6 +22,10 @@ impl AddressHandle {
         AddressAddRequest::new(self.0.clone(), index, address, prefix_len)
     }
 
+    pub fn add_raw(&self, address: AddressMessage) -> AddressAddRequest {
+        AddressAddRequest::new_raw(self.0.clone(), address)
+    }
+
     /// Delete the given address
     pub fn del(&self, address: AddressMessage) -> AddressDelRequest {
         AddressDelRequest::new(self.0.clone(), address)
