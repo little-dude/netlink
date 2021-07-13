@@ -25,12 +25,12 @@ thiserror = "1"
 netlink-packet-route = "0.7"
 netlink-proto = { default-features = false, version = "0.7" }
 byteordered = "0.5.0"
-nix = "0.19.0"
+nix = "0.22.0"
 tokio = { version = "1.0.1", features = ["rt"], optional = true}
 async-std = { version = "1.9.0", features = ["unstable"], optional = true}
 
 [dev-dependencies]
 env_logger = "0.8.2"
-ipnetwork = "0.17.0"
+ipnetwork = "0.18.0"
 tokio = { version = "1.0.1", features = ["macros", "rt", "rt-multi-thread"] }
 async-std = { version = "1.9.0", features = ["attributes"]}
