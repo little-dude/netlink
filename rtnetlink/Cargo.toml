@@ -14,9 +14,8 @@ description = "manipulate linux networking resources via netlink"
 [features]
 test_as_root = []
 default = ["tokio_socket"]
-tokio_socket = ["netlink-proto/tokio_socket","netlink-proto/workaround-audit-bug", "tokio"]
-smol_socket = ["netlink-proto/smol_socket","netlink-proto/workaround-audit-bug","async-std"]
-
+tokio_socket = ["netlink-proto/tokio_socket", "tokio"]
+smol_socket = ["netlink-proto/smol_socket", "async-std"]
 
 [dependencies]
 futures = "0.3.11"
