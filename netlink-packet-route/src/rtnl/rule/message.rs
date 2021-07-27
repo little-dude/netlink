@@ -26,7 +26,7 @@ impl Emitable for RuleMessage {
 
 impl<'a, T: AsRef<[u8]> + 'a> Parseable<RuleMessageBuffer<&'a T>> for RuleMessage {
     fn parse(buf: &RuleMessageBuffer<&'a T>) -> Result<Self, DecodeError> {
-        let header = RuleHeader::parse(&buf).context("failed to parse link message header")?;
+        let header = RuleHeader::parse(buf).context("failed to parse link message header")?;
         let nlas = Vec::<Nla>::parse(buf).context("failed to parse link message NLAs")?;
         Ok(RuleMessage { header, nlas })
     }

@@ -193,7 +193,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<UnixResponseBuffer<&'a T>> for Small
 impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<UnixResponseBuffer<&'a T>> for UnixResponse {
     fn parse(buf: &UnixResponseBuffer<&'a T>) -> Result<Self, DecodeError> {
         let header =
-            UnixResponseHeader::parse(&buf).context("failed to parse inet response header")?;
+            UnixResponseHeader::parse(buf).context("failed to parse inet response header")?;
         let nlas =
             SmallVec::<[Nla; 8]>::parse(buf).context("failed to parse inet response NLAs")?;
         Ok(UnixResponse { header, nlas })
