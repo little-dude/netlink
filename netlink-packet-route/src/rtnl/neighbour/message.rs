@@ -30,9 +30,9 @@ impl Emitable for NeighbourMessage {
 impl<'a, T: AsRef<[u8]> + 'a> Parseable<NeighbourMessageBuffer<&'a T>> for NeighbourMessage {
     fn parse(buf: &NeighbourMessageBuffer<&'a T>) -> Result<Self, DecodeError> {
         Ok(NeighbourMessage {
-            header: NeighbourHeader::parse(&buf)
+            header: NeighbourHeader::parse(buf)
                 .context("failed to parse neighbour message header")?,
-            nlas: Vec::<Nla>::parse(&buf).context("failed to parse neighbour message NLAs")?,
+            nlas: Vec::<Nla>::parse(buf).context("failed to parse neighbour message NLAs")?,
         })
     }
 }

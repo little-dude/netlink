@@ -29,7 +29,7 @@ impl<T: AsRef<[u8]>> AuditBuffer<T> {
 
 impl<'a, T: AsRef<[u8]> + ?Sized> AuditBuffer<&'a T> {
     pub fn inner(&self) -> &'a [u8] {
-        &self.buffer.as_ref()
+        self.buffer.as_ref()
     }
 }
 

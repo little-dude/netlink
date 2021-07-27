@@ -112,7 +112,7 @@ impl<C: Encoder<Item> + Unpin, Item> Sink<(Item, SocketAddr)> for NetlinkFramed<
             ..
         } = *self;
 
-        let n = ready!(socket.poll_send_to(cx, &writer, &out_addr))?;
+        let n = ready!(socket.poll_send_to(cx, writer, out_addr))?;
         trace!("written {}", n);
 
         let wrote_all = n == self.writer.len();
