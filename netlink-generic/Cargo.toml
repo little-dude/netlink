@@ -1,0 +1,34 @@
+[package]
+name = "netlink-generic"
+version = "0.1.0"
+authors = ["Gris Ge <cnfourt@gmail.com>"]
+license = "MIT"
+edition = "2018"
+description = "Linux Generic Netlink Communication Library"
+keywords = ["network"]
+categories = ["network-programming", "os"]
+
+[lib]
+name = "netlink_generic"
+path = "lib.rs"
+crate-type = ["lib"]
+
+[features]
+default = ["tokio_socket"]
+tokio_socket = ["netlink-proto/tokio_socket", "tokio"]
+smol_socket = ["netlink-proto/smol_socket", "async-std"]
+
+[dependencies]
+netlink-sys = {path="../netlink-sys"}
+netlink-packet-utils = {path="../netlink-packet-utils"}
+netlink-packet-core = {path="../netlink-packet-core"}
+netlink-proto = {path="../netlink-proto", default-features = false}
+tokio = { version = "1.0.1", features = ["rt"], optional = true}
+async-std = { version = "1.9.0", features = ["unstable"], optional = true}
+futures = "0.3.11"
+anyhow = "1.0.31"
+thiserror = "1"
+byteorder = "1.3.2"
+
+[dev-dependencies]
+tokio = { version = "1.0.1", features = ["macros", "rt", "rt-multi-thread"] }

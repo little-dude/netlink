@@ -67,6 +67,11 @@ jobs:
           cd rtnetlink
           cargo test
 
+      - name: test (netlink-generic)
+        run: |
+          cd netlink-generic
+          cargo test
+
       - name: test (audit)
         run: |
           cd audit

@@ -10,6 +10,7 @@ members = [
     "netlink-packet-audit/fuzz",
     "netlink-packet-sock-diag",
     "netlink-proto",
+    "netlink-generic",
     "rtnetlink",
     "audit",
 ]
@@ -23,6 +24,7 @@ default-members = [
     "netlink-packet-audit",
     "netlink-packet-sock-diag",
     "netlink-proto",
+    "netlink-generic",
     "rtnetlink",
     "audit",
 ]
@@ -36,4 +38,5 @@ netlink-packet-audit = { path = "netlink-packet-audit" }
 netlink-packet-sock-diag = { path = "netlink-packet-sock-diag" }
 netlink-proto = { path = "netlink-proto" }
 rtnetlink = { path = "rtnetlink" }
+netlink-generic = { path = "netlink-generic" }
 audit = { path = "audit" }
