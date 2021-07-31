@@ -748,7 +748,7 @@ impl Nla for InfoVlan {
 
             Id(ref value)
                 | Protocol(ref value)
-                => BigEndian::write_u16(buffer, *value),
+                => NativeEndian::write_u16(buffer, *value),
 
             Flags(ref flags) => {
                 NativeEndian::write_u32(buffer, flags.0);
