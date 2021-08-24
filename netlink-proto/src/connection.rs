@@ -7,25 +7,18 @@ use std::{
 
 use futures::{
     channel::mpsc::{UnboundedReceiver, UnboundedSender},
-    Future,
-    Sink,
-    Stream,
+    Future, Sink, Stream,
 };
 use log::{error, warn};
 use netlink_packet_core::{
-    NetlinkDeserializable,
-    NetlinkMessage,
-    NetlinkPayload,
-    NetlinkSerializable,
+    NetlinkDeserializable, NetlinkMessage, NetlinkPayload, NetlinkSerializable,
 };
 
 use crate::{
     codecs::NetlinkCodec,
     framed::NetlinkFramed,
     sys::{Socket, SocketAddr},
-    Protocol,
-    Request,
-    Response,
+    Protocol, Request, Response,
 };
 
 /// Connection to a Netlink socket, running in the background.
@@ -61,7 +54,7 @@ where
     ) -> io::Result<Self> {
         let socket = Socket::new(protocol)?;
         Ok(Connection {
-            socket: NetlinkFramed::new(socket, NetlinkCodec::<NetlinkMessage<T>>::new()),
+            socket: NetlinkFramed::new(socket, NetlinkCodec::<NetlinkMessage<T>>::new(protocol)),
             protocol: Protocol::new(),
             requests_rx: Some(requests_rx),
             unsolicited_messages_tx: Some(unsolicited_messages_tx),

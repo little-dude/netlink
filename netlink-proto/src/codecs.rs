@@ -2,27 +2,45 @@ use std::{fmt::Debug, io, marker::PhantomData};
 
 use bytes::{BufMut, BytesMut};
 use netlink_packet_core::{
-    NetlinkBuffer,
-    NetlinkDeserializable,
-    NetlinkMessage,
+    NetlinkBuffer, NetlinkDeserializable, NetlinkHeader, NetlinkMessage, NetlinkPayload,
     NetlinkSerializable,
 };
+
+use crate::sys::protocols::{NETLINK_AUDIT, NETLINK_GENERIC, NETLINK_KOBJECT_UEVENT};
+
 use tokio_util::codec::{Decoder, Encoder};
+
+#[derive(Eq, PartialEq)]
+enum CodecType {
+    /// Normal Netlink packet with header
+    Packet,
+    /// Audit packets lenght is unreliable
+    AuditPacket,
+    /// kobject_uevent packets do not have headers at all
+    UEventPacket,
+}
 
 pub struct NetlinkCodec<T> {
     phantom: PhantomData<T>,
+    ty: CodecType,
 }
 
 impl<T> Default for NetlinkCodec<T> {
     fn default() -> Self {
-        Self::new()
+        Self::new(NETLINK_GENERIC)
     }
 }
 
 impl<T> NetlinkCodec<T> {
-    pub fn new() -> Self {
+    pub fn new(protocol: isize) -> Self {
+        let ty = match protocol {
+            NETLINK_AUDIT => CodecType::AuditPacket,
+            NETLINK_KOBJECT_UEVENT => CodecType::UEventPacket,
+            _ => CodecType::Packet,
+        };
         NetlinkCodec {
             phantom: PhantomData,
+            ty,
         }
     }
 }
@@ -47,54 +65,59 @@ where
                 return Ok(None);
             }
 
-            // This is a bit hacky because we don't want to keep `src`
-            // borrowed, since we need to mutate it later.
-            let len_res = match NetlinkBuffer::new_checked(src.as_ref()) {
-                #[cfg(not(feature = "workaround-audit-bug"))]
-                Ok(buf) => Ok(buf.length() as usize),
-                #[cfg(feature = "workaround-audit-bug")]
-                Ok(buf) => {
-                    if (src.as_ref().len() as isize - buf.length() as isize) <= 16 {
-                        // The audit messages are sometimes truncated,
-                        // because the length specified in the header,
-                        // does not take the header itself into
-                        // account. To workaround this, we tweak the
-                        // length. We've noticed two occurences of
-                        // truncated packets:
-                        //
-                        // - the length of the header is not included (see also:
-                        //   https://github.com/mozilla/libaudit-go/issues/24)
-                        // - some rule message have some padding for alignment (see
-                        //   https://github.com/linux-audit/audit-userspace/issues/78) which is not
-                        //   taken into account in the buffer length.
-                        warn!("found what looks like a truncated audit packet");
-                        Ok(src.as_ref().len())
-                    } else {
-                        Ok(buf.length() as usize)
+            // the uevent packets do not have any header
+            let len = if self.ty == CodecType::UEventPacket {
+                src.len()
+            } else {
+                // This is a bit hacky because we don't want to keep `src`
+                // borrowed, since we need to mutate it later.
+                let len_res = match NetlinkBuffer::new_checked(src.as_ref()) {
+                    Ok(buf) => {
+                        if self.ty == CodecType::Packet {
+                            Ok(buf.length() as usize)
+                        } else {
+                            if (src.as_ref().len() as isize - buf.length() as isize) <= 16 {
+                                // The audit messages are sometimes truncated,
+                                // because the length specified in the header,
+                                // does not take the header itself into
+                                // account. To workaround this, we tweak the
+                                // length. We've noticed two occurences of
+                                // truncated packets:
+                                //
+                                // - the length of the header is not included (see also:
+                                //   https://github.com/mozilla/libaudit-go/issues/24)
+                                // - some rule message have some padding for alignment (see
+                                //   https://github.com/linux-audit/audit-userspace/issues/78) which is not
+                                //   taken into account in the buffer length.
+                                warn!("found what looks like a truncated audit packet");
+                                Ok(src.as_ref().len())
+                            } else {
+                                Ok(buf.length() as usize)
+                            }
+                        }
                     }
+                    Err(e) => {
+                        // We either received a truncated packet, or the
+                        // packet if malformed (invalid length field). In
+                        // both case, we can't decode the datagram, and we
+                        // cannot find the start of the next one (if
+                        // any). The only solution is to clear the buffer
+                        // and potentially lose some datagrams.
+                        error!("failed to decode datagram: {:?}: {:#x?}.", e, src.as_ref());
+                        Err(())
+                    }
+                };
+
+                if len_res.is_err() {
+                    error!("clearing the whole socket buffer. Datagrams may have been lost");
+                    src.clear();
+                    return Ok(None);
                 }
-                Err(e) => {
-                    // We either received a truncated packet, or the
-                    // packet if malformed (invalid length field). In
-                    // both case, we can't decode the datagram, and we
-                    // cannot find the start of the next one (if
-                    // any). The only solution is to clear the buffer
-                    // and potentially lose some datagrams.
-                    error!("failed to decode datagram: {:?}: {:#x?}.", e, src.as_ref());
-                    Err(())
-                }
+
+                len_res.unwrap()
             };
 
-            if len_res.is_err() {
-                error!("clearing the whole socket buffer. Datagrams may have been lost");
-                src.clear();
-                return Ok(None);
-            }
-
-            let len = len_res.unwrap();
-
-            #[cfg(feature = "workaround-audit-bug")]
-            let bytes = {
+            let bytes = if self.ty == CodecType::AuditPacket {
                 let mut bytes = src.split_to(len);
                 {
                     let mut buf = NetlinkBuffer::new(bytes.as_mut());
@@ -120,21 +143,38 @@ where
                     }
                 }
                 bytes
+            } else {
+                src.split_to(len)
             };
-            #[cfg(not(feature = "workaround-audit-bug"))]
-            let bytes = src.split_to(len);
 
-            let parsed = NetlinkMessage::<T>::deserialize(&bytes);
-            match parsed {
-                Ok(packet) => {
-                    trace!("<<< {:?}", packet);
-                    return Ok(Some(packet));
+            if self.ty == CodecType::UEventPacket {
+                // dummy header, unused
+                let header = NetlinkHeader::default();
+                match T::deserialize(&header, &bytes) {
+                    Ok(packet) => {
+                        trace!("<<< {:?}", packet);
+                        return Ok(Some(NetlinkMessage::new(
+                            header,
+                            NetlinkPayload::InnerMessage(packet),
+                        )));
+                    }
+                    Err(e) => {
+                        error!("failed to decode packet {:#x?}: {}", &bytes, e);
+                    }
                 }
-                Err(e) => {
-                    error!("failed to decode packet {:#x?}: {}", &bytes, e);
-                    // continue looping, there may be more datagrams in the buffer
+            } else {
+                let parsed = NetlinkMessage::<T>::deserialize(&bytes);
+                match parsed {
+                    Ok(packet) => {
+                        trace!("<<< {:?}", packet);
+                        return Ok(Some(packet));
+                    }
+                    Err(e) => {
+                        error!("failed to decode packet {:#x?}: {}", &bytes, e);
+                        // continue looping, there may be more datagrams in the buffer
+                    }
                 }
-            }
+            };
         }
     }
 }
