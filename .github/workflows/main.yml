@@ -38,6 +38,11 @@ jobs:
           cd netlink-packet-core
           cargo test
 
+      - name: test (netlink-packet-generic)
+        run: |
+          cd netlink-packet-generic
+          cargo test
+
       - name: test (netlink-packet-route)
         run: |
           cd netlink-packet-route
@@ -71,3 +76,8 @@ jobs:
         run: |
           cd audit
           cargo test
+
+      - name: test (genetlink)
+        run: |
+          cd genetlink
+          cargo test --features tokio_socket
