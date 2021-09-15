@@ -1,0 +1,21 @@
+[package]
+name = "netlink-packet-generic"
+version = "0.1.0"
+authors = ["Leo <leo881003@gmail.com>"]
+edition = "2018"
+homepage = "https://github.com/little-dude/netlink"
+repository = "https://github.com/little-dude/netlink"
+keywords = ["netlink", "linux"]
+license = "MIT"
+readme = "../README.md"
+description = "generic netlink packet types"
+
+[dependencies]
+anyhow = "1.0.39"
+libc = "0.2.86"
+byteorder = "1.4.2"
+netlink-packet-core = "0.2"
+netlink-packet-utils = "0.4"
+
+[dev-dependencies]
+netlink-sys = { path = "../netlink-sys", version = "0.7" }
