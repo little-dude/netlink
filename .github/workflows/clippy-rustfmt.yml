@@ -18,12 +18,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install Rust Nightly
-        run: |
-          rustc -vV
-          rustup toolchain install nightly --allow-downgrade --component=clippy,rustfmt --profile=minimal
-          rustup default nightly
-          rustc -vV
+      - name: Install Rust Stable
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: stable
+            override: true
+            components: rustfmt, clippy
 
       - name: rustfmt
         run: cargo fmt --all -- --check
