@@ -27,8 +27,7 @@ async fn main() -> Result<(), ()> {
 
     match action.as_str() {
         "add" => {
-            if let Err(e) =
-                add_property_alt_ifnames(link_name, &alt_ifnames, handle.clone()).await
+            if let Err(e) = add_property_alt_ifnames(link_name, &alt_ifnames, handle.clone()).await
             {
                 eprintln!("{}", e);
             }
