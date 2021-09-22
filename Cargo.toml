@@ -11,6 +11,7 @@ members = [
     "netlink-packet-audit/fuzz",
     "netlink-packet-sock-diag",
     "netlink-proto",
+    "ethtool",
     "genetlink",
     "rtnetlink",
     "audit",
@@ -26,6 +27,7 @@ default-members = [
     "netlink-packet-audit",
     "netlink-packet-sock-diag",
     "netlink-proto",
+    "ethtool",
     "genetlink",
     "rtnetlink",
     "audit",
@@ -43,3 +45,4 @@ netlink-proto = { path = "netlink-proto" }
 genetlink = { path = "genetlink" }
 rtnetlink = { path = "rtnetlink" }
 audit = { path = "audit" }
+ethtool = { path = "ethtool" }

@@ -1,0 +1,43 @@
+[package]
+name = "ethtool"
+version = "0.1.0"
+authors = ["Gris Ge <fge@redhat.com>"]
+license = "MIT"
+edition = "2018"
+description = "Linux Ethtool Communication Library"
+keywords = ["network"]
+categories = ["network-programming", "os"]
+readme = "../README.md"
+
+[lib]
+name = "ethtool"
+path = "src/lib.rs"
+crate-type = ["lib"]
+
+[features]
+default = ["tokio_socket"]
+tokio_socket = ["netlink-proto/tokio_socket", "tokio"]
+smol_socket = ["netlink-proto/smol_socket", "async-std"]
+
+[dependencies]
+anyhow = "1.0.44"
+async-std = { version = "1.9.0", optional = true}
+byteorder = "1.4.3"
+futures = "0.3.17"
+genetlink = { default-features = false, version = "0.1.0"}
+log = "0.4.14"
+netlink-packet-core = "0.2.4"
+netlink-packet-generic = "0.1.0"
+netlink-packet-utils = "0.4.1"
+netlink-proto = { default-features = false, version = "0.7.0" }
+netlink-sys = "0.7.0"
+thiserror = "1.0.29"
+tokio = { version = "1.0.1", features = ["rt"], optional = true}
+
+[dev-dependencies]
+tokio = { version = "1.11.0", features = ["macros", "rt", "rt-multi-thread"] }
+env_logger = "0.9.0"
+
+[[example]]
+name = "dump_pause"
+required-features = ["tokio_socket"]
