@@ -4,7 +4,7 @@ use netlink_packet_core::NetlinkMessage;
 use netlink_packet_generic::GenlMessage;
 use netlink_packet_utils::DecodeError;
 
-use crate::{EthtoolError, EthtoolMessage, EthtoolPauseHandle};
+use crate::{EthtoolError, EthtoolFeatureHandle, EthtoolMessage, EthtoolPauseHandle};
 
 #[derive(Clone, Debug)]
 pub struct EthtoolHandle {
@@ -18,6 +18,10 @@ impl EthtoolHandle {
 
     pub fn pause(&mut self) -> EthtoolPauseHandle {
         EthtoolPauseHandle::new(self.clone())
+    }
+
+    pub fn feature(&mut self) -> EthtoolFeatureHandle {
+        EthtoolFeatureHandle::new(self.clone())
     }
 
     pub async fn request(

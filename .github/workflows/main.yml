@@ -80,3 +80,8 @@ jobs:
         run: |
           cd genetlink
           cargo test --features tokio_socket
+
+      - name: test (ethtool)
+        run: |
+          cd ethtool
+          cargo test
