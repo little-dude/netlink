@@ -3,6 +3,7 @@ mod error;
 mod feature;
 mod handle;
 mod header;
+mod link_mode;
 mod macros;
 mod message;
 mod pause;
@@ -17,6 +18,12 @@ pub use feature::{
 };
 pub use handle::EthtoolHandle;
 pub use header::EthtoolHeader;
+pub use link_mode::{
+    EthtoolLinkModeAttr,
+    EthtoolLinkModeDuplex,
+    EthtoolLinkModeGetRequest,
+    EthtoolLinkModeHandle,
+};
 pub use message::{EthtoolAttr, EthtoolCmd, EthtoolMessage};
 pub use pause::{
     EthtoolPauseAttr,
@@ -24,3 +31,5 @@ pub use pause::{
     EthtoolPauseHandle,
     EthtoolPauseStatAttr,
 };
+
+pub(crate) use handle::ethtool_execute;

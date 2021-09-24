@@ -1,8 +1,7 @@
-use futures::{self, future::Either, FutureExt, StreamExt, TryStream};
-use netlink_packet_core::{NetlinkMessage, NLM_F_ACK, NLM_F_DUMP, NLM_F_REQUEST};
+use futures::TryStream;
 use netlink_packet_generic::GenlMessage;
 
-use crate::{try_ethtool, EthtoolError, EthtoolHandle, EthtoolMessage};
+use crate::{ethtool_execute, EthtoolError, EthtoolHandle, EthtoolMessage};
 
 pub struct EthtoolPauseGetRequest {
     handle: EthtoolHandle,
@@ -25,28 +24,7 @@ impl EthtoolPauseGetRequest {
             iface_name,
         } = self;
 
-        let nl_header_flags = match iface_name {
-            // The NLM_F_ACK is required due to bug of kernel:
-            //  https://bugzilla.redhat.com/show_bug.cgi?id=1953847
-            // without `NLM_F_MULTI`, rust-netlink will not parse
-            // multiple netlink message in single socket reply.
-            // Using NLM_F_ACK will force rust-netlink to parse all till
-            // acked at the end.
-            None => NLM_F_DUMP | NLM_F_REQUEST | NLM_F_ACK,
-            Some(_) => NLM_F_REQUEST,
-        };
-
         let ethtool_msg = EthtoolMessage::new_pause_get(iface_name.as_deref());
-
-        let mut nl_msg = NetlinkMessage::from(GenlMessage::from_payload(ethtool_msg));
-
-        nl_msg.header.flags = nl_header_flags;
-
-        match handle.request(nl_msg).await {
-            Ok(response) => Either::Left(response.map(move |msg| Ok(try_ethtool!(msg)))),
-            Err(e) => Either::Right(
-                futures::future::err::<GenlMessage<EthtoolMessage>, EthtoolError>(e).into_stream(),
-            ),
-        }
+        ethtool_execute(&mut handle, iface_name.is_none(), ethtool_msg).await
     }
 }
