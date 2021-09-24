@@ -1,21 +1,24 @@
-use std::convert::{TryFrom, TryInto};
-
 use netlink_packet_core::DecodeError;
 use netlink_packet_generic::{GenlFamily, GenlHeader};
 use netlink_packet_utils::{nla::Nla, Emitable, ParseableParametrized};
 
 use crate::{
+    feature::{parse_feature_nlas, EthtoolFeatureAttr},
     pause::{parse_pause_nlas, EthtoolPauseAttr},
     EthtoolHeader,
 };
 
 const ETHTOOL_MSG_PAUSE_GET: u8 = 21;
 const ETHTOOL_MSG_PAUSE_GET_REPLY: u8 = 22;
+const ETHTOOL_MSG_FEATURES_GET: u8 = 11;
+const ETHTOOL_MSG_FEATURES_GET_REPLY: u8 = 11;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum EthtoolCmd {
     PauseGet,
     PauseGetReply,
+    FeatureGet,
+    FeatureGetReply,
 }
 
 impl From<EthtoolCmd> for u8 {
@@ -23,48 +26,37 @@ impl From<EthtoolCmd> for u8 {
         match cmd {
             EthtoolCmd::PauseGet => ETHTOOL_MSG_PAUSE_GET,
             EthtoolCmd::PauseGetReply => ETHTOOL_MSG_PAUSE_GET_REPLY,
+            EthtoolCmd::FeatureGet => ETHTOOL_MSG_FEATURES_GET,
+            EthtoolCmd::FeatureGetReply => ETHTOOL_MSG_FEATURES_GET_REPLY,
         }
-    }
-}
-
-impl TryFrom<u8> for EthtoolCmd {
-    type Error = DecodeError;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        Ok(match value {
-            ETHTOOL_MSG_PAUSE_GET => Self::PauseGet,
-            ETHTOOL_MSG_PAUSE_GET_REPLY => Self::PauseGetReply,
-            cmd => {
-                return Err(DecodeError::from(format!(
-                    "Unsupported ethtool command: {}",
-                    cmd
-                )))
-            }
-        })
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum EthtoolAttr {
     Pause(EthtoolPauseAttr),
+    Feature(EthtoolFeatureAttr),
 }
 
 impl Nla for EthtoolAttr {
     fn value_len(&self) -> usize {
         match self {
             Self::Pause(attr) => attr.value_len(),
+            Self::Feature(attr) => attr.value_len(),
         }
     }
 
     fn kind(&self) -> u16 {
         match self {
             Self::Pause(attr) => attr.kind(),
+            Self::Feature(attr) => attr.kind(),
         }
     }
 
     fn emit_value(&self, buffer: &mut [u8]) {
         match self {
             Self::Pause(attr) => attr.emit_value(buffer),
+            Self::Feature(attr) => attr.emit_value(buffer),
         }
     }
 }
@@ -102,6 +94,19 @@ impl EthtoolMessage {
             nlas,
         }
     }
+
+    pub fn new_feature_get(iface_name: Option<&str>) -> Self {
+        let nlas = match iface_name {
+            Some(s) => vec![EthtoolAttr::Feature(EthtoolFeatureAttr::Header(vec![
+                EthtoolHeader::DevName(s.to_string()),
+            ]))],
+            None => vec![EthtoolAttr::Feature(EthtoolFeatureAttr::Header(vec![]))],
+        };
+        EthtoolMessage {
+            cmd: EthtoolCmd::FeatureGet,
+            nlas,
+        }
+    }
 }
 
 impl Emitable for EthtoolMessage {
@@ -116,11 +121,21 @@ impl Emitable for EthtoolMessage {
 
 impl ParseableParametrized<[u8], GenlHeader> for EthtoolMessage {
     fn parse_with_param(buffer: &[u8], header: GenlHeader) -> Result<Self, DecodeError> {
-        let cmd = header.cmd.try_into()?;
-        let nlas = match cmd {
-            EthtoolCmd::PauseGetReply => parse_pause_nlas(buffer)?,
-            _ => return Err(format!("Unsupported ethtool command {:?}", cmd).into()),
-        };
-        Ok(Self { cmd, nlas })
+        Ok(match header.cmd {
+            ETHTOOL_MSG_PAUSE_GET_REPLY => Self {
+                cmd: EthtoolCmd::PauseGetReply,
+                nlas: parse_pause_nlas(buffer)?,
+            },
+            ETHTOOL_MSG_FEATURES_GET_REPLY => Self {
+                cmd: EthtoolCmd::FeatureGetReply,
+                nlas: parse_feature_nlas(buffer)?,
+            },
+            cmd => {
+                return Err(DecodeError::from(format!(
+                    "Unsupported ethtool reply command: {}",
+                    cmd
+                )))
+            }
+        })
     }
 }
