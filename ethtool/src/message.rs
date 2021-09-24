@@ -6,6 +6,7 @@ use crate::{
     feature::{parse_feature_nlas, EthtoolFeatureAttr},
     link_mode::{parse_link_mode_nlas, EthtoolLinkModeAttr},
     pause::{parse_pause_nlas, EthtoolPauseAttr},
+    ring::{parse_ring_nlas, EthtoolRingAttr},
     EthtoolHeader,
 };
 
@@ -15,6 +16,8 @@ const ETHTOOL_MSG_FEATURES_GET: u8 = 11;
 const ETHTOOL_MSG_FEATURES_GET_REPLY: u8 = 11;
 const ETHTOOL_MSG_LINKMODES_GET: u8 = 4;
 const ETHTOOL_MSG_LINKMODES_GET_REPLY: u8 = 4;
+const ETHTOOL_MSG_RINGS_GET: u8 = 15;
+const ETHTOOL_MSG_RINGS_GET_REPLY: u8 = 16;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum EthtoolCmd {
@@ -24,6 +27,8 @@ pub enum EthtoolCmd {
     FeatureGetReply,
     LinkModeGet,
     LinkModeGetReply,
+    RingGet,
+    RingGetReply,
 }
 
 impl From<EthtoolCmd> for u8 {
@@ -35,6 +40,8 @@ impl From<EthtoolCmd> for u8 {
             EthtoolCmd::FeatureGetReply => ETHTOOL_MSG_FEATURES_GET_REPLY,
             EthtoolCmd::LinkModeGet => ETHTOOL_MSG_LINKMODES_GET,
             EthtoolCmd::LinkModeGetReply => ETHTOOL_MSG_LINKMODES_GET_REPLY,
+            EthtoolCmd::RingGet => ETHTOOL_MSG_RINGS_GET,
+            EthtoolCmd::RingGetReply => ETHTOOL_MSG_RINGS_GET_REPLY,
         }
     }
 }
@@ -44,6 +51,7 @@ pub enum EthtoolAttr {
     Pause(EthtoolPauseAttr),
     Feature(EthtoolFeatureAttr),
     LinkMode(EthtoolLinkModeAttr),
+    Ring(EthtoolRingAttr),
 }
 
 impl Nla for EthtoolAttr {
@@ -52,6 +60,7 @@ impl Nla for EthtoolAttr {
             Self::Pause(attr) => attr.value_len(),
             Self::Feature(attr) => attr.value_len(),
             Self::LinkMode(attr) => attr.value_len(),
+            Self::Ring(attr) => attr.value_len(),
         }
     }
 
@@ -60,6 +69,7 @@ impl Nla for EthtoolAttr {
             Self::Pause(attr) => attr.kind(),
             Self::Feature(attr) => attr.kind(),
             Self::LinkMode(attr) => attr.kind(),
+            Self::Ring(attr) => attr.kind(),
         }
     }
 
@@ -68,6 +78,7 @@ impl Nla for EthtoolAttr {
             Self::Pause(attr) => attr.emit_value(buffer),
             Self::Feature(attr) => attr.emit_value(buffer),
             Self::LinkMode(attr) => attr.emit_value(buffer),
+            Self::Ring(attr) => attr.emit_value(buffer),
         }
     }
 }
@@ -131,6 +142,19 @@ impl EthtoolMessage {
             nlas,
         }
     }
+
+    pub fn new_ring_get(iface_name: Option<&str>) -> Self {
+        let nlas = match iface_name {
+            Some(s) => vec![EthtoolAttr::Ring(EthtoolRingAttr::Header(vec![
+                EthtoolHeader::DevName(s.to_string()),
+            ]))],
+            None => vec![EthtoolAttr::Ring(EthtoolRingAttr::Header(vec![]))],
+        };
+        EthtoolMessage {
+            cmd: EthtoolCmd::RingGet,
+            nlas,
+        }
+    }
 }
 
 impl Emitable for EthtoolMessage {
@@ -157,6 +181,10 @@ impl ParseableParametrized<[u8], GenlHeader> for EthtoolMessage {
             ETHTOOL_MSG_LINKMODES_GET_REPLY => Self {
                 cmd: EthtoolCmd::LinkModeGetReply,
                 nlas: parse_link_mode_nlas(buffer)?,
+            },
+            ETHTOOL_MSG_RINGS_GET_REPLY => Self {
+                cmd: EthtoolCmd::RingGetReply,
+                nlas: parse_ring_nlas(buffer)?,
             },
             cmd => {
                 return Err(DecodeError::from(format!(
