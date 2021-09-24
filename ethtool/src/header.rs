@@ -3,7 +3,7 @@ use std::ffi::CString;
 use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
 use netlink_packet_utils::{
-    nla::{self, DefaultNla, NlaBuffer},
+    nla::{DefaultNla, Nla, NlaBuffer},
     parsers::{parse_string, parse_u32},
     DecodeError,
     Parseable,
@@ -22,7 +22,7 @@ pub enum EthtoolHeader {
     Other(DefaultNla),
 }
 
-impl nla::Nla for EthtoolHeader {
+impl Nla for EthtoolHeader {
     fn value_len(&self) -> usize {
         match self {
             Self::DevIndex(_) | Self::Flags(_) => 4,

@@ -4,6 +4,7 @@ use netlink_packet_utils::{nla::Nla, Emitable, ParseableParametrized};
 
 use crate::{
     feature::{parse_feature_nlas, EthtoolFeatureAttr},
+    link_mode::{parse_link_mode_nlas, EthtoolLinkModeAttr},
     pause::{parse_pause_nlas, EthtoolPauseAttr},
     EthtoolHeader,
 };
@@ -12,6 +13,8 @@ const ETHTOOL_MSG_PAUSE_GET: u8 = 21;
 const ETHTOOL_MSG_PAUSE_GET_REPLY: u8 = 22;
 const ETHTOOL_MSG_FEATURES_GET: u8 = 11;
 const ETHTOOL_MSG_FEATURES_GET_REPLY: u8 = 11;
+const ETHTOOL_MSG_LINKMODES_GET: u8 = 4;
+const ETHTOOL_MSG_LINKMODES_GET_REPLY: u8 = 4;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum EthtoolCmd {
@@ -19,6 +22,8 @@ pub enum EthtoolCmd {
     PauseGetReply,
     FeatureGet,
     FeatureGetReply,
+    LinkModeGet,
+    LinkModeGetReply,
 }
 
 impl From<EthtoolCmd> for u8 {
@@ -28,6 +33,8 @@ impl From<EthtoolCmd> for u8 {
             EthtoolCmd::PauseGetReply => ETHTOOL_MSG_PAUSE_GET_REPLY,
             EthtoolCmd::FeatureGet => ETHTOOL_MSG_FEATURES_GET,
             EthtoolCmd::FeatureGetReply => ETHTOOL_MSG_FEATURES_GET_REPLY,
+            EthtoolCmd::LinkModeGet => ETHTOOL_MSG_LINKMODES_GET,
+            EthtoolCmd::LinkModeGetReply => ETHTOOL_MSG_LINKMODES_GET_REPLY,
         }
     }
 }
@@ -36,6 +43,7 @@ impl From<EthtoolCmd> for u8 {
 pub enum EthtoolAttr {
     Pause(EthtoolPauseAttr),
     Feature(EthtoolFeatureAttr),
+    LinkMode(EthtoolLinkModeAttr),
 }
 
 impl Nla for EthtoolAttr {
@@ -43,6 +51,7 @@ impl Nla for EthtoolAttr {
         match self {
             Self::Pause(attr) => attr.value_len(),
             Self::Feature(attr) => attr.value_len(),
+            Self::LinkMode(attr) => attr.value_len(),
         }
     }
 
@@ -50,6 +59,7 @@ impl Nla for EthtoolAttr {
         match self {
             Self::Pause(attr) => attr.kind(),
             Self::Feature(attr) => attr.kind(),
+            Self::LinkMode(attr) => attr.kind(),
         }
     }
 
@@ -57,6 +67,7 @@ impl Nla for EthtoolAttr {
         match self {
             Self::Pause(attr) => attr.emit_value(buffer),
             Self::Feature(attr) => attr.emit_value(buffer),
+            Self::LinkMode(attr) => attr.emit_value(buffer),
         }
     }
 }
@@ -107,6 +118,19 @@ impl EthtoolMessage {
             nlas,
         }
     }
+
+    pub fn new_link_mode_get(iface_name: Option<&str>) -> Self {
+        let nlas = match iface_name {
+            Some(s) => vec![EthtoolAttr::LinkMode(EthtoolLinkModeAttr::Header(vec![
+                EthtoolHeader::DevName(s.to_string()),
+            ]))],
+            None => vec![EthtoolAttr::LinkMode(EthtoolLinkModeAttr::Header(vec![]))],
+        };
+        EthtoolMessage {
+            cmd: EthtoolCmd::LinkModeGet,
+            nlas,
+        }
+    }
 }
 
 impl Emitable for EthtoolMessage {
@@ -129,6 +153,10 @@ impl ParseableParametrized<[u8], GenlHeader> for EthtoolMessage {
             ETHTOOL_MSG_FEATURES_GET_REPLY => Self {
                 cmd: EthtoolCmd::FeatureGetReply,
                 nlas: parse_feature_nlas(buffer)?,
+            },
+            ETHTOOL_MSG_LINKMODES_GET_REPLY => Self {
+                cmd: EthtoolCmd::LinkModeGetReply,
+                nlas: parse_link_mode_nlas(buffer)?,
             },
             cmd => {
                 return Err(DecodeError::from(format!(
