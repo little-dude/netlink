@@ -7,6 +7,7 @@ mod link_mode;
 mod macros;
 mod message;
 mod pause;
+mod ring;
 
 pub use connection::new_connection;
 pub use error::EthtoolError;
@@ -31,5 +32,6 @@ pub use pause::{
     EthtoolPauseHandle,
     EthtoolPauseStatAttr,
 };
+pub use ring::{EthtoolRingAttr, EthtoolRingGetRequest, EthtoolRingHandle};
 
 pub(crate) use handle::ethtool_execute;

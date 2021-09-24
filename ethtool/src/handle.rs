@@ -11,6 +11,7 @@ use crate::{
     EthtoolLinkModeHandle,
     EthtoolMessage,
     EthtoolPauseHandle,
+    EthtoolRingHandle,
 };
 
 #[derive(Clone, Debug)]
@@ -33,6 +34,10 @@ impl EthtoolHandle {
 
     pub fn link_mode(&mut self) -> EthtoolLinkModeHandle {
         EthtoolLinkModeHandle::new(self.clone())
+    }
+
+    pub fn ring(&mut self) -> EthtoolRingHandle {
+        EthtoolRingHandle::new(self.clone())
     }
 
     pub async fn request(
