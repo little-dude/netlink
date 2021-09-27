@@ -1,3 +1,4 @@
+mod coalesce;
 mod connection;
 mod error;
 mod feature;
@@ -9,6 +10,7 @@ mod message;
 mod pause;
 mod ring;
 
+pub use coalesce::{EthtoolCoalesceAttr, EthtoolCoalesceGetRequest, EthtoolCoalesceHandle};
 pub use connection::new_connection;
 pub use error::EthtoolError;
 pub use feature::{
