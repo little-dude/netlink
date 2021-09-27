@@ -4,8 +4,14 @@
 
 - bump the versions in the Cargo.toml using `git blame` and `git log`,
   starting from the `netlink-packet-*` and `netlink-sys` crates
-- check that `cargo test` still works once your done
-- `cargo publish`
+- Update the `CHANGELOG` file with version changes, new features, bug fixes
+  and breaking changes
+- Check that `cargo test` still works once your done
+- Create pull request for the changes for CHANGELOG and version dumping.
+- Create new tag via command `git tag --sign $(date +%Y%m%d)`
+- Publish the tag to github via command `git push --tags upstream`
+- Create new release page at [github webpage][github_new_release]
+- Publish the crates via command `cargo publish` in changed crate folders
 
 ## Detailed process
 
@@ -15,7 +21,7 @@ First, distinguish three groups of crates:
 
 - `netlink-packet-*` crates
 - `netlink-sys`
-- `netlink-proto`, `audit` and `rtnetlink`, which depend on the the two other groups
+- `netlink-proto`, `audit` and `rtnetlink`, which depend on the two other groups
 
 Usually start by bumping the versions of the first group of crates,
 then `netlink-sys`, and then the last group of crates.
@@ -138,3 +144,5 @@ if `netlink-packet-utils` is bumped from 0.x to 0.x+1,
 then `cargo publish --dry-run` will not work for `netlink-packet-core`,
 because the crate depends on `netlink-packet-utils` 0.x+1, which hasn't be
 published yet.
+
+[github_new_release]: https://github.com/little-dude/netlink/releases/new

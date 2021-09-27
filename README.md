@@ -19,6 +19,12 @@ This project aims at providing building blocks for [netlink][man-netlink] (see `
   depends on `netlink-packet-core` for the `NetlinkMessage` type and `netlink-sys` for the socket.
 - the [`rtnetlink`](./rtnetlink) crate provides higher level abstraction for the [route protocol][man-rtnetlink]
 - the [`audit`](./audit) crate provides higher level abstractions for the audit protocol.
+- the [`netlink-packet-generic`](./netlink-packet-generic) crate provide
+  message for the [generic netlink][man-genl]
+- the [`genetlink`](./genetlink) crate provide higher level abstraction for the
+  [generic netlink protocol][man-genl]
+- the [`ethtool`](./ethtool) crate provide higher level abstraction for
+  [ethtool netlink protocol][ethtool-kernel-doc]
 
 
 ## Altnernatives
@@ -50,6 +56,7 @@ tool they are building, and the support they provide.
 [man-audit]: https://man7.org/linux/man-pages/man3/audit_open.3.html
 [man-sock-diag]: https://www.man7.org/linux/man-pages/man7/sock_diag.7.html
 [man-rtnetlink]: https://www.man7.org/linux/man-pages/man7/rtnetlink.7.html
+[man-genl]: https://www.man7.org/linux/man-pages/man8/genl.8.html
 [generic-netlink-lwn]: https://lwn.net/Articles/208755/
 [mio]: https://github.com/tokio-rs/mio
 [tokio]: https://github.com/tokio-rs/tokio
@@ -60,3 +67,4 @@ tool they are building, and the support they provide.
 [whitequark-1]: https://lab.whitequark.org/notes/2016-12-13/abstracting-over-mutability-in-rust
 [whitequark-2]: https://lab.whitequark.org/notes/2016-12-17/owning-collections-in-heap-less-rust
 [whitequark-3]: https://lab.whitequark.org/notes/2017-01-16/abstracting-over-mutability-in-rust-macros
+[ethtool-kernel-doc]: https://www.kernel.org/doc/html/latest/networking/ethtool-netlink.html

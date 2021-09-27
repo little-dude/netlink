@@ -1,0 +1,38 @@
+# Changelog
+## On-going
+### Versioning
+### Breaking Changes
+### New Features
+### Bug fixes
+
+## [20210927] 2021-09-27
+### Versioning
+ * audit 0.4.0
+ * ethtool NULL -> 0.1.0
+ * genetlink NULL -> 0.1.0
+ * netlink-packet-audit 0.2.2
+ * netlink-packet-core 0.2.4
+ * netlink-packet-generic NULL -> 0.1.0
+ * netlink-packet-route 0.7.0 -> 0.8.0
+ * netlink-packet-sock-diag 0.1.0
+ * netlink-packet-utils 0.4.1
+ * netlink-proto 0.7.0
+ * netlink-sys 0.7.0
+ * rtnetlink 0.8.0 -> 0.8.1
+
+### Breaking Changes
+ * `netlink_packet_route::rtnl::link::nlas::Nla::PropList` changed from
+ `PropList(Vec<u8>)` to `PropList(Vec<Prop>)` (b4b3c46)
+
+### New Features
+ * ethtool: New crate for ethtool netlink protocol (7998f8c, 2b79197, bc43fd6,
+   2ec5f17, cb8738b)
+ * genetlink: New create for higher level abstraction of generic netlink
+   protocol (89ee697)
+ * netlink-packet-generic: New crate for generic netlink protocol (89ee697)
+ * netlink-packet-route: Add support of property addition and deletion (cc073b3)
+ * rtnetlink: Add support of preferred source address (720e764)
+
+### Bug fixes
+ * netlink-packet-route: vlan: Fix endianness when creating VLAN (b0fd2ea)
+ * rtnetlink: drop byteordered dependency (8bca238)
