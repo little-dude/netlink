@@ -1,6 +1,5 @@
 use futures::TryStreamExt;
-use std::env;
-use std::net::Ipv4Addr;
+use std::{env, net::Ipv4Addr};
 
 use ipnetwork::Ipv4Network;
 use rtnetlink::{new_connection, Error, Handle};
