@@ -3,6 +3,7 @@ use netlink_packet_generic::{GenlFamily, GenlHeader};
 use netlink_packet_utils::{nla::Nla, Emitable, ParseableParametrized};
 
 use crate::{
+    coalesce::{parse_coalesce_nlas, EthtoolCoalesceAttr},
     feature::{parse_feature_nlas, EthtoolFeatureAttr},
     link_mode::{parse_link_mode_nlas, EthtoolLinkModeAttr},
     pause::{parse_pause_nlas, EthtoolPauseAttr},
@@ -18,6 +19,8 @@ const ETHTOOL_MSG_LINKMODES_GET: u8 = 4;
 const ETHTOOL_MSG_LINKMODES_GET_REPLY: u8 = 4;
 const ETHTOOL_MSG_RINGS_GET: u8 = 15;
 const ETHTOOL_MSG_RINGS_GET_REPLY: u8 = 16;
+const ETHTOOL_MSG_COALESCE_GET: u8 = 19;
+const ETHTOOL_MSG_COALESCE_GET_REPLY: u8 = 20;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum EthtoolCmd {
@@ -29,6 +32,8 @@ pub enum EthtoolCmd {
     LinkModeGetReply,
     RingGet,
     RingGetReply,
+    CoalesceGet,
+    CoalesceGetReply,
 }
 
 impl From<EthtoolCmd> for u8 {
@@ -42,6 +47,8 @@ impl From<EthtoolCmd> for u8 {
             EthtoolCmd::LinkModeGetReply => ETHTOOL_MSG_LINKMODES_GET_REPLY,
             EthtoolCmd::RingGet => ETHTOOL_MSG_RINGS_GET,
             EthtoolCmd::RingGetReply => ETHTOOL_MSG_RINGS_GET_REPLY,
+            EthtoolCmd::CoalesceGet => ETHTOOL_MSG_COALESCE_GET,
+            EthtoolCmd::CoalesceGetReply => ETHTOOL_MSG_COALESCE_GET_REPLY,
         }
     }
 }
@@ -52,6 +59,7 @@ pub enum EthtoolAttr {
     Feature(EthtoolFeatureAttr),
     LinkMode(EthtoolLinkModeAttr),
     Ring(EthtoolRingAttr),
+    Coalesce(EthtoolCoalesceAttr),
 }
 
 impl Nla for EthtoolAttr {
@@ -61,6 +69,7 @@ impl Nla for EthtoolAttr {
             Self::Feature(attr) => attr.value_len(),
             Self::LinkMode(attr) => attr.value_len(),
             Self::Ring(attr) => attr.value_len(),
+            Self::Coalesce(attr) => attr.value_len(),
         }
     }
 
@@ -70,6 +79,7 @@ impl Nla for EthtoolAttr {
             Self::Feature(attr) => attr.kind(),
             Self::LinkMode(attr) => attr.kind(),
             Self::Ring(attr) => attr.kind(),
+            Self::Coalesce(attr) => attr.kind(),
         }
     }
 
@@ -79,6 +89,7 @@ impl Nla for EthtoolAttr {
             Self::Feature(attr) => attr.emit_value(buffer),
             Self::LinkMode(attr) => attr.emit_value(buffer),
             Self::Ring(attr) => attr.emit_value(buffer),
+            Self::Coalesce(attr) => attr.emit_value(buffer),
         }
     }
 }
@@ -155,6 +166,19 @@ impl EthtoolMessage {
             nlas,
         }
     }
+
+    pub fn new_coalesce_get(iface_name: Option<&str>) -> Self {
+        let nlas = match iface_name {
+            Some(s) => vec![EthtoolAttr::Coalesce(EthtoolCoalesceAttr::Header(vec![
+                EthtoolHeader::DevName(s.to_string()),
+            ]))],
+            None => vec![EthtoolAttr::Coalesce(EthtoolCoalesceAttr::Header(vec![]))],
+        };
+        EthtoolMessage {
+            cmd: EthtoolCmd::CoalesceGet,
+            nlas,
+        }
+    }
 }
 
 impl Emitable for EthtoolMessage {
@@ -185,6 +209,10 @@ impl ParseableParametrized<[u8], GenlHeader> for EthtoolMessage {
             ETHTOOL_MSG_RINGS_GET_REPLY => Self {
                 cmd: EthtoolCmd::RingGetReply,
                 nlas: parse_ring_nlas(buffer)?,
+            },
+            ETHTOOL_MSG_COALESCE_GET_REPLY => Self {
+                cmd: EthtoolCmd::CoalesceGetReply,
+                nlas: parse_coalesce_nlas(buffer)?,
             },
             cmd => {
                 return Err(DecodeError::from(format!(

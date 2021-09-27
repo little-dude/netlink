@@ -6,6 +6,7 @@ use netlink_packet_utils::DecodeError;
 
 use crate::{
     try_ethtool,
+    EthtoolCoalesceHandle,
     EthtoolError,
     EthtoolFeatureHandle,
     EthtoolLinkModeHandle,
@@ -38,6 +39,10 @@ impl EthtoolHandle {
 
     pub fn ring(&mut self) -> EthtoolRingHandle {
         EthtoolRingHandle::new(self.clone())
+    }
+
+    pub fn coalesce(&mut self) -> EthtoolCoalesceHandle {
+        EthtoolCoalesceHandle::new(self.clone())
     }
 
     pub async fn request(
