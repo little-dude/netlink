@@ -1,8 +1,7 @@
 use libc::{in6_addr, in_addr, sockaddr, sockaddr_in, sockaddr_in6, timespec, AF_INET, AF_INET6};
 use netlink_packet_utils::DecodeError;
 use std::{
-    mem::size_of,
-    mem::size_of_val,
+    mem::{size_of, size_of_val},
     net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6},
     slice::from_raw_parts,
     time::{Duration, SystemTime},
