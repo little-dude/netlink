@@ -1,28 +1,13 @@
-use anyhow::{bail, Error};
-use futures::{channel::mpsc::UnboundedReceiver, lock::Mutex, StreamExt};
+use futures::StreamExt;
+use genetlink::new_connection;
 use netlink_packet_core::{NetlinkMessage, NetlinkPayload, NLM_F_DUMP, NLM_F_REQUEST};
-use netlink_packet_generic::{
-    ctrl::{nlas::GenlCtrlAttrs, GenlCtrl, GenlCtrlCmd},
-    GenlFamily, GenlHeader, GenlMessage,
-};
-use netlink_packet_utils::Emitable;
+use netlink_packet_generic::GenlMessage;
 use netlink_packet_wireguard::{
     nlas::{WgAllowedIpAttrs, WgDeviceAttrs, WgPeerAttrs},
-    Wireguard, WireguardCmd,
+    Wireguard,
+    WireguardCmd,
 };
-use netlink_proto::{
-    sys::{protocols::NETLINK_GENERIC, SocketAddr},
-    Connection, ConnectionHandle,
-};
-use once_cell::sync::Lazy;
-use std::{
-    env::args,
-    io,
-    sync::{Arc, RwLock},
-};
-use genetlink::new_connection;
-
-static CACHE: Lazy<Arc<RwLock<u16>>> = Lazy::new(|| Arc::new(RwLock::new(0)));
+use std::env::args;
 
 #[tokio::main]
 async fn main() {
@@ -37,7 +22,7 @@ async fn main() {
     let (connection, mut handle, _) = new_connection().unwrap();
     tokio::spawn(connection);
 
-    let mut genlmsg: GenlMessage<Wireguard> = GenlMessage::from_payload(Wireguard {
+    let genlmsg: GenlMessage<Wireguard> = GenlMessage::from_payload(Wireguard {
         cmd: WireguardCmd::GetDevice,
         nlas: vec![WgDeviceAttrs::IfName(argv[1].clone())],
     });
