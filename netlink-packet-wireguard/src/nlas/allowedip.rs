@@ -1,5 +1,4 @@
-use crate::constants::*;
-use crate::raw::*;
+use crate::{constants::*, raw::*};
 use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
 use libc::{in6_addr, in_addr};
