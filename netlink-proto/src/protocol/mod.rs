@@ -2,5 +2,5 @@
 mod protocol;
 mod request;
 
-pub use protocol::{Protocol, Response};
-pub use request::Request;
+pub(crate) use protocol::{Protocol, Response};
+pub(crate) use request::Request;

@@ -30,7 +30,7 @@ impl RequestId {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct Response<T, M>
+pub(crate) struct Response<T, M>
 where
     T: Debug + Clone + PartialEq + Eq + NetlinkSerializable<T> + NetlinkDeserializable<T>,
     M: Debug,
@@ -47,7 +47,7 @@ struct PendingRequest<M> {
 }
 
 #[derive(Debug, Default)]
-pub struct Protocol<T, M>
+pub(crate) struct Protocol<T, M>
 where
     T: Debug + Clone + PartialEq + Eq + NetlinkSerializable<T> + NetlinkDeserializable<T>,
     M: Debug,
