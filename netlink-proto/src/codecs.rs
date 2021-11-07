@@ -31,7 +31,7 @@ impl<T> NetlinkCodec<T> {
 // See https://github.com/mozilla/libaudit-go/issues/24
 impl<T> Decoder for NetlinkCodec<NetlinkMessage<T>>
 where
-    T: NetlinkDeserializable + Debug + Eq + PartialEq + Clone,
+    T: NetlinkDeserializable + Debug,
 {
     type Item = NetlinkMessage<T>;
     type Error = io::Error;
@@ -141,7 +141,7 @@ where
 
 impl<T> Encoder<NetlinkMessage<T>> for NetlinkCodec<NetlinkMessage<T>>
 where
-    T: Debug + Eq + PartialEq + Clone + NetlinkSerializable,
+    T: Debug + NetlinkSerializable,
 {
     type Error = io::Error;
 

@@ -30,11 +30,7 @@ impl RequestId {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub(crate) struct Response<T, M>
-where
-    T: Debug + Clone + PartialEq + Eq + NetlinkSerializable + NetlinkDeserializable,
-    M: Debug,
-{
+pub(crate) struct Response<T, M> {
     pub done: bool,
     pub message: NetlinkMessage<T>,
     pub metadata: M,
@@ -47,11 +43,7 @@ struct PendingRequest<M> {
 }
 
 #[derive(Debug, Default)]
-pub(crate) struct Protocol<T, M>
-where
-    T: Debug + Clone + PartialEq + Eq + NetlinkSerializable + NetlinkDeserializable,
-    M: Debug,
-{
+pub(crate) struct Protocol<T, M> {
     /// Counter that is incremented for each message sent
     sequence_id: u32,
 
@@ -71,8 +63,8 @@ where
 
 impl<T, M> Protocol<T, M>
 where
-    T: Debug + Clone + PartialEq + Eq + NetlinkSerializable + NetlinkDeserializable,
-    M: Clone + Debug,
+    T: Debug + NetlinkSerializable + NetlinkDeserializable,
+    M: Debug + Clone,
 {
     pub fn new() -> Self {
         Self {

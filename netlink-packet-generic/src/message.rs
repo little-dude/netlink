@@ -20,10 +20,7 @@ use netlink_packet_core::NetlinkMessage;
 /// The message can be serialize/deserialize if the type `F` implements [`GenlFamily`],
 /// [`Emitable`], and [`ParseableParametrized<[u8], GenlHeader>`](ParseableParametrized).
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct GenlMessage<F>
-where
-    F: Clone + Debug + PartialEq + Eq,
-{
+pub struct GenlMessage<F> {
     pub header: GenlHeader,
     pub payload: F,
     resolved_family_id: u16,
@@ -31,7 +28,7 @@ where
 
 impl<F> GenlMessage<F>
 where
-    F: Clone + Debug + PartialEq + Eq,
+    F: Debug,
 {
     /// Construct the message
     pub fn new(header: GenlHeader, payload: F, family_id: u16) -> Self {
@@ -85,7 +82,7 @@ where
 
 impl<F> GenlMessage<F>
 where
-    F: GenlFamily + Clone + Debug + PartialEq + Eq,
+    F: GenlFamily + Debug,
 {
     /// Build the message from the payload
     ///
@@ -132,7 +129,7 @@ where
 
 impl<F> Emitable for GenlMessage<F>
 where
-    F: GenlFamily + Emitable + Clone + Debug + PartialEq + Eq,
+    F: GenlFamily + Emitable + Debug,
 {
     fn buffer_len(&self) -> usize {
         self.header.buffer_len() + self.payload.buffer_len()
@@ -148,7 +145,7 @@ where
 
 impl<F> NetlinkSerializable for GenlMessage<F>
 where
-    F: GenlFamily + Emitable + Clone + Debug + PartialEq + Eq,
+    F: GenlFamily + Emitable + Debug,
 {
     fn message_type(&self) -> u16 {
         self.family_id()
@@ -165,7 +162,7 @@ where
 
 impl<F> NetlinkDeserializable for GenlMessage<F>
 where
-    F: ParseableParametrized<[u8], GenlHeader> + Clone + Debug + PartialEq + Eq,
+    F: ParseableParametrized<[u8], GenlHeader> + Debug,
 {
     type Error = DecodeError;
     fn deserialize(header: &NetlinkHeader, payload: &[u8]) -> Result<Self, Self::Error> {
@@ -176,7 +173,7 @@ where
 
 impl<F> From<GenlMessage<F>> for NetlinkPayload<GenlMessage<F>>
 where
-    F: Clone + Debug + PartialEq + Eq,
+    F: Debug,
 {
     fn from(message: GenlMessage<F>) -> Self {
         NetlinkPayload::InnerMessage(message)

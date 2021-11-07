@@ -227,13 +227,7 @@ pub fn new_connection<T>(
     UnboundedReceiver<(packet::NetlinkMessage<T>, sys::SocketAddr)>,
 )>
 where
-    T: Debug
-        + PartialEq
-        + Eq
-        + Clone
-        + packet::NetlinkSerializable
-        + packet::NetlinkDeserializable
-        + Unpin,
+    T: Debug + packet::NetlinkSerializable + packet::NetlinkDeserializable + Unpin,
 {
     let (requests_tx, requests_rx) = unbounded::<Request<T>>();
     let (messages_tx, messages_rx) = unbounded::<(packet::NetlinkMessage<T>, sys::SocketAddr)>();

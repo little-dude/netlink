@@ -14,10 +14,7 @@ pub const NLMSG_OVERRUN: u16 = 4;
 pub const NLMSG_ALIGNTO: u16 = 4;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum NetlinkPayload<I>
-where
-    I: Debug + PartialEq + Eq + Clone,
-{
+pub enum NetlinkPayload<I> {
     Done,
     Error(ErrorMessage),
     Ack(AckMessage),
@@ -28,7 +25,7 @@ where
 
 impl<I> NetlinkPayload<I>
 where
-    I: NetlinkSerializable + Debug + PartialEq + Eq + Clone,
+    I: NetlinkSerializable + Debug,
 {
     pub fn message_type(&self) -> u16 {
         match self {
