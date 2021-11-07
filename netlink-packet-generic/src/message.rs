@@ -146,7 +146,7 @@ where
     }
 }
 
-impl<F> NetlinkSerializable<GenlMessage<F>> for GenlMessage<F>
+impl<F> NetlinkSerializable for GenlMessage<F>
 where
     F: GenlFamily + Emitable + Clone + Debug + PartialEq + Eq,
 {
@@ -163,7 +163,7 @@ where
     }
 }
 
-impl<'a, F> NetlinkDeserializable<GenlMessage<F>> for GenlMessage<F>
+impl<F> NetlinkDeserializable for GenlMessage<F>
 where
     F: ParseableParametrized<[u8], GenlHeader> + Clone + Debug + PartialEq + Eq,
 {

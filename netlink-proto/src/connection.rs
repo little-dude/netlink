@@ -34,7 +34,7 @@ use crate::{
 /// `Connection`, that in turn, sends them through the netlink socket.
 pub struct Connection<T>
 where
-    T: Debug + Clone + PartialEq + Eq + NetlinkSerializable<T> + NetlinkDeserializable<T>,
+    T: Debug + Clone + PartialEq + Eq + NetlinkSerializable + NetlinkDeserializable,
 {
     socket: NetlinkFramed<NetlinkCodec<NetlinkMessage<T>>>,
 
@@ -52,7 +52,7 @@ where
 
 impl<T> Connection<T>
 where
-    T: Debug + Clone + PartialEq + Eq + NetlinkSerializable<T> + NetlinkDeserializable<T> + Unpin,
+    T: Debug + Clone + PartialEq + Eq + NetlinkSerializable + NetlinkDeserializable + Unpin,
 {
     pub(crate) fn new(
         requests_rx: UnboundedReceiver<Request<T>>,
@@ -252,7 +252,7 @@ where
 
 impl<T> Future for Connection<T>
 where
-    T: Debug + Clone + PartialEq + Eq + NetlinkSerializable<T> + NetlinkDeserializable<T> + Unpin,
+    T: Debug + Clone + PartialEq + Eq + NetlinkSerializable + NetlinkDeserializable + Unpin,
 {
     type Output = ();
 

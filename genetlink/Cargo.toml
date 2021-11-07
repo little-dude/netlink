@@ -1,6 +1,6 @@
 [package]
 name = "genetlink"
-version = "0.1.0"
+version = "0.2.0"  # TODO: drop this comment - already bumped version for trait changes
 authors = ["Leo <leo881003@gmail.com>"]
 edition = "2018"
 homepage = "https://github.com/little-dude/netlink"
@@ -17,12 +17,12 @@ smol_socket = ["netlink-proto/smol_socket","netlink-proto/workaround-audit-bug",
 
 [dependencies]
 futures = "0.3.16"
-netlink-packet-generic = "0.1.0"
-netlink-proto = { default-features = false, version = "0.7.0" }
+netlink-packet-generic = "0.2.0"
+netlink-proto = { default-features = false, version = "0.8.0" }
 tokio = { version = "1.9.0", features = ["rt"], optional = true }
 async-std = { version = "1.9.0", optional = true }
 netlink-packet-utils = "0.4.1"
-netlink-packet-core = "0.2.4"
+netlink-packet-core = "0.3.0"
 thiserror = "1.0.26"
 
 [dev-dependencies]

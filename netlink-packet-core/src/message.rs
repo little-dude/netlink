@@ -45,7 +45,7 @@ where
 
 impl<I> NetlinkMessage<I>
 where
-    I: NetlinkDeserializable<I> + Debug + PartialEq + Eq + Clone,
+    I: NetlinkDeserializable + Debug + PartialEq + Eq + Clone,
 {
     /// Parse the given buffer as a netlink message
     pub fn deserialize(buffer: &[u8]) -> Result<Self, DecodeError> {
@@ -56,7 +56,7 @@ where
 
 impl<I> NetlinkMessage<I>
 where
-    I: NetlinkSerializable<I> + Debug + PartialEq + Eq + Clone,
+    I: NetlinkSerializable + Debug + PartialEq + Eq + Clone,
 {
     /// Return the length of this message in bytes
     pub fn buffer_len(&self) -> usize {
@@ -92,7 +92,7 @@ where
 impl<'buffer, B, I> Parseable<NetlinkBuffer<&'buffer B>> for NetlinkMessage<I>
 where
     B: AsRef<[u8]> + 'buffer,
-    I: Debug + PartialEq + Eq + Clone + NetlinkDeserializable<I>,
+    I: Debug + PartialEq + Eq + Clone + NetlinkDeserializable,
 {
     fn parse(buf: &NetlinkBuffer<&'buffer B>) -> Result<Self, DecodeError> {
         use self::NetlinkPayload::*;
@@ -129,7 +129,7 @@ where
 
 impl<I> Emitable for NetlinkMessage<I>
 where
-    I: NetlinkSerializable<I> + Debug + PartialEq + Eq + Clone,
+    I: NetlinkSerializable + Debug + PartialEq + Eq + Clone,
 {
     fn buffer_len(&self) -> usize {
         use self::NetlinkPayload::*;

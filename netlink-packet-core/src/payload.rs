@@ -28,7 +28,7 @@ where
 
 impl<I> NetlinkPayload<I>
 where
-    I: NetlinkSerializable<I> + Debug + PartialEq + Eq + Clone,
+    I: NetlinkSerializable + Debug + PartialEq + Eq + Clone,
 {
     pub fn message_type(&self) -> u16 {
         match self {

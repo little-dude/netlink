@@ -231,8 +231,8 @@ where
         + PartialEq
         + Eq
         + Clone
-        + packet::NetlinkSerializable<T>
-        + packet::NetlinkDeserializable<T>
+        + packet::NetlinkSerializable
+        + packet::NetlinkDeserializable
         + Unpin,
 {
     let (requests_tx, requests_rx) = unbounded::<Request<T>>();

@@ -42,7 +42,7 @@ tokio_socket = ["tokio", "futures"]
 smol_socket = ["async-io","futures"]
 
 [dev-dependencies]
-netlink-packet-audit = "0.2"
+netlink-packet-audit = "0.3"
 
 [dev-dependencies.tokio]
 version = "1.0.1"

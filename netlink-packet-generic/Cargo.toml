@@ -1,6 +1,6 @@
 [package]
 name = "netlink-packet-generic"
-version = "0.1.0"
+version = "0.2.0"  # TODO: drop this comment - already bumped version for trait changes
 authors = ["Leo <leo881003@gmail.com>"]
 edition = "2018"
 homepage = "https://github.com/little-dude/netlink"
@@ -14,7 +14,7 @@ description = "generic netlink packet types"
 anyhow = "1.0.39"
 libc = "0.2.86"
 byteorder = "1.4.2"
-netlink-packet-core = "0.2"
+netlink-packet-core = "0.3"
 netlink-packet-utils = "0.4"
 
 [dev-dependencies]

@@ -107,7 +107,7 @@ where
     }
 }
 
-impl NetlinkSerializable<RawGenlMessage> for RawGenlMessage {
+impl NetlinkSerializable for RawGenlMessage {
     fn message_type(&self) -> u16 {
         self.family_id
     }
@@ -121,7 +121,7 @@ impl NetlinkSerializable<RawGenlMessage> for RawGenlMessage {
     }
 }
 
-impl NetlinkDeserializable<RawGenlMessage> for RawGenlMessage {
+impl NetlinkDeserializable for RawGenlMessage {
     type Error = DecodeError;
     fn deserialize(header: &NetlinkHeader, payload: &[u8]) -> Result<Self, Self::Error> {
         let buffer = GenlBuffer::new_checked(payload)?;
