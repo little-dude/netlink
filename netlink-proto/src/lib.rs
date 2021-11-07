@@ -229,6 +229,22 @@ pub fn new_connection<T>(
 where
     T: Debug + packet::NetlinkSerializable + packet::NetlinkDeserializable + Unpin,
 {
+    new_connection_with_codec(protocol)
+}
+
+/// Variant of [`new_connection`] that allows specifying a separate codec
+#[allow(clippy::type_complexity)]
+pub fn new_connection_with_codec<T, C>(
+    protocol: isize,
+) -> io::Result<(
+    Connection<T, C>,
+    ConnectionHandle<T>,
+    UnboundedReceiver<(packet::NetlinkMessage<T>, sys::SocketAddr)>,
+)>
+where
+    T: Debug + packet::NetlinkSerializable + packet::NetlinkDeserializable + Unpin,
+    C: NetlinkMessageCodec,
+{
     let (requests_tx, requests_rx) = unbounded::<Request<T>>();
     let (messages_tx, messages_rx) = unbounded::<(packet::NetlinkMessage<T>, sys::SocketAddr)>();
     Ok((

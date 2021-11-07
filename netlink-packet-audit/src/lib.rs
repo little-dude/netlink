@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate log;
+
 pub(crate) extern crate netlink_packet_utils as utils;
 pub use self::utils::{traits, DecodeError};
 pub use netlink_packet_core::{
@@ -12,6 +15,9 @@ pub(crate) use netlink_packet_core::{NetlinkDeserializable, NetlinkSerializable}
 use core::ops::Range;
 /// Represent a multi-bytes field with a fixed size in a packet
 pub(crate) type Field = Range<usize>;
+
+mod codec;
+pub use codec::NetlinkAuditCodec;
 
 pub mod status;
 pub use self::status::*;

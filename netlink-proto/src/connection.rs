@@ -20,7 +20,7 @@ use netlink_packet_core::{
 };
 
 use crate::{
-    codecs::NetlinkCodec,
+    codecs::{NetlinkCodec, NetlinkMessageCodec},
     framed::NetlinkFramed,
     sys::{Socket, SocketAddr},
     Protocol,
@@ -32,11 +32,11 @@ use crate::{
 ///
 /// [`ConnectionHandle`](struct.ConnectionHandle.html) are used to pass new requests to the
 /// `Connection`, that in turn, sends them through the netlink socket.
-pub struct Connection<T>
+pub struct Connection<T, C = NetlinkCodec>
 where
     T: Debug + NetlinkSerializable + NetlinkDeserializable,
 {
-    socket: NetlinkFramed<NetlinkCodec<NetlinkMessage<T>>>,
+    socket: NetlinkFramed<T, C>,
 
     protocol: Protocol<T, UnboundedSender<NetlinkMessage<T>>>,
 
@@ -50,9 +50,10 @@ where
     socket_closed: bool,
 }
 
-impl<T> Connection<T>
+impl<T, C> Connection<T, C>
 where
     T: Debug + NetlinkSerializable + NetlinkDeserializable + Unpin,
+    C: NetlinkMessageCodec,
 {
     pub(crate) fn new(
         requests_rx: UnboundedReceiver<Request<T>>,
@@ -61,7 +62,7 @@ where
     ) -> io::Result<Self> {
         let socket = Socket::new(protocol)?;
         Ok(Connection {
-            socket: NetlinkFramed::new(socket, NetlinkCodec::<NetlinkMessage<T>>::new()),
+            socket: NetlinkFramed::new(socket),
             protocol: Protocol::new(),
             requests_rx: Some(requests_rx),
             unsolicited_messages_tx: Some(unsolicited_messages_tx),
@@ -250,9 +251,10 @@ where
     }
 }
 
-impl<T> Future for Connection<T>
+impl<T, C> Future for Connection<T, C>
 where
     T: Debug + NetlinkSerializable + NetlinkDeserializable + Unpin,
+    C: NetlinkMessageCodec,
 {
     type Output = ();
 

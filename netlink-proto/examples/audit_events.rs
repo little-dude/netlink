@@ -7,10 +7,7 @@
 // Compilation:
 // ------------
 //
-// cargo build --example audit_events --features="workaround-audit-bug"
-//
-// Note that the audit protocol has a bug that we have to workaround,
-// hence the custom --features flag for that protocol
+// cargo build --example audit_events
 //
 // Usage:
 // ------

@@ -16,7 +16,6 @@ bytes = "1.0"
 log = "0.4.8"
 futures = "0.3"
 tokio = { version = "1.0", default-features = false, features = ["io-util"] }
-tokio-util = { version = "0.6", default-features = false, features = ["codec"] }
 netlink-packet-core = "0.3"
 netlink-sys = { default-features = false, version = "0.7" }
 
@@ -24,7 +23,6 @@ netlink-sys = { default-features = false, version = "0.7" }
 default = ["tokio_socket"]
 tokio_socket = ["netlink-sys/tokio_socket"]
 smol_socket = ["netlink-sys/smol_socket"]
-workaround-audit-bug = []
 
 [dev-dependencies]
 env_logger = "0.8.2"
@@ -42,4 +40,3 @@ required-features = ["smol_socket"]
 
 [[example]]
 name = "audit_events"
-required-features = ["workaround-audit-bug"]

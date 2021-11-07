@@ -16,13 +16,14 @@ use futures::channel::mpsc::UnboundedReceiver;
 
 #[allow(clippy::type_complexity)]
 pub fn new_connection() -> io::Result<(
-    proto::Connection<packet::AuditMessage>,
+    proto::Connection<packet::AuditMessage, packet::NetlinkAuditCodec>,
     Handle,
     UnboundedReceiver<(
         packet::NetlinkMessage<packet::AuditMessage>,
         sys::SocketAddr,
     )>,
 )> {
-    let (conn, handle, messages) = netlink_proto::new_connection(sys::protocols::NETLINK_AUDIT)?;
+    let (conn, handle, messages) =
+        netlink_proto::new_connection_with_codec(sys::protocols::NETLINK_AUDIT)?;
     Ok((conn, Handle::new(handle), messages))
 }
