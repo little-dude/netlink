@@ -30,7 +30,7 @@ netlink-packet-core = "0.3.0"
 netlink-packet-generic = "0.2.0"
 netlink-packet-utils = "0.4.1"
 netlink-proto = { default-features = false, version = "0.8.0" }
-netlink-sys = "0.7.0"
+netlink-sys = "0.8.0"
 thiserror = "1.0.29"
 tokio = { version = "1.0.1", features = ["rt"], optional = true}
 

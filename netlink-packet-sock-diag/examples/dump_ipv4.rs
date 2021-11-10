@@ -46,7 +46,7 @@ fn main() {
 
     let mut receive_buffer = vec![0; 4096];
     let mut offset = 0;
-    while let Ok(size) = socket.recv(&mut receive_buffer[..], 0) {
+    while let Ok(size) = socket.recv(&mut &mut receive_buffer[..], 0) {
         loop {
             let bytes = &receive_buffer[offset..];
             let rx_packet = <NetlinkMessage<SockDiagMessage>>::deserialize(bytes).unwrap();

@@ -1,10 +1,9 @@
-use bytes::{BufMut, BytesMut};
+use bytes::BytesMut;
 use std::{
     fmt::Debug,
     io,
     marker::PhantomData,
     pin::Pin,
-    slice,
     task::{Context, Poll},
 };
 
@@ -59,23 +58,11 @@ where
             reader.clear();
             reader.reserve(INITIAL_READER_CAPACITY);
 
-            *in_addr = unsafe {
-                // Read into the buffer without having to initialize the memory.
-                //
-                // safety: we know poll_recv_from never reads from the
-                // memory during a recv so it's fine to turn &mut
-                // [<MaybeUninitialized<u8>>] into &mut[u8]
-                let bytes = reader.chunk_mut();
-                let bytes = slice::from_raw_parts_mut(bytes.as_mut_ptr(), bytes.len());
-                match ready!(socket.poll_recv_from(cx, bytes)) {
-                    Ok((n, addr)) => {
-                        reader.advance_mut(n);
-                        addr
-                    }
-                    Err(e) => {
-                        error!("failed to read from netlink socket: {:?}", e);
-                        return Poll::Ready(None);
-                    }
+            *in_addr = match ready!(socket.poll_recv_from(cx, reader)) {
+                Ok(addr) => addr,
+                Err(e) => {
+                    error!("failed to read from netlink socket: {:?}", e);
+                    return Poll::Ready(None);
                 }
             };
         }

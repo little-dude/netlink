@@ -43,23 +43,36 @@ impl SmolSocket {
             .await
     }
 
-    pub async fn recv(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.0.read_with_mut(|sock| sock.recv(buf, 0)).await
+    pub async fn recv<B>(&mut self, buf: &mut B) -> io::Result<()>
+    where
+        B: bytes::BufMut,
+    {
+        self.0
+            .read_with_mut(|sock| sock.recv(buf, 0).map(|_len| ()))
+            .await
     }
 
-    pub async fn recv_from(&mut self, buf: &mut [u8]) -> io::Result<(usize, SocketAddr)> {
-        self.0.read_with_mut(|sock| sock.recv_from(buf, 0)).await
+    pub async fn recv_from<B>(&mut self, buf: &mut B) -> io::Result<SocketAddr>
+    where
+        B: bytes::BufMut,
+    {
+        self.0
+            .read_with_mut(|sock| sock.recv_from(buf, 0).map(|(_len, addr)| addr))
+            .await
     }
 
     pub async fn recv_from_full(&mut self) -> io::Result<(Vec<u8>, SocketAddr)> {
         self.0.read_with_mut(|sock| sock.recv_from_full()).await
     }
 
-    pub fn poll_recv_from(
+    pub fn poll_recv_from<B>(
         &mut self,
         cx: &mut Context,
-        buf: &mut [u8],
-    ) -> Poll<io::Result<(usize, SocketAddr)>> {
+        buf: &mut B,
+    ) -> Poll<io::Result<SocketAddr>>
+    where
+        B: bytes::BufMut,
+    {
         loop {
             trace!("poll_recv_from called");
             let _guard = ready!(self.0.poll_readable(cx))?;
@@ -72,7 +85,7 @@ impl SmolSocket {
                 }
                 x => {
                     trace!("poll_recv_from {:?} bytes read", x);
-                    return Poll::Ready(x);
+                    return Poll::Ready(x.map(|(_len, addr)| addr));
                 }
             }
         }

@@ -18,4 +18,4 @@ netlink-packet-core = "0.3"
 netlink-packet-utils = "0.4"
 
 [dev-dependencies]
-netlink-sys = { path = "../netlink-sys", version = "0.7" }
+netlink-sys = { path = "../netlink-sys", version = "0.8" }

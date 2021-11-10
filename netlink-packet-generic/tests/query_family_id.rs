@@ -26,8 +26,7 @@ fn query_family_id() {
 
     socket.send(&txbuf, 0).unwrap();
 
-    let mut rxbuf = vec![0u8; 2048];
-    socket.recv(&mut rxbuf, 0).unwrap();
+    let (rxbuf, _addr) = socket.recv_from_full().unwrap();
     let rx_packet = <NetlinkMessage<GenlMessage<GenlCtrl>>>::deserialize(&rxbuf).unwrap();
 
     if let NetlinkPayload::InnerMessage(genlmsg) = rx_packet.payload {
