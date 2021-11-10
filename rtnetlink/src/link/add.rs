@@ -2,7 +2,7 @@ use futures::stream::StreamExt;
 
 use crate::{
     packet::{
-        nlas::link::{Info, InfoData, InfoKind, InfoVlan, InfoVxlan, Nla, VethInfo},
+        nlas::link::{Info, InfoData, InfoKind, InfoMacVlan, InfoVlan, InfoVxlan, Nla, VethInfo},
         LinkMessage,
         NetlinkMessage,
         RtnlMessage,
@@ -329,6 +329,19 @@ impl LinkAddRequest {
             .link_info(
                 InfoKind::Vlan,
                 Some(InfoData::Vlan(vec![InfoVlan::Id(vlan_id)])),
+            )
+            .append_nla(Nla::Link(index))
+            .up()
+    }
+
+    /// Create macvlan on a link.
+    /// This is equivalent to `ip link add NAME name link LINK type macvlan mode MACVLAN_MODE`,
+    /// but instead of specifying a link name (`LINK`), we specify a link index.
+    pub fn macvlan(self, name: String, index: u32, mode: u32) -> Self {
+        self.name(name)
+            .link_info(
+                InfoKind::MacVlan,
+                Some(InfoData::MacVlan(vec![InfoMacVlan::Mode(mode)])),
             )
             .append_nla(Nla::Link(index))
             .up()
