@@ -5,7 +5,7 @@ use netlink_packet_core::NetlinkMessage;
 use crate::sys::SocketAddr;
 
 #[derive(Debug)]
-pub struct Request<T, M>
+pub(crate) struct Request<T, M>
 where
     T: Debug + Clone + Eq + PartialEq,
     M: Debug,

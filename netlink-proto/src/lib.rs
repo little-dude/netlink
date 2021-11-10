@@ -14,14 +14,18 @@
 //! ```rust,no_run
 //! use futures::stream::StreamExt;
 //! use netlink_packet_audit::{
-//!     NLM_F_ACK, NLM_F_REQUEST, NetlinkMessage, NetlinkPayload,
-//!     AuditMessage, StatusMessage,
+//!     AuditMessage,
+//!     NetlinkMessage,
+//!     NetlinkPayload,
+//!     StatusMessage,
+//!     NLM_F_ACK,
+//!     NLM_F_REQUEST,
 //! };
 //! use std::process;
 //!
 //! use netlink_proto::{
 //!     new_connection,
-//!     sys::{SocketAddr, protocols::NETLINK_AUDIT},
+//!     sys::{protocols::NETLINK_AUDIT, SocketAddr},
 //! };
 //!
 //! const AUDIT_STATUS_ENABLED: u32 = 1;
@@ -107,12 +111,17 @@
 //! use futures::StreamExt;
 //!
 //! use netlink_packet_route::{
-//!     NLM_F_DUMP, NLM_F_REQUEST, NetlinkMessage, NetlinkHeader, LinkMessage, RtnlMessage
+//!     LinkMessage,
+//!     NetlinkHeader,
+//!     NetlinkMessage,
+//!     RtnlMessage,
+//!     NLM_F_DUMP,
+//!     NLM_F_REQUEST,
 //! };
 //!
 //! use netlink_proto::{
 //!     new_connection,
-//!     sys::{SocketAddr, protocols::NETLINK_ROUTE},
+//!     sys::{protocols::NETLINK_ROUTE, SocketAddr},
 //! };
 //!
 //! #[tokio::main]
