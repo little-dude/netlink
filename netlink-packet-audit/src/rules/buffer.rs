@@ -175,14 +175,8 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<RuleBuffer<&'a T>> for RuleMessage {
 
         let mut offset = 0;
 
-        let fields = buf
-            .fields()
-            .chunks(4)
-            .map(|chunk| NativeEndian::read_u32(chunk));
-        let values = buf
-            .values()
-            .chunks(4)
-            .map(|chunk| NativeEndian::read_u32(chunk));
+        let fields = buf.fields().chunks(4).map(NativeEndian::read_u32);
+        let values = buf.values().chunks(4).map(NativeEndian::read_u32);
         let field_flags = buf
             .field_flags()
             .chunks(4)
