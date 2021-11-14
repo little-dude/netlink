@@ -192,7 +192,7 @@ use std::{fmt::Debug, io};
 pub use netlink_packet_core as packet;
 
 pub mod sys {
-    pub use netlink_sys::{protocols, SocketAddr};
+    pub use netlink_sys::{protocols, AsyncSocket, AsyncSocketExt, SocketAddr};
 
     #[cfg(feature = "tokio_socket")]
     pub use netlink_sys::TokioSocket as Socket;

@@ -22,7 +22,7 @@ use netlink_packet_audit::{
     NLM_F_REQUEST,
 };
 
-use netlink_sys::{protocols::NETLINK_AUDIT, SmolSocket, SocketAddr};
+use netlink_sys::{protocols::NETLINK_AUDIT, AsyncSocket, AsyncSocketExt, SmolSocket, SocketAddr};
 
 const AUDIT_STATUS_ENABLED: u32 = 1;
 const AUDIT_STATUS_PID: u32 = 4;

@@ -12,7 +12,7 @@ use log::error;
 
 use crate::{
     codecs::NetlinkMessageCodec,
-    sys::{Socket, SocketAddr},
+    sys::{AsyncSocket, Socket, SocketAddr},
 };
 use netlink_packet_core::{NetlinkDeserializable, NetlinkMessage, NetlinkSerializable};
 

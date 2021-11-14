@@ -22,7 +22,7 @@ use netlink_packet_core::{
 use crate::{
     codecs::{NetlinkCodec, NetlinkMessageCodec},
     framed::NetlinkFramed,
-    sys::{Socket, SocketAddr},
+    sys::{AsyncSocket, Socket, SocketAddr},
     Protocol,
     Request,
     Response,
