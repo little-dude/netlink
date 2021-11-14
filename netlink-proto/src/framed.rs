@@ -12,12 +12,12 @@ use log::error;
 
 use crate::{
     codecs::NetlinkMessageCodec,
-    sys::{AsyncSocket, Socket, SocketAddr},
+    sys::{AsyncSocket, SocketAddr},
 };
 use netlink_packet_core::{NetlinkDeserializable, NetlinkMessage, NetlinkSerializable};
 
-pub struct NetlinkFramed<T, C> {
-    socket: Socket,
+pub struct NetlinkFramed<T, S, C> {
+    socket: S,
     // see https://doc.rust-lang.org/nomicon/phantom-data.html
     // "invariant" seems like the safe choice; using `fn(T) -> T`
     // should make it invariant but still Send+Sync.
@@ -30,9 +30,10 @@ pub struct NetlinkFramed<T, C> {
     flushed: bool,
 }
 
-impl<T, C> Stream for NetlinkFramed<T, C>
+impl<T, S, C> Stream for NetlinkFramed<T, S, C>
 where
     T: NetlinkDeserializable + Debug,
+    S: AsyncSocket,
     C: NetlinkMessageCodec,
 {
     type Item = (NetlinkMessage<T>, SocketAddr);
@@ -69,9 +70,10 @@ where
     }
 }
 
-impl<T, C> Sink<(NetlinkMessage<T>, SocketAddr)> for NetlinkFramed<T, C>
+impl<T, S, C> Sink<(NetlinkMessage<T>, SocketAddr)> for NetlinkFramed<T, S, C>
 where
     T: NetlinkSerializable + Debug,
+    S: AsyncSocket,
     C: NetlinkMessageCodec,
 {
     type Error = io::Error;
@@ -145,11 +147,11 @@ where
 const INITIAL_READER_CAPACITY: usize = 64 * 1024;
 const INITIAL_WRITER_CAPACITY: usize = 8 * 1024;
 
-impl<T, C> NetlinkFramed<T, C> {
+impl<T, S, C> NetlinkFramed<T, S, C> {
     /// Create a new `NetlinkFramed` backed by the given socket and codec.
     ///
     /// See struct level documentation for more details.
-    pub fn new(socket: Socket) -> Self {
+    pub fn new(socket: S) -> Self {
         Self {
             socket,
             msg_type: PhantomData,
@@ -169,7 +171,7 @@ impl<T, C> NetlinkFramed<T, C> {
     /// Care should be taken to not tamper with the underlying stream of data
     /// coming in as it may corrupt the stream of frames otherwise being worked
     /// with.
-    pub fn get_ref(&self) -> &Socket {
+    pub fn get_ref(&self) -> &S {
         &self.socket
     }
 
@@ -181,12 +183,12 @@ impl<T, C> NetlinkFramed<T, C> {
     /// Care should be taken to not tamper with the underlying stream of data
     /// coming in as it may corrupt the stream of frames otherwise being worked
     /// with.
-    pub fn get_mut(&mut self) -> &mut Socket {
+    pub fn get_mut(&mut self) -> &mut S {
         &mut self.socket
     }
 
     /// Consumes the `Framed`, returning its underlying I/O stream.
-    pub fn into_inner(self) -> Socket {
+    pub fn into_inner(self) -> S {
         self.socket
     }
 }

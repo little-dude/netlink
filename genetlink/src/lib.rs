@@ -7,6 +7,8 @@ mod handle;
 pub mod message;
 mod resolver;
 
+#[cfg(feature = "tokio_socket")]
 pub use connection::new_connection;
+pub use connection::new_connection_with_socket;
 pub use error::GenetlinkError;
 pub use handle::GenetlinkHandle;

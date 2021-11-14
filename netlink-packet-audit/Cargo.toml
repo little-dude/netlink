@@ -11,11 +11,6 @@ readme = "../README.md"
 repository = "https://github.com/little-dude/netlink"
 description = "netlink packet types"
 
-[features]
-default = ["tokio_socket"]
-tokio_socket = ["netlink-proto/tokio_socket"]
-smol_socket = ["netlink-proto/smol_socket"]
-
 [dependencies]
 anyhow = "1.0.31"
 bytes = "1.0"

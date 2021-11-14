@@ -195,10 +195,10 @@ pub mod sys {
     pub use netlink_sys::{protocols, AsyncSocket, AsyncSocketExt, SocketAddr};
 
     #[cfg(feature = "tokio_socket")]
-    pub use netlink_sys::TokioSocket as Socket;
+    pub use netlink_sys::TokioSocket;
 
     #[cfg(feature = "smol_socket")]
-    pub use netlink_sys::SmolSocket as Socket;
+    pub use netlink_sys::SmolSocket;
 }
 
 /// Create a new Netlink connection for the given Netlink protocol, and returns a handle to that
@@ -218,6 +218,7 @@ pub mod sys {
 /// handle to send messages.
 ///
 /// [protos]: crate::sys::protocols
+#[cfg(feature = "tokio_socket")]
 #[allow(clippy::type_complexity)]
 pub fn new_connection<T>(
     protocol: isize,
@@ -232,17 +233,34 @@ where
     new_connection_with_codec(protocol)
 }
 
-/// Variant of [`new_connection`] that allows specifying a separate codec
+/// Variant of [`new_connection`] that allows specifying a socket type to use for async handling
 #[allow(clippy::type_complexity)]
-pub fn new_connection_with_codec<T, C>(
+pub fn new_connection_with_socket<T, S>(
     protocol: isize,
 ) -> io::Result<(
-    Connection<T, C>,
+    Connection<T, S>,
     ConnectionHandle<T>,
     UnboundedReceiver<(packet::NetlinkMessage<T>, sys::SocketAddr)>,
 )>
 where
     T: Debug + packet::NetlinkSerializable + packet::NetlinkDeserializable + Unpin,
+    S: sys::AsyncSocket,
+{
+    new_connection_with_codec(protocol)
+}
+
+/// Variant of [`new_connection`] that allows specifying a socket type to use for async handling and a special codec
+#[allow(clippy::type_complexity)]
+pub fn new_connection_with_codec<T, S, C>(
+    protocol: isize,
+) -> io::Result<(
+    Connection<T, S, C>,
+    ConnectionHandle<T>,
+    UnboundedReceiver<(packet::NetlinkMessage<T>, sys::SocketAddr)>,
+)>
+where
+    T: Debug + packet::NetlinkSerializable + packet::NetlinkDeserializable + Unpin,
+    S: sys::AsyncSocket,
     C: NetlinkMessageCodec,
 {
     let (requests_tx, requests_rx) = unbounded::<Request<T>>();

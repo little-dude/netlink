@@ -19,8 +19,8 @@ netlink-proto = { default-features = false, version = "0.8" }
 
 [features]
 default = ["tokio_socket"]
-tokio_socket = ["netlink-proto/tokio_socket", "netlink-packet-audit/tokio_socket"]
-smol_socket = ["netlink-proto/smol_socket", "netlink-packet-audit/smol_socket"]
+tokio_socket = ["netlink-proto/tokio_socket"]
+smol_socket = ["netlink-proto/smol_socket"]
 
 [dev-dependencies]
 tokio = { version = "1.0.1", default-features = false, features = ["macros", "rt-multi-thread"] }
