@@ -125,8 +125,7 @@ impl<C: Encoder<Item> + Unpin, Item> Sink<(Item, SocketAddr)> for NetlinkFramed<
             Err(io::Error::new(
                 io::ErrorKind::Other,
                 "failed to write entire datagram to socket",
-            )
-            .into())
+            ))
         };
 
         Poll::Ready(res)
