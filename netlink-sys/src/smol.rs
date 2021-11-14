@@ -66,13 +66,13 @@ impl SmolSocket {
             trace!("poll_recv_from socket is ready for reading");
 
             match self.0.get_ref().recv_from(buf, 0) {
-                Ok(x) => {
-                    trace!("poll_recv_from {:?} bytes read", x);
-                    return Poll::Ready(Ok(x));
-                }
-                Err(_would_block) => {
+                Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
                     trace!("poll_recv_from socket would block");
                     continue;
+                }
+                x => {
+                    trace!("poll_recv_from {:?} bytes read", x);
+                    return Poll::Ready(x);
                 }
             }
         }
