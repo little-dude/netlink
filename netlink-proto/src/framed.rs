@@ -19,6 +19,9 @@ use netlink_packet_core::{NetlinkDeserializable, NetlinkMessage, NetlinkSerializ
 
 pub struct NetlinkFramed<T, C> {
     socket: Socket,
+    // see https://doc.rust-lang.org/nomicon/phantom-data.html
+    // "invariant" seems like the safe choice; using `fn(T) -> T`
+    // should make it invariant but still Send+Sync.
     msg_type: PhantomData<fn(T) -> T>, // invariant
     codec: PhantomData<fn(C) -> C>,    // invariant
     reader: BytesMut,
