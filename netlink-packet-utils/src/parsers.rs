@@ -120,3 +120,10 @@ pub fn parse_u16_be(payload: &[u8]) -> Result<u16, DecodeError> {
     }
     Ok(BigEndian::read_u16(payload))
 }
+
+pub fn parse_u32_be(payload: &[u8]) -> Result<u32, DecodeError> {
+    if payload.len() != size_of::<u32>() {
+        return Err(format!("invalid u32: {:?}", payload).into());
+    }
+    Ok(BigEndian::read_u32(payload))
+}
