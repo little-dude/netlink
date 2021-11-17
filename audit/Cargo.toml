@@ -1,6 +1,6 @@
 [package]
 name = "audit"
-version = "0.4.0"
+version = "0.5.0"  # TODO: drop this comment - already bumped version for trait changes
 authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 edition = "2018"
 
@@ -14,13 +14,13 @@ description = "linux audit via netlink"
 [dependencies]
 futures = "0.3.11"
 thiserror = "1"
-netlink-packet-audit = "0.2"
-netlink-proto = { default-features = false, version = "0.7" }
+netlink-packet-audit = "0.3"
+netlink-proto = { default-features = false, version = "0.8" }
 
 [features]
 default = ["tokio_socket"]
-tokio_socket = ["netlink-proto/tokio_socket", "netlink-proto/workaround-audit-bug"]
-smol_socket = ["netlink-proto/smol_socket", "netlink-proto/workaround-audit-bug"]
+tokio_socket = ["netlink-proto/tokio_socket"]
+smol_socket = ["netlink-proto/smol_socket"]
 
 [dev-dependencies]
 tokio = { version = "1.0.1", default-features = false, features = ["macros", "rt-multi-thread"] }

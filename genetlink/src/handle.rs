@@ -78,13 +78,7 @@ impl GenetlinkHandle {
         GenetlinkError,
     >
     where
-        F: GenlFamily
-            + Emitable
-            + ParseableParametrized<[u8], GenlHeader>
-            + Clone
-            + Debug
-            + PartialEq
-            + Eq,
+        F: GenlFamily + Emitable + ParseableParametrized<[u8], GenlHeader> + Debug,
     {
         self.resolve_message_family_id(&mut message).await?;
         self.send_request(message)
@@ -102,13 +96,7 @@ impl GenetlinkHandle {
         GenetlinkError,
     >
     where
-        F: GenlFamily
-            + Emitable
-            + ParseableParametrized<[u8], GenlHeader>
-            + Clone
-            + Debug
-            + PartialEq
-            + Eq,
+        F: GenlFamily + Emitable + ParseableParametrized<[u8], GenlHeader> + Debug,
     {
         let raw_msg = map_to_rawgenlmsg(message);
 
@@ -122,13 +110,7 @@ impl GenetlinkHandle {
         mut message: NetlinkMessage<GenlMessage<F>>,
     ) -> Result<(), GenetlinkError>
     where
-        F: GenlFamily
-            + Emitable
-            + ParseableParametrized<[u8], GenlHeader>
-            + Clone
-            + Debug
-            + PartialEq
-            + Eq,
+        F: GenlFamily + Emitable + ParseableParametrized<[u8], GenlHeader> + Debug,
     {
         self.resolve_message_family_id(&mut message).await?;
         self.send_notify(message)
@@ -140,13 +122,7 @@ impl GenetlinkHandle {
         message: NetlinkMessage<GenlMessage<F>>,
     ) -> Result<(), GenetlinkError>
     where
-        F: GenlFamily
-            + Emitable
-            + ParseableParametrized<[u8], GenlHeader>
-            + Clone
-            + Debug
-            + PartialEq
-            + Eq,
+        F: GenlFamily + Emitable + ParseableParametrized<[u8], GenlHeader> + Debug,
     {
         let raw_msg = map_to_rawgenlmsg(message);
 
@@ -159,7 +135,7 @@ impl GenetlinkHandle {
         message: &mut NetlinkMessage<GenlMessage<F>>,
     ) -> Result<(), GenetlinkError>
     where
-        F: GenlFamily + Clone + Debug + PartialEq + Eq,
+        F: GenlFamily + Debug,
     {
         if let NetlinkPayload::InnerMessage(genlmsg) = &mut message.payload {
             if genlmsg.family_id() == 0 {

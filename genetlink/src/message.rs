@@ -57,7 +57,7 @@ impl RawGenlMessage {
     /// Serialize the generic netlink payload into raw bytes
     pub fn from_genlmsg<F>(genlmsg: GenlMessage<F>) -> Self
     where
-        F: GenlFamily + Emitable + Clone + Debug + PartialEq + Eq,
+        F: GenlFamily + Emitable + Debug,
     {
         let mut payload_buf = vec![0u8; genlmsg.payload.buffer_len()];
         genlmsg.payload.emit(&mut payload_buf);
@@ -72,7 +72,7 @@ impl RawGenlMessage {
     /// Try to deserialize the generic netlink payload from raw bytes
     pub fn parse_into_genlmsg<F>(&self) -> Result<GenlMessage<F>, DecodeError>
     where
-        F: GenlFamily + ParseableParametrized<[u8], GenlHeader> + Clone + Debug + PartialEq + Eq,
+        F: GenlFamily + ParseableParametrized<[u8], GenlHeader> + Debug,
     {
         let inner = F::parse_with_param(&self.payload, self.header)?;
         Ok(GenlMessage::new(self.header, inner, self.family_id))
@@ -107,7 +107,7 @@ where
     }
 }
 
-impl NetlinkSerializable<RawGenlMessage> for RawGenlMessage {
+impl NetlinkSerializable for RawGenlMessage {
     fn message_type(&self) -> u16 {
         self.family_id
     }
@@ -121,7 +121,7 @@ impl NetlinkSerializable<RawGenlMessage> for RawGenlMessage {
     }
 }
 
-impl NetlinkDeserializable<RawGenlMessage> for RawGenlMessage {
+impl NetlinkDeserializable for RawGenlMessage {
     type Error = DecodeError;
     fn deserialize(header: &NetlinkHeader, payload: &[u8]) -> Result<Self, Self::Error> {
         let buffer = GenlBuffer::new_checked(payload)?;
@@ -141,7 +141,7 @@ pub fn map_to_rawgenlmsg<F>(
     message: NetlinkMessage<GenlMessage<F>>,
 ) -> NetlinkMessage<RawGenlMessage>
 where
-    F: GenlFamily + Emitable + Clone + Debug + PartialEq + Eq,
+    F: GenlFamily + Emitable + Debug,
 {
     let raw_payload = match message.payload {
         NetlinkPayload::InnerMessage(genlmsg) => {
@@ -162,7 +162,7 @@ pub fn map_from_rawgenlmsg<F>(
     raw_msg: NetlinkMessage<RawGenlMessage>,
 ) -> Result<NetlinkMessage<GenlMessage<F>>, DecodeError>
 where
-    F: GenlFamily + ParseableParametrized<[u8], GenlHeader> + Clone + Debug + PartialEq + Eq,
+    F: GenlFamily + ParseableParametrized<[u8], GenlHeader> + Debug,
 {
     let payload = match raw_msg.payload {
         NetlinkPayload::InnerMessage(raw_genlmsg) => {

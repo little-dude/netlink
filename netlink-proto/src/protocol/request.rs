@@ -5,11 +5,7 @@ use netlink_packet_core::NetlinkMessage;
 use crate::sys::SocketAddr;
 
 #[derive(Debug)]
-pub(crate) struct Request<T, M>
-where
-    T: Debug + Clone + Eq + PartialEq,
-    M: Debug,
-{
+pub(crate) struct Request<T, M> {
     pub metadata: M,
     pub message: NetlinkMessage<T>,
     pub destination: SocketAddr,
@@ -17,7 +13,7 @@ where
 
 impl<T, M> From<(NetlinkMessage<T>, SocketAddr, M)> for Request<T, M>
 where
-    T: Debug + PartialEq + Eq + Clone,
+    T: Debug,
     M: Debug,
 {
     fn from(parts: (NetlinkMessage<T>, SocketAddr, M)) -> Self {
@@ -31,7 +27,7 @@ where
 
 impl<T, M> From<Request<T, M>> for (NetlinkMessage<T>, SocketAddr, M)
 where
-    T: Debug + PartialEq + Eq + Clone,
+    T: Debug,
     M: Debug,
 {
     fn from(req: Request<T, M>) -> (NetlinkMessage<T>, SocketAddr, M) {

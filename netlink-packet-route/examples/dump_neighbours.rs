@@ -38,7 +38,7 @@ fn main() {
     let mut offset = 0;
 
     'outer: loop {
-        let size = socket.recv(&mut receive_buffer[..], 0).unwrap();
+        let size = socket.recv(&mut &mut receive_buffer[..], 0).unwrap();
 
         loop {
             let bytes = &receive_buffer[offset..];

@@ -64,7 +64,7 @@ impl Emitable for SockDiagMessage {
     }
 }
 
-impl NetlinkSerializable<SockDiagMessage> for SockDiagMessage {
+impl NetlinkSerializable for SockDiagMessage {
     fn message_type(&self) -> u16 {
         self.message_type()
     }
@@ -78,7 +78,7 @@ impl NetlinkSerializable<SockDiagMessage> for SockDiagMessage {
     }
 }
 
-impl NetlinkDeserializable<SockDiagMessage> for SockDiagMessage {
+impl NetlinkDeserializable for SockDiagMessage {
     type Error = DecodeError;
     fn deserialize(header: &NetlinkHeader, payload: &[u8]) -> Result<Self, Self::Error> {
         let buffer = SockDiagBuffer::new_checked(&payload)?;

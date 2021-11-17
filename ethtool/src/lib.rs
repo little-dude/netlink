@@ -11,7 +11,9 @@ mod pause;
 mod ring;
 
 pub use coalesce::{EthtoolCoalesceAttr, EthtoolCoalesceGetRequest, EthtoolCoalesceHandle};
+#[cfg(feature = "tokio_socket")]
 pub use connection::new_connection;
+pub use connection::new_connection_with_socket;
 pub use error::EthtoolError;
 pub use feature::{
     EthtoolFeatureAttr,

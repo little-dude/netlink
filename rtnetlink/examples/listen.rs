@@ -6,7 +6,7 @@ use futures::stream::StreamExt;
 use rtnetlink::{
     constants::{RTMGRP_IPV4_ROUTE, RTMGRP_IPV6_ROUTE},
     new_connection,
-    sys::SocketAddr,
+    sys::{AsyncSocket, SocketAddr},
 };
 
 #[tokio::main]
@@ -20,7 +20,11 @@ async fn main() -> Result<(), String> {
     // A netlink socket address is created with said flags.
     let addr = SocketAddr::new(0, mgroup_flags);
     // Said address is bound so new conenctions and thus new message broadcasts can be received.
-    connection.socket_mut().bind(&addr).expect("failed to bind");
+    connection
+        .socket_mut()
+        .socket_mut()
+        .bind(&addr)
+        .expect("failed to bind");
     tokio::spawn(connection);
 
     while let Some((message, _)) = messages.next().await {

@@ -15,14 +15,14 @@ use crate::{
 #[derive(Clone, Debug)]
 pub struct ConnectionHandle<T>
 where
-    T: Debug + Clone + Eq + PartialEq,
+    T: Debug,
 {
     requests_tx: UnboundedSender<Request<T>>,
 }
 
 impl<T> ConnectionHandle<T>
 where
-    T: Debug + Clone + Eq + PartialEq,
+    T: Debug,
 {
     pub(crate) fn new(requests_tx: UnboundedSender<Request<T>>) -> Self {
         ConnectionHandle { requests_tx }

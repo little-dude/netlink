@@ -61,7 +61,6 @@ jobs:
         run: |
           cd netlink-proto
           cargo test
-          cargo test --features workaround-audit-bug
 
       - name: test (rtnetlink)
         env:

@@ -106,7 +106,7 @@ impl Emitable for AuditMessage {
     }
 }
 
-impl NetlinkSerializable<AuditMessage> for AuditMessage {
+impl NetlinkSerializable for AuditMessage {
     fn message_type(&self) -> u16 {
         self.message_type()
     }
@@ -120,7 +120,7 @@ impl NetlinkSerializable<AuditMessage> for AuditMessage {
     }
 }
 
-impl NetlinkDeserializable<AuditMessage> for AuditMessage {
+impl NetlinkDeserializable for AuditMessage {
     type Error = DecodeError;
     fn deserialize(header: &NetlinkHeader, payload: &[u8]) -> Result<Self, Self::Error> {
         match AuditBuffer::new_checked(payload) {
