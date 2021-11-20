@@ -131,7 +131,7 @@ impl Emitable for NetfilterMessage {
     }
 }
 
-impl NetlinkSerializable<NetfilterMessage> for NetfilterMessage {
+impl NetlinkSerializable for NetfilterMessage {
     fn message_type(&self) -> u16 {
         ((self.subsys() as u16) << 8) | self.message_type() as u16
     }
@@ -145,7 +145,7 @@ impl NetlinkSerializable<NetfilterMessage> for NetfilterMessage {
     }
 }
 
-impl NetlinkDeserializable<NetfilterMessage> for NetfilterMessage {
+impl NetlinkDeserializable for NetfilterMessage {
     type Error = DecodeError;
     fn deserialize(header: &NetlinkHeader, payload: &[u8]) -> Result<Self, Self::Error> {
         match NetfilterBuffer::new_checked(payload) {
