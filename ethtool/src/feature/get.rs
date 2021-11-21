@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use futures::TryStream;
 use netlink_packet_generic::GenlMessage;
 

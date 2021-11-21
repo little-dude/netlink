@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! This example opens a netlink socket, registers for IPv4 and IPv6 routing changes, listens for
 //! said changes and prints the received messages.
 

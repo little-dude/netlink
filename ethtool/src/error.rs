@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use thiserror::Error;
 
 use netlink_packet_core::{ErrorMessage, NetlinkMessage};

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use std::{convert::TryFrom, net::IpAddr, string::ToString};
 
 use netlink_packet_route::{

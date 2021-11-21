@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use std::{
     error::Error as StdError,
     fmt::{self, Debug},

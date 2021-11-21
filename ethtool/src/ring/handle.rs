@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use crate::{EthtoolHandle, EthtoolRingGetRequest};
 
 pub struct EthtoolRingHandle(EthtoolHandle);

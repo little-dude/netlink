@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! Raw generic netlink payload message
 //!
 //! # Design

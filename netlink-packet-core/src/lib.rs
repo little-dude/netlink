@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! `netlink-packet-core` provides a generic netlink message
 //! `NetlinkMessage<T>` that is independant of the sub-protocol. Such
 //! messages are not very useful by themselves, since they are just

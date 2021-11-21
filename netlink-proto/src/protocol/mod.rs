@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 #[allow(clippy::module_inception)]
 mod protocol;
 mod request;

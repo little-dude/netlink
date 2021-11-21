@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use crate::{message::RawGenlMessage, GenetlinkHandle};
 use futures::channel::mpsc::UnboundedReceiver;
 use netlink_packet_core::NetlinkMessage;

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! This crate provides the packet of generic netlink family and its controller.
 //!
 //! The `[GenlMessage]` provides a generic netlink family message which is

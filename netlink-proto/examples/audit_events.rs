@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 // This example shows how to use `netlink-proto` with the tokio runtime to print audit events.
 //
 // This example shows how the netlink socket can be accessed

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use crate::{EthtoolHandle, EthtoolPauseGetRequest};
 
 pub struct EthtoolPauseHandle(EthtoolHandle);

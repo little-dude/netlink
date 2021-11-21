@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;

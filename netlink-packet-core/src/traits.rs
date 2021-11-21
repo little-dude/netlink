@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use crate::NetlinkHeader;
 use std::error::Error;
 

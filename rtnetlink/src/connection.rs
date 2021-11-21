@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use std::io;
 
 use futures::channel::mpsc::UnboundedReceiver;

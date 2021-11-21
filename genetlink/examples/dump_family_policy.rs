@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use std::env::args;
 
 use anyhow::{bail, Error};

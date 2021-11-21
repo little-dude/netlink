@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use std::ffi::CString;
 
 use anyhow::Context;

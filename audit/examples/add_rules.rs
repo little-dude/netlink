@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! In this example, we create two rules which is equivalent to the following commands:
 //!
 //! auditctl -w /etc/passwd -p rwxa -k my_key

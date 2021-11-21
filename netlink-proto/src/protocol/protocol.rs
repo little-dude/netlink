@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use std::{
     collections::{hash_map, HashMap, VecDeque},
     fmt::Debug,

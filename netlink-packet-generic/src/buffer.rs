@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! Buffer definition of generic netlink packet
 use crate::{constants::GENL_HDRLEN, header::GenlHeader, message::GenlMessage};
 use netlink_packet_core::DecodeError;

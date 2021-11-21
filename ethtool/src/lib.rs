@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 mod coalesce;
 mod connection;
 mod error;

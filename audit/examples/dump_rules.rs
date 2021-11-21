@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! In this example, we create a netlink connection, and send a request to retrieve the list of
 //! rules. We receive a stream of rule messages that we just prints to the terminal.
 use audit::{new_connection, Error, Handle};

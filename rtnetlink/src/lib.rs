@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! This crate provides methods to manipulate networking resources (links, addresses, arp tables,
 //! route tables) via the netlink protocol.
 

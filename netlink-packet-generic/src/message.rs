@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! Message definition and method implementations
 
 use crate::{buffer::GenlBuffer, header::GenlHeader, traits::*};

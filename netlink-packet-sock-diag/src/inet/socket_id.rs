@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use byteorder::{BigEndian, ByteOrder};
 use std::{
     convert::{TryFrom, TryInto},

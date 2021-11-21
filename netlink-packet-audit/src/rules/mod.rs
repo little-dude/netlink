@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 mod action;
 pub use self::action::*;
 
