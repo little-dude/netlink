@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use crate::Error;
 use nix::{
     fcntl::OFlag,

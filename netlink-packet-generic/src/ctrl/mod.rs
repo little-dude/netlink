@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! Generic netlink controller implementation
 //!
 //! This module provides the definition of the controller packet.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use env_logger;
 use ethtool;
 use futures::stream::TryStreamExt;

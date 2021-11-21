@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use crate::constants::*;
 use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};

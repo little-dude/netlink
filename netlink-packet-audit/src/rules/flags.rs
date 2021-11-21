@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use crate::constants::*;
 
 #[derive(Copy, Debug, PartialEq, Eq, Clone)]

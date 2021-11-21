@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use futures::TryStreamExt;
 use std::{env, net::Ipv4Addr};
 

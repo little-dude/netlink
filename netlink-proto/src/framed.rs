@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use bytes::BytesMut;
 use std::{
     fmt::Debug,

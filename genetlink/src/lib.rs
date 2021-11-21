@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 #[macro_use]
 extern crate thiserror;
 

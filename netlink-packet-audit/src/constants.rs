@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pub use netlink_packet_core::constants::*;
 
 // ==========================================

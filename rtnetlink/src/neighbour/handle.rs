@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use crate::{Handle, NeighbourAddRequest, NeighbourDelRequest, NeighbourGetRequest};
 use netlink_packet_route::NeighbourMessage;
 use std::net::IpAddr;

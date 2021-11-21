@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use anyhow::Context;
 use smallvec::SmallVec;
 use std::convert::TryFrom;

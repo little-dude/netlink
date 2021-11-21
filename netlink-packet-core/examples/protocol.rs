@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use std::{error::Error, fmt};
 
 use netlink_packet_core::{

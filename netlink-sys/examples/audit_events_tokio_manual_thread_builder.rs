@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 /*
  * This example shows the mimimal manual tokio initialization required to be able
  * to use netlink.

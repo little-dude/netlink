@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! Traits for implementing generic netlink family
 
 /// Provide the definition for generic netlink family

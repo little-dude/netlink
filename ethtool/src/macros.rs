@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 #[macro_export]
 macro_rules! try_ethtool {
     ($msg: expr) => {{

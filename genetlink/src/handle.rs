@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use crate::{
     error::GenetlinkError,
     message::{map_from_rawgenlmsg, map_to_rawgenlmsg, RawGenlMessage},

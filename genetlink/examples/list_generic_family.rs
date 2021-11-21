@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! Example of listing generic families based on `netlink_proto`
 //!
 //! This example's functionality is same as the identical name example in `netlink_packet_generic`.

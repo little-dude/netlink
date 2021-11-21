@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use ethtool;
 use futures::stream::TryStreamExt;
 use tokio;

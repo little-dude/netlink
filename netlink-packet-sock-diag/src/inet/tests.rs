@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use std::{
     net::{IpAddr, Ipv4Addr},
     time::Duration,

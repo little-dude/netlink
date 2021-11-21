@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 mod socket_id;
 pub use self::socket_id::*;
 

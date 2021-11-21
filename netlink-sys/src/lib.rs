@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pub mod constants;
 pub mod protocols {
     pub use super::constants::{
