@@ -1,4 +1,7 @@
-use crate::{constants::*, raw::*};
+use crate::{
+    constants::*,
+    raw::{emit_in6_addr, emit_in_addr, parse_in6_addr, parse_in_addr},
+};
 use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
 use libc::{in6_addr, in_addr};

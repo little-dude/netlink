@@ -1,5 +1,8 @@
 use super::WgAllowedIpAttrs;
-use crate::{constants::*, raw::*};
+use crate::{
+    constants::*,
+    raw::{emit_sockaddr_in, emit_sockaddr_in6, emit_timespec, parse_sockaddr, parse_timespec},
+};
 use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
 use libc::{sockaddr_in, sockaddr_in6, timespec};
