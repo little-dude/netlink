@@ -1,23 +1,25 @@
 use super::WgAllowedIpAttrs;
 use crate::{
     constants::*,
-    raw::{emit_sockaddr_in, emit_sockaddr_in6, emit_timespec, parse_sockaddr, parse_timespec},
+    raw::{
+        emit_socket_addr,
+        emit_timespec,
+        parse_socket_addr,
+        parse_timespec,
+        SOCKET_ADDR_V4_LEN,
+        SOCKET_ADDR_V6_LEN,
+        TIMESPEC_LEN,
+    },
 };
 use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
-use libc::{sockaddr_in, sockaddr_in6, timespec};
 use netlink_packet_utils::{
     nla::{Nla, NlaBuffer, NlasIterator},
     parsers::*,
     traits::*,
     DecodeError,
 };
-use std::{
-    convert::TryInto,
-    mem::{size_of, size_of_val},
-    net::SocketAddr,
-    time::SystemTime,
-};
+use std::{convert::TryInto, mem::size_of_val, net::SocketAddr, time::SystemTime};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum WgPeerAttrs {
@@ -40,11 +42,11 @@ impl Nla for WgPeerAttrs {
             WgPeerAttrs::PublicKey(v) => size_of_val(v),
             WgPeerAttrs::PresharedKey(v) => size_of_val(v),
             WgPeerAttrs::Endpoint(v) => match *v {
-                SocketAddr::V4(_) => size_of::<sockaddr_in>(),
-                SocketAddr::V6(_) => size_of::<sockaddr_in6>(),
+                SocketAddr::V4(_) => SOCKET_ADDR_V4_LEN,
+                SocketAddr::V6(_) => SOCKET_ADDR_V6_LEN,
             },
             WgPeerAttrs::PersistentKeepalive(v) => size_of_val(v),
-            WgPeerAttrs::LastHandshake(_) => size_of::<timespec>(),
+            WgPeerAttrs::LastHandshake(_) => TIMESPEC_LEN,
             WgPeerAttrs::RxBytes(v) => size_of_val(v),
             WgPeerAttrs::TxBytes(v) => size_of_val(v),
             WgPeerAttrs::AllowedIps(nlas) => nlas.iter().map(|op| op.as_slice().buffer_len()).sum(),
@@ -72,18 +74,9 @@ impl Nla for WgPeerAttrs {
             WgPeerAttrs::Unspec(bytes) => buffer.copy_from_slice(bytes),
             WgPeerAttrs::PublicKey(v) => buffer.copy_from_slice(v),
             WgPeerAttrs::PresharedKey(v) => buffer.copy_from_slice(v),
-            WgPeerAttrs::Endpoint(v) => match v {
-                SocketAddr::V4(addr) => {
-                    emit_sockaddr_in(addr, buffer);
-                }
-                SocketAddr::V6(addr) => {
-                    emit_sockaddr_in6(addr, buffer);
-                }
-            },
+            WgPeerAttrs::Endpoint(v) => emit_socket_addr(v, buffer),
             WgPeerAttrs::PersistentKeepalive(v) => NativeEndian::write_u16(buffer, *v),
-            WgPeerAttrs::LastHandshake(v) => {
-                emit_timespec(v, buffer);
-            }
+            WgPeerAttrs::LastHandshake(v) => emit_timespec(v, buffer),
             WgPeerAttrs::RxBytes(v) => NativeEndian::write_u64(buffer, *v),
             WgPeerAttrs::TxBytes(v) => NativeEndian::write_u64(buffer, *v),
             WgPeerAttrs::AllowedIps(nlas) => {
@@ -112,7 +105,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for WgPeerAttrs {
                     .context("invalid WGPEER_A_PRESHARED_KEY")?,
             ),
             WGPEER_A_ENDPOINT => {
-                Self::Endpoint(parse_sockaddr(payload).context("invalid WGPEER_A_ENDPOINT")?)
+                Self::Endpoint(parse_socket_addr(payload).context("invalid WGPEER_A_ENDPOINT")?)
             }
             WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL => Self::PersistentKeepalive(
                 parse_u16(payload)

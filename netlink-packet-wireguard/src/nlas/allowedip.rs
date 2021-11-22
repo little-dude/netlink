@@ -1,21 +1,17 @@
 use crate::{
     constants::*,
-    raw::{emit_in6_addr, emit_in_addr, parse_in6_addr, parse_in_addr},
+    raw::{emit_ip, parse_ip, IPV4_LEN, IPV6_LEN},
 };
+
 use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
-use libc::{in6_addr, in_addr};
 use netlink_packet_utils::{
     nla::{Nla, NlaBuffer},
     parsers::*,
     traits::*,
     DecodeError,
 };
-use std::{
-    mem::{size_of, size_of_val},
-    net::IpAddr,
-};
-
+use std::{mem::size_of_val, net::IpAddr};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum WgAllowedIpAttrs {
     Unspec(Vec<u8>),
@@ -30,8 +26,8 @@ impl Nla for WgAllowedIpAttrs {
             WgAllowedIpAttrs::Unspec(bytes) => bytes.len(),
             WgAllowedIpAttrs::Family(v) => size_of_val(v),
             WgAllowedIpAttrs::IpAddr(v) => match *v {
-                IpAddr::V4(_) => size_of::<in_addr>(),
-                IpAddr::V6(_) => size_of::<in6_addr>(),
+                IpAddr::V4(_) => IPV4_LEN,
+                IpAddr::V6(_) => IPV6_LEN,
             },
             WgAllowedIpAttrs::Cidr(v) => size_of_val(v),
         }
@@ -50,10 +46,7 @@ impl Nla for WgAllowedIpAttrs {
         match self {
             WgAllowedIpAttrs::Unspec(bytes) => buffer.copy_from_slice(bytes),
             WgAllowedIpAttrs::Family(v) => NativeEndian::write_u16(buffer, *v),
-            WgAllowedIpAttrs::IpAddr(v) => match v {
-                IpAddr::V4(addr) => emit_in_addr(addr, buffer),
-                IpAddr::V6(addr) => emit_in6_addr(addr, buffer),
-            },
+            WgAllowedIpAttrs::IpAddr(v) => emit_ip(v, buffer),
             WgAllowedIpAttrs::Cidr(v) => buffer[0] = *v,
         }
     }
@@ -68,13 +61,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for WgAllowedIpAtt
                 Self::Family(parse_u16(payload).context("invalid WGALLOWEDIP_A_FAMILY value")?)
             }
             WGALLOWEDIP_A_IPADDR => {
-                if payload.len() == size_of::<in_addr>() {
-                    Self::IpAddr(IpAddr::from(parse_in_addr(payload)?))
-                } else if payload.len() == size_of::<in6_addr>() {
-                    Self::IpAddr(IpAddr::from(parse_in6_addr(payload)?))
-                } else {
-                    return Err(DecodeError::from("invalid WGALLOWEDIP_A_IPADDR value"));
-                }
+                Self::IpAddr(parse_ip(payload).context("invalid WGALLOWEDIP_A_IPADDR value")?)
             }
             WGALLOWEDIP_A_CIDR_MASK => Self::Cidr(payload[0]),
             kind => return Err(DecodeError::from(format!("invalid NLA kind: {}", kind))),

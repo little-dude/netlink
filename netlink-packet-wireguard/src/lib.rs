@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate log;
+
 use crate::constants::*;
 use anyhow::Context;
 use netlink_packet_generic::{GenlFamily, GenlHeader};
