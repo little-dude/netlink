@@ -46,6 +46,7 @@ jobs:
         run: |
           cd netlink-packet-route
           cargo test
+          cargo test --features rich_nlas
 
       - name: test (netlink-packet-sock-diag)
         run: |

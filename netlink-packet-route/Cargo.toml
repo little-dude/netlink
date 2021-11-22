@@ -11,6 +11,9 @@ readme = "../README.md"
 repository = "https://github.com/little-dude/netlink"
 description = "netlink packet types"
 
+[features]
+rich_nlas = []
+
 [dependencies]
 anyhow = "1.0.31"
 byteorder = "1.3.2"
