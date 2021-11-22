@@ -1,147 +1,196 @@
-use libc::{in6_addr, in_addr, sockaddr, sockaddr_in, sockaddr_in6, timespec, AF_INET, AF_INET6};
-use netlink_packet_utils::DecodeError;
 use std::{
-    mem::{size_of, size_of_val},
-    net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6},
-    slice::from_raw_parts,
+    convert::TryFrom,
+    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6},
     time::{Duration, SystemTime},
 };
 
-pub fn emit_in_addr(addr: &Ipv4Addr, buf: &mut [u8]) {
-    let caddr = in_addr {
-        s_addr: u32::from(*addr).to_be(),
-    };
+use byteorder::{BigEndian, ByteOrder, NativeEndian};
+use netlink_packet_utils::DecodeError;
 
-    copy_raw_slice(buf, &caddr);
+use crate::constants::{AF_INET, AF_INET6};
+
+pub const IPV4_LEN: usize = 4;
+pub const IPV6_LEN: usize = 16;
+pub const SOCKET_ADDR_V4_LEN: usize = 16;
+pub const SOCKET_ADDR_V6_LEN: usize = 28;
+pub const TIMESPEC_LEN: usize = 16;
+
+/// Parse an IPv6 socket address, defined as:
+/// ```c
+/// struct sockaddr_in6 {
+///     sa_family_t     sin6_family;   /* AF_INET6 */
+///     in_port_t       sin6_port;     /* port number */
+///     uint32_t        sin6_flowinfo; /* IPv6 flow information */
+///     struct in6_addr sin6_addr;     /* IPv6 address */
+///     uint32_t        sin6_scope_id; /* Scope ID (new in 2.4) */
+/// };
+/// struct in6_addr {
+///     unsigned char   s6_addr[16];   /* IPv6 address */
+/// };
+/// ```
+/// `sockaddr_in6` is 4 bytes aligned (28 bytes) so there's no padding.
+fn parse_socket_addr_v6(payload: &[u8]) -> SocketAddrV6 {
+    assert_eq!(payload.len(), SOCKET_ADDR_V6_LEN);
+    // We don't need the address family to build a SocketAddrv6
+    // let address_family = NativeEndian::read_u16(&payload[..2]);
+    let port = BigEndian::read_u16(&payload[2..4]);
+    let flow_info = NativeEndian::read_u32(&payload[4..8]);
+    // We know we have exactly 16 bytes so this won't fail
+    let ip_bytes = <[u8; 16]>::try_from(&payload[8..24]).unwrap();
+    let ip = Ipv6Addr::from(ip_bytes);
+    let scope_id = NativeEndian::read_u32(&payload[24..28]);
+    SocketAddrV6::new(ip, port, flow_info, scope_id)
 }
 
-pub fn parse_in_addr(buf: &[u8]) -> Result<Ipv4Addr, DecodeError> {
-    if buf.len() != size_of::<in_addr>() {
-        return Err(DecodeError::from("Invalid buffer length"));
+/// Parse an IPv4 socket address, defined as:
+/// ```c
+/// #if  __UAPI_DEF_SOCKADDR_IN
+/// #define __SOCK_SIZE__ 16 /* sizeof(struct sockaddr) */
+/// struct sockaddr_in {
+///   __kernel_sa_family_t sin_family; /* Address family   */
+///   __be16               sin_port;   /* Port number      */
+///   struct in_addr       sin_addr;   /* Internet address */
+///   /* Pad to size of `struct sockaddr'. */
+///   unsigned char __pad[__SOCK_SIZE__ - sizeof(short int) - sizeof(unsigned short int) - sizeof(struct in_addr)];
+/// };
+fn parse_socket_addr_v4(payload: &[u8]) -> SocketAddrV4 {
+    assert_eq!(payload.len(), 16);
+    // We don't need the address family to build a SocketAddr4v
+    // let address_family = NativeEndian::read_u16(&payload[..2]);
+    let port = BigEndian::read_u16(&payload[2..4]);
+    // We know we have exactly 4 bytes so this won't fail
+    let ip_bytes = <[u8; 4]>::try_from(&payload[4..8]).unwrap();
+    let ip = Ipv4Addr::from(ip_bytes);
+    SocketAddrV4::new(ip, port)
+}
+
+pub fn parse_ip(payload: &[u8]) -> Result<IpAddr, DecodeError> {
+    match payload.len() {
+        IPV4_LEN => {
+            // This won't fail since we ensure the slice is 4 bytes long
+            let ip_bytes = <[u8; IPV4_LEN]>::try_from(payload).unwrap();
+            Ok(IpAddr::V4(Ipv4Addr::from(ip_bytes)))
+        }
+        IPV6_LEN => {
+            // This won't fail since we ensure the slice is 16 bytes long
+            let ip_bytes = <[u8; IPV6_LEN]>::try_from(payload).unwrap();
+            Ok(IpAddr::V6(Ipv6Addr::from(ip_bytes)))
+        }
+        _ => Err(DecodeError::from(format!(
+            "invalid IP address: {:x?}",
+            payload
+        ))),
     }
-
-    let caddr: &in_addr = unsafe { from_raw_slice(buf)? };
-    Ok(Ipv4Addr::from(u32::from_be(caddr.s_addr)))
 }
 
-pub fn emit_in6_addr(addr: &Ipv6Addr, buf: &mut [u8]) {
-    let caddr = in6_addr {
-        s6_addr: addr.octets(),
-    };
-
-    copy_raw_slice(buf, &caddr);
-}
-
-pub fn parse_in6_addr(buf: &[u8]) -> Result<Ipv6Addr, DecodeError> {
-    if buf.len() != size_of::<in6_addr>() {
-        return Err(DecodeError::from("Invalid buffer length"));
+pub fn emit_ip(addr: &IpAddr, buf: &mut [u8]) {
+    match addr {
+        IpAddr::V4(ip) => {
+            (&mut buf[..IPV4_LEN]).copy_from_slice(ip.octets().as_slice());
+        }
+        IpAddr::V6(ip) => {
+            (&mut buf[..IPV6_LEN]).copy_from_slice(ip.octets().as_slice());
+        }
     }
-
-    let caddr: &in6_addr = unsafe { from_raw_slice(buf)? };
-    Ok(Ipv6Addr::from(caddr.s6_addr))
 }
 
-pub fn emit_sockaddr_in(addr: &SocketAddrV4, buf: &mut [u8]) {
-    let csockaddr = sockaddr_in {
-        sin_family: AF_INET as u16,
-        sin_port: addr.port().to_be(),
-        sin_addr: in_addr {
-            s_addr: u32::from(*addr.ip()).to_be(),
-        },
-        sin_zero: [0u8; 8],
-    };
-
-    copy_raw_slice(buf, &csockaddr);
+/// Emit an IPv4 socket address in the given buffer. An IPv4 socket
+/// address is defined as:
+/// ```c
+/// #if  __UAPI_DEF_SOCKADDR_IN
+/// #define __SOCK_SIZE__ 16 /* sizeof(struct sockaddr) */
+/// struct sockaddr_in {
+///   __kernel_sa_family_t sin_family; /* Address family   */
+///   __be16               sin_port;   /* Port number      */
+///   struct in_addr       sin_addr;   /* Internet address */
+///   /* Pad to size of `struct sockaddr'. */
+///   unsigned char __pad[__SOCK_SIZE__ - sizeof(short int) - sizeof(unsigned short int) - sizeof(struct in_addr)];
+/// };
+/// ```
+/// Note that this adds 8 bytes of padding so the buffer must be large
+/// enough to account for them.
+fn emit_socket_addr_v4(addr: &SocketAddrV4, buf: &mut [u8]) {
+    NativeEndian::write_u16(&mut buf[..2], AF_INET);
+    NativeEndian::write_u16(&mut buf[2..4], addr.port());
+    (&mut buf[4..8]).copy_from_slice(addr.ip().octets().as_slice());
+    // padding
+    (&mut buf[8..16]).copy_from_slice([0; 8].as_slice());
 }
 
-fn parse_sockaddr_in(buf: &[u8]) -> Result<SocketAddrV4, DecodeError> {
-    let csockaddr: &sockaddr_in = unsafe { from_raw_slice(buf)? };
-
-    let ipaddr = Ipv4Addr::from(u32::from_be(csockaddr.sin_addr.s_addr));
-    Ok(SocketAddrV4::new(ipaddr, u16::from_be(csockaddr.sin_port)))
+/// Emit an IPv6 socket address.
+///
+/// An IPv6 socket address is defined as:
+/// ```c
+/// struct sockaddr_in6 {
+///     sa_family_t     sin6_family;   /* AF_INET6 */
+///     in_port_t       sin6_port;     /* port number */
+///     uint32_t        sin6_flowinfo; /* IPv6 flow information */
+///     struct in6_addr sin6_addr;     /* IPv6 address */
+///     uint32_t        sin6_scope_id; /* Scope ID (new in 2.4) */
+/// };
+/// struct in6_addr {
+///     unsigned char   s6_addr[16];   /* IPv6 address */
+/// };
+/// ```
+/// `sockaddr_in6` is 4 bytes aligned (28 bytes) so there's no padding.
+fn emit_socket_addr_v6(addr: &SocketAddrV6, buf: &mut [u8]) {
+    NativeEndian::write_u16(&mut buf[..2], AF_INET6);
+    NativeEndian::write_u16(&mut buf[2..4], addr.port());
+    NativeEndian::write_u32(&mut buf[4..8], addr.flowinfo());
+    (&mut buf[8..24]).copy_from_slice(addr.ip().octets().as_slice());
+    NativeEndian::write_u32(&mut buf[24..28], addr.scope_id());
 }
 
-pub fn emit_sockaddr_in6(addr: &SocketAddrV6, buf: &mut [u8]) {
-    let csockaddr = sockaddr_in6 {
-        sin6_family: AF_INET6 as u16,
-        sin6_port: addr.port().to_be(),
-        sin6_flowinfo: addr.flowinfo(),
-        sin6_addr: in6_addr {
-            s6_addr: addr.ip().octets(),
-        },
-        sin6_scope_id: addr.scope_id(),
-    };
-
-    copy_raw_slice(buf, &csockaddr);
+pub fn emit_socket_addr(addr: &SocketAddr, buf: &mut [u8]) {
+    match addr {
+        SocketAddr::V4(v4) => emit_socket_addr_v4(v4, buf),
+        SocketAddr::V6(v6) => emit_socket_addr_v6(v6, buf),
+    }
 }
 
-fn parse_sockaddr_in6(buf: &[u8]) -> Result<SocketAddrV6, DecodeError> {
-    let csockaddr: &sockaddr_in6 = unsafe { from_raw_slice(buf)? };
-
-    let ipaddr = Ipv6Addr::from(csockaddr.sin6_addr.s6_addr);
-    Ok(SocketAddrV6::new(
-        ipaddr,
-        u16::from_be(csockaddr.sin6_port),
-        csockaddr.sin6_flowinfo,
-        csockaddr.sin6_scope_id,
-    ))
-}
-
-pub fn parse_sockaddr(buf: &[u8]) -> Result<SocketAddr, DecodeError> {
-    let csockaddr: &sockaddr = unsafe { from_raw_slice(buf)? };
-
-    if csockaddr.sa_family == AF_INET as u16 {
-        Ok(SocketAddr::V4(parse_sockaddr_in(buf)?))
-    } else if csockaddr.sa_family == AF_INET6 as u16 {
-        Ok(SocketAddr::V6(parse_sockaddr_in6(buf)?))
-    } else {
-        Err(DecodeError::from("Unknown address family"))
+pub fn parse_socket_addr(buf: &[u8]) -> Result<SocketAddr, DecodeError> {
+    match buf.len() {
+        SOCKET_ADDR_V4_LEN => Ok(SocketAddr::V4(parse_socket_addr_v4(buf))),
+        SOCKET_ADDR_V6_LEN => Ok(SocketAddr::V6(parse_socket_addr_v6(buf))),
+        _ => Err(format!(
+            "invalid socket address (should be 16 or 28 bytes): {:x?}",
+            buf
+        )
+        .into()),
     }
 }
 
 pub fn emit_timespec(time: &SystemTime, buf: &mut [u8]) {
-    let epoch_elapsed = time.duration_since(SystemTime::UNIX_EPOCH).unwrap();
-    let ctimespec = timespec {
-        tv_sec: epoch_elapsed.as_secs() as i64,
-        tv_nsec: epoch_elapsed.subsec_nanos() as i64,
-    };
-
-    copy_raw_slice(buf, &ctimespec);
+    match time.duration_since(SystemTime::UNIX_EPOCH) {
+        Ok(epoch_elapsed) => {
+            NativeEndian::write_i64(&mut buf[..8], epoch_elapsed.as_secs() as i64);
+            NativeEndian::write_i64(&mut buf[8..16], epoch_elapsed.subsec_nanos() as i64);
+        }
+        Err(e) => {
+            // This method is supposed to not fail so just log an
+            // error. If we want such errors to be handled by the
+            // caller, we shouldn't use `SystemTime`.
+            error!("error while emitting timespec: {:?}", e);
+            NativeEndian::write_i64(&mut buf[..8], 0_i64);
+            NativeEndian::write_i64(&mut buf[8..16], 0_i64);
+        }
+    }
 }
 
 pub fn parse_timespec(buf: &[u8]) -> Result<SystemTime, DecodeError> {
-    if buf.len() != size_of::<timespec>() {
-        return Err(DecodeError::from("Invalid buffer length"));
+    if buf.len() != TIMESPEC_LEN {
+        return Err(DecodeError::from(format!(
+            "Invalid timespec buffer: {:x?}",
+            buf
+        )));
     }
-
-    let ctimespec: &timespec = unsafe { from_raw_slice(buf)? };
-    let epoch_elapsed_s = Duration::from_secs(ctimespec.tv_sec as u64);
-    let epoch_elapsed_ns = Duration::from_nanos(ctimespec.tv_nsec as u64);
+    let epoch_elapsed_s = Duration::from_secs(NativeEndian::read_u64(&buf[..8]));
+    let epoch_elapsed_ns = Duration::from_nanos(NativeEndian::read_u64(&buf[8..16]));
     Ok(SystemTime::UNIX_EPOCH + epoch_elapsed_s + epoch_elapsed_ns)
 }
 
-fn copy_raw_slice<T: Sized>(dst: &mut [u8], src: &T) {
-    let src_slice = unsafe { as_raw_slice(src) };
-    dst[..size_of_val(src)].copy_from_slice(src_slice);
-}
-
-#[allow(unused_unsafe)] // For nested unsafe
-unsafe fn from_raw_slice<'a, T: Sized>(src: &'a [u8]) -> Result<&'a T, DecodeError> {
-    if src.len() < size_of::<T>() {
-        return Err(DecodeError::from("Buffer too small"));
-    }
-    let buf = &src[..size_of::<T>()];
-    let ptr = buf.as_ptr() as *const T;
-
-    let data: &'a T = unsafe { &*ptr };
-    Ok(data)
-}
-
-unsafe fn as_raw_slice<T: Sized>(src: &T) -> &[u8] {
-    from_raw_parts((src as *const T) as *const u8, size_of::<T>())
-}
-
 #[cfg(test)]
+
 mod test {
     use std::str::FromStr;
 
@@ -156,14 +205,14 @@ mod test {
     // fe80::e458:8ead:89bb:8e25%3:51820 (flow 16)
 
     #[test]
-    fn test_parse_sockaddr_in_1() {
-        let ipaddr = parse_sockaddr(&SOCKADDR_IN_BYTES_1).unwrap();
+    fn test_parse_socket_addr_in_1() {
+        let ipaddr = parse_socket_addr(&SOCKADDR_IN_BYTES_1).unwrap();
         assert_eq!(ipaddr, SocketAddrV4::new(Ipv4Addr::LOCALHOST, 7290).into());
     }
 
     #[test]
-    fn test_parse_sockaddr_in_2() {
-        let ipaddr = parse_sockaddr(&SOCKADDR_IN_BYTES_2).unwrap();
+    fn test_parse_socket_addr_in_2() {
+        let ipaddr = parse_socket_addr(&SOCKADDR_IN_BYTES_2).unwrap();
         assert_eq!(
             ipaddr,
             SocketAddrV4::new(Ipv4Addr::new(192, 168, 1, 1), 51820).into()
@@ -171,8 +220,8 @@ mod test {
     }
 
     #[test]
-    fn test_parse_sockaddr_in6_1() {
-        let ipaddr = parse_sockaddr(&SOCKADDR_IN6_BYTES_1).unwrap();
+    fn test_parse_socket_addr_in6_1() {
+        let ipaddr = parse_socket_addr(&SOCKADDR_IN6_BYTES_1).unwrap();
         assert_eq!(
             ipaddr,
             SocketAddrV6::new(
