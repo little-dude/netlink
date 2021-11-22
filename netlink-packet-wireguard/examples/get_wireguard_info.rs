@@ -87,8 +87,8 @@ fn print_wg_peer(nlas: &[WgPeerAttrs]) {
 
 fn print_wg_allowedip(nlas: &[WgAllowedIpAttrs]) -> Option<()> {
     let ipaddr = nlas.iter().find_map(|nla| {
-        if let WgAllowedIpAttrs::IpAddr(ipaddr) = nla {
-            Some(*ipaddr)
+        if let WgAllowedIpAttrs::IpAddr(addr) = nla {
+            Some(*addr)
         } else {
             None
         }

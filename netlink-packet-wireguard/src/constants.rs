@@ -1,3 +1,6 @@
+pub const AF_INET: u16 = libc::AF_INET as u16;
+pub const AF_INET6: u16 = libc::AF_INET6 as u16;
+
 pub const WG_KEY_LEN: usize = 32;
 
 pub const WG_CMD_GET_DEVICE: u8 = 0;
