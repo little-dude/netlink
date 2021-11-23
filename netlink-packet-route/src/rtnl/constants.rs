@@ -860,11 +860,12 @@ pub const RTEXT_FILTER_SKIP_STATS: u32 = 8;
 // pub const IFLA_MACVLAN_MACADDR_DATA: int = 5;
 // pub const IFLA_MACVLAN_MACADDR_COUNT: int = 6;
 //
-// pub const MACVLAN_MODE_PRIVATE: int = 1;
-// pub const MACVLAN_MODE_VEPA: int = 2;
-// pub const MACVLAN_MODE_BRIDGE: int = 4;
-// pub const MACVLAN_MODE_PASSTHRU: int = 8;
-// pub const MACVLAN_MODE_SOURCE: int = 16;
+// Available MACVLAN MODES
+pub const MACVLAN_MODE_PRIVATE: u32 = 1;
+pub const MACVLAN_MODE_VEPA: u32 = 2;
+pub const MACVLAN_MODE_BRIDGE: u32 = 4;
+pub const MACVLAN_MODE_PASSTHRU: u32 = 8;
+pub const MACVLAN_MODE_SOURCE: u32 = 16;
 //
 // pub const MACVLAN_MACADDR_ADD: int = 0;
 // pub const MACVLAN_MACADDR_DEL: int = 1;
