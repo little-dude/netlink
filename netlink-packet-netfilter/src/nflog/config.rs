@@ -41,7 +41,7 @@ pub const NFULA_CFG_QTHRESH: u16 = libc::NFULA_CFG_QTHRESH as u16;
 pub const NFULA_CFG_FLAGS: u16 = libc::NFULA_CFG_FLAGS as u16;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ConfigNlas {
+pub enum ConfigNla {
     Cmd(ConfigCmd),
     Mode(ConfigMode),
     NlBufSiz(u32),
@@ -51,69 +51,69 @@ pub enum ConfigNlas {
     Other(DefaultNla),
 }
 
-impl From<ConfigCmd> for ConfigNlas {
+impl From<ConfigCmd> for ConfigNla {
     fn from(cmd: ConfigCmd) -> Self {
-        ConfigNlas::Cmd(cmd)
+        ConfigNla::Cmd(cmd)
     }
 }
 
-impl From<ConfigMode> for ConfigNlas {
+impl From<ConfigMode> for ConfigNla {
     fn from(mode: ConfigMode) -> Self {
-        ConfigNlas::Mode(mode)
+        ConfigNla::Mode(mode)
     }
 }
 
-impl From<Timeout> for ConfigNlas {
+impl From<Timeout> for ConfigNla {
     fn from(timeout: Timeout) -> Self {
-        ConfigNlas::Timeout(timeout)
+        ConfigNla::Timeout(timeout)
     }
 }
 
-impl From<ConfigFlags> for ConfigNlas {
+impl From<ConfigFlags> for ConfigNla {
     fn from(flags: ConfigFlags) -> Self {
-        ConfigNlas::Flags(flags)
+        ConfigNla::Flags(flags)
     }
 }
 
-impl Nla for ConfigNlas {
+impl Nla for ConfigNla {
     fn value_len(&self) -> usize {
         match self {
-            ConfigNlas::Cmd(attr) => attr.value_len(),
-            ConfigNlas::Mode(attr) => attr.value_len(),
-            ConfigNlas::NlBufSiz(_) => 4,
-            ConfigNlas::Timeout(attr) => attr.value_len(),
-            ConfigNlas::QThresh(_) => 4,
-            ConfigNlas::Flags(attr) => attr.value_len(),
-            ConfigNlas::Other(attr) => attr.value_len(),
+            ConfigNla::Cmd(attr) => attr.value_len(),
+            ConfigNla::Mode(attr) => attr.value_len(),
+            ConfigNla::NlBufSiz(_) => 4,
+            ConfigNla::Timeout(attr) => attr.value_len(),
+            ConfigNla::QThresh(_) => 4,
+            ConfigNla::Flags(attr) => attr.value_len(),
+            ConfigNla::Other(attr) => attr.value_len(),
         }
     }
 
     fn kind(&self) -> u16 {
         match self {
-            ConfigNlas::Cmd(attr) => attr.kind(),
-            ConfigNlas::Mode(attr) => attr.kind(),
-            ConfigNlas::NlBufSiz(_) => NFULA_CFG_NLBUFSIZ,
-            ConfigNlas::Timeout(attr) => attr.kind(),
-            ConfigNlas::QThresh(_) => NFULA_CFG_QTHRESH,
-            ConfigNlas::Flags(attr) => attr.kind(),
-            ConfigNlas::Other(attr) => attr.kind(),
+            ConfigNla::Cmd(attr) => attr.kind(),
+            ConfigNla::Mode(attr) => attr.kind(),
+            ConfigNla::NlBufSiz(_) => NFULA_CFG_NLBUFSIZ,
+            ConfigNla::Timeout(attr) => attr.kind(),
+            ConfigNla::QThresh(_) => NFULA_CFG_QTHRESH,
+            ConfigNla::Flags(attr) => attr.kind(),
+            ConfigNla::Other(attr) => attr.kind(),
         }
     }
 
     fn emit_value(&self, buffer: &mut [u8]) {
         match self {
-            ConfigNlas::Cmd(attr) => attr.emit_value(buffer),
-            ConfigNlas::Mode(attr) => attr.emit_value(buffer),
-            ConfigNlas::NlBufSiz(buf_siz) => BigEndian::write_u32(buffer, *buf_siz),
-            ConfigNlas::Timeout(attr) => attr.emit_value(buffer),
-            ConfigNlas::QThresh(q_thresh) => BigEndian::write_u32(buffer, *q_thresh),
-            ConfigNlas::Flags(attr) => attr.emit_value(buffer),
-            ConfigNlas::Other(attr) => attr.emit_value(buffer),
+            ConfigNla::Cmd(attr) => attr.emit_value(buffer),
+            ConfigNla::Mode(attr) => attr.emit_value(buffer),
+            ConfigNla::NlBufSiz(buf_siz) => BigEndian::write_u32(buffer, *buf_siz),
+            ConfigNla::Timeout(attr) => attr.emit_value(buffer),
+            ConfigNla::QThresh(q_thresh) => BigEndian::write_u32(buffer, *q_thresh),
+            ConfigNla::Flags(attr) => attr.emit_value(buffer),
+            ConfigNla::Other(attr) => attr.emit_value(buffer),
         }
     }
 }
 
-impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'buffer T>> for ConfigNlas {
+impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'buffer T>> for ConfigNla {
     fn parse(buf: &NlaBuffer<&'buffer T>) -> Result<Self, DecodeError> {
         let kind = buf.kind();
         let payload = buf.value();
@@ -125,18 +125,18 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'buffer T>> for Conf
                 let buf = config_mode::ConfigModeBuffer::new_checked(payload)?;
                 ConfigMode::parse(&buf)?.into()
             }
-            NFULA_CFG_NLBUFSIZ => ConfigNlas::NlBufSiz(
+            NFULA_CFG_NLBUFSIZ => ConfigNla::NlBufSiz(
                 parse_u32_be(payload).context("invalid NFULA_CFG_NLBUFSIZ value")?,
             ),
             NFULA_CFG_TIMEOUT => {
                 Timeout::new(parse_u32_be(payload).context("invalid NFULA_CFG_TIMEOUT value")?)
                     .into()
             }
-            NFULA_CFG_QTHRESH => ConfigNlas::QThresh(
+            NFULA_CFG_QTHRESH => ConfigNla::QThresh(
                 parse_u32_be(payload).context("invalid NFULA_CFG_QTHRESH value")?,
             ),
             NFULA_CFG_FLAGS => ConfigFlags::from_bits_truncate(parse_u16_be(payload)?).into(),
-            _ => ConfigNlas::Other(DefaultNla::parse(buf)?),
+            _ => ConfigNla::Other(DefaultNla::parse(buf)?),
         };
         Ok(nla)
     }
@@ -145,7 +145,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'buffer T>> for Conf
 pub fn config_request(
     family: u8,
     group_num: u16,
-    nlas: Vec<ConfigNlas>,
+    nlas: Vec<ConfigNla>,
 ) -> NetlinkMessage<NetfilterMessage> {
     let mut message = NetlinkMessage {
         header: NetlinkHeader {
