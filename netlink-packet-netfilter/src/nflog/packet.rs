@@ -162,7 +162,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'buffer T>> for Pack
                 PacketNlas::HwAddr(HwAddr::parse(&buf)?)
             }
             NFULA_PAYLOAD => PacketNlas::Payload(payload.to_vec()),
-            NFULA_PREFIX => PacketNlas::Payload(payload.to_vec()),
+            NFULA_PREFIX => PacketNlas::Prefix(payload.to_vec()),
             NFULA_UID => PacketNlas::Uid(parse_u32_be(payload)?),
             NFULA_SEQ => PacketNlas::Seq(parse_u32_be(payload)?),
             NFULA_SEQ_GLOBAL => PacketNlas::SeqGlobal(parse_u32_be(payload)?),
