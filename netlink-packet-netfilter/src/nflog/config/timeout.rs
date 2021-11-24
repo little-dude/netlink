@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use std::{convert::TryInto, mem::size_of, time::Duration};
 
 use byteorder::{BigEndian, ByteOrder};

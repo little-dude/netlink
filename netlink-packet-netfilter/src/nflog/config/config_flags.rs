@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use std::mem::size_of;
 
 use bitflags::bitflags;

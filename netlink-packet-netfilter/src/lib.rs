@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pub(crate) extern crate netlink_packet_utils as utils;
 pub use self::utils::{traits, DecodeError};
 pub use netlink_packet_core::{

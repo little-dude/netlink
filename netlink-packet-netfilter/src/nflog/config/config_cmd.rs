@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use netlink_packet_utils::nla::Nla;
 
 const NFULA_CFG_CMD: u16 = libc::NFULA_CFG_CMD as u16;

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use anyhow::Context;
 use byteorder::{BigEndian, ByteOrder};
 use netlink_packet_core::{
