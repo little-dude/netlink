@@ -6,9 +6,9 @@ use std::fmt::Debug;
 
 use crate::{buffer::NetfilterBuffer, constants::NFNL_SUBSYS_ULOG};
 
-use config::ConfigNlas;
+use config::ConfigNla;
 
-use self::packet::PacketNlas;
+use self::packet::PacketNla;
 
 pub const NFULNL_MSG_CONFIG: u8 = libc::NFULNL_MSG_CONFIG as u8;
 pub const NFULNL_MSG_PACKET: u8 = libc::NFULNL_MSG_PACKET as u8;
@@ -23,8 +23,8 @@ pub mod packet;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum NfLogMessage {
-    Config(Vec<ConfigNlas>),
-    Packet(Vec<PacketNlas>),
+    Config(Vec<ConfigNla>),
+    Packet(Vec<PacketNla>),
     Other {
         message_type: u8,
         nlas: Vec<DefaultNla>,
@@ -70,11 +70,11 @@ impl<'a, T: AsRef<[u8]> + ?Sized> ParseableParametrized<NetfilterBuffer<&'a T>, 
     ) -> Result<Self, DecodeError> {
         Ok(match message_type {
             NFULNL_MSG_CONFIG => {
-                let nlas = buf.parse_all_nlas(|nla_buf| ConfigNlas::parse(&nla_buf))?;
+                let nlas = buf.parse_all_nlas(|nla_buf| ConfigNla::parse(&nla_buf))?;
                 NfLogMessage::Config(nlas)
             }
             NFULNL_MSG_PACKET => {
-                let nlas = buf.parse_all_nlas(|nla_buf| PacketNlas::parse(&nla_buf))?;
+                let nlas = buf.parse_all_nlas(|nla_buf| PacketNla::parse(&nla_buf))?;
                 NfLogMessage::Packet(nlas)
             }
             _ => NfLogMessage::Other {
