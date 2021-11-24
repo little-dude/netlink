@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 
+use anyhow::Context;
 use byteorder::{BigEndian, ByteOrder};
 use netlink_packet_core::DecodeError;
 use netlink_packet_utils::{
@@ -144,32 +145,51 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'buffer T>> for Pack
         let payload = buf.value();
         let nla = match kind {
             NFULA_PACKET_HDR => {
-                let buf = PacketHdrBuffer::new_checked(payload)?;
+                let buf = PacketHdrBuffer::new_checked(payload)
+                    .context("invalid NFULA_PACKET_HDR value")?;
                 PacketHdr::parse(&buf)?.into()
             }
 
-            NFULA_MARK => PacketNla::Mark(parse_u32_be(payload)?),
+            NFULA_MARK => {
+                PacketNla::Mark(parse_u32_be(payload).context("invalid NFULA_MARK value")?)
+            }
             NFULA_TIMESTAMP => {
-                let buf = TimeStampBuffer::new_checked(&payload)?;
+                let buf = TimeStampBuffer::new_checked(&payload)
+                    .context("invalid NFULA_TIMESTAMP value")?;
                 PacketNla::Timestamp(TimeStamp::parse(&buf)?)
             }
-            NFULA_IFINDEX_INDEV => PacketNla::IfIndexInDev(parse_u32_be(payload)?),
-            NFULA_IFINDEX_OUTDEV => PacketNla::IfIndexOutDev(parse_u32_be(payload)?),
-            NFULA_IFINDEX_PHYSINDEV => PacketNla::IfIndexPhysInDev(parse_u32_be(payload)?),
-            NFULA_IFINDEX_PHYSOUTDEV => PacketNla::IfIndexPhysOutDev(parse_u32_be(payload)?),
+            NFULA_IFINDEX_INDEV => PacketNla::IfIndexInDev(
+                parse_u32_be(payload).context("invalid NFULA_IFINDEX_INDEV value")?,
+            ),
+            NFULA_IFINDEX_OUTDEV => PacketNla::IfIndexOutDev(
+                parse_u32_be(payload).context("invalid NFULA_IFINDEX_OUTDEV value")?,
+            ),
+            NFULA_IFINDEX_PHYSINDEV => PacketNla::IfIndexPhysInDev(
+                parse_u32_be(payload).context("invalid NFULA_IFINDEX_PHYSINDEV value")?,
+            ),
+            NFULA_IFINDEX_PHYSOUTDEV => PacketNla::IfIndexPhysOutDev(
+                parse_u32_be(payload).context("invalid NFULA_IFINDEX_PHYSOUTDEV value")?,
+            ),
             NFULA_HWADDR => {
-                let buf = HwAddrBuffer::new_checked(payload)?;
+                let buf =
+                    HwAddrBuffer::new_checked(payload).context("invalid NFULA_HWADDR value")?;
                 PacketNla::HwAddr(HwAddr::parse(&buf)?)
             }
             NFULA_PAYLOAD => PacketNla::Payload(payload.to_vec()),
             NFULA_PREFIX => PacketNla::Prefix(payload.to_vec()),
-            NFULA_UID => PacketNla::Uid(parse_u32_be(payload)?),
-            NFULA_SEQ => PacketNla::Seq(parse_u32_be(payload)?),
-            NFULA_SEQ_GLOBAL => PacketNla::SeqGlobal(parse_u32_be(payload)?),
-            NFULA_GID => PacketNla::Gid(parse_u32_be(payload)?),
-            NFULA_HWTYPE => PacketNla::HwType(parse_u16_be(payload)?),
+            NFULA_UID => PacketNla::Uid(parse_u32_be(payload).context("invalid NFULA_UID value")?),
+            NFULA_SEQ => PacketNla::Seq(parse_u32_be(payload).context("invalid NFULA_SEQ value")?),
+            NFULA_SEQ_GLOBAL => PacketNla::SeqGlobal(
+                parse_u32_be(payload).context("invalid NFULA_SEQ_GLOBAL value")?,
+            ),
+            NFULA_GID => PacketNla::Gid(parse_u32_be(payload).context("invalid NFULA_GID value")?),
+            NFULA_HWTYPE => {
+                PacketNla::HwType(parse_u16_be(payload).context("invalid NFULA_HWTYPE value")?)
+            }
             NFULA_HWHEADER => PacketNla::HwHeader(payload.to_vec()),
-            NFULA_HWLEN => PacketNla::HwHeaderLen(parse_u16_be(payload)?),
+            NFULA_HWLEN => {
+                PacketNla::HwHeaderLen(parse_u16_be(payload).context("invalid NFULA_HWLEN value")?)
+            }
 
             _ => PacketNla::Other(DefaultNla::parse(buf)?),
         };
