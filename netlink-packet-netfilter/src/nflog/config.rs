@@ -135,7 +135,10 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'buffer T>> for Conf
             NFULA_CFG_QTHRESH => ConfigNla::QThresh(
                 parse_u32_be(payload).context("invalid NFULA_CFG_QTHRESH value")?,
             ),
-            NFULA_CFG_FLAGS => ConfigFlags::from_bits_truncate(parse_u16_be(payload)?).into(),
+            NFULA_CFG_FLAGS => ConfigFlags::from_bits_truncate(
+                parse_u16_be(payload).context("invalid NFULA_CFG_FLAGS value")?,
+            )
+            .into(),
             _ => ConfigNla::Other(DefaultNla::parse(buf)?),
         };
         Ok(nla)
