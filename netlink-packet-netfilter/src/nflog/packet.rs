@@ -58,7 +58,6 @@ pub enum PacketNla {
     HwType(u16),
     HwHeader(Vec<u8>),
     HwHeaderLen(u16),
-    // TODO: CT, CT_INFO, VLAN, L2HDR
     Other(DefaultNla),
 }
 
