@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use crate::{
     message::{NetfilterHeader, NetfilterMessage, NetfilterMessageInner, NETFILTER_HEADER_LEN},
     nflog::NfLogMessage,

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use netlink_packet_core::DecodeError;
 use netlink_packet_utils::{nla::DefaultNla, Emitable, Parseable, ParseableParametrized};
 use std::fmt::Debug;
