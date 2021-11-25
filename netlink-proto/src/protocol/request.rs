@@ -13,4 +13,9 @@ pub(crate) enum Request<T, M> {
         message: NetlinkMessage<T>,
         destination: SocketAddr,
     },
+    Batch {
+        metadata: Vec<M>,
+        messages: Vec<NetlinkMessage<T>>,
+        destination: SocketAddr,
+    },
 }

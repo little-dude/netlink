@@ -117,6 +117,18 @@ where
                         return;
                     }
                 }
+                OutgoingMessage::Batch(mut messages, addr) => {
+                    for message in &mut messages {
+                        message.finalize();
+                    }
+
+                    trace!("sending outgoing message");
+                    if let Err(e) = Pin::as_mut(&mut socket).start_send((messages, addr)) {
+                        error!("failed to send message: {:?}", e);
+                        self.socket_closed = true;
+                        return;
+                    }
+                }
             }
         }
 

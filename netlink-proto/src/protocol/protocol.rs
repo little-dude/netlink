@@ -47,6 +47,7 @@ struct PendingRequest<M> {
 #[derive(Debug)]
 pub(crate) enum OutgoingMessage<T> {
     Single(NetlinkMessage<T>, SocketAddr),
+    Batch(Vec<NetlinkMessage<T>>, SocketAddr),
 }
 
 #[derive(Debug, Default)]
@@ -177,6 +178,18 @@ where
                 self.request_single(&mut message, metadata, &destination);
                 self.outgoing_messages
                     .push_back(OutgoingMessage::Single(message, destination));
+            }
+            Request::Batch {
+                mut messages,
+                metadata,
+                destination,
+            } => {
+                assert_eq!(messages.len(), metadata.len());
+                for (msg, md) in messages.iter_mut().zip(metadata.into_iter()) {
+                    self.request_single(msg, md, &destination);
+                }
+                self.outgoing_messages
+                    .push_back(OutgoingMessage::Batch(messages, destination));
             }
         }
     }
