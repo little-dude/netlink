@@ -135,18 +135,15 @@ where
         debug!("done handling response to request {:?}", request_id);
     }
 
-    pub fn request(&mut self, request: Request<T, M>) {
-        let Request::Single {
-            mut message,
-            metadata,
-            destination,
-        } = request;
-
-        self.set_sequence_id(&mut message);
+    fn request_single(
+        &mut self,
+        message: &mut NetlinkMessage<T>,
+        metadata: M,
+        destination: &SocketAddr,
+    ) {
+        self.set_sequence_id(message);
         let request_id = RequestId::new(self.sequence_id, destination.port_number());
         let flags = message.header.flags;
-        self.outgoing_messages
-            .push_back(OutgoingMessage::Single(message, destination));
 
         // If we expect a response, we store the request id so that we
         // can map the response to this specific request.
@@ -167,6 +164,20 @@ where
                     metadata,
                 },
             );
+        }
+    }
+
+    pub fn request(&mut self, request: Request<T, M>) {
+        match request {
+            Request::Single {
+                mut message,
+                metadata,
+                destination,
+            } => {
+                self.request_single(&mut message, metadata, &destination);
+                self.outgoing_messages
+                    .push_back(OutgoingMessage::Single(message, destination));
+            }
         }
     }
 
