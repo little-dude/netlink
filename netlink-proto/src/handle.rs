@@ -38,7 +38,11 @@ where
         destination: SocketAddr,
     ) -> Result<impl Stream<Item = NetlinkMessage<T>>, Error<T>> {
         let (tx, rx) = unbounded::<NetlinkMessage<T>>();
-        let request = Request::from((message, destination, tx));
+        let request = Request::Single {
+            message,
+            destination,
+            metadata: tx,
+        };
         debug!("handle: forwarding new request to connection");
         UnboundedSender::unbounded_send(&self.requests_tx, request).map_err(|e| {
             // the channel is unbounded, so it can't be full. If this
@@ -60,7 +64,11 @@ where
         destination: SocketAddr,
     ) -> Result<(), Error<T>> {
         let (tx, _rx) = unbounded::<NetlinkMessage<T>>();
-        let request = Request::from((message, destination, tx));
+        let request = Request::Single {
+            message,
+            destination,
+            metadata: tx,
+        };
         debug!("handle: forwarding new request to connection");
         UnboundedSender::unbounded_send(&self.requests_tx, request)
             .map_err(|_| Error::ConnectionClosed)

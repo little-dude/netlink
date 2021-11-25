@@ -131,7 +131,7 @@ where
     }
 
     pub fn request(&mut self, request: Request<T, M>) {
-        let Request {
+        let Request::Single {
             mut message,
             metadata,
             destination,
