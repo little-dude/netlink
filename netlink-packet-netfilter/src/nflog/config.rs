@@ -40,6 +40,8 @@ pub const NFULA_CFG_TIMEOUT: u16 = libc::NFULA_CFG_TIMEOUT as u16;
 pub const NFULA_CFG_QTHRESH: u16 = libc::NFULA_CFG_QTHRESH as u16;
 pub const NFULA_CFG_FLAGS: u16 = libc::NFULA_CFG_FLAGS as u16;
 
+pub const NLBUFSIZ_MAX: u32 = 131072;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ConfigNla {
     Cmd(ConfigCmd),
