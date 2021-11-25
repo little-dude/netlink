@@ -17,6 +17,7 @@ use std::net::IpAddr;
 pub struct NeighbourAddRequest {
     handle: Handle,
     message: NeighbourMessage,
+    replace: bool,
 }
 
 impl NeighbourAddRequest {
@@ -37,7 +38,11 @@ impl NeighbourAddRequest {
             IpAddr::V6(v6) => v6.octets().to_vec(),
         }));
 
-        NeighbourAddRequest { handle, message }
+        NeighbourAddRequest {
+            handle,
+            message,
+            replace: false,
+        }
     }
 
     /// Set a bitmask of states for the neighbor cache entry.
@@ -67,15 +72,25 @@ impl NeighbourAddRequest {
         self
     }
 
+    /// Replace existing matching neighbor.
+    pub fn replace(self) -> Self {
+        Self {
+            replace: true,
+            ..self
+        }
+    }
+
     /// Execute the request.
     pub async fn execute(self) -> Result<(), Error> {
         let NeighbourAddRequest {
             mut handle,
             message,
+            replace,
         } = self;
 
         let mut req = NetlinkMessage::from(RtnlMessage::NewNeighbour(message));
-        req.header.flags = NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE;
+        let replace = if replace { NLM_F_REPLACE } else { NLM_F_EXCL };
+        req.header.flags = NLM_F_REQUEST | NLM_F_ACK | replace | NLM_F_CREATE;
 
         let mut response = handle.request(req)?;
         while let Some(message) = response.next().await {
