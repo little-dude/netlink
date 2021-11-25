@@ -21,6 +21,11 @@ impl NeighbourHandle {
         NeighbourAddRequest::new(self.0.clone(), index, destination)
     }
 
+    /// Add a new fdb entry (equivalent to `bridge fdb add`)
+    pub fn add_bridge(&self, index: u32, lla: &[u8]) -> NeighbourAddRequest {
+        NeighbourAddRequest::new_bridge(self.0.clone(), index, lla)
+    }
+
     /// Delete a neighbour entry (equivalent to `ip neighbour delete`)
     pub fn del(&self, message: NeighbourMessage) -> NeighbourDelRequest {
         NeighbourDelRequest::new(self.0.clone(), message)
