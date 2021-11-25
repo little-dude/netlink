@@ -2,6 +2,7 @@
 
 use anyhow::Context;
 use byteorder::{BigEndian, ByteOrder};
+use derive_more::{From, IsVariant};
 use netlink_packet_core::DecodeError;
 use netlink_packet_utils::{
     nla::{DefaultNla, Nla, NlaBuffer},
@@ -39,15 +40,18 @@ pub const NFULA_HWLEN: u16 = libc::NFULA_HWLEN as u16;
 pub const NFULA_CT: u16 = libc::NFULA_CT as u16;
 pub const NFULA_CT_INFO: u16 = libc::NFULA_CT_INFO as u16;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, From, IsVariant)]
 pub enum PacketNla {
+    #[from]
     PacketHdr(PacketHdr),
     Mark(u32),
+    #[from]
     Timestamp(TimeStamp),
     IfIndexInDev(u32),
     IfIndexOutDev(u32),
     IfIndexPhysInDev(u32),
     IfIndexPhysOutDev(u32),
+    #[from]
     HwAddr(HwAddr),
     Payload(Vec<u8>),
     Prefix(Vec<u8>),
@@ -58,13 +62,8 @@ pub enum PacketNla {
     HwType(u16),
     HwHeader(Vec<u8>),
     HwHeaderLen(u16),
+    #[from]
     Other(DefaultNla),
-}
-
-impl From<PacketHdr> for PacketNla {
-    fn from(packet_hdr: PacketHdr) -> Self {
-        PacketNla::PacketHdr(packet_hdr)
-    }
 }
 
 impl Nla for PacketNla {

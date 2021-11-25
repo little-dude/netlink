@@ -18,6 +18,7 @@ netlink-packet-core = "0.3"
 netlink-packet-utils = "0.4"
 bitflags = "1.2.1"
 libc = "0.2.77"
+derive_more = "0.99.16"
 
 [dev-dependencies]
 netlink-sys = "0.8"
