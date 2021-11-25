@@ -162,6 +162,43 @@ where
     }
 }
 
+impl<T, S, C> Sink<(Vec<NetlinkMessage<T>>, SocketAddr)> for NetlinkFramed<T, S, C>
+where
+    T: NetlinkSerializable + Debug,
+    S: AsyncSocket,
+    C: NetlinkMessageCodec,
+{
+    type Error = io::Error;
+
+    fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.io.poll_ready(cx)
+    }
+
+    fn start_send(
+        self: Pin<&mut Self>,
+        item: (Vec<NetlinkMessage<T>>, SocketAddr),
+    ) -> Result<(), Self::Error> {
+        trace!("sending frame");
+        let (frames, out_addr) = item;
+        let pin = self.get_mut();
+        for frame in frames {
+            C::encode(frame, &mut pin.io.writer)?;
+        }
+        pin.io.out_addr = out_addr;
+        pin.io.flushed = false;
+        trace!("frame encoded; length={}", pin.io.writer.len());
+        Ok(())
+    }
+
+    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.io.poll_flush(cx)
+    }
+
+    fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.io.poll_flush(cx)
+    }
+}
+
 // The theoritical max netlink packet size is 32KB for a netlink
 // message since Linux 4.9 (16KB before). See:
 // https://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next.git/commit/?id=d35c99ff77ecb2eb239731b799386f3b3637a31e

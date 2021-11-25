@@ -93,7 +93,11 @@ where
 
         while !protocol.outgoing_messages.is_empty() {
             trace!("found outgoing message to send checking if socket is ready");
-            if let Poll::Ready(Err(e)) = Pin::as_mut(&mut socket).poll_ready(cx) {
+            if let Poll::Ready(Err(e)) = <NetlinkFramed<T, S, C> as Sink<(
+                NetlinkMessage<T>,
+                SocketAddr,
+            )>>::poll_ready(Pin::as_mut(&mut socket), cx)
+            {
                 // Sink errors are usually not recoverable. The socket
                 // probably shut down.
                 warn!("netlink socket shut down: {:?}", e);
@@ -118,7 +122,11 @@ where
 
     pub fn poll_flush(&mut self, cx: &mut Context) {
         trace!("poll_flush called");
-        if let Poll::Ready(Err(e)) = Pin::new(&mut self.socket).poll_flush(cx) {
+        if let Poll::Ready(Err(e)) = <NetlinkFramed<T, S, C> as Sink<(
+            NetlinkMessage<T>,
+            SocketAddr,
+        )>>::poll_flush(Pin::new(&mut self.socket), cx)
+        {
             warn!("error flushing netlink socket: {:?}", e);
             self.socket_closed = true;
         }
