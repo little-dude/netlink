@@ -40,6 +40,22 @@ pub trait NetlinkMessageCodec {
         T: NetlinkSerializable + Debug;
 }
 
+fn pad_msg_len(len: usize) -> Result<usize, io::Error> {
+    // whether payload len or "full" message len: both use the same alignment
+    // also note that the header size is already aligned.
+    const ALIGN_TO: usize = 4; // power of two!
+    match len.checked_add(ALIGN_TO - 1) {
+        Some(len) => Ok(len & !(ALIGN_TO - 1)),
+        None => Err(io::Error::new(
+            io::ErrorKind::Other,
+            format!(
+                "message is {} bytes long; can't add padding without overflow",
+                len,
+            ),
+        )),
+    }
+}
+
 /// Standard implementation of `NetlinkMessageCodec`
 pub struct NetlinkCodec {
     // we don't need an instance of this, just the type
@@ -84,8 +100,13 @@ impl NetlinkMessageCodec for NetlinkCodec {
             }
 
             let len = len_res.unwrap();
+            // skip padding, but only if present in buffer. assumes no partial datagrams in buffer...
+            // (i.e. this is a problem if the padding is received later)
+            let padded_len = std::cmp::min(pad_msg_len(len)?, src.len());
 
-            let bytes = src.split_to(len);
+            // split off `padded_len` bytes, but we only use `len` bytes
+            let mut bytes = src.split_to(padded_len);
+            bytes.truncate(len);
 
             let parsed = NetlinkMessage::<T>::deserialize(&bytes);
             match parsed {
@@ -106,13 +127,14 @@ impl NetlinkMessageCodec for NetlinkCodec {
         T: Debug + NetlinkSerializable,
     {
         let msg_len = msg.buffer_len();
-        if buf.remaining_mut() < msg_len {
+        let padded_msg_len = pad_msg_len(msg_len)?;
+        if buf.remaining_mut() < padded_msg_len {
             // BytesMut can expand till usize::MAX... unlikely to hit this one.
             return Err(io::Error::new(
                 io::ErrorKind::Other,
                 format!(
-                    "message is {} bytes, but only {} bytes left in the buffer",
-                    msg_len,
+                    "padded message is {} bytes, but only {} bytes left in the buffer",
+                    padded_msg_len,
                     buf.remaining_mut()
                 ),
             ));
@@ -121,10 +143,200 @@ impl NetlinkMessageCodec for NetlinkCodec {
         // As NetlinkMessage::serialize needs an initialized buffer anyway
         // no need for any `unsafe` magic.
         let old_len = buf.len();
-        let new_len = old_len + msg_len;
+        let new_len = old_len + padded_msg_len;
         buf.resize(new_len, 0);
         msg.serialize(&mut buf[old_len..][..msg_len]);
         trace!(">>> {:?}", msg);
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{NetlinkCodec, NetlinkMessageCodec};
+    use bytes::BytesMut;
+    use netlink_packet_core::{
+        NetlinkDeserializable,
+        NetlinkHeader,
+        NetlinkMessage,
+        NetlinkPayload,
+        NetlinkSerializable,
+    };
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    enum MsgNever {}
+
+    impl NetlinkSerializable for MsgNever {
+        fn message_type(&self) -> u16 {
+            match *self {}
+        }
+
+        fn buffer_len(&self) -> usize {
+            match *self {}
+        }
+
+        fn serialize(&self, _buffer: &mut [u8]) {
+            match *self {}
+        }
+    }
+
+    impl NetlinkDeserializable for MsgNever {
+        type Error = std::io::Error;
+
+        fn deserialize(_header: &NetlinkHeader, _payload: &[u8]) -> Result<MsgNever, Self::Error> {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "MsgNever can't ever be a payload",
+            ))
+        }
+    }
+
+    fn overrun_msg_with_len(len: usize) -> NetlinkMessage<MsgNever> {
+        let mut buf = Vec::new();
+        buf.resize(len, 0xff);
+        let mut msg = NetlinkMessage {
+            header: Default::default(),
+            payload: NetlinkPayload::Overrun(buf),
+        };
+        msg.finalize();
+        msg
+    }
+
+    fn encode_with_prefix<D>(prefix_len: usize, data: NetlinkMessage<D>) -> BytesMut
+    where
+        D: NetlinkSerializable + std::fmt::Debug,
+    {
+        let mut buf = BytesMut::new();
+        // for now encoder doesn't require buffer to be "pre-aligned"; allow this
+        // to be tested by different (unaligned) "prefixes"
+        buf.resize(prefix_len, 0x7f);
+        NetlinkCodec::encode(data, &mut buf).unwrap();
+        buf
+    }
+
+    fn test_decode(raw: &[u8], mut msgs: &[NetlinkMessage<MsgNever>]) {
+        // if we need to see decode errors we could use this ugly log initializiation:
+        // let _ = env_logger::try_init();
+        let mut buf = BytesMut::from(raw);
+        loop {
+            if let Some(msg) = NetlinkCodec::decode::<MsgNever>(&mut buf).unwrap() {
+                assert!(
+                    !msgs.is_empty(),
+                    "Got more messages than expected: {:?}",
+                    msg
+                );
+                assert_eq!(msg, msgs[0]);
+                msgs = &msgs[1..];
+            } else {
+                assert!(msgs.is_empty(), "Missing messages: {:?}", msgs);
+                break;
+            }
+        }
+    }
+
+    fn test_single_encode(
+        prefix_len: usize,
+        data: NetlinkMessage<MsgNever>,
+        expected_msg_len: usize,
+    ) {
+        let result = encode_with_prefix(prefix_len, data.clone());
+        assert_eq!(result.len(), prefix_len + expected_msg_len,);
+        test_decode(&result[prefix_len..], &[data]);
+    }
+
+    #[test]
+    fn test_encoding_unaligned1() {
+        test_single_encode(
+            7,
+            overrun_msg_with_len(1),
+            16 /* header */ + 4, /* padded data */
+        );
+    }
+
+    #[test]
+    fn test_encoding_unaligned2() {
+        test_single_encode(
+            7,
+            overrun_msg_with_len(2),
+            16 /* header */ + 4, /* padded data */
+        );
+    }
+
+    #[test]
+    fn test_encoding_unaligned3() {
+        test_single_encode(
+            7,
+            overrun_msg_with_len(3),
+            16 /* header */ + 4, /* padded data */
+        );
+    }
+
+    #[test]
+    fn test_encoding_unaligned4() {
+        test_single_encode(
+            7,
+            overrun_msg_with_len(4),
+            16 /* header */ + 4, /* padded data */
+        );
+    }
+
+    fn encode_batch_with_prefix<D>(prefix_len: usize, data: Vec<NetlinkMessage<D>>) -> BytesMut
+    where
+        D: NetlinkSerializable + std::fmt::Debug,
+    {
+        let mut buf = BytesMut::new();
+        // for now encoder doesn't require buffer to be "pre-aligned"; allow this
+        // to be tested by different (unaligned) "prefixes"
+        buf.resize(prefix_len, 0x7f);
+        for frame in data {
+            NetlinkCodec::encode(frame, &mut buf).unwrap();
+        }
+        buf
+    }
+
+    fn test_batch_encode(
+        prefix_len: usize,
+        data: Vec<NetlinkMessage<MsgNever>>,
+        expected_msg_len: usize,
+    ) {
+        let result = encode_batch_with_prefix(prefix_len, data.clone());
+        assert_eq!(result.len(), prefix_len + expected_msg_len,);
+        test_decode(&result[prefix_len..], &data);
+    }
+
+    #[test]
+    fn test_batch_encoding_unaligned1() {
+        test_batch_encode(
+            1,
+            vec![overrun_msg_with_len(1), overrun_msg_with_len(4)],
+            2 * 16 + 2 * 4,
+        );
+    }
+
+    #[test]
+    fn test_batch_encoding_unaligned2() {
+        test_batch_encode(
+            1,
+            vec![overrun_msg_with_len(2), overrun_msg_with_len(4)],
+            2 * 16 + 2 * 4,
+        );
+    }
+
+    #[test]
+    fn test_batch_encoding_unaligned3() {
+        test_batch_encode(
+            1,
+            vec![overrun_msg_with_len(3), overrun_msg_with_len(4)],
+            2 * 16 + 2 * 4,
+        );
+    }
+
+    #[test]
+    fn test_batch_encoding_unaligned4() {
+        test_batch_encode(
+            1,
+            vec![overrun_msg_with_len(4), overrun_msg_with_len(4)],
+            2 * 16 + 2 * 4,
+        );
     }
 }
