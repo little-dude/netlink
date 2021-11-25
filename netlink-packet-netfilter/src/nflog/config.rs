@@ -2,6 +2,7 @@
 
 use anyhow::Context;
 use byteorder::{BigEndian, ByteOrder};
+use derive_more::{From, IsVariant};
 use netlink_packet_core::{
     DecodeError,
     NetlinkHeader,
@@ -42,39 +43,17 @@ pub const NFULA_CFG_FLAGS: u16 = libc::NFULA_CFG_FLAGS as u16;
 
 pub const NLBUFSIZ_MAX: u32 = 131072;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, From, IsVariant)]
 pub enum ConfigNla {
     Cmd(ConfigCmd),
     Mode(ConfigMode),
+    #[from(ignore)]
     NlBufSiz(u32),
     Timeout(Timeout),
+    #[from(ignore)]
     QThresh(u32),
     Flags(ConfigFlags),
     Other(DefaultNla),
-}
-
-impl From<ConfigCmd> for ConfigNla {
-    fn from(cmd: ConfigCmd) -> Self {
-        ConfigNla::Cmd(cmd)
-    }
-}
-
-impl From<ConfigMode> for ConfigNla {
-    fn from(mode: ConfigMode) -> Self {
-        ConfigNla::Mode(mode)
-    }
-}
-
-impl From<Timeout> for ConfigNla {
-    fn from(timeout: Timeout) -> Self {
-        ConfigNla::Timeout(timeout)
-    }
-}
-
-impl From<ConfigFlags> for ConfigNla {
-    fn from(flags: ConfigFlags) -> Self {
-        ConfigNla::Flags(flags)
-    }
 }
 
 impl Nla for ConfigNla {
