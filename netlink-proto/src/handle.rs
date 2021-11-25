@@ -10,7 +10,7 @@ use std::fmt::Debug;
 use crate::{errors::Error, sys::SocketAddr, Request};
 
 /// A handle to pass requests to a [`Connection`](struct.Connection.html).
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct ConnectionHandle<T>
 where
     T: Debug,
@@ -64,5 +64,14 @@ where
         debug!("handle: forwarding new request to connection");
         UnboundedSender::unbounded_send(&self.requests_tx, request)
             .map_err(|_| Error::ConnectionClosed)
+    }
+}
+
+// don't want to require `T: Clone`, so can't derive it
+impl<T: Debug> Clone for ConnectionHandle<T> {
+    fn clone(&self) -> Self {
+        Self {
+            requests_tx: self.requests_tx.clone(),
+        }
     }
 }
