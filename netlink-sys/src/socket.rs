@@ -454,44 +454,40 @@ impl Socket {
 /// int getsockopt(int socket, int level, int option_name, void *restrict option_value, socklen_t *restrict option_len);
 /// ```
 pub(crate) fn getsockopt<T: Copy>(fd: RawFd, level: libc::c_int, option: libc::c_int) -> Result<T> {
-    unsafe {
-        // Create storage for the options we're fetching
-        let mut slot: T = mem::zeroed();
+    // Create storage for the options we're fetching
+    let mut slot: T = unsafe { mem::zeroed() };
 
-        // Create a mutable raw pointer to the storage so that getsockopt can fill the value
-        let slot_ptr = &mut slot as *mut T as *mut libc::c_void;
+    // Create a mutable raw pointer to the storage so that getsockopt can fill the value
+    let slot_ptr = &mut slot as *mut T as *mut libc::c_void;
 
-        // Let getsockopt know how big our storage is
-        let mut slot_len = mem::size_of::<T>() as libc::socklen_t;
+    // Let getsockopt know how big our storage is
+    let mut slot_len = mem::size_of::<T>() as libc::socklen_t;
 
-        // getsockopt takes a mutable pointer to the length, because for some options like
-        // NETLINK_LIST_MEMBERSHIP where the option value is a list with arbitrary length,
-        // getsockopt uses this parameter to signal how big the storage needs to be.
-        let slot_len_ptr = &mut slot_len as *mut libc::socklen_t;
+    // getsockopt takes a mutable pointer to the length, because for some options like
+    // NETLINK_LIST_MEMBERSHIP where the option value is a list with arbitrary length,
+    // getsockopt uses this parameter to signal how big the storage needs to be.
+    let slot_len_ptr = &mut slot_len as *mut libc::socklen_t;
 
-        let res = libc::getsockopt(fd, level, option, slot_ptr, slot_len_ptr);
-        if res < 0 {
-            return Err(Error::last_os_error());
-        }
-
-        // Ignore the options that require the legnth to be set by getsockopt.
-        // We'll deal with them individually.
-        assert_eq!(slot_len as usize, mem::size_of::<T>());
-
-        Ok(slot)
+    let res = unsafe { libc::getsockopt(fd, level, option, slot_ptr, slot_len_ptr) };
+    if res < 0 {
+        return Err(Error::last_os_error());
     }
+
+    // Ignore the options that require the legnth to be set by getsockopt.
+    // We'll deal with them individually.
+    assert_eq!(slot_len as usize, mem::size_of::<T>());
+
+    Ok(slot)
 }
 
 // adapted from rust standard library
 fn setsockopt<T>(fd: RawFd, level: libc::c_int, option: libc::c_int, payload: T) -> Result<()> {
-    unsafe {
-        let payload = &payload as *const T as *const libc::c_void;
-        let payload_len = mem::size_of::<T>() as libc::socklen_t;
+    let payload = &payload as *const T as *const libc::c_void;
+    let payload_len = mem::size_of::<T>() as libc::socklen_t;
 
-        let res = libc::setsockopt(fd, level, option, payload, payload_len);
-        if res < 0 {
-            return Err(Error::last_os_error());
-        }
+    let res = unsafe { libc::setsockopt(fd, level, option, payload, payload_len) };
+    if res < 0 {
+        return Err(Error::last_os_error());
     }
     Ok(())
 }
