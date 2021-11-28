@@ -45,6 +45,19 @@ impl NeighbourAddRequest {
         }
     }
 
+    pub(crate) fn new_bridge(handle: Handle, index: u32, lla: &[u8]) -> Self {
+        let mut message = NeighbourMessage::default();
+
+        message.header.family = AF_BRIDGE as u8;
+        message.header.ifindex = index;
+        message.header.state = NUD_PERMANENT;
+        message.header.ntype = NDA_UNSPEC as u8;
+
+        message.nlas.push(Nla::LinkLocalAddress(lla.to_vec()));
+
+        NeighbourAddRequest { handle, message }
+    }
+
     /// Set a bitmask of states for the neighbor cache entry.
     /// It should be a combination of `NUD_*` constants.
     pub fn state(mut self, state: u16) -> Self {
@@ -68,7 +81,38 @@ impl NeighbourAddRequest {
 
     /// Set a neighbor cache link layer address (see `NDA_LLADDR` for details).
     pub fn link_local_address(mut self, addr: &[u8]) -> Self {
-        self.message.nlas.push(Nla::LinkLocalAddress(addr.to_vec()));
+        let lla = self.message.nlas.iter_mut().find_map(|nla| match nla {
+            Nla::LinkLocalAddress(lla) => Some(lla),
+            _ => None,
+        });
+
+        if let Some(lla) = lla {
+            *lla = addr.to_vec();
+        } else {
+            self.message.nlas.push(Nla::LinkLocalAddress(addr.to_vec()));
+        }
+
+        self
+    }
+
+    /// Set the destination address for the neighbour (see `NDA_DST` for details).
+    pub fn destination(mut self, addr: IpAddr) -> Self {
+        let dst = self.message.nlas.iter_mut().find_map(|nla| match nla {
+            Nla::Destination(dst) => Some(dst),
+            _ => None,
+        });
+
+        let addr = match addr {
+            IpAddr::V4(v4) => v4.octets().to_vec(),
+            IpAddr::V6(v6) => v6.octets().to_vec(),
+        };
+
+        if let Some(dst) = dst {
+            *dst = addr;
+        } else {
+            self.message.nlas.push(Nla::Destination(addr));
+        }
+
         self
     }
 
