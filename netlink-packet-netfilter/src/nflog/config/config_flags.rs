@@ -16,6 +16,13 @@ bitflags! {
     }
 }
 
+// see https://github.com/bitflags/bitflags/issues/263
+impl ConfigFlags {
+    pub fn from_bits_preserve(bits: u16) -> Self {
+        ConfigFlags { bits }
+    }
+}
+
 impl Nla for ConfigFlags {
     fn value_len(&self) -> usize {
         size_of::<Self>()
