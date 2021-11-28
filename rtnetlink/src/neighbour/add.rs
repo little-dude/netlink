@@ -55,7 +55,11 @@ impl NeighbourAddRequest {
 
         message.nlas.push(Nla::LinkLocalAddress(lla.to_vec()));
 
-        NeighbourAddRequest { handle, message }
+        NeighbourAddRequest {
+            handle,
+            message,
+            replace: false,
+        }
     }
 
     /// Set a bitmask of states for the neighbor cache entry.
