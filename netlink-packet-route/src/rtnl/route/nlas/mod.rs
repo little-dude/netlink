@@ -20,19 +20,33 @@ use crate::{
     DecodeError,
 };
 
+#[cfg(feature = "rich_nlas")]
+use crate::traits::Emitable;
+
+/// Netlink attributes for `RTM_NEWROUTE`, `RTM_DELROUTE`,
+/// `RTM_GETROUTE` messages.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Nla {
+    #[cfg(not(feature = "rich_nlas"))]
+    Metrics(Vec<u8>),
+    #[cfg(feature = "rich_nlas")]
+    Metrics(Metrics),
+    #[cfg(not(feature = "rich_nlas"))]
+    MfcStats(Vec<u8>),
+    #[cfg(feature = "rich_nlas")]
+    MfcStats(MfcStats),
+    #[cfg(not(feature = "rich_nlas"))]
+    CacheInfo(Vec<u8>),
+    #[cfg(feature = "rich_nlas")]
+    CacheInfo(CacheInfo),
     Unspec(Vec<u8>),
     Destination(Vec<u8>),
     Source(Vec<u8>),
     Gateway(Vec<u8>),
     PrefSource(Vec<u8>),
-    Metrics(Vec<u8>),
     MultiPath(Vec<u8>),
-    CacheInfo(Vec<u8>),
     Session(Vec<u8>),
     MpAlgo(Vec<u8>),
-    MfcStats(Vec<u8>),
     Via(Vec<u8>),
     NewDestination(Vec<u8>),
     Pref(Vec<u8>),
@@ -73,10 +87,19 @@ impl nlas::Nla for Nla {
                 | Pad(ref bytes)
                 | Uid(ref bytes)
                 | TtlPropagate(ref bytes)
-                | CacheInfo(ref bytes)
+                => bytes.len(),
+
+            #[cfg(not(feature = "rich_nlas"))]
+            CacheInfo(ref bytes)
                 | MfcStats(ref bytes)
                 | Metrics(ref bytes)
                 => bytes.len(),
+            #[cfg(feature = "rich_nlas")]
+            CacheInfo(ref cache_info) => cache_info.buffer_len(),
+            #[cfg(feature = "rich_nlas")]
+            MfcStats(ref stats) => stats.buffer_len(),
+            #[cfg(feature = "rich_nlas")]
+            Metrics(ref metrics) => metrics.buffer_len(),
 
             EncapType(_) => 2,
             Iif(_)
@@ -112,10 +135,20 @@ impl nlas::Nla for Nla {
                 | Pad(ref bytes)
                 | Uid(ref bytes)
                 | TtlPropagate(ref bytes)
+                => buffer.copy_from_slice(bytes.as_slice()),
+
+            #[cfg(not(feature = "rich_nlas"))]
                 | CacheInfo(ref bytes)
                 | MfcStats(ref bytes)
                 | Metrics(ref bytes)
                 => buffer.copy_from_slice(bytes.as_slice()),
+
+            #[cfg(feature = "rich_nlas")]
+            CacheInfo(ref cache_info) => cache_info.emit(buffer),
+            #[cfg(feature = "rich_nlas")]
+            MfcStats(ref stats) => stats.emit(buffer),
+            #[cfg(feature = "rich_nlas")]
+            Metrics(ref metrics) => metrics.emit(buffer),
             EncapType(value) => NativeEndian::write_u16(buffer, value),
             Iif(value)
                 | Oif(value)
@@ -198,9 +231,35 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for Nla {
             RTA_FLOW => Flow(parse_u32(payload).context("invalid RTA_FLOW value")?),
             RTA_TABLE => Table(parse_u32(payload).context("invalid RTA_TABLE value")?),
             RTA_MARK => Mark(parse_u32(payload).context("invalid RTA_MARK value")?),
+
+            #[cfg(not(feature = "rich_nlas"))]
             RTA_CACHEINFO => CacheInfo(payload.to_vec()),
+            #[cfg(feature = "rich_nlas")]
+            RTA_CACHEINFO => CacheInfo(
+                cache_info::CacheInfo::parse(
+                    &CacheInfoBuffer::new_checked(payload)
+                        .context("invalid RTA_CACHEINFO value")?,
+                )
+                .context("invalid RTA_CACHEINFO value")?,
+            ),
+            #[cfg(not(feature = "rich_nlas"))]
             RTA_MFC_STATS => MfcStats(payload.to_vec()),
+            #[cfg(feature = "rich_nlas")]
+            RTA_MFC_STATS => MfcStats(
+                mfc_stats::MfcStats::parse(
+                    &MfcStatsBuffer::new_checked(payload).context("invalid RTA_MFC_STATS value")?,
+                )
+                .context("invalid RTA_MFC_STATS value")?,
+            ),
+            #[cfg(not(feature = "rich_nlas"))]
             RTA_METRICS => Metrics(payload.to_vec()),
+            #[cfg(feature = "rich_nlas")]
+            RTA_METRICS => Metrics(
+                metrics::Metrics::parse(
+                    &NlaBuffer::new_checked(payload).context("invalid RTA_METRICS value")?,
+                )
+                .context("invalid RTA_METRICS value")?,
+            ),
             _ => Other(DefaultNla::parse(buf).context("invalid NLA (unknown kind)")?),
         })
     }
