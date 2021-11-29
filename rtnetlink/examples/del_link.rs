@@ -23,7 +23,7 @@ async fn main() -> Result<(), ()> {
 }
 
 async fn del_link(handle: Handle, name: String) -> Result<(), Error> {
-    let mut links = handle.link().get().set_name_filter(name.clone()).execute();
+    let mut links = handle.link().get().match_name(name.clone()).execute();
     if let Some(link) = links.try_next().await? {
         handle.link().del(link.header.index).execute().await
     } else {
