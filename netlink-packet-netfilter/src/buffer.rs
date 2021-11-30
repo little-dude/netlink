@@ -53,7 +53,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> ParseableParametrized<NetfilterBuffer<&'a T>, 
         let inner = match subsys {
             NfLogMessage::SUBSYS => NetfilterMessageInner::NfLog(
                 NfLogMessage::parse_with_param(buf, message_type)
-                    .context("failed to parse nnflog payload")?,
+                    .context("failed to parse nflog payload")?,
             ),
             _ => NetfilterMessageInner::Other {
                 subsys,
