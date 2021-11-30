@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 
+use std::ffi::{CStr, CString};
+
 use anyhow::Context;
 use byteorder::{BigEndian, ByteOrder};
 use derive_more::{From, IsVariant};
@@ -54,7 +56,7 @@ pub enum PacketNla {
     #[from]
     HwAddr(HwAddr),
     Payload(Vec<u8>),
-    Prefix(Vec<u8>),
+    Prefix(CString),
     Uid(u32),
     Seq(u32),
     SeqGlobal(u32),
@@ -78,7 +80,7 @@ impl Nla for PacketNla {
             PacketNla::IfIndexPhysOutDev(_) => 4,
             PacketNla::HwAddr(attr) => attr.value_len(),
             PacketNla::Payload(vec) => vec.len(),
-            PacketNla::Prefix(vec) => vec.len(),
+            PacketNla::Prefix(cstring) => cstring.as_bytes_with_nul().len(),
             PacketNla::Uid(_) => 4,
             PacketNla::Seq(_) => 4,
             PacketNla::SeqGlobal(_) => 4,
@@ -124,7 +126,7 @@ impl Nla for PacketNla {
             PacketNla::IfIndexPhysOutDev(value) => BigEndian::write_u32(buffer, *value),
             PacketNla::HwAddr(attr) => attr.emit_value(buffer),
             PacketNla::Payload(vec) => buffer.copy_from_slice(vec),
-            PacketNla::Prefix(vec) => buffer.copy_from_slice(vec),
+            PacketNla::Prefix(cstring) => buffer.copy_from_slice(cstring.as_bytes_with_nul()),
             PacketNla::Uid(value) => BigEndian::write_u32(buffer, *value),
             PacketNla::Seq(value) => BigEndian::write_u32(buffer, *value),
             PacketNla::SeqGlobal(value) => BigEndian::write_u32(buffer, *value),
@@ -174,7 +176,11 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'buffer T>> for Pack
                 PacketNla::HwAddr(HwAddr::parse(&buf)?)
             }
             NFULA_PAYLOAD => PacketNla::Payload(payload.to_vec()),
-            NFULA_PREFIX => PacketNla::Prefix(payload.to_vec()),
+            NFULA_PREFIX => PacketNla::Prefix(
+                CStr::from_bytes_with_nul(payload)
+                    .context("invalid NFULA_PREFIX value")?
+                    .to_owned(),
+            ),
             NFULA_UID => PacketNla::Uid(parse_u32_be(payload).context("invalid NFULA_UID value")?),
             NFULA_SEQ => PacketNla::Seq(parse_u32_be(payload).context("invalid NFULA_SEQ value")?),
             NFULA_SEQ_GLOBAL => PacketNla::SeqGlobal(
