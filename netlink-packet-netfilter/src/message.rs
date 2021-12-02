@@ -95,8 +95,8 @@ impl Emitable for NetfilterMessageInner {
 #[derive(Debug, PartialEq, Eq, Clone)]
 
 pub struct NetfilterMessage {
-    pub(crate) header: NetfilterHeader,
-    pub(crate) inner: NetfilterMessageInner,
+    pub header: NetfilterHeader,
+    pub inner: NetfilterMessageInner,
 }
 
 impl NetfilterMessage {
