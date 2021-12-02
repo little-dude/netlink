@@ -8,19 +8,34 @@
 //   3) run it as root:
 //          sudo ../target/debug/examples/nflog
 
-use std::time::Duration;
+use std::{net::Ipv4Addr, time::Duration};
 
+use byteorder::{ByteOrder, NetworkEndian};
 use netlink_packet_netfilter::{
     constants::*,
-    message::NetfilterMessage,
+    message::{NetfilterMessage, NetfilterMessageInner},
     nflog::{
         self,
         config::{ConfigCmd, ConfigFlags, ConfigMode, Timeout},
+        packet::PacketNla,
+        NfLogMessage,
     },
     NetlinkMessage,
     NetlinkPayload,
 };
 use netlink_sys::{constants::NETLINK_NETFILTER, Socket};
+
+fn get_packet_nlas(message: &NetlinkMessage<NetfilterMessage>) -> &[PacketNla] {
+    if let NetlinkPayload::InnerMessage(NetfilterMessage {
+        inner: NetfilterMessageInner::NfLog(NfLogMessage::Packet(nlas)),
+        ..
+    }) = &message.payload
+    {
+        nlas
+    } else {
+        &[]
+    }
+}
 
 fn main() {
     let mut receive_buffer = vec![0; 4096];
@@ -51,7 +66,7 @@ fn main() {
         vec![
             ConfigCmd::Bind.into(),
             ConfigFlags::SEQ_GLOBAL.into(),
-            ConfigMode::new_packet(16).into(),
+            ConfigMode::PACKET_MAX.into(),
             timeout.into(),
         ],
     );
@@ -67,23 +82,32 @@ fn main() {
     assert!(matches!(rx_packet.payload, NetlinkPayload::Ack(_)));
 
     // And now we can receive the packets
+    loop {
+        match socket.recv(&mut &mut receive_buffer[..], 0) {
+            Ok(size) => {
+                let mut offset = 0;
+                loop {
+                    let bytes = &receive_buffer[offset..];
 
-    let mut offset = 0;
-    while let Ok(size) = socket.recv(&mut &mut receive_buffer[..], 0) {
-        loop {
-            let bytes = &receive_buffer[offset..];
+                    let rx_packet = <NetlinkMessage<NetfilterMessage>>::deserialize(bytes).unwrap();
 
-            let rx_packet = <NetlinkMessage<NetfilterMessage>>::deserialize(bytes).unwrap();
-            println!("<<< {:?}", rx_packet);
+                    for nla in get_packet_nlas(&rx_packet) {
+                        if let nflog::packet::PacketNla::Payload(payload) = nla {
+                            let src = Ipv4Addr::from(NetworkEndian::read_u32(&payload[12..]));
+                            let dst = Ipv4Addr::from(NetworkEndian::read_u32(&payload[16..]));
+                            println!("Packet from {} to {}", src, dst);
+                            break;
+                        }
+                    }
 
-            match rx_packet.payload {
-                NetlinkPayload::Error(_) | NetlinkPayload::Overrun(_) => return,
-                _ => (),
+                    offset += rx_packet.header.length as usize;
+                    if offset == size || rx_packet.header.length == 0 {
+                        break;
+                    }
+                }
             }
-
-            offset += rx_packet.header.length as usize;
-            if offset == size || rx_packet.header.length == 0 {
-                offset = 0;
+            Err(e) => {
+                println!("error while receiving packets: {:?}", e);
                 break;
             }
         }
