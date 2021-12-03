@@ -223,8 +223,7 @@ pub enum Nla {
     // ref: https://patchwork.ozlabs.org/patch/154816/
     LegacyMemInfo(LegacyMemInfo),
     /// the TCP information
-    // TODO: parse tcp_info properly
-    TcpInfo(Vec<u8>),
+    TcpInfo(TcpInfo),
     /// the congestion control algorithm used
     Congestion(String),
     /// the TOS of the socket.
@@ -252,30 +251,13 @@ impl crate::utils::nla::Nla for Nla {
         use self::Nla::*;
         match *self {
             LegacyMemInfo(_) => LEGACY_MEM_INFO_LEN,
-            TcpInfo(ref bytes) => bytes.len(),
+            TcpInfo(_) => TCP_INFO_LEN,
             // +1 because we need to append a null byte
             Congestion(ref s) => s.as_bytes().len() + 1,
             Tos(_) | Tc(_) | Shutdown(_) | Protocol(_) | SkV6Only(_) => 1,
             MemInfo(_) => MEM_INFO_LEN,
             Mark(_) | ClassId(_) => 4,
             Other(ref attr) => attr.value_len(),
-        }
-    }
-
-    fn emit_value(&self, buffer: &mut [u8]) {
-        use self::Nla::*;
-        match *self {
-            LegacyMemInfo(ref value) => value.emit(buffer),
-            TcpInfo(ref bytes) => buffer[..bytes.len()].copy_from_slice(&bytes[..]),
-            Congestion(ref s) => {
-                buffer[..s.len()].copy_from_slice(s.as_bytes());
-                buffer[s.len()] = 0;
-            }
-            Tos(b) | Tc(b) | Shutdown(b) | Protocol(b) => buffer[0] = b,
-            SkV6Only(value) => buffer[0] = value.into(),
-            MemInfo(ref value) => value.emit(buffer),
-            Mark(value) | ClassId(value) => NativeEndian::write_u32(buffer, value),
-            Other(ref attr) => attr.emit_value(buffer),
         }
     }
 
@@ -296,6 +278,23 @@ impl crate::utils::nla::Nla for Nla {
             Other(ref attr) => attr.kind(),
         }
     }
+
+    fn emit_value(&self, buffer: &mut [u8]) {
+        use self::Nla::*;
+        match *self {
+            LegacyMemInfo(ref value) => value.emit(buffer),
+            TcpInfo(ref value) => value.emit(buffer),
+            Congestion(ref s) => {
+                buffer[..s.len()].copy_from_slice(s.as_bytes());
+                buffer[s.len()] = 0;
+            }
+            Tos(b) | Tc(b) | Shutdown(b) | Protocol(b) => buffer[0] = b,
+            SkV6Only(value) => buffer[0] = value.into(),
+            MemInfo(ref value) => value.emit(buffer),
+            Mark(value) | ClassId(value) => NativeEndian::write_u32(buffer, value),
+            Other(ref attr) => attr.emit_value(buffer),
+        }
+    }
 }
 
 impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for Nla {
@@ -307,7 +306,11 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for Nla {
                 let buf = LegacyMemInfoBuffer::new_checked(payload).context(err)?;
                 Self::LegacyMemInfo(LegacyMemInfo::parse(&buf).context(err)?)
             }
-            INET_DIAG_INFO => Self::TcpInfo(payload.to_vec()),
+            INET_DIAG_INFO => {
+                let err = "invalid INET_DIAG_INFO value";
+                let buf = TcpInfoBuffer::new_checked(payload).context(err)?;
+                Self::TcpInfo(TcpInfo::parse(&buf).context(err)?)
+            },
             INET_DIAG_CONG => {
                 Self::Congestion(parse_string(payload).context("invalid INET_DIAG_CONG value")?)
             }
@@ -342,190 +345,331 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for Nla {
     }
 }
 
-// buffer!(TcpInfoBuffer(TCP_INFO_LEN) {
-//     // State of the TCP connection. This should be set to one of the
-//     // `TCP_*` constants: `TCP_ESTABLISHED`, `TCP_SYN_SENT`, etc. This
-//     // attribute is known as `tcpi_state` in the kernel.
-//     state: (u8, 0),
-//     // State of congestion avoidance. Sender's congestion state
-//     // indicating normal or abnormal situations in the last round of
-//     // packets sent. The state is driven by the ACK information and
-//     // timer events. This should be set to one of the `TCP_CA_*`
-//     // constants. This attribute is known as `tcpi_ca_state` in the
-//     // kernel.
-//     congestion_avoidance_state: (u8, 1),
-//     // Number of retranmissions on timeout invoked. This attribute is
-//     // known as `tcpi_retransmits` in the kernel.
-//     retransmits: (u8, 2),
-//     // Number of window or keep alive probes sent. This attribute is
-//     // known as `tcpi_probes`.
-//     probes: (u8, 3),
-//     // Number of times the retransmission backoff timer invoked
-//     backoff: (u8, 4),
+pub const TCP_INFO_LEN: usize = 232;
 
-//     //
-//     options: (u8, 5),
-//     wscale: (u8, 6),
-//     delivery_rate_app_limited: (u8, 7),
-//     rto: (u32, 8..12),
-//     ato: (u32, 12..16),
-//     snd_mss: (u32, 16..20),
-//     rcv_mss: (u32, 20..24),
-//     unacked: (u32, 24..28),
-//     sacked: (u32, 28..32),
-//     lost: (u32, 32..36),
-//     retrans: (u32, 36..40),
-//     fackets: (u32, 40..44),
-//     last_data_sent: (u32, 44..48),
-//     last_ack_sent: (u32, 48..52),
-//     last_data_recv: (u32, 52..56),
-//     last_ack_recv: (u32, 56..60),
-//     pmtu: (u32, 60..64),
-//     rcv_ssthresh: (u32, 64..68),
-//     rtt: (u32, 68..72),
-//     rttvar: (u32, 72..76),
-//     snd_ssthresh: (u32, 76..80),
-//     snd_cwnd: (u32, 80..84),
-//     advmss: (u32, 84..88),
-//     reordering: (u32, 88..92),
-//     rcv_rtt: (u32, 92..96),
-//     rcv_space: (u32, 96..100),
-//     total_retrans: (u32, 100..104),
-//     pacing_rate: (u64, 104..112),
-//     max_pacing_rate: (u64, 112..120),
-//     bytes_acked: (u64, 120..128),
-//     bytes_received: (u64, 128..136),
-//     segs_out: (u32, 136..140),
-//     segs_in: (u32, 140..144),
-//     notsent_bytes: (u32, 144..148),
-//     min_rtt: (u32, 148..152),
-//     data_segs_in: (u32, 152..156),
-//     data_segs_out: (u32, 156..160),
-//     delivery_rate: (u64, 160..168),
-//     busy_time: (u64, 168..176),
-//     rwnd_limited: (u64, 176..184),
-//     sndbuf_limited: (u64, 184..192),
-//     delivered: (u32, 192..196),
-//     delivered_ce: (u32, 196..200),
-//     bytes_sent: (u64, 200..208),
-//     bytes_retrans: (u64, 208..216),
-//     dsack_dups: (u32,   216..220),
-//     reord_seen: (u32,   220..224),
-//     // These are pretty recent addition, we should hide them behing
-//     // `#[cfg]` flag
-//     rcv_ooopack: (u32, 224..228),
-//     snd_wnd: (u32, 228..232),
-// });
+buffer!(TcpInfoBuffer(TCP_INFO_LEN) {
+    // State of the TCP connection. This should be set to one of the
+    // `TCP_*` constants: `TCP_ESTABLISHED`, `TCP_SYN_SENT`, etc. This
+    // attribute is known as `tcpi_state` in the kernel.
+    state: (u8, 0),
+    // State of congestion avoidance. Sender's congestion state
+    // indicating normal or abnormal situations in the last round of
+    // packets sent. The state is driven by the ACK information and
+    // timer events. This should be set to one of the `TCP_CA_*`
+    // constants. This attribute is known as `tcpi_ca_state` in the
+    // kernel.
+    congestion_avoidance_state: (u8, 1),
+    // Number of retranmissions on timeout invoked. This attribute is
+    // known as `tcpi_retransmits` in the kernel.
+    retransmits: (u8, 2),
+    // Number of window or keep alive probes sent. This attribute is
+    // known as `tcpi_probes`.
+    probes: (u8, 3),
+    // Number of times the retransmission backoff timer invoked
+    backoff: (u8, 4),
+    options: (u8, 5),
+    wscale: (u8, 6),
+    delivery_rate_app_limited: (u8, 7),
 
-// // https://unix.stackexchange.com/questions/542712/detailed-output-of-ss-command
+    rto: (u32, 8..12),
+    ato: (u32, 12..16),
+    snd_mss: (u32, 16..20),
+    rcv_mss: (u32, 20..24),
 
-// #[derive(Debug, Clone, PartialEq, Eq)]
-// pub struct TcpInfo {
-//     /// State of the TCP connection: one of `TCP_ESTABLISHED`,
-//     /// `TCP_SYN_SENT`, `TP_SYN_RECV`, `TCP_FIN_WAIT1`,
-//     /// `TCP_FIN_WAIT2` `TCP_TIME_WAIT`, `TCP_CLOSE`,
-//     /// `TCP_CLOSE_WAIT`, `TCP_LAST_ACK` `TCP_LISTEN`, `TCP_CLOSING`.
-//     pub state: u8,
-//     /// Congestion algorithm state: one of `TCP_CA_OPEN`,
-//     /// `TCP_CA_DISORDER`, `TCP_CA_CWR`, `TCP_CA_RECOVERY`,
-//     /// `TCP_CA_LOSS`
-//     pub ca_state: u8,
-//     ///
-//     pub retransmits: u8,
-//     pub probes: u8,
-//     pub backoff: u8,
-//     pub options: u8,
-//     pub wscale: u8,
-//     /// A boolean indicating if the goodput was measured when the
-//     /// socket's throughput was limited by the sending application.
-//     pub delivery_rate_app_limited: u8,
+    unacked: (u32, 24..28),
+    sacked: (u32, 28..32),
+    lost: (u32, 32..36),
+    retrans: (u32, 36..40),
+    fackets: (u32, 40..44),
 
-//     /// Value of the RTO (Retransmission TimeOut) timer. This value is
-//     /// calculated using the RTT.
-//     pub rto: u32,
-//     /// Value of the ATO (ACK TimeOut) timer.
-//     pub ato: u32,
-//     /// MSS (Maximum Segment Size). Not shure how it differs from
-//     /// `advmss`.
-//     pub snd_mss: u32,
-//     /// MSS (Maximum Segment Size) advertised by peer
-//     pub rcv_mss: u32,
+    // Times
+    last_data_sent: (u32, 44..48),
+    last_ack_sent: (u32, 48..52),
+    last_data_recv: (u32, 52..56),
+    last_ack_recv: (u32, 56..60),
 
-//     /// Number of segments that have not been ACKnowledged yet, ie the
-//     /// number of in-flight segments.
-//     pub unacked: u32,
-//     /// Number of segments that have been SACKed
-//     pub sacked: u32,
-//     /// Number of segments that have been lost
-//     pub lost: u32,
-//     /// Number of segments that have been retransmitted
-//     pub retrans: u32,
-//     /// Number of segments that have been FACKed
-//     pub fackets: u32,
+    // Metrics
+    pmtu: (u32, 60..64),
+    rcv_ssthresh: (u32, 64..68),
+    rtt: (u32, 68..72),
+    rttvar: (u32, 72..76),
+    snd_ssthresh: (u32, 76..80),
+    snd_cwnd: (u32, 80..84),
+    advmss: (u32, 84..88),
+    reordering: (u32, 88..92),
 
-//     pub last_data_sent: u32,
-//     pub last_ack_sent: u32,
-//     pub last_data_recv: u32,
-//     pub last_ack_recv: u32,
+    rcv_rtt: (u32, 92..96),
+    rcv_space: (u32, 96..100),
 
-//     pub pmtu: u32,
-//     pub rcv_ssthresh: u32,
-//     /// RTT (Round Trip Time). There RTT is the time between the
-//     /// moment a segment is sent out and the moment it is
-//     /// acknowledged. There are different kinds of RTT values, and I
-//     /// don't know which one this value corresponds to: mRTT (measured
-//     /// RTT), sRTT (smoothed RTT), RTTd (deviated RTT), etc.
-//     pub rtt: u32,
-//     /// RTT variance (or variation?)
-//     pub rttvar: u32,
-//     /// Slow-Start Threshold
-//     pub snd_ssthresh: u32,
-//     /// Size of the congestion window
-//     pub snd_cwnd: u32,
-//     /// MSS advertised by this peer
-//     pub advmss: u32,
+    total_retrans: (u32, 100..104),
 
-//     pub reordering: u32,
+    pacing_rate: (u64, 104..112),
+    max_pacing_rate: (u64, 112..120),
+    bytes_acked: (u64, 120..128),       // RFC4898 tcpEStatsAppHCThruOctetsAcked
+    bytes_received: (u64, 128..136),    // RFC4898 tcpEStatsAppHCThruOctetsReceived
+    segs_out: (u32, 136..140),          // RFC4898 tcpEStatsPerfSegsOut
+    segs_in: (u32, 140..144),           // RFC4898 tcpEStatsPerfSegsIn
 
-//     pub rcv_rtt: u32,
-//     pub rcv_space: u32,
+    notsent_bytes: (u32, 144..148),
+    min_rtt: (u32, 148..152),
+    data_segs_in: (u32, 152..156),      // RFC4898 tcpEStatsDataSegsIn
+    data_segs_out: (u32, 156..160),     // RFC4898 tcpEStatsDataSegsOut
 
-//     pub total_retrans: u32,
+    delivery_rate: (u64, 160..168),
 
-//     pub pacing_rate: u64,
-//     pub max_pacing_rate: u64,
-//     pub bytes_acked: u64,    // RFC4898 tcpEStatsAppHCThruOctetsAcked
-//     pub bytes_received: u64, // RFC4898 tcpEStatsAppHCThruOctetsReceived
-//     pub segs_out: u32,       // RFC4898 tcpEStatsPerfSegsOut
-//     pub segs_in: u32,        // RFC4898 tcpEStatsPerfSegsIn
+    busy_time: (u64, 168..176),         // Time (usec) busy sending data
+    rwnd_limited: (u64, 176..184),      // Time (usec) limited by receive window
+    sndbuf_limited: (u64, 184..192),    // Time (usec) limited by send buffer
 
-//     pub notsent_bytes: u32,
-//     pub min_rtt: u32,
-//     pub data_segs_in: u32,  // RFC4898 tcpEStatsDataSegsIn
-//     pub data_segs_out: u32, // RFC4898 tcpEStatsDataSegsOut
+    delivered: (u32, 192..196),
+    delivered_ce: (u32, 196..200),
 
-//     /// The most recent goodput, as measured by tcp_rate_gen(). If the
-//     /// socket is limited by the sending application (e.g., no data to
-//     /// send), it reports the highest measurement instead of the most
-//     /// recent. The unit is bytes per second (like other rate fields
-//     /// in tcp_info).
-//     pub delivery_rate: u64,
+    bytes_sent: (u64, 200..208),       // RFC4898 tcpEStatsPerfHCDataOctetsOut
+    bytes_retrans: (u64, 208..216),    // RFC4898 tcpEStatsPerfOctetsRetrans
+    dsack_dups: (u32,   216..220),     // RFC4898 tcpEStatsStackDSACKDups
+    reord_seen: (u32,   220..224),     // reordering events seen
+    // TODO: These are pretty recent addition, we should hide them behind
+    // `#[cfg]` flag
+    rcv_ooopack: (u32, 224..228),     // Out-of-order packets received
+    snd_wnd: (u32, 228..232),         // peer's advertised receive window after scaling (bytes)
+});
 
-//     pub busy_time: u64,      // Time (usec) busy sending data
-//     pub rwnd_limited: u64,   // Time (usec) limited by receive window
-//     pub sndbuf_limited: u64, // Time (usec) limited by send buffer
+// https://unix.stackexchange.com/questions/542712/detailed-output-of-ss-command
 
-//     pub delivered: u32,
-//     pub delivered_ce: u32,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TcpInfo {
+    /// State of the TCP connection: one of `TCP_ESTABLISHED`,
+    /// `TCP_SYN_SENT`, `TP_SYN_RECV`, `TCP_FIN_WAIT1`,
+    /// `TCP_FIN_WAIT2` `TCP_TIME_WAIT`, `TCP_CLOSE`,
+    /// `TCP_CLOSE_WAIT`, `TCP_LAST_ACK` `TCP_LISTEN`, `TCP_CLOSING`.
+    pub state: u8,
+    /// Congestion algorithm state: one of `TCP_CA_OPEN`,
+    /// `TCP_CA_DISORDER`, `TCP_CA_CWR`, `TCP_CA_RECOVERY`,
+    /// `TCP_CA_LOSS`
+    pub ca_state: u8,
+    ///
+    pub retransmits: u8,
+    pub probes: u8,
+    pub backoff: u8,
+    pub options: u8,
+    // First 4 bits are snd_wscale, last 4 bits rcv_wscale
+    pub wscale: u8,
+    /// A boolean indicating if the goodput was measured when the
+    /// socket's throughput was limited by the sending application.
+    /// tcpi_delivery_rate_app_limited:1, tcpi_fastopen_client_fail:2
+    pub delivery_rate_app_limited: u8,
 
-//     pub bytes_sent: u64,    // RFC4898 tcpEStatsPerfHCDataOctetsOut
-//     pub bytes_retrans: u64, // RFC4898 tcpEStatsPerfOctetsRetrans
-//     pub dsack_dups: u32,    // RFC4898 tcpEStatsStackDSACKDups
-//     /// reordering events seen
-//     pub reord_seen: u32,
+    /// Value of the RTO (Retransmission TimeOut) timer. This value is
+    /// calculated using the RTT.
+    pub rto: u32,
+    /// Value of the ATO (ACK TimeOut) timer.
+    pub ato: u32,
+    /// MSS (Maximum Segment Size). Not shure how it differs from
+    /// `advmss`.
+    pub snd_mss: u32,
+    /// MSS (Maximum Segment Size) advertised by peer
+    pub rcv_mss: u32,
 
-//     /// Out-of-order packets received
-//     pub rcv_ooopack: u32,
-//     /// peer's advertised receive window after scaling (bytes)
-//     pub snd_wnd: u32,
-// }
+    /// Number of segments that have not been ACKnowledged yet, ie the
+    /// number of in-flight segments.
+    pub unacked: u32,
+    /// Number of segments that have been SACKed
+    pub sacked: u32,
+    /// Number of segments that have been lost
+    pub lost: u32,
+    /// Number of segments that have been retransmitted
+    pub retrans: u32,
+    /// Number of segments that have been FACKed
+    pub fackets: u32,
+
+    pub last_data_sent: u32,
+    pub last_ack_sent: u32,
+    pub last_data_recv: u32,
+    pub last_ack_recv: u32,
+
+    pub pmtu: u32,
+    pub rcv_ssthresh: u32,
+    /// RTT (Round Trip Time). There RTT is the time between the
+    /// moment a segment is sent out and the moment it is
+    /// acknowledged. There are different kinds of RTT values, and I
+    /// don't know which one this value corresponds to: mRTT (measured
+    /// RTT), sRTT (smoothed RTT), RTTd (deviated RTT), etc.
+    pub rtt: u32,
+    /// RTT variance (or variation?)
+    pub rttvar: u32,
+    /// Slow-Start Threshold
+    pub snd_ssthresh: u32,
+    /// Size of the congestion window
+    pub snd_cwnd: u32,
+    /// MSS advertised by this peer
+    pub advmss: u32,
+
+    pub reordering: u32,
+
+    pub rcv_rtt: u32,
+    pub rcv_space: u32,
+
+    pub total_retrans: u32,
+
+    pub pacing_rate: u64,
+    pub max_pacing_rate: u64,
+    pub bytes_acked: u64,    // RFC4898 tcpEStatsAppHCThruOctetsAcked
+    pub bytes_received: u64, // RFC4898 tcpEStatsAppHCThruOctetsReceived
+    pub segs_out: u32,       // RFC4898 tcpEStatsPerfSegsOut
+    pub segs_in: u32,        // RFC4898 tcpEStatsPerfSegsIn
+
+    pub notsent_bytes: u32,
+    pub min_rtt: u32,
+    pub data_segs_in: u32,  // RFC4898 tcpEStatsDataSegsIn
+    pub data_segs_out: u32, // RFC4898 tcpEStatsDataSegsOut
+
+    /// The most recent goodput, as measured by tcp_rate_gen(). If the
+    /// socket is limited by the sending application (e.g., no data to
+    /// send), it reports the highest measurement instead of the most
+    /// recent. The unit is bytes per second (like other rate fields
+    /// in tcp_info).
+    pub delivery_rate: u64,
+
+    pub busy_time: u64,      // Time (usec) busy sending data
+    pub rwnd_limited: u64,   // Time (usec) limited by receive window
+    pub sndbuf_limited: u64, // Time (usec) limited by send buffer
+
+    pub delivered: u32,
+    pub delivered_ce: u32,
+
+    pub bytes_sent: u64,    // RFC4898 tcpEStatsPerfHCDataOctetsOut
+    pub bytes_retrans: u64, // RFC4898 tcpEStatsPerfOctetsRetrans
+    pub dsack_dups: u32,    // RFC4898 tcpEStatsStackDSACKDups
+    /// reordering events seen
+    pub reord_seen: u32,
+
+    /// Out-of-order packets received
+    pub rcv_ooopack: u32,
+    /// peer's advertised receive window after scaling (bytes)
+    pub snd_wnd: u32,
+}
+
+impl<T: AsRef<[u8]>> Parseable<TcpInfoBuffer<T>> for TcpInfo {
+    fn parse(buf: &TcpInfoBuffer<T>) -> Result<Self, DecodeError> {
+        Ok(Self {
+            state: buf.state(),
+            ca_state: buf.congestion_avoidance_state(),
+            retransmits: buf.retransmits(),
+            probes: buf.probes(),
+            backoff: buf.backoff(),
+            options: buf.options(),
+            wscale: buf.wscale(),
+            delivery_rate_app_limited: buf.delivery_rate_app_limited(),
+            rto: buf.rto(),
+            ato: buf.ato(),
+            snd_mss: buf.snd_mss(),
+            rcv_mss: buf.rcv_mss(),
+            unacked: buf.unacked(),
+            sacked: buf.sacked(),
+            lost: buf.lost(),
+            retrans: buf.retrans(),
+            fackets: buf.fackets(),
+            last_data_sent: buf.last_data_sent(),
+            last_ack_sent: buf.last_ack_sent(),
+            last_data_recv: buf.last_data_recv(),
+            last_ack_recv: buf.last_ack_recv(),
+            pmtu: buf.pmtu(),
+            rcv_ssthresh: buf.rcv_ssthresh(),
+            rtt: buf.rtt(),
+            rttvar: buf.rttvar(),
+            snd_ssthresh: buf.snd_ssthresh(),
+            snd_cwnd: buf.snd_cwnd(),
+            advmss: buf.advmss(),
+            reordering: buf.reordering(),
+            rcv_rtt: buf.rcv_rtt(),
+            rcv_space: buf.rcv_space(),
+            total_retrans: buf.total_retrans(),
+            pacing_rate: buf.pacing_rate(),
+            max_pacing_rate: buf.max_pacing_rate(),
+            bytes_acked: buf.bytes_acked(),
+            bytes_received: buf.bytes_received(),
+            segs_out: buf.segs_out(),
+            segs_in: buf.segs_in(),
+            notsent_bytes: buf.notsent_bytes(),
+            min_rtt: buf.min_rtt(),
+            data_segs_in: buf.data_segs_in(),
+            data_segs_out: buf.data_segs_out(),
+            delivery_rate: buf.delivery_rate(),
+            busy_time: buf.busy_time(),
+            rwnd_limited: buf.rwnd_limited(),
+            sndbuf_limited: buf.sndbuf_limited(),
+            delivered: buf.delivered(),
+            delivered_ce: buf.delivered_ce(),
+            bytes_sent: buf.bytes_sent(),
+            bytes_retrans: buf.bytes_retrans(),
+            dsack_dups: buf.dsack_dups(),
+            reord_seen: buf.reord_seen(),
+            rcv_ooopack: buf.rcv_ooopack(),
+            snd_wnd: buf.snd_wnd(),
+        })
+    }
+}
+
+impl Emitable for TcpInfo {
+    fn buffer_len(&self) -> usize {
+        TCP_INFO_LEN
+    }
+
+    fn emit(&self, buf: &mut [u8]) {
+        let mut buf = TcpInfoBuffer::new(buf);
+        buf.set_state(self.state);
+        buf.set_congestion_avoidance_state(self.ca_state);
+        buf.set_retransmits(self.retransmits);
+        buf.set_probes(self.probes);
+        buf.set_backoff(self.backoff);
+        buf.set_options(self.options);
+        buf.set_wscale(self.wscale);
+        buf.set_delivery_rate_app_limited(self.delivery_rate_app_limited);
+        buf.set_rto(self.rto);
+        buf.set_ato(self.ato);
+        buf.set_snd_mss(self.snd_mss);
+        buf.set_rcv_mss(self.rcv_mss);
+        buf.set_unacked(self.unacked);
+        buf.set_sacked(self.sacked);
+        buf.set_lost(self.lost);
+        buf.set_retrans(self.retrans);
+        buf.set_fackets(self.fackets);
+        buf.set_last_data_sent(self.last_data_sent);
+        buf.set_last_ack_sent(self.last_ack_sent);
+        buf.set_last_data_recv(self.last_data_recv);
+        buf.set_last_ack_recv(self.last_ack_recv);
+        buf.set_pmtu(self.pmtu);
+        buf.set_rcv_ssthresh(self.rcv_ssthresh);
+        buf.set_rtt(self.rtt);
+        buf.set_rttvar(self.rttvar);
+        buf.set_snd_ssthresh(self.snd_ssthresh);
+        buf.set_snd_cwnd(self.snd_cwnd);
+        buf.set_advmss(self.advmss);
+        buf.set_reordering(self.reordering);
+        buf.set_rcv_rtt(self.rcv_rtt);
+        buf.set_rcv_space(self.rcv_space);
+        buf.set_total_retrans(self.total_retrans);
+        buf.set_pacing_rate(self.pacing_rate);
+        buf.set_max_pacing_rate(self.max_pacing_rate);
+        buf.set_bytes_acked(self.bytes_acked);
+        buf.set_bytes_received(self.bytes_received);
+        buf.set_segs_out(self.segs_out);
+        buf.set_segs_in(self.segs_in);
+        buf.set_notsent_bytes(self.notsent_bytes);
+        buf.set_min_rtt(self.min_rtt);
+        buf.set_data_segs_in(self.data_segs_in);
+        buf.set_data_segs_out(self.data_segs_out);
+        buf.set_delivery_rate(self.delivery_rate);
+        buf.set_busy_time(self.busy_time);
+        buf.set_rwnd_limited(self.rwnd_limited);
+        buf.set_sndbuf_limited(self.sndbuf_limited);
+        buf.set_delivered(self.delivered);
+        buf.set_delivered_ce(self.delivered_ce);
+        buf.set_bytes_sent(self.bytes_sent);
+        buf.set_bytes_retrans(self.bytes_retrans);
+        buf.set_dsack_dups(self.dsack_dups);
+        buf.set_reord_seen(self.reord_seen);
+        buf.set_rcv_ooopack(self.rcv_ooopack);
+        buf.set_snd_wnd(self.snd_wnd);
+    }
+}

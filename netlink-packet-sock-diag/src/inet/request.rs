@@ -97,7 +97,7 @@ bitflags! {
         const MEMINFO = 1 << (INET_DIAG_MEMINFO as u16 - 1);
         const INFO = 1 << (INET_DIAG_INFO as u16 - 1);
         const VEGASINFO = 1 << (INET_DIAG_VEGASINFO as u16 - 1);
-        const CONF = 1 << (INET_DIAG_CONG as u16 - 1);
+        const CONG = 1 << (INET_DIAG_CONG as u16 - 1);
         const TOS = 1 << (INET_DIAG_TOS as u16 - 1);
         const TCLASS = 1 << (INET_DIAG_TCLASS as u16 - 1);
         const SKMEMINFO = 1 << (INET_DIAG_SKMEMINFO as u16 - 1);
