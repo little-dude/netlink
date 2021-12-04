@@ -20,6 +20,7 @@ pub enum WgDeviceAttrs {
     ListenPort(u16),
     Fwmark(u32),
     Peers(Vec<Vec<WgPeerAttrs>>),
+    Flags(u32),
 }
 
 impl Nla for WgDeviceAttrs {
@@ -33,6 +34,7 @@ impl Nla for WgDeviceAttrs {
             WgDeviceAttrs::ListenPort(v) => size_of_val(v),
             WgDeviceAttrs::Fwmark(v) => size_of_val(v),
             WgDeviceAttrs::Peers(nlas) => nlas.iter().map(|op| op.as_slice().buffer_len()).sum(),
+            WgDeviceAttrs::Flags(v) => size_of_val(v),
         }
     }
 
@@ -46,6 +48,7 @@ impl Nla for WgDeviceAttrs {
             WgDeviceAttrs::ListenPort(_) => WGDEVICE_A_LISTEN_PORT,
             WgDeviceAttrs::Fwmark(_) => WGDEVICE_A_FWMARK,
             WgDeviceAttrs::Peers(_) => WGDEVICE_A_PEERS,
+            WgDeviceAttrs::Flags(_) => WGDEVICE_A_FLAGS,
         }
     }
 
@@ -68,6 +71,7 @@ impl Nla for WgDeviceAttrs {
                     len += op.as_slice().buffer_len();
                 }
             }
+            WgDeviceAttrs::Flags(v) => NativeEndian::write_u32(buffer, *v),
         }
     }
 }
@@ -113,6 +117,9 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for WgDeviceAttrs 
                     peers.push(group);
                 }
                 Self::Peers(peers)
+            }
+            WGDEVICE_A_FLAGS => {
+                Self::Flags(parse_u32(payload).context("invalid WGDEVICE_A_FLAGS value")?)
             }
             kind => return Err(DecodeError::from(format!("invalid NLA kind: {}", kind))),
         })
