@@ -394,6 +394,9 @@ pub const IFLA_INFO_DATA: u16 = 2;
 pub const IFLA_INFO_XSTATS: u16 = 3;
 pub const IFLA_INFO_SLAVE_KIND: u16 = 4;
 pub const IFLA_INFO_SLAVE_DATA: u16 = 5;
+// Bridge flags
+pub const IFLA_BRIDGE_FLAGS: u16 = 47;
+
 pub const IFLA_BR_UNSPEC: u16 = 0;
 pub const IFLA_BR_FORWARD_DELAY: u16 = 1;
 pub const IFLA_BR_HELLO_TIME: u16 = 2;
