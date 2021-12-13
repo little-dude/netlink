@@ -400,6 +400,12 @@ pub const BRIDGE_FLAGS_MASTER: u16 = 1; /* Bridge command to/from master */
 pub const BRIDGE_FLAGS_SELF: u16 = 2; /* Bridge command to/from lowerdev */
 
 pub const IFLA_BRIDGE_VLAN_INFO: u16 = 48;
+pub const BRIDGE_VLAN_INFO_MASTER: u16 = 1;
+pub const BRIDGE_VLAN_INFO_PVID: u16 = 4;
+pub const BRIDGE_VLAN_INFO_UNTAGGED: u16 = 8;
+pub const BRIDGE_VLAN_INFO_RANGE_BEGIN: u16 = 16;
+pub const BRIDGE_VLAN_INFO_RANGE_END: u16 = 32;
+
 pub const IFLA_BR_UNSPEC: u16 = 0;
 pub const IFLA_BR_FORWARD_DELAY: u16 = 1;
 pub const IFLA_BR_HELLO_TIME: u16 = 2;
