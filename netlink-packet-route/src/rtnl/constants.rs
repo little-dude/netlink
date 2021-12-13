@@ -399,6 +399,7 @@ pub const IFLA_BRIDGE_FLAGS: u16 = 47;
 pub const BRIDGE_FLAGS_MASTER: u16 = 1; /* Bridge command to/from master */
 pub const BRIDGE_FLAGS_SELF: u16 = 2; /* Bridge command to/from lowerdev */
 
+pub const IFLA_BRIDGE_VLAN_INFO: u16 = 48;
 pub const IFLA_BR_UNSPEC: u16 = 0;
 pub const IFLA_BR_FORWARD_DELAY: u16 = 1;
 pub const IFLA_BR_HELLO_TIME: u16 = 2;
