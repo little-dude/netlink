@@ -310,7 +310,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for Nla {
                 let err = "invalid INET_DIAG_INFO value";
                 let buf = TcpInfoBuffer::new_checked(payload).context(err)?;
                 Self::TcpInfo(TcpInfo::parse(&buf).context(err)?)
-            },
+            }
             INET_DIAG_CONG => {
                 Self::Congestion(parse_string(payload).context("invalid INET_DIAG_CONG value")?)
             }
