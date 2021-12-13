@@ -396,6 +396,8 @@ pub const IFLA_INFO_SLAVE_KIND: u16 = 4;
 pub const IFLA_INFO_SLAVE_DATA: u16 = 5;
 // Bridge flags
 pub const IFLA_BRIDGE_FLAGS: u16 = 47;
+pub const BRIDGE_FLAGS_MASTER: u16 = 1; /* Bridge command to/from master */
+pub const BRIDGE_FLAGS_SELF: u16 = 2; /* Bridge command to/from lowerdev */
 
 pub const IFLA_BR_UNSPEC: u16 = 0;
 pub const IFLA_BR_FORWARD_DELAY: u16 = 1;
