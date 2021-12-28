@@ -805,6 +805,7 @@ pub enum InfoBridge {
     // FIXME: what type is this? putting Vec<u8> for now but it might
     // be a boolean actually
     FdbFlush(Vec<u8>),
+    Flags(u16),
     Pad(Vec<u8>),
     HelloTimer(u64),
     TcnTimer(u64),
@@ -888,6 +889,7 @@ impl Nla for InfoBridge {
                 | GroupFwdMask(_)
                 | RootPort(_)
                 | VlanDefaultPvid(_)
+                | Flags(_)
                 => 2,
 
             RootId(_)
@@ -922,6 +924,7 @@ impl Nla for InfoBridge {
     fn emit_value(&self, buffer: &mut [u8]) {
         use self::InfoBridge::*;
         match self {
+            Flags(value) => NativeEndian::write_u16(buffer, *value),
             Unspec(ref bytes)
                 | FdbFlush(ref bytes)
                 | Pad(ref bytes)
@@ -998,6 +1001,7 @@ impl Nla for InfoBridge {
             Unspec(_) => IFLA_BR_UNSPEC,
             GroupAddr(_) => IFLA_BR_GROUP_ADDR,
             FdbFlush(_) => IFLA_BR_FDB_FLUSH,
+            Flags(_) => IFLA_BRIDGE_FLAGS,
             Pad(_) => IFLA_BR_PAD,
             HelloTimer(_) => IFLA_BR_HELLO_TIMER,
             TcnTimer(_) => IFLA_BR_TCN_TIMER,
@@ -1060,6 +1064,9 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoBridge {
             }
             IFLA_BR_TCN_TIMER => {
                 TcnTimer(parse_u64(payload).context("invalid IFLA_BR_TCN_TIMER value")?)
+            }
+            IFLA_BRIDGE_FLAGS => {
+                Flags(parse_u16(payload).context("invalid IFLA_BRIDGE_FLAGS value")?)
             }
             IFLA_BR_TOPOLOGY_CHANGE_TIMER => TopologyChangeTimer(
                 parse_u64(payload).context("invalid IFLA_BR_TOPOLOGY_CHANGE_TIMER value")?,
