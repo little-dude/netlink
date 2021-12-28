@@ -39,4 +39,4 @@ name = "dump_links_async"
 required-features = ["smol_socket"]
 
 [[example]]
-name = "audit_events"
+name = "audit_netlink_events"

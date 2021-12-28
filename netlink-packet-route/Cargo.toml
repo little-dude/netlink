@@ -23,7 +23,7 @@ netlink-packet-utils = "0.4"
 bitflags = "1.2.1"
 
 [[example]]
-name = "dump_links"
+name = "dump_packet_links"
 
 [dev-dependencies]
 criterion = "0.3.0"
