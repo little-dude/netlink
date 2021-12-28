@@ -20,7 +20,7 @@ where
     F: FnOnce() -> R + Send + 'static,
     R: Send + 'static,
 {
-    async_std::task::spawn_blocking(fut).await
+    async_global_executor::spawn_blocking(fut).await
 }
 
 // only tokio enabled, so use tokio
