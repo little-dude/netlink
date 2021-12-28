@@ -344,6 +344,8 @@ impl LinkAddRequest {
     /// Create macvlan on a link.
     /// This is equivalent to `ip link add NAME name link LINK type macvlan mode MACVLAN_MODE`,
     /// but instead of specifying a link name (`LINK`), we specify a link index.
+    /// The MACVLAN_MODE is an integer consisting of flags from MACVLAN_MODE (netlink-packet-route/src/rtnl/constants.rs)
+    ///   being: _PRIVATE, _VEPA, _BRIDGE, _PASSTHRU, _SOURCE, which can be *combined*.
     pub fn macvlan(self, name: String, index: u32, mode: u32) -> Self {
         self.name(name)
             .link_info(
