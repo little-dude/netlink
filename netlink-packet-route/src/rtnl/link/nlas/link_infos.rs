@@ -835,6 +835,7 @@ pub enum InfoBridge {
     RootPort(u16),
     VlanDefaultPvid(u16),
     VlanFiltering(u8),
+    VlanInfo(u16),
     TopologyChange(u8),
     TopologyChangeDetected(u8),
     MulticastRouter(u8),
@@ -885,6 +886,7 @@ impl Nla for InfoBridge {
                 | RootPathCost(_)
                 => 4,
             Priority(_)
+                | VlanInfo(_)
                 | VlanProtocol(_)
                 | GroupFwdMask(_)
                 | RootPort(_)
@@ -925,6 +927,7 @@ impl Nla for InfoBridge {
         use self::InfoBridge::*;
         match self {
             Flags(value) => NativeEndian::write_u16(buffer, *value),
+            VlanInfo(value) => NativeEndian::write_u16(buffer, *value),
             Unspec(ref bytes)
                 | FdbFlush(ref bytes)
                 | Pad(ref bytes)
@@ -1031,6 +1034,7 @@ impl Nla for InfoBridge {
             RootPort(_) => IFLA_BR_ROOT_PORT,
             VlanDefaultPvid(_) => IFLA_BR_VLAN_DEFAULT_PVID,
             VlanFiltering(_) => IFLA_BR_VLAN_FILTERING,
+            VlanInfo(_) => IFLA_BRIDGE_VLAN_INFO,
             TopologyChange(_) => IFLA_BR_TOPOLOGY_CHANGE,
             TopologyChangeDetected(_) => IFLA_BR_TOPOLOGY_CHANGE_DETECTED,
             MulticastRouter(_) => IFLA_BR_MCAST_ROUTER,
@@ -1061,6 +1065,9 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoBridge {
             IFLA_BR_PAD => Pad(payload.to_vec()),
             IFLA_BR_HELLO_TIMER => {
                 HelloTimer(parse_u64(payload).context("invalid IFLA_BR_HELLO_TIMER value")?)
+            }
+            IFLA_BRIDGE_VLAN_INFO => {
+                VlanInfo(parse_u16(payload).context("invalid IFLA_BRIDGE_VLAN_INFO value")?)
             }
             IFLA_BR_TCN_TIMER => {
                 TcnTimer(parse_u64(payload).context("invalid IFLA_BR_TCN_TIMER value")?)
