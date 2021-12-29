@@ -15,7 +15,7 @@ description = "manipulate linux networking resources via netlink"
 test_as_root = []
 default = ["tokio_socket"]
 tokio_socket = ["netlink-proto/tokio_socket", "tokio"]
-smol_socket = ["netlink-proto/smol_socket", "async-std"]
+smol_socket = ["netlink-proto/smol_socket", "async-global-executor"]
 
 [dependencies]
 futures = "0.3.11"
@@ -25,7 +25,7 @@ netlink-packet-route = "0.9"
 netlink-proto = { default-features = false, version = "0.8" }
 nix = "0.22.0"
 tokio = { version = "1.0.1", features = ["rt"], optional = true}
-async-std = { version = "1.9.0", features = ["unstable"], optional = true}
+async-global-executor = { version = "2.0.2", optional = true }
 
 [dev-dependencies]
 env_logger = "0.8.2"
