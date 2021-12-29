@@ -2,6 +2,7 @@
 
 use futures::stream::TryStreamExt;
 use rtnetlink::{new_connection, Error, Handle};
+use netlink_packet_route::rtnl::{MACVLAN_MODE_BRIDGE};
 use std::env;
 
 #[tokio::main]
@@ -24,11 +25,12 @@ async fn main() -> Result<(), String> {
 async fn create_macvlan(handle: Handle, veth_name: String) -> Result<(), Error> {
     let mut links = handle.link().get().match_name(veth_name.clone()).execute();
     if let Some(link) = links.try_next().await? {
-        // hard code mode: 4u32 i.e bridge mode
+        println!("link {} has index {}", veth_name, link.header.index);
+        // hard code mode: MACVLAN_MODE_BRIDGE (4u32) i.e bridge mode
         let request = handle
             .link()
             .add()
-            .macvlan("test_macvlan".into(), link.header.index, 4u32);
+            .macvlan("test_macvlan".into(), link.header.index, MACVLAN_MODE_BRIDGE);
         request.execute().await?
     } else {
         println!("no link link {} found", veth_name);
