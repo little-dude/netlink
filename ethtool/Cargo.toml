@@ -1,6 +1,6 @@
 [package]
 name = "ethtool"
-version = "0.2.0"  # TODO: drop this comment - already bumped version for trait changes
+version = "0.2.0"
 authors = ["Gris Ge <fge@redhat.com>"]
 license = "MIT"
 edition = "2018"
@@ -26,10 +26,10 @@ byteorder = "1.4.3"
 futures = "0.3.17"
 genetlink = { default-features = false, version = "0.2.0"}
 log = "0.4.14"
-netlink-packet-core = "0.3.0"
+netlink-packet-core = "0.4.0"
 netlink-packet-generic = "0.2.0"
-netlink-packet-utils = "0.4.1"
-netlink-proto = { default-features = false, version = "0.8.0" }
+netlink-packet-utils = "0.5"
+netlink-proto = { default-features = false, version = "0.9.0" }
 netlink-sys = "0.8.0"
 thiserror = "1.0.29"
 tokio = { version = "1.0.1", features = ["rt"], optional = true}

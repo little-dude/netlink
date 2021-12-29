@@ -5,6 +5,49 @@
 ### New Features
 ### Bug fixes
 
+## [20211229] 2021-12-29
+
+### Versioning
+
+ * audit 0.4.0 -> 0.6.0 (botched 0.5.0 release)
+ * ethtool 0.1.0 -> 0.2.0
+ * genetlink 0.1.0 -> 0.2.0
+ * netlink-packet-audit 0.2.2 -> 0.4.0 (botched 0.4.0 release)
+ * netlink-packet-core 0.2.4 -> 0.4.1 (botched 0.3.0 release, 0.4.0 was published with downgraded dependencies to break cycles)
+ * netlink-packet-generic 0.1.0 -> 0.2.0
+ * netlink-packet-route 0.8.0 -> 0.10.0 (botched 0.9.0 release)
+ * netlink-packet-sock-diag 0.1.0 -> 0.3.0 (botched 0.2.0 release)
+ * netlink-packet-utils 0.4.1 -> 0.5
+ * netlink-packet-wireguard NULL -> 0.1.0
+ * netlink-proto 0.7.0 -> 0.9.1 (botched 0.8.0 release, 0.9.0 was published with downgraded dev-dependences to break cycles)
+ * netlink-sys 0.7.0 -> 0.8.1 (0.8.0 was published with downgraded dev-dependencies to break cycles)
+ * rtnetlink 0.8.1 -> 0.9.0
+
+### Breaking Changes
+
+- `netlink-packet-route`:
+  - add `InfoBridge::VlanInfo` (https://github.com/little-dude/netlink/pull/212 https://github.com/little-dude/netlink/pull/213)
+- `rtnetlink`:
+  - add `LinkGetRequest::match_name` to filter links by name more efficiently, and remove `LinkGetRequest::set_name_filter` (https://github.com/little-dude/netlink/pull/208)
+- refactor `netlink_packet_core::traits::NetlinkSerializable` and `netlink_packet_core::trait::NetlinkDeserializable` such that they are not generic (https://github.com/little-dude/netlink/pull/195/, specifically https://github.com/little-dude/netlink/pull/195/commits/94c263282d9a34d01422513de6a7f683ac08addc)
+- `netlink-proto`: Add new type parameter for `Connection` which represents the socket (https://github.com/little-dude/netlink/pull/195, specifically 944307ce292682283891f41db8a0ec4706419664)
+
+### New Features
+
+- new `netlink-packet-wireguard` crate for the wireguard netlink protocol (https://github.com/little-dude/netlink/pull/191)
+- new `rich_nlas` feature for `netlink-packet-route` that enables parsing more message types (https://github.com/little-dude/netlink/pull/199 https://github.com/little-dude/netlink/pull/205)
+- `rtnetlink`:
+  - add `NeighbourAddRequest::add_bridge` helper to create a bridge interface (https://github.com/little-dude/netlink/pull/203)
+  - allow the requests to be built with the `NLM_F_REPLACE` flag to optimize "create or update" operations (https://github.com/little-dude/netlink/pull/202)
+  - add helper to create macvlan links (https://github.com/little-dude/netlink/pull/194)
+- `netlink-packet-utils`: add `parse_ip` function
+
+### Bug fixes
+
+- fix UB in unsafe code (https://github.com/little-dude/netlink/pull/195/ specifically 7e6cfd743bf822e917e260eb24fbf5b2c541922e)
+- fix `netlink_sys::SmolSocket::recv` error handling (https://github.com/little-dude/netlink/pull/195/ specifically 1cd3e0fbb8d77d6b9c4fe43b8c4aa745fa6ba66c)
+- various fixes in the `netlink-proto` encoder (https://github.com/little-dude/netlink/pull/168)
+
 ## [20210927] 2021-09-27
 ### Versioning
  * audit 0.4.0
