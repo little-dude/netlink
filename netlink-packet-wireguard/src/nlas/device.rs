@@ -1,4 +1,4 @@
-use super::WgPeerAttrs;
+use super::{WgPeerAttrs, NestedSlice};
 use crate::constants::*;
 use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
@@ -9,26 +9,6 @@ use netlink_packet_utils::{
     DecodeError,
 };
 use std::{convert::TryInto, mem::size_of_val};
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-struct PeerEntry<'a>(&'a Vec<WgPeerAttrs>);
-impl<'a> Nla for PeerEntry<'a> {
-    fn value_len(&self) -> usize {
-        self.0.as_slice().buffer_len()
-    }
-
-    fn kind(&self) -> u16 {
-        0
-    }
-
-    fn emit_value(&self, buffer: &mut [u8]) {
-        self.0.as_slice().emit(buffer);
-    }
-
-    fn is_nested(&self) -> bool {
-        true
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum WgDeviceAttrs {
@@ -53,7 +33,7 @@ impl Nla for WgDeviceAttrs {
             WgDeviceAttrs::PublicKey(v) => size_of_val(v),
             WgDeviceAttrs::ListenPort(v) => size_of_val(v),
             WgDeviceAttrs::Fwmark(v) => size_of_val(v),
-            WgDeviceAttrs::Peers(nlas) => nlas.iter().map(|op| PeerEntry(op).buffer_len()).sum(),
+            WgDeviceAttrs::Peers(nlas) => nlas.iter().map(|op| NestedSlice(op).buffer_len()).sum(),
             WgDeviceAttrs::Flags(v) => size_of_val(v),
         }
     }
@@ -87,7 +67,7 @@ impl Nla for WgDeviceAttrs {
             WgDeviceAttrs::Peers(nlas) => {
                 let mut len = 0;
                 for op in nlas {
-                    let entry = PeerEntry(op);
+                    let entry = NestedSlice(op);
                     entry.emit(&mut buffer[len..]);
                     len += entry.buffer_len();
                 }

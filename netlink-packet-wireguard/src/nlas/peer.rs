@@ -1,4 +1,4 @@
-use super::WgAllowedIpAttrs;
+use super::{WgAllowedIpAttrs, NestedSlice};
 use crate::{
     constants::*,
     raw::{
@@ -50,7 +50,7 @@ impl Nla for WgPeerAttrs {
             WgPeerAttrs::LastHandshake(_) => TIMESPEC_LEN,
             WgPeerAttrs::RxBytes(v) => size_of_val(v),
             WgPeerAttrs::TxBytes(v) => size_of_val(v),
-            WgPeerAttrs::AllowedIps(nlas) => nlas.iter().map(|op| op.as_slice().buffer_len()).sum(),
+            WgPeerAttrs::AllowedIps(nlas) => nlas.iter().map(|op| NestedSlice(op).buffer_len()).sum(),
             WgPeerAttrs::ProtocolVersion(v) => size_of_val(v),
             WgPeerAttrs::Flags(v) => size_of_val(v),
         }
