@@ -15,7 +15,7 @@ anyhow = "1.0.42"
 byteorder = "1.4.3"
 libc = "0.2.98"
 log = "0.4.14"
-netlink-packet-generic = "0.2.0"
+netlink-packet-generic = "0.3.0"
 netlink-packet-utils = "0.5.0"
 
 [dev-dependencies]

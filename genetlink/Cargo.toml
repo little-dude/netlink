@@ -17,7 +17,7 @@ smol_socket = ["netlink-proto/smol_socket","async-std"]
 
 [dependencies]
 futures = "0.3.16"
-netlink-packet-generic = "0.2.0"
+netlink-packet-generic = "0.3.0"
 netlink-proto = { default-features = false, version = "0.9.0" }
 tokio = { version = "1.9.0", features = ["rt"], optional = true }
 async-std = { version = "1.9.0", optional = true }
