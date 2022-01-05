@@ -85,8 +85,9 @@ impl Nla for WgPeerAttrs {
             WgPeerAttrs::AllowedIps(nlas) => {
                 let mut len = 0;
                 for op in nlas {
-                    op.as_slice().emit(&mut buffer[len..]);
-                    len += op.as_slice().buffer_len();
+                    let entry = NestedSlice(op);
+                    entry.emit(&mut buffer[len..]);
+                    len += entry.buffer_len();
                 }
             }
             WgPeerAttrs::ProtocolVersion(v) => NativeEndian::write_u32(buffer, *v),
