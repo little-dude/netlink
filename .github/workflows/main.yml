@@ -58,6 +58,11 @@ jobs:
           cd netlink-packet-utils
           cargo test
 
+      - name: test (netlink-packet-wireguard)
+        run: |
+          cd netlink-packet-wireguard
+          cargo test
+
       - name: test (netlink-proto)
         run: |
           cd netlink-proto
