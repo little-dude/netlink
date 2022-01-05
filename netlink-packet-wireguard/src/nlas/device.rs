@@ -11,6 +11,26 @@ use netlink_packet_utils::{
 use std::{convert::TryInto, mem::size_of_val};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+struct PeerEntry<'a>(&'a Vec<WgPeerAttrs>);
+impl<'a> Nla for PeerEntry<'a> {
+    fn value_len(&self) -> usize {
+        self.0.as_slice().buffer_len()
+    }
+
+    fn kind(&self) -> u16 {
+        0
+    }
+
+    fn emit_value(&self, buffer: &mut [u8]) {
+        self.0.as_slice().emit(buffer);
+    }
+
+    fn is_nested(&self) -> bool {
+        true
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum WgDeviceAttrs {
     Unspec(Vec<u8>),
     IfIndex(u32),
@@ -33,7 +53,7 @@ impl Nla for WgDeviceAttrs {
             WgDeviceAttrs::PublicKey(v) => size_of_val(v),
             WgDeviceAttrs::ListenPort(v) => size_of_val(v),
             WgDeviceAttrs::Fwmark(v) => size_of_val(v),
-            WgDeviceAttrs::Peers(nlas) => nlas.iter().map(|op| op.as_slice().buffer_len()).sum(),
+            WgDeviceAttrs::Peers(nlas) => nlas.iter().map(|op| PeerEntry(op).buffer_len()).sum(),
             WgDeviceAttrs::Flags(v) => size_of_val(v),
         }
     }
@@ -67,12 +87,17 @@ impl Nla for WgDeviceAttrs {
             WgDeviceAttrs::Peers(nlas) => {
                 let mut len = 0;
                 for op in nlas {
-                    op.as_slice().emit(&mut buffer[len..]);
-                    len += op.as_slice().buffer_len();
+                    let entry = PeerEntry(op);
+                    entry.emit(&mut buffer[len..]);
+                    len += entry.buffer_len();
                 }
             }
             WgDeviceAttrs::Flags(v) => NativeEndian::write_u32(buffer, *v),
         }
+    }
+
+    fn is_nested(&self) -> bool {
+        matches!(self, WgDeviceAttrs::Peers(_))
     }
 }
 
