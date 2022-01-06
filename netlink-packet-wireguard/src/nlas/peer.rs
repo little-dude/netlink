@@ -94,6 +94,10 @@ impl Nla for WgPeerAttrs {
             WgPeerAttrs::Flags(v) => NativeEndian::write_u32(buffer, *v),
         }
     }
+
+    fn is_nested(&self) -> bool {
+        matches!(self, WgPeerAttrs::AllowedIps(_))
+    }
 }
 
 impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for WgPeerAttrs {
