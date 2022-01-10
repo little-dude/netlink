@@ -4,7 +4,7 @@ mod peer;
 
 pub use allowedip::WgAllowedIpAttrs;
 pub use device::WgDeviceAttrs;
-pub use peer::WgPeerAttrs;
+pub use peer::{WgPeerAttrs, WgPeer};
 
 use netlink_packet_utils::{Emitable, nla::Nla};
 

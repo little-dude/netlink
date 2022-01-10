@@ -57,7 +57,7 @@ fn print_wg_payload(wg: Wireguard) {
             WgDeviceAttrs::Peers(nlas) => {
                 for peer in nlas {
                     println!("Peer: ");
-                    print_wg_peer(peer);
+                    print_wg_peer(&peer.0);
                 }
             }
             _ => (),

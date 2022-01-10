@@ -22,6 +22,26 @@ use netlink_packet_utils::{
 use std::{convert::TryInto, mem::size_of_val, net::SocketAddr, time::SystemTime};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct WgPeer(pub Vec<WgPeerAttrs>);
+impl Nla for WgPeer {
+    fn value_len(&self) -> usize {
+        self.0.as_slice().buffer_len()
+    }
+
+    fn kind(&self) -> u16 {
+        0
+    }
+
+    fn emit_value(&self, buffer: &mut [u8]) {
+        self.0.as_slice().emit(buffer);
+    }
+
+    fn is_nested(&self) -> bool {
+        true
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum WgPeerAttrs {
     Unspec(Vec<u8>),
     PublicKey([u8; WG_KEY_LEN]),

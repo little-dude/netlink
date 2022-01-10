@@ -104,7 +104,7 @@ mod test {
     use netlink_packet_core::{NetlinkMessage, NLM_F_REQUEST, NLM_F_ACK};
     use netlink_packet_generic::GenlMessage;
 
-    use crate::nlas::{WgPeerAttrs, WgAllowedIpAttrs};
+    use crate::{nlas::{WgPeerAttrs, WgAllowedIpAttrs, WgPeer}};
 
     use super::*;
 
@@ -139,15 +139,15 @@ mod test {
                 WgDeviceAttrs::IfName("wg0".to_string()),
                 WgDeviceAttrs::PrivateKey([0xaa; 32]),
                 WgDeviceAttrs::Peers(vec![
-                    vec![
+                    WgPeer(vec![
                         WgPeerAttrs::PublicKey([0x01; 32]),
                         WgPeerAttrs::PresharedKey([0x01; 32]),
                         WgPeerAttrs::AllowedIps(vec![vec![WgAllowedIpAttrs::IpAddr([10, 0, 0, 0].into()), WgAllowedIpAttrs::Cidr(24), WgAllowedIpAttrs::Family(AF_INET)]])
-                    ],
-                    vec![WgPeerAttrs::PublicKey([0x02; 32]),
+                    ]),
+                    WgPeer(vec![WgPeerAttrs::PublicKey([0x02; 32]),
                         WgPeerAttrs::PresharedKey([0x01; 32]),
                         WgPeerAttrs::AllowedIps(vec![vec![WgAllowedIpAttrs::IpAddr([10, 0, 1, 0].into()), WgAllowedIpAttrs::Cidr(24), WgAllowedIpAttrs::Family(AF_INET)]])
-                    ],
+                    ]),
                 ]),
             ],
         });
