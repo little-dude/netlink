@@ -5,6 +5,27 @@
 ### New Features
 ### Bug fixes
 
+## [20211229] 2022-01-15
+
+### Versioning
+
+* ethtool 0.2.0 -> 0.2.1 (0.2.0 yanked)
+* genetlink 0.2.0 -> 0.2.1 (0.2.0 yanked)
+* netlink-packet-wireguard -> 0.1.1 (0.1.0 yanked)
+
+### Breaking changes
+
+None
+
+### New Features
+
+None
+
+### Bug fixes
+
+Fix dependencies in the netlink generic crates. See: https://github.com/little-dude/netlink/pull/223/files
+
+
 ## [20211229] 2021-12-29
 
 ### Versioning
