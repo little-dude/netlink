@@ -102,7 +102,7 @@ mod test {
     use netlink_packet_core::{NetlinkMessage, NLM_F_ACK, NLM_F_REQUEST};
     use netlink_packet_generic::GenlMessage;
 
-    use crate::nlas::{AllowedIp, WgAllowedIpAttrs, WgPeer, WgPeerAttrs};
+    use crate::nlas::{WgAllowedIp, WgAllowedIpAttrs, WgPeer, WgPeerAttrs};
 
     use super::*;
 
@@ -133,7 +133,7 @@ mod test {
                     WgPeer(vec![
                         WgPeerAttrs::PublicKey([0x01; 32]),
                         WgPeerAttrs::PresharedKey([0x01; 32]),
-                        WgPeerAttrs::AllowedIps(vec![AllowedIp(vec![
+                        WgPeerAttrs::AllowedIps(vec![WgAllowedIp(vec![
                             WgAllowedIpAttrs::IpAddr([10, 0, 0, 0].into()),
                             WgAllowedIpAttrs::Cidr(24),
                             WgAllowedIpAttrs::Family(AF_INET),
@@ -142,7 +142,7 @@ mod test {
                     WgPeer(vec![
                         WgPeerAttrs::PublicKey([0x02; 32]),
                         WgPeerAttrs::PresharedKey([0x01; 32]),
-                        WgPeerAttrs::AllowedIps(vec![AllowedIp(vec![
+                        WgPeerAttrs::AllowedIps(vec![WgAllowedIp(vec![
                             WgAllowedIpAttrs::IpAddr([10, 0, 1, 0].into()),
                             WgAllowedIpAttrs::Cidr(24),
                             WgAllowedIpAttrs::Family(AF_INET),

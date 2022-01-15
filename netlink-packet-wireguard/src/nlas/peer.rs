@@ -19,10 +19,11 @@ use netlink_packet_utils::{
     traits::*,
     DecodeError,
 };
-use std::{convert::TryInto, mem::size_of_val, net::SocketAddr, time::SystemTime};
+use std::{convert::TryInto, mem::size_of_val, net::SocketAddr, ops::Deref, time::SystemTime};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct WgPeer(pub Vec<WgPeerAttrs>);
+
 impl Nla for WgPeer {
     fn value_len(&self) -> usize {
         self.0.as_slice().buffer_len()
@@ -41,9 +42,18 @@ impl Nla for WgPeer {
     }
 }
 
+impl Deref for WgPeer {
+    type Target = Vec<WgPeerAttrs>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct AllowedIp(pub Vec<WgAllowedIpAttrs>);
-impl Nla for AllowedIp {
+pub struct WgAllowedIp(pub Vec<WgAllowedIpAttrs>);
+
+impl Nla for WgAllowedIp {
     fn value_len(&self) -> usize {
         self.0.as_slice().buffer_len()
     }
@@ -61,6 +71,14 @@ impl Nla for AllowedIp {
     }
 }
 
+impl Deref for WgAllowedIp {
+    type Target = Vec<WgAllowedIpAttrs>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum WgPeerAttrs {
     Unspec(Vec<u8>),
@@ -71,7 +89,7 @@ pub enum WgPeerAttrs {
     LastHandshake(SystemTime),
     RxBytes(u64),
     TxBytes(u64),
-    AllowedIps(Vec<AllowedIp>),
+    AllowedIps(Vec<WgAllowedIp>),
     ProtocolVersion(u32),
     Flags(u32),
 }
@@ -179,7 +197,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for WgPeerAttrs {
                         let parsed = WgAllowedIpAttrs::parse(nla).context(error_msg)?;
                         group.push(parsed);
                     }
-                    ips.push(AllowedIp(group));
+                    ips.push(WgAllowedIp(group));
                 }
                 Self::AllowedIps(ips)
             }

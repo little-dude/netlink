@@ -57,7 +57,7 @@ fn print_wg_payload(wg: Wireguard) {
             WgDeviceAttrs::Peers(nlas) => {
                 for peer in nlas {
                     println!("Peer: ");
-                    print_wg_peer(&peer.0);
+                    print_wg_peer(peer);
                 }
             }
             _ => (),
@@ -77,7 +77,7 @@ fn print_wg_peer(nlas: &[WgPeerAttrs]) {
             WgPeerAttrs::TxBytes(v) => println!("  TxBytes: {}", v),
             WgPeerAttrs::AllowedIps(nlas) => {
                 for ip in nlas {
-                    print_wg_allowedip(&ip.0);
+                    print_wg_allowedip(ip);
                 }
             }
             _ => (),
