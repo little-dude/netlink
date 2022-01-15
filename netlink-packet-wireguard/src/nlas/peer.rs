@@ -1,4 +1,4 @@
-use super::{WgAllowedIpAttrs, NestedSlice};
+use super::WgAllowedIpAttrs;
 use crate::{
     constants::*,
     raw::{
@@ -42,6 +42,26 @@ impl Nla for WgPeer {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AllowedIp(pub Vec<WgAllowedIpAttrs>);
+impl Nla for AllowedIp {
+    fn value_len(&self) -> usize {
+        self.0.as_slice().buffer_len()
+    }
+
+    fn kind(&self) -> u16 {
+        0
+    }
+
+    fn emit_value(&self, buffer: &mut [u8]) {
+        self.0.as_slice().emit(buffer);
+    }
+
+    fn is_nested(&self) -> bool {
+        true
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum WgPeerAttrs {
     Unspec(Vec<u8>),
     PublicKey([u8; WG_KEY_LEN]),
@@ -51,7 +71,7 @@ pub enum WgPeerAttrs {
     LastHandshake(SystemTime),
     RxBytes(u64),
     TxBytes(u64),
-    AllowedIps(Vec<Vec<WgAllowedIpAttrs>>),
+    AllowedIps(Vec<AllowedIp>),
     ProtocolVersion(u32),
     Flags(u32),
 }
@@ -70,7 +90,7 @@ impl Nla for WgPeerAttrs {
             WgPeerAttrs::LastHandshake(_) => TIMESPEC_LEN,
             WgPeerAttrs::RxBytes(v) => size_of_val(v),
             WgPeerAttrs::TxBytes(v) => size_of_val(v),
-            WgPeerAttrs::AllowedIps(nlas) => nlas.iter().map(|op| NestedSlice(op).buffer_len()).sum(),
+            WgPeerAttrs::AllowedIps(nlas) => nlas.iter().map(|op| op.buffer_len()).sum(),
             WgPeerAttrs::ProtocolVersion(v) => size_of_val(v),
             WgPeerAttrs::Flags(v) => size_of_val(v),
         }
@@ -105,9 +125,8 @@ impl Nla for WgPeerAttrs {
             WgPeerAttrs::AllowedIps(nlas) => {
                 let mut len = 0;
                 for op in nlas {
-                    let entry = NestedSlice(op);
-                    entry.emit(&mut buffer[len..]);
-                    len += entry.buffer_len();
+                    op.emit(&mut buffer[len..]);
+                    len += op.buffer_len();
                 }
             }
             WgPeerAttrs::ProtocolVersion(v) => NativeEndian::write_u32(buffer, *v),
@@ -160,7 +179,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for WgPeerAttrs {
                         let parsed = WgAllowedIpAttrs::parse(nla).context(error_msg)?;
                         group.push(parsed);
                     }
-                    ips.push(group);
+                    ips.push(AllowedIp(group));
                 }
                 Self::AllowedIps(ips)
             }

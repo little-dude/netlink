@@ -1,4 +1,7 @@
-use crate::{constants::*, nlas::{WgPeer, WgPeerAttrs}};
+use crate::{
+    constants::*,
+    nlas::{WgPeer, WgPeerAttrs},
+};
 use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
 use netlink_packet_utils::{

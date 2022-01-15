@@ -77,7 +77,7 @@ fn print_wg_peer(nlas: &[WgPeerAttrs]) {
             WgPeerAttrs::TxBytes(v) => println!("  TxBytes: {}", v),
             WgPeerAttrs::AllowedIps(nlas) => {
                 for ip in nlas {
-                    print_wg_allowedip(ip);
+                    print_wg_allowedip(&ip.0);
                 }
             }
             _ => (),
