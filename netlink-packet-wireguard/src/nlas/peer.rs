@@ -19,7 +19,65 @@ use netlink_packet_utils::{
     traits::*,
     DecodeError,
 };
-use std::{convert::TryInto, mem::size_of_val, net::SocketAddr, time::SystemTime};
+use std::{convert::TryInto, mem::size_of_val, net::SocketAddr, ops::Deref, time::SystemTime};
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct WgPeer(pub Vec<WgPeerAttrs>);
+
+impl Nla for WgPeer {
+    fn value_len(&self) -> usize {
+        self.0.as_slice().buffer_len()
+    }
+
+    fn kind(&self) -> u16 {
+        0
+    }
+
+    fn emit_value(&self, buffer: &mut [u8]) {
+        self.0.as_slice().emit(buffer);
+    }
+
+    fn is_nested(&self) -> bool {
+        true
+    }
+}
+
+impl Deref for WgPeer {
+    type Target = Vec<WgPeerAttrs>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct WgAllowedIp(pub Vec<WgAllowedIpAttrs>);
+
+impl Nla for WgAllowedIp {
+    fn value_len(&self) -> usize {
+        self.0.as_slice().buffer_len()
+    }
+
+    fn kind(&self) -> u16 {
+        0
+    }
+
+    fn emit_value(&self, buffer: &mut [u8]) {
+        self.0.as_slice().emit(buffer);
+    }
+
+    fn is_nested(&self) -> bool {
+        true
+    }
+}
+
+impl Deref for WgAllowedIp {
+    type Target = Vec<WgAllowedIpAttrs>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum WgPeerAttrs {
@@ -31,7 +89,7 @@ pub enum WgPeerAttrs {
     LastHandshake(SystemTime),
     RxBytes(u64),
     TxBytes(u64),
-    AllowedIps(Vec<Vec<WgAllowedIpAttrs>>),
+    AllowedIps(Vec<WgAllowedIp>),
     ProtocolVersion(u32),
     Flags(u32),
 }
@@ -50,7 +108,7 @@ impl Nla for WgPeerAttrs {
             WgPeerAttrs::LastHandshake(_) => TIMESPEC_LEN,
             WgPeerAttrs::RxBytes(v) => size_of_val(v),
             WgPeerAttrs::TxBytes(v) => size_of_val(v),
-            WgPeerAttrs::AllowedIps(nlas) => nlas.iter().map(|op| op.as_slice().buffer_len()).sum(),
+            WgPeerAttrs::AllowedIps(nlas) => nlas.iter().map(|op| op.buffer_len()).sum(),
             WgPeerAttrs::ProtocolVersion(v) => size_of_val(v),
             WgPeerAttrs::Flags(v) => size_of_val(v),
         }
@@ -85,13 +143,17 @@ impl Nla for WgPeerAttrs {
             WgPeerAttrs::AllowedIps(nlas) => {
                 let mut len = 0;
                 for op in nlas {
-                    op.as_slice().emit(&mut buffer[len..]);
-                    len += op.as_slice().buffer_len();
+                    op.emit(&mut buffer[len..]);
+                    len += op.buffer_len();
                 }
             }
             WgPeerAttrs::ProtocolVersion(v) => NativeEndian::write_u32(buffer, *v),
             WgPeerAttrs::Flags(v) => NativeEndian::write_u32(buffer, *v),
         }
+    }
+
+    fn is_nested(&self) -> bool {
+        matches!(self, WgPeerAttrs::AllowedIps(_))
     }
 }
 
@@ -135,7 +197,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for WgPeerAttrs {
                         let parsed = WgAllowedIpAttrs::parse(nla).context(error_msg)?;
                         group.push(parsed);
                     }
-                    ips.push(group);
+                    ips.push(WgAllowedIp(group));
                 }
                 Self::AllowedIps(ips)
             }

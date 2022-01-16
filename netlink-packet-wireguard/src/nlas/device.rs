@@ -1,5 +1,7 @@
-use super::WgPeerAttrs;
-use crate::constants::*;
+use crate::{
+    constants::*,
+    nlas::{WgPeer, WgPeerAttrs},
+};
 use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
 use netlink_packet_utils::{
@@ -19,7 +21,7 @@ pub enum WgDeviceAttrs {
     PublicKey([u8; WG_KEY_LEN]),
     ListenPort(u16),
     Fwmark(u32),
-    Peers(Vec<Vec<WgPeerAttrs>>),
+    Peers(Vec<WgPeer>),
     Flags(u32),
 }
 
@@ -33,7 +35,7 @@ impl Nla for WgDeviceAttrs {
             WgDeviceAttrs::PublicKey(v) => size_of_val(v),
             WgDeviceAttrs::ListenPort(v) => size_of_val(v),
             WgDeviceAttrs::Fwmark(v) => size_of_val(v),
-            WgDeviceAttrs::Peers(nlas) => nlas.iter().map(|op| op.as_slice().buffer_len()).sum(),
+            WgDeviceAttrs::Peers(nlas) => nlas.iter().map(|op| op.buffer_len()).sum(),
             WgDeviceAttrs::Flags(v) => size_of_val(v),
         }
     }
@@ -67,12 +69,16 @@ impl Nla for WgDeviceAttrs {
             WgDeviceAttrs::Peers(nlas) => {
                 let mut len = 0;
                 for op in nlas {
-                    op.as_slice().emit(&mut buffer[len..]);
-                    len += op.as_slice().buffer_len();
+                    op.emit(&mut buffer[len..]);
+                    len += op.buffer_len();
                 }
             }
             WgDeviceAttrs::Flags(v) => NativeEndian::write_u32(buffer, *v),
         }
+    }
+
+    fn is_nested(&self) -> bool {
+        matches!(self, WgDeviceAttrs::Peers(_))
     }
 }
 
@@ -114,7 +120,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for WgDeviceAttrs 
                         let parsed = WgPeerAttrs::parse(nla).context(error_msg)?;
                         group.push(parsed);
                     }
-                    peers.push(group);
+                    peers.push(WgPeer(group));
                 }
                 Self::Peers(peers)
             }

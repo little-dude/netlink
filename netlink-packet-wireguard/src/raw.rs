@@ -111,7 +111,7 @@ pub fn emit_ip(addr: &IpAddr, buf: &mut [u8]) {
 /// enough to account for them.
 fn emit_socket_addr_v4(addr: &SocketAddrV4, buf: &mut [u8]) {
     NativeEndian::write_u16(&mut buf[..2], AF_INET);
-    NativeEndian::write_u16(&mut buf[2..4], addr.port());
+    BigEndian::write_u16(&mut buf[2..4], addr.port());
     (&mut buf[4..8]).copy_from_slice(addr.ip().octets().as_slice());
     // padding
     (&mut buf[8..16]).copy_from_slice([0; 8].as_slice());
@@ -135,7 +135,7 @@ fn emit_socket_addr_v4(addr: &SocketAddrV4, buf: &mut [u8]) {
 /// `sockaddr_in6` is 4 bytes aligned (28 bytes) so there's no padding.
 fn emit_socket_addr_v6(addr: &SocketAddrV6, buf: &mut [u8]) {
     NativeEndian::write_u16(&mut buf[..2], AF_INET6);
-    NativeEndian::write_u16(&mut buf[2..4], addr.port());
+    BigEndian::write_u16(&mut buf[2..4], addr.port());
     NativeEndian::write_u32(&mut buf[4..8], addr.flowinfo());
     (&mut buf[8..24]).copy_from_slice(addr.ip().octets().as_slice());
     NativeEndian::write_u32(&mut buf[24..28], addr.scope_id());

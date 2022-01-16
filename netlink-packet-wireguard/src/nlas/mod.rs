@@ -4,4 +4,4 @@ mod peer;
 
 pub use allowedip::WgAllowedIpAttrs;
 pub use device::WgDeviceAttrs;
-pub use peer::WgPeerAttrs;
+pub use peer::{WgAllowedIp, WgPeer, WgPeerAttrs};
