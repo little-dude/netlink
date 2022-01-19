@@ -223,7 +223,10 @@ pub enum Nla {
     // ref: https://patchwork.ozlabs.org/patch/154816/
     LegacyMemInfo(LegacyMemInfo),
     /// the TCP information
+    #[cfg(feature = "rich_nlas")]
     TcpInfo(TcpInfo),
+    #[cfg(not(feature = "rich_nlas"))]
+    TcpInfo(Vec<u8>),
     /// the congestion control algorithm used
     Congestion(String),
     /// the TOS of the socket.
@@ -251,7 +254,10 @@ impl crate::utils::nla::Nla for Nla {
         use self::Nla::*;
         match *self {
             LegacyMemInfo(_) => LEGACY_MEM_INFO_LEN,
+            #[cfg(feature = "rich_nlas")]
             TcpInfo(_) => TCP_INFO_LEN,
+            #[cfg(not(feature = "rich_nlas"))]
+            TcpInfo(ref bytes) => bytes.len(),
             // +1 because we need to append a null byte
             Congestion(ref s) => s.as_bytes().len() + 1,
             Tos(_) | Tc(_) | Shutdown(_) | Protocol(_) | SkV6Only(_) => 1,
@@ -283,7 +289,10 @@ impl crate::utils::nla::Nla for Nla {
         use self::Nla::*;
         match *self {
             LegacyMemInfo(ref value) => value.emit(buffer),
+            #[cfg(feature = "rich_nlas")]
             TcpInfo(ref value) => value.emit(buffer),
+            #[cfg(not(feature = "rich_nlas"))]
+            TcpInfo(ref bytes) => buffer[..bytes.len()].copy_from_slice(&bytes[..]),
             Congestion(ref s) => {
                 buffer[..s.len()].copy_from_slice(s.as_bytes());
                 buffer[s.len()] = 0;
@@ -306,11 +315,14 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for Nla {
                 let buf = LegacyMemInfoBuffer::new_checked(payload).context(err)?;
                 Self::LegacyMemInfo(LegacyMemInfo::parse(&buf).context(err)?)
             }
+            #[cfg(feature = "rich_nlas")]
             INET_DIAG_INFO => {
                 let err = "invalid INET_DIAG_INFO value";
                 let buf = TcpInfoBuffer::new_checked(payload).context(err)?;
                 Self::TcpInfo(TcpInfo::parse(&buf).context(err)?)
             }
+            #[cfg(not(feature = "rich_nlas"))]
+            INET_DIAG_INFO => Self::TcpInfo(payload.to_vec()),
             INET_DIAG_CONG => {
                 Self::Congestion(parse_string(payload).context("invalid INET_DIAG_CONG value")?)
             }
@@ -345,8 +357,10 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for Nla {
     }
 }
 
+#[cfg(feature = "rich_nlas")]
 pub const TCP_INFO_LEN: usize = 232;
 
+#[cfg(feature = "rich_nlas")]
 buffer!(TcpInfoBuffer(TCP_INFO_LEN) {
     // State of the TCP connection. This should be set to one of the
     // `TCP_*` constants: `TCP_ESTABLISHED`, `TCP_SYN_SENT`, etc. This
@@ -428,14 +442,13 @@ buffer!(TcpInfoBuffer(TCP_INFO_LEN) {
     bytes_retrans: (u64, 208..216),    // RFC4898 tcpEStatsPerfOctetsRetrans
     dsack_dups: (u32,   216..220),     // RFC4898 tcpEStatsStackDSACKDups
     reord_seen: (u32,   220..224),     // reordering events seen
-    // TODO: These are pretty recent addition, we should hide them behind
-    // `#[cfg]` flag
-    rcv_ooopack: (u32, 224..228),     // Out-of-order packets received
-    snd_wnd: (u32, 228..232),         // peer's advertised receive window after scaling (bytes)
+    rcv_ooopack: (u32, 224..228),      // Out-of-order packets received
+    snd_wnd: (u32, 228..232),          // peer's advertised receive window after scaling (bytes)
 });
 
 // https://unix.stackexchange.com/questions/542712/detailed-output-of-ss-command
 
+#[cfg(feature = "rich_nlas")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TcpInfo {
     /// State of the TCP connection: one of `TCP_ESTABLISHED`,
@@ -549,6 +562,7 @@ pub struct TcpInfo {
     pub snd_wnd: u32,
 }
 
+#[cfg(feature = "rich_nlas")]
 impl<T: AsRef<[u8]>> Parseable<TcpInfoBuffer<T>> for TcpInfo {
     fn parse(buf: &TcpInfoBuffer<T>) -> Result<Self, DecodeError> {
         Ok(Self {
@@ -610,6 +624,7 @@ impl<T: AsRef<[u8]>> Parseable<TcpInfoBuffer<T>> for TcpInfo {
     }
 }
 
+#[cfg(feature = "rich_nlas")]
 impl Emitable for TcpInfo {
     fn buffer_len(&self) -> usize {
         TCP_INFO_LEN
