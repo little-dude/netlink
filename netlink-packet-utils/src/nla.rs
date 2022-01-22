@@ -19,6 +19,17 @@ pub const NLA_F_NESTED: u16 = 0x8000;
 pub const NLA_F_NET_BYTEORDER: u16 = 0x4000;
 /// Identify the bits that represent the type of a netlink attribute.
 pub const NLA_TYPE_MASK: u16 = !(NLA_F_NET_BYTEORDER | NLA_F_NESTED);
+/// NlA(RTA) align size
+pub const NLA_ALIGNTO: usize = 4;
+/// NlA(RTA) header size. (unsigned short rta_len) + (unsigned short rta_type)
+pub const NLA_HEADER_SIZE: usize = 4;
+
+#[macro_export]
+macro_rules! nla_align {
+    ($len: expr) => {
+        ($len + NLA_ALIGNTO - 1) & !(NLA_ALIGNTO - 1)
+    };
+}
 
 const LENGTH: Field = 0..2;
 const TYPE: Field = 2..4;
@@ -217,8 +228,7 @@ pub trait Nla {
 
 impl<T: Nla> Emitable for T {
     fn buffer_len(&self) -> usize {
-        let padding = (4 - self.value_len() % 4) % 4;
-        self.value_len() + padding + 4
+        nla_align!(self.value_len()) + NLA_HEADER_SIZE
     }
     fn emit(&self, buffer: &mut [u8]) {
         let mut buffer = NlaBuffer::new(buffer);
@@ -233,13 +243,13 @@ impl<T: Nla> Emitable for T {
         }
 
         // do not include the padding here, but do include the header
-        buffer.set_length(self.value_len() as u16 + 4);
+        buffer.set_length(self.value_len() as u16 + NLA_HEADER_SIZE as u16);
 
         self.emit_value(buffer.value_mut());
-        // add the padding. this is a bit ugly, not sure how to make it better
-        let padding = (4 - self.value_len() % 4) % 4;
+
+        let padding = nla_align!(self.value_len()) - self.value_len();
         for i in 0..padding {
-            buffer.inner_mut()[4 + self.value_len() + i] = 0;
+            buffer.inner_mut()[NLA_HEADER_SIZE + self.value_len() + i] = 0;
         }
     }
 }
@@ -254,7 +264,7 @@ impl<T: Nla> Emitable for T {
 impl<'a, T: Nla> Emitable for &'a [T] {
     fn buffer_len(&self) -> usize {
         self.iter().fold(0, |acc, nla| {
-            assert_eq!(nla.buffer_len() % 4, 0);
+            assert_eq!(nla.buffer_len() % NLA_ALIGNTO, 0);
             acc + nla.buffer_len()
         })
     }
@@ -264,7 +274,7 @@ impl<'a, T: Nla> Emitable for &'a [T] {
         let mut end: usize;
         for nla in self.iter() {
             let attr_len = nla.buffer_len();
-            assert_eq!(nla.buffer_len() % 4, 0);
+            assert_eq!(nla.buffer_len() % NLA_ALIGNTO, 0);
             end = start + attr_len;
             nla.emit(&mut buffer[start..end]);
             start = end;
@@ -293,20 +303,13 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized + 'buffer> Iterator for NlasIterator<&'buf
     type Item = Result<NlaBuffer<&'buffer [u8]>, DecodeError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // Nlas are aligned on 4 bytes boundaries, so we make sure we ignore any potential
-        // padding.
-        let offset = self.position % 4;
-        if offset != 0 {
-            self.position += 4 - offset;
-        }
-
         if self.position >= self.buffer.as_ref().len() {
             return None;
         }
 
         match NlaBuffer::new_checked(&self.buffer.as_ref()[self.position..]) {
             Ok(nla_buffer) => {
-                self.position += nla_buffer.length() as usize;
+                self.position += nla_align!(nla_buffer.length() as usize);
                 Some(Ok(nla_buffer))
             }
             Err(e) => {
@@ -346,5 +349,24 @@ mod tests {
 
         assert_eq!([buffer_is_net, buffer_is_nest], [attr_is_net, attr_is_nest]);
         assert_eq!([attr_is_net, attr_is_nest], [emit_is_net, emit_is_nest]);
+    }
+
+    fn get_len() -> usize {
+        // usize::MAX
+        18446744073709551615
+    }
+
+    #[test]
+    fn test_align() {
+        assert_eq!(nla_align!(13), 16);
+        assert_eq!(nla_align!(16), 16);
+        assert_eq!(nla_align!(0), 0);
+        assert_eq!(nla_align!(1), 4);
+        assert_eq!(nla_align!(get_len() - 4), usize::MAX - 3);
+    }
+    #[test]
+    #[should_panic]
+    fn test_align_overflow() {
+        assert_eq!(nla_align!(get_len() - 3), usize::MAX);
     }
 }
