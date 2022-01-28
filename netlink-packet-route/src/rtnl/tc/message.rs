@@ -60,7 +60,9 @@ impl Emitable for TcMessage {
 
     fn emit(&self, buffer: &mut [u8]) {
         self.header.emit(buffer);
-        self.nlas.as_slice().emit(buffer);
+        self.nlas
+            .as_slice()
+            .emit(&mut buffer[self.header.buffer_len()..]);
     }
 }
 

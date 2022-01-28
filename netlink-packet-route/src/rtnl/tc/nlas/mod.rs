@@ -80,7 +80,7 @@ impl nlas::Nla for Nla {
             Stats(ref stats) => stats.emit(buffer),
 
             Kind(ref string) => {
-                buffer.copy_from_slice(string.as_bytes());
+                buffer[..string.as_bytes().len()].copy_from_slice(string.as_bytes());
                 buffer[string.as_bytes().len()] = 0;
             }
 
