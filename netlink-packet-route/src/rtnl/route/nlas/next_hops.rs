@@ -2,11 +2,10 @@ use anyhow::Context;
 use std::net::IpAddr;
 
 use crate::{
-    constants::{self, RTA_GATEWAY},
-    emit_ip,
-    ip_len,
-    nlas::{Nla, NlaBuffer},
+    constants,
+    nlas::{NlaBuffer, NlasIterator},
     parsers::parse_ip,
+    route::nlas::Nla,
     traits::{Emitable, Parseable},
     DecodeError,
 };
@@ -23,12 +22,14 @@ bitflags! {
     }
 }
 
+const PAYLOAD_OFFSET: usize = 8;
+
 buffer!(NextHopBuffer {
     length: (u16, 0..2),
     flags: (u8, 2),
     hops: (u8, 3),
     interface_id: (u32, 4..8),
-    gateway_nla: (slice, GATEWAY_OFFSET..),
+    payload: (slice, PAYLOAD_OFFSET..),
 });
 
 impl<T: AsRef<[u8]>> NextHopBuffer<T> {
@@ -40,8 +41,10 @@ impl<T: AsRef<[u8]>> NextHopBuffer<T> {
 
     fn check_buffer_length(&self) -> Result<(), DecodeError> {
         let len = self.buffer.as_ref().len();
-        if len < 8 {
-            return Err(format!("invalid NextHopBuffer: length {} < {}", len, 8).into());
+        if len < PAYLOAD_OFFSET {
+            return Err(
+                format!("invalid NextHopBuffer: length {} < {}", len, PAYLOAD_OFFSET).into(),
+            );
         }
         if len < self.length() as usize {
             return Err(format!(
@@ -55,9 +58,13 @@ impl<T: AsRef<[u8]>> NextHopBuffer<T> {
     }
 }
 
-const GATEWAY_OFFSET: usize = 8;
+impl<'a, T: AsRef<[u8]> + ?Sized> NextHopBuffer<&'a T> {
+    pub fn nlas(&self) -> impl Iterator<Item = Result<NlaBuffer<&'a [u8]>, DecodeError>> {
+        NlasIterator::new(&self.payload()[..(self.length() as usize - PAYLOAD_OFFSET)])
+    }
+}
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct NextHop {
     /// Next-hop flags (see [`NextHopFlags`])
     pub flags: NextHopFlags,
@@ -65,59 +72,40 @@ pub struct NextHop {
     pub hops: u8,
     /// Interface index for the next-hop
     pub interface_id: u32,
-    /// Gateway address (it is actually encoded as an `RTA_GATEWAY` nla)
-    pub gateway: Option<IpAddr>,
+    /// Attributes
+    pub nlas: Vec<Nla>,
 }
 
 impl<'a, T: AsRef<[u8]>> Parseable<NextHopBuffer<&'a T>> for NextHop {
     fn parse(buf: &NextHopBuffer<&T>) -> Result<NextHop, DecodeError> {
-        let gateway = if buf.length() as usize > GATEWAY_OFFSET {
-            let gateway_nla_buf = NlaBuffer::new_checked(buf.gateway_nla())
-                .context("cannot parse RTA_GATEWAY attribute in next-hop")?;
-            if gateway_nla_buf.kind() != RTA_GATEWAY {
-                return Err(format!("invalid RTA_GATEWAY attribute in next-hop: expected NLA type to be RTA_GATEWAY ({}), but got {} instead", RTA_GATEWAY, gateway_nla_buf.kind()).into());
-            }
-            let gateway = parse_ip(gateway_nla_buf.value()).context(
-                "invalid RTA_GATEWAY attribute in next-hop: failed to parse NLA value as an IP address",
-            )?;
-            Some(gateway)
-        } else {
-            None
-        };
+        let nlas = Vec::<Nla>::parse(
+            &NextHopBuffer::new_checked(buf.buffer)
+                .context("cannot parse route attributes in next-hop")?,
+        )
+        .context("cannot parse route attributes in next-hop")?;
         Ok(NextHop {
             flags: NextHopFlags::from_bits_truncate(buf.flags()),
             hops: buf.hops(),
             interface_id: buf.interface_id(),
-            gateway,
+            nlas,
         })
     }
 }
 
-struct GatewayNla<'a>(&'a IpAddr);
-
-impl<'a> Nla for GatewayNla<'a> {
-    fn value_len(&self) -> usize {
-        ip_len(self.0)
-    }
-    fn kind(&self) -> u16 {
-        RTA_GATEWAY
-    }
-    fn emit_value(&self, buffer: &mut [u8]) {
-        emit_ip(buffer, self.0)
+impl<'a, T: AsRef<[u8]> + 'a> Parseable<NextHopBuffer<&'a T>> for Vec<Nla> {
+    fn parse(buf: &NextHopBuffer<&'a T>) -> Result<Self, DecodeError> {
+        let mut nlas = vec![];
+        for nla_buf in buf.nlas() {
+            nlas.push(Nla::parse(&nla_buf?)?);
+        }
+        Ok(nlas)
     }
 }
 
 impl Emitable for NextHop {
     fn buffer_len(&self) -> usize {
         // len, flags, hops and interface id fields
-        8 + self
-            .gateway
-            .as_ref()
-            .map(|ip| {
-                // RTA_GATEWAY attribute header (length and type) + value length
-                4 + ip_len(ip)
-            })
-            .unwrap_or(0)
+        PAYLOAD_OFFSET + self.nlas.as_slice().buffer_len()
     }
 
     fn emit(&self, buffer: &mut [u8]) {
@@ -126,9 +114,19 @@ impl Emitable for NextHop {
         nh_buffer.set_flags(self.flags.bits());
         nh_buffer.set_hops(self.hops);
         nh_buffer.set_interface_id(self.interface_id);
-        if let Some(ref gateway) = self.gateway {
-            let gateway_nla = GatewayNla(gateway);
-            gateway_nla.emit(nh_buffer.gateway_nla_mut());
-        }
+        self.nlas.as_slice().emit(nh_buffer.payload_mut())
+    }
+}
+
+impl NextHop {
+    /// Gateway address (it is actually encoded as an `RTA_GATEWAY` nla)
+    pub fn gateway(&self) -> Option<IpAddr> {
+        self.nlas.iter().find_map(|nla| {
+            if let Nla::Gateway(ip) = nla {
+                parse_ip(ip).ok()
+            } else {
+                None
+            }
+        })
     }
 }
