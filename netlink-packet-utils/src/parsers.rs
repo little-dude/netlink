@@ -62,7 +62,7 @@ pub fn parse_string(payload: &[u8]) -> Result<String, DecodeError> {
     if payload.is_empty() {
         return Ok(String::new());
     }
-    // iproute2 is a bit inconstent with null-terminated strings.
+    // iproute2 is a bit inconsistent with null-terminated strings.
     let slice = if payload[payload.len() - 1] == 0 {
         &payload[..payload.len() - 1]
     } else {
