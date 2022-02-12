@@ -5,6 +5,26 @@
 ### New Features
 ### Bug fixes
 
+## [20220212] 2022-02-12
+
+### Versioning
+
+* netlink-packet-wireguard 0.1.1 -> 0.2
+
+### Breaking changes
+
+* netlink-packet-wireguard (https://github.com/little-dude/netlink/pull/225):
+  * In `netlink_packet_wireguard::nlas::device`: `WgDeviceAttrs::Peers(Vec<Vec<WgPeerAttrs>>)` is now `WgDeviceAttrs::Peers(Vec<WgPeer>>)`
+  * In `netlink_packet_wireguard::nlas::peer`: `WgDeviceAttrs::AllowedIps(Vec<Vec<WgAllowedIpAttrs>>)` is now `WgDeviceAttrs::AllowedIps(Vec<WgAllowedIp>>)`
+
+### New Features
+
+None
+
+### Bug fixes
+
+* netlink-packet-wireguard (https://github.com/little-dude/netlink/pull/225): various serialization fixes
+
 ## [20211229] 2022-01-15
 
 ### Versioning
