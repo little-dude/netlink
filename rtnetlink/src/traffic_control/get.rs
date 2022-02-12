@@ -7,7 +7,7 @@ use futures::{
 };
 
 use crate::{
-    packet::{NetlinkMessage, RtnlMessage, TcMessage, NLM_F_DUMP, NLM_F_REQUEST},
+    packet::{tc::constants::*, NetlinkMessage, RtnlMessage, TcMessage, NLM_F_DUMP, NLM_F_REQUEST},
     try_rtnl,
     Error,
     Handle,
@@ -42,6 +42,18 @@ impl QDiscGetRequest {
             ),
             Err(e) => Either::Right(future::err::<TcMessage, Error>(e).into_stream()),
         }
+    }
+
+    pub fn index(mut self, index: i32) -> Self {
+        self.message.header.index = index;
+        self
+    }
+
+    /// Get ingress qdisc
+    pub fn ingress(mut self) -> Self {
+        assert_eq!(self.message.header.parent, TC_H_UNSPEC);
+        self.message.header.parent = TC_H_INGRESS;
+        self
     }
 }
 
