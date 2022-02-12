@@ -809,8 +809,7 @@ pub const RTNH_F_UNRESOLVED: u8 = 32;
 // pub const RTAX_FEATURE_TIMESTAMP: int = 4;
 // pub const RTAX_FEATURE_ALLFRAG: int = 8;
 // pub const RTAX_FEATURE_MASK: int = 15;
-// #[allow(overflowing_literals)]
-// pub const TCM_IFINDEX_MAGIC_BLOCK: int = 0xffff_ffff;
+pub const TCM_IFINDEX_MAGIC_BLOCK: u32 = 0xffff_ffff;
 // pub const TCA_FLAG_LARGE_DUMP_ON: int = 1;
 
 pub const RTEXT_FILTER_VF: u32 = 1;

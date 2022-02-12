@@ -15,6 +15,15 @@ pub use self::options::*;
 mod qdisc;
 pub use self::qdisc::*;
 
+mod filter;
+pub use self::filter::*;
+
+mod action;
+pub use self::action::*;
+
+#[cfg(test)]
+mod test;
+
 use crate::{
     constants::*,
     nlas::{self, DefaultNla, NlaBuffer},
