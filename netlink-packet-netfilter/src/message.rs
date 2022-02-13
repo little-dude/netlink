@@ -93,7 +93,6 @@ impl Emitable for NetfilterMessageInner {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-
 pub struct NetfilterMessage {
     pub header: NetfilterHeader,
     pub inner: NetfilterMessageInner,

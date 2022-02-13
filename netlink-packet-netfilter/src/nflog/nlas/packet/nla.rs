@@ -5,42 +5,37 @@ use std::ffi::{CStr, CString};
 use anyhow::Context;
 use byteorder::{BigEndian, ByteOrder};
 use derive_more::{From, IsVariant};
-use netlink_packet_core::DecodeError;
-use netlink_packet_utils::{
+
+use crate::{
+    constants::{
+        NFULA_GID,
+        NFULA_HWADDR,
+        NFULA_HWHEADER,
+        NFULA_HWLEN,
+        NFULA_HWTYPE,
+        NFULA_IFINDEX_INDEV,
+        NFULA_IFINDEX_OUTDEV,
+        NFULA_IFINDEX_PHYSINDEV,
+        NFULA_IFINDEX_PHYSOUTDEV,
+        NFULA_MARK,
+        NFULA_PACKET_HDR,
+        NFULA_PAYLOAD,
+        NFULA_PREFIX,
+        NFULA_SEQ,
+        NFULA_SEQ_GLOBAL,
+        NFULA_TIMESTAMP,
+        NFULA_UID,
+    },
+    nflog::nlas::packet::{
+        hw_addr::{HwAddr, HwAddrBuffer},
+        packet_hdr::{PacketHdr, PacketHdrBuffer},
+        timestamp::{TimeStamp, TimeStampBuffer},
+    },
     nla::{DefaultNla, Nla, NlaBuffer},
-    parsers::{parse_u16_be, parse_u32_be},
-    Parseable,
+    traits::Parseable,
+    utils::parsers::{parse_u16_be, parse_u32_be},
+    DecodeError,
 };
-
-use self::{
-    hw_addr::{HwAddr, HwAddrBuffer},
-    packet_hdr::{PacketHdr, PacketHdrBuffer},
-    timestamp::{TimeStamp, TimeStampBuffer},
-};
-
-mod hw_addr;
-mod packet_hdr;
-mod timestamp;
-
-pub const NFULA_PACKET_HDR: u16 = libc::NFULA_PACKET_HDR as u16;
-pub const NFULA_MARK: u16 = libc::NFULA_MARK as u16;
-pub const NFULA_TIMESTAMP: u16 = libc::NFULA_TIMESTAMP as u16;
-pub const NFULA_IFINDEX_INDEV: u16 = libc::NFULA_IFINDEX_INDEV as u16;
-pub const NFULA_IFINDEX_OUTDEV: u16 = libc::NFULA_IFINDEX_OUTDEV as u16;
-pub const NFULA_IFINDEX_PHYSINDEV: u16 = libc::NFULA_IFINDEX_PHYSINDEV as u16;
-pub const NFULA_IFINDEX_PHYSOUTDEV: u16 = libc::NFULA_IFINDEX_PHYSOUTDEV as u16;
-pub const NFULA_HWADDR: u16 = libc::NFULA_HWADDR as u16;
-pub const NFULA_PAYLOAD: u16 = libc::NFULA_PAYLOAD as u16;
-pub const NFULA_PREFIX: u16 = libc::NFULA_PREFIX as u16;
-pub const NFULA_UID: u16 = libc::NFULA_UID as u16;
-pub const NFULA_SEQ: u16 = libc::NFULA_SEQ as u16;
-pub const NFULA_SEQ_GLOBAL: u16 = libc::NFULA_SEQ_GLOBAL as u16;
-pub const NFULA_GID: u16 = libc::NFULA_GID as u16;
-pub const NFULA_HWTYPE: u16 = libc::NFULA_HWTYPE as u16;
-pub const NFULA_HWHEADER: u16 = libc::NFULA_HWHEADER as u16;
-pub const NFULA_HWLEN: u16 = libc::NFULA_HWLEN as u16;
-pub const NFULA_CT: u16 = libc::NFULA_CT as u16;
-pub const NFULA_CT_INFO: u16 = libc::NFULA_CT_INFO as u16;
 
 #[derive(Clone, Debug, PartialEq, Eq, From, IsVariant)]
 pub enum PacketNla {

@@ -1,47 +1,28 @@
-// SPDX-License-Identifier: MIT
-
 use anyhow::Context;
 use byteorder::{BigEndian, ByteOrder};
 use derive_more::{From, IsVariant};
-use netlink_packet_core::{
-    DecodeError,
-    NetlinkHeader,
-    NetlinkMessage,
-    NetlinkPayload,
-    NLM_F_ACK,
-    NLM_F_REQUEST,
-};
-use netlink_packet_utils::{
-    nla::{DefaultNla, Nla, NlaBuffer},
-    parsers::{parse_u16_be, parse_u32_be, parse_u8},
-    Parseable,
-};
-
-pub use config_cmd::ConfigCmd;
-pub use config_flags::ConfigFlags;
-pub use config_mode::{ConfigMode, CopyMode};
-pub use timeout::Timeout;
 
 use crate::{
-    constants::NFNETLINK_V0,
-    message::{NetfilterHeader, NetfilterMessage},
+    constants::{
+        NFULA_CFG_CMD,
+        NFULA_CFG_FLAGS,
+        NFULA_CFG_MODE,
+        NFULA_CFG_NLBUFSIZ,
+        NFULA_CFG_QTHRESH,
+        NFULA_CFG_TIMEOUT,
+    },
+    nflog::nlas::config::{
+        config_mode::ConfigModeBuffer,
+        ConfigCmd,
+        ConfigFlags,
+        ConfigMode,
+        Timeout,
+    },
+    nl::DecodeError,
+    nla::{DefaultNla, Nla, NlaBuffer},
+    traits::Parseable,
+    utils::parsers::{parse_u16_be, parse_u32_be, parse_u8},
 };
-
-use super::NfLogMessage;
-
-mod config_cmd;
-mod config_flags;
-mod config_mode;
-mod timeout;
-
-pub const NFULA_CFG_CMD: u16 = libc::NFULA_CFG_CMD as u16;
-pub const NFULA_CFG_MODE: u16 = libc::NFULA_CFG_MODE as u16;
-pub const NFULA_CFG_NLBUFSIZ: u16 = libc::NFULA_CFG_NLBUFSIZ as u16;
-pub const NFULA_CFG_TIMEOUT: u16 = libc::NFULA_CFG_TIMEOUT as u16;
-pub const NFULA_CFG_QTHRESH: u16 = libc::NFULA_CFG_QTHRESH as u16;
-pub const NFULA_CFG_FLAGS: u16 = libc::NFULA_CFG_FLAGS as u16;
-
-pub const NLBUFSIZ_MAX: u32 = 131072;
 
 #[derive(Clone, Debug, PartialEq, Eq, From, IsVariant)]
 pub enum ConfigNla {
@@ -103,7 +84,7 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'buffer T>> for Conf
                 ConfigCmd::from(parse_u8(payload).context("invalid NFULA_CFG_CMD value")?).into()
             }
             NFULA_CFG_MODE => {
-                let buf = config_mode::ConfigModeBuffer::new_checked(payload)?;
+                let buf = ConfigModeBuffer::new_checked(payload)?;
                 ConfigMode::parse(&buf)?.into()
             }
             NFULA_CFG_NLBUFSIZ => ConfigNla::NlBufSiz(
@@ -124,23 +105,4 @@ impl<'buffer, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'buffer T>> for Conf
         };
         Ok(nla)
     }
-}
-
-pub fn config_request(
-    family: u8,
-    group_num: u16,
-    nlas: Vec<ConfigNla>,
-) -> NetlinkMessage<NetfilterMessage> {
-    let mut message = NetlinkMessage {
-        header: NetlinkHeader {
-            flags: NLM_F_REQUEST | NLM_F_ACK,
-            ..Default::default()
-        },
-        payload: NetlinkPayload::from(NetfilterMessage::new(
-            NetfilterHeader::new(family, NFNETLINK_V0, group_num),
-            NfLogMessage::Config(nlas),
-        )),
-    };
-    message.finalize();
-    message
 }

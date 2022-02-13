@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-use netlink_packet_core::DecodeError;
-use netlink_packet_utils::{buffer, nla::Nla, Parseable};
-
-use super::NFULA_HWADDR;
+use crate::{constants::NFULA_HWADDR, nla::Nla, traits::Parseable, utils::buffer, DecodeError};
 
 const HW_ADDR_LEN: usize = 12;
 

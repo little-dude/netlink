@@ -13,15 +13,17 @@ use std::{net::Ipv4Addr, time::Duration};
 use byteorder::{ByteOrder, NetworkEndian};
 use netlink_packet_netfilter::{
     constants::*,
-    message::{NetfilterMessage, NetfilterMessageInner},
     nflog::{
-        self,
-        config::{ConfigCmd, ConfigFlags, ConfigMode, Timeout},
-        packet::PacketNla,
+        config_request,
+        nlas::{
+            config::{ConfigCmd, ConfigFlags, ConfigMode, Timeout},
+            packet::PacketNla,
+        },
         NfLogMessage,
     },
-    NetlinkMessage,
-    NetlinkPayload,
+    nl::{NetlinkMessage, NetlinkPayload},
+    NetfilterMessage,
+    NetfilterMessageInner,
 };
 use netlink_sys::{constants::NETLINK_NETFILTER, Socket};
 
@@ -45,7 +47,7 @@ fn main() {
     socket.bind_auto().unwrap();
 
     // Then we issue the PfBind command
-    let packet = nflog::config::config_request(AF_INET, 0, vec![ConfigCmd::PfBind.into()]);
+    let packet = config_request(AF_INET, 0, vec![ConfigCmd::PfBind.into()]);
     let mut buf = vec![0; packet.header.length as usize];
     packet.serialize(&mut buf[..]);
     println!(">>> {:?}", packet);
@@ -60,7 +62,7 @@ fn main() {
 
     // After that we issue a Bind command, to start receiving packets. We can also set various parameters at the same time
     let timeout: Timeout = Duration::from_millis(100).into();
-    let packet = nflog::config::config_request(
+    let packet = config_request(
         AF_INET,
         1,
         vec![
@@ -92,7 +94,7 @@ fn main() {
                     let rx_packet = <NetlinkMessage<NetfilterMessage>>::deserialize(bytes).unwrap();
 
                     for nla in get_packet_nlas(&rx_packet) {
-                        if let nflog::packet::PacketNla::Payload(payload) = nla {
+                        if let PacketNla::Payload(payload) = nla {
                             let src = Ipv4Addr::from(NetworkEndian::read_u32(&payload[12..]));
                             let dst = Ipv4Addr::from(NetworkEndian::read_u32(&payload[16..]));
                             println!("Packet from {} to {}", src, dst);

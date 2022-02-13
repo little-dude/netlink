@@ -1,25 +1,11 @@
-// SPDX-License-Identifier: MIT
-
-use netlink_packet_core::DecodeError;
-use netlink_packet_utils::{nla::DefaultNla, Emitable, Parseable, ParseableParametrized};
-use std::fmt::Debug;
-
-use crate::{buffer::NetfilterBuffer, constants::NFNL_SUBSYS_ULOG};
-
-use config::ConfigNla;
-
-use self::packet::PacketNla;
-
-pub const NFULNL_MSG_CONFIG: u8 = libc::NFULNL_MSG_CONFIG as u8;
-pub const NFULNL_MSG_PACKET: u8 = libc::NFULNL_MSG_PACKET as u8;
-
-pub const NFULA_CFG_CMD: u16 = libc::NFULA_CFG_CMD as u16;
-pub const NFULA_CFG_MODE: u16 = libc::NFULA_CFG_MODE as u16;
-pub const NFULA_CFG_NLBUFSIZ: u16 = libc::NFULA_CFG_NLBUFSIZ as u16;
-pub const NFULA_CFG_QTHRESH: u16 = libc::NFULA_CFG_QTHRESH as u16;
-
-pub mod config;
-pub mod packet;
+use crate::{
+    buffer::NetfilterBuffer,
+    constants::{NFNL_SUBSYS_ULOG, NFULNL_MSG_CONFIG, NFULNL_MSG_PACKET},
+    nflog::nlas::{config::ConfigNla, packet::PacketNla},
+    nla::DefaultNla,
+    traits::{Emitable, Parseable, ParseableParametrized},
+    DecodeError,
+};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum NfLogMessage {

@@ -3,7 +3,7 @@
 use netlink_packet_core::DecodeError;
 use netlink_packet_utils::{buffer, nla::Nla, Parseable};
 
-use super::NFULA_TIMESTAMP;
+use crate::constants::NFULA_TIMESTAMP;
 
 const TIMESTAMP_LEN: usize = 16;
 

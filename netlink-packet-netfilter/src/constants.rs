@@ -56,3 +56,34 @@ pub const NFNL_SUBSYS_CTNETLINK_TIMEOUT: u8 = libc::NFNL_SUBSYS_CTNETLINK_TIMEOU
 pub const NFNL_SUBSYS_CTHELPER: u8 = libc::NFNL_SUBSYS_CTHELPER as u8;
 pub const NFNL_SUBSYS_NFTABLES: u8 = libc::NFNL_SUBSYS_NFTABLES as u8;
 pub const NFNL_SUBSYS_NFT_COMPAT: u8 = libc::NFNL_SUBSYS_NFT_COMPAT as u8;
+
+pub const NFULA_CFG_CMD: u16 = libc::NFULA_CFG_CMD as u16;
+pub const NFULA_CFG_MODE: u16 = libc::NFULA_CFG_MODE as u16;
+pub const NFULA_CFG_NLBUFSIZ: u16 = libc::NFULA_CFG_NLBUFSIZ as u16;
+pub const NFULA_CFG_TIMEOUT: u16 = libc::NFULA_CFG_TIMEOUT as u16;
+pub const NFULA_CFG_QTHRESH: u16 = libc::NFULA_CFG_QTHRESH as u16;
+pub const NFULA_CFG_FLAGS: u16 = libc::NFULA_CFG_FLAGS as u16;
+pub const NLBUFSIZ_MAX: u32 = 131072;
+
+pub const NFULA_PACKET_HDR: u16 = libc::NFULA_PACKET_HDR as u16;
+pub const NFULA_MARK: u16 = libc::NFULA_MARK as u16;
+pub const NFULA_TIMESTAMP: u16 = libc::NFULA_TIMESTAMP as u16;
+pub const NFULA_IFINDEX_INDEV: u16 = libc::NFULA_IFINDEX_INDEV as u16;
+pub const NFULA_IFINDEX_OUTDEV: u16 = libc::NFULA_IFINDEX_OUTDEV as u16;
+pub const NFULA_IFINDEX_PHYSINDEV: u16 = libc::NFULA_IFINDEX_PHYSINDEV as u16;
+pub const NFULA_IFINDEX_PHYSOUTDEV: u16 = libc::NFULA_IFINDEX_PHYSOUTDEV as u16;
+pub const NFULA_HWADDR: u16 = libc::NFULA_HWADDR as u16;
+pub const NFULA_PAYLOAD: u16 = libc::NFULA_PAYLOAD as u16;
+pub const NFULA_PREFIX: u16 = libc::NFULA_PREFIX as u16;
+pub const NFULA_UID: u16 = libc::NFULA_UID as u16;
+pub const NFULA_SEQ: u16 = libc::NFULA_SEQ as u16;
+pub const NFULA_SEQ_GLOBAL: u16 = libc::NFULA_SEQ_GLOBAL as u16;
+pub const NFULA_GID: u16 = libc::NFULA_GID as u16;
+pub const NFULA_HWTYPE: u16 = libc::NFULA_HWTYPE as u16;
+pub const NFULA_HWHEADER: u16 = libc::NFULA_HWHEADER as u16;
+pub const NFULA_HWLEN: u16 = libc::NFULA_HWLEN as u16;
+pub const NFULA_CT: u16 = libc::NFULA_CT as u16;
+pub const NFULA_CT_INFO: u16 = libc::NFULA_CT_INFO as u16;
+
+pub const NFULNL_MSG_CONFIG: u8 = libc::NFULNL_MSG_CONFIG as u8;
+pub const NFULNL_MSG_PACKET: u8 = libc::NFULNL_MSG_PACKET as u8;
