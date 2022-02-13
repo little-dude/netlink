@@ -9,6 +9,9 @@ pub use self::metrics::*;
 mod mfc_stats;
 pub use self::mfc_stats::*;
 
+mod mpls_ip_tunnel;
+pub use self::mpls_ip_tunnel::*;
+
 mod next_hops;
 pub use self::next_hops::*;
 

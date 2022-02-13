@@ -1201,3 +1201,17 @@ pub const IFLA_XDP_PROG_ID: u32 = 4;
 // pub const PREFIX_UNSPEC: int = 0;
 // pub const PREFIX_ADDRESS: int = 1;
 // pub const PREFIX_CACHEINFO: int = 2;
+
+pub const LWTUNNEL_ENCAP_NONE: u16 = 0;
+pub const LWTUNNEL_ENCAP_MPLS: u16 = 1;
+pub const LWTUNNEL_ENCAP_IP: u16 = 2;
+pub const LWTUNNEL_ENCAP_ILA: u16 = 3;
+pub const LWTUNNEL_ENCAP_IP6: u16 = 4;
+pub const LWTUNNEL_ENCAP_SEG6: u16 = 5;
+pub const LWTUNNEL_ENCAP_BPF: u16 = 6;
+pub const LWTUNNEL_ENCAP_SEG6_LOCAL: u16 = 7;
+pub const LWTUNNEL_ENCAP_RPL: u16 = 8;
+
+pub const MPLS_IPTUNNEL_UNSPEC: u16 = 0;
+pub const MPLS_IPTUNNEL_DST: u16 = 1;
+pub const MPLS_IPTUNNEL_TTL: u16 = 2;
