@@ -45,7 +45,7 @@ fn b1(c: &mut Criterion) {
 
     c.bench_function("parse LinkMessage nlas", |b| {
         b.iter(|| {
-            Vec::<Nla>::parse_with_param(&LinkMessageBuffer::new(&&LINKMSG1[..]), 0 as u8).unwrap();
+            Vec::<Nla>::parse_with_param(&LinkMessageBuffer::new(&&LINKMSG1[..]), 0_u8).unwrap();
         })
     });
 
