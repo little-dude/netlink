@@ -42,6 +42,11 @@ jobs:
           cd netlink-packet-generic
           cargo test
 
+      - name: test (netlink-packet-netfilter)
+        run: |
+          cd netlink-packet-netfilter
+          cargo test
+
       - name: test (netlink-packet-route)
         run: |
           cd netlink-packet-route
