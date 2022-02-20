@@ -13,14 +13,16 @@ This project aims at providing building blocks for [netlink][man-netlink] (see `
     - [`netlink-packet-audit`](./netlink-packet-audit) provides messages for the [audit][man-audit] protocol
     - [`netlink-packet-sock-diag`](./netlink-packet-sock-diag) provides messages for the [sock-diag][man-sock-diag]
       protocol
+    - [`netlink-packet-generic`](./netlink-packet-generic) provides message for the [generic netlink][man-genl]
+      protocol
+    - [`netlink-packet-netfilter`](./netlink-packet-netfilter) provides message for the `NETLINK_NETFILTER`
+      protocol
 - the [`netlink-packet-core`](./netlink-packet-core) is the glue for all the other `netlink-packet-*` crates. It
   provides a `NetlinkMessage<T>` type that represent any netlink message for any sub-protocol.
 - the [`netlink_proto`](./netlink-proto) crate is an asynchronous implementation of the netlink protocol. It only
   depends on `netlink-packet-core` for the `NetlinkMessage` type and `netlink-sys` for the socket.
 - the [`rtnetlink`](./rtnetlink) crate provides higher level abstraction for the [route protocol][man-rtnetlink]
 - the [`audit`](./audit) crate provides higher level abstractions for the audit protocol.
-- the [`netlink-packet-generic`](./netlink-packet-generic) crate provide
-  message for the [generic netlink][man-genl]
 - the [`genetlink`](./genetlink) crate provide higher level abstraction for the
   [generic netlink protocol][man-genl]
 - the [`ethtool`](./ethtool) crate provide higher level abstraction for
