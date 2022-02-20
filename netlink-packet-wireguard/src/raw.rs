@@ -86,10 +86,10 @@ pub fn parse_ip(payload: &[u8]) -> Result<IpAddr, DecodeError> {
 pub fn emit_ip(addr: &IpAddr, buf: &mut [u8]) {
     match addr {
         IpAddr::V4(ip) => {
-            (&mut buf[..IPV4_LEN]).copy_from_slice(ip.octets().as_slice());
+            buf[..IPV4_LEN].copy_from_slice(ip.octets().as_slice());
         }
         IpAddr::V6(ip) => {
-            (&mut buf[..IPV6_LEN]).copy_from_slice(ip.octets().as_slice());
+            buf[..IPV6_LEN].copy_from_slice(ip.octets().as_slice());
         }
     }
 }
@@ -112,9 +112,9 @@ pub fn emit_ip(addr: &IpAddr, buf: &mut [u8]) {
 fn emit_socket_addr_v4(addr: &SocketAddrV4, buf: &mut [u8]) {
     NativeEndian::write_u16(&mut buf[..2], AF_INET);
     BigEndian::write_u16(&mut buf[2..4], addr.port());
-    (&mut buf[4..8]).copy_from_slice(addr.ip().octets().as_slice());
+    buf[4..8].copy_from_slice(addr.ip().octets().as_slice());
     // padding
-    (&mut buf[8..16]).copy_from_slice([0; 8].as_slice());
+    buf[8..16].copy_from_slice([0; 8].as_slice());
 }
 
 /// Emit an IPv6 socket address.
@@ -137,7 +137,7 @@ fn emit_socket_addr_v6(addr: &SocketAddrV6, buf: &mut [u8]) {
     NativeEndian::write_u16(&mut buf[..2], AF_INET6);
     BigEndian::write_u16(&mut buf[2..4], addr.port());
     NativeEndian::write_u32(&mut buf[4..8], addr.flowinfo());
-    (&mut buf[8..24]).copy_from_slice(addr.ip().octets().as_slice());
+    buf[8..24].copy_from_slice(addr.ip().octets().as_slice());
     NativeEndian::write_u32(&mut buf[24..28], addr.scope_id());
 }
 
@@ -206,13 +206,13 @@ mod test {
 
     #[test]
     fn test_parse_socket_addr_in_1() {
-        let ipaddr = parse_socket_addr(&SOCKADDR_IN_BYTES_1).unwrap();
+        let ipaddr = parse_socket_addr(SOCKADDR_IN_BYTES_1).unwrap();
         assert_eq!(ipaddr, SocketAddrV4::new(Ipv4Addr::LOCALHOST, 7290).into());
     }
 
     #[test]
     fn test_parse_socket_addr_in_2() {
-        let ipaddr = parse_socket_addr(&SOCKADDR_IN_BYTES_2).unwrap();
+        let ipaddr = parse_socket_addr(SOCKADDR_IN_BYTES_2).unwrap();
         assert_eq!(
             ipaddr,
             SocketAddrV4::new(Ipv4Addr::new(192, 168, 1, 1), 51820).into()
@@ -221,7 +221,7 @@ mod test {
 
     #[test]
     fn test_parse_socket_addr_in6_1() {
-        let ipaddr = parse_socket_addr(&SOCKADDR_IN6_BYTES_1).unwrap();
+        let ipaddr = parse_socket_addr(SOCKADDR_IN6_BYTES_1).unwrap();
         assert_eq!(
             ipaddr,
             SocketAddrV6::new(
