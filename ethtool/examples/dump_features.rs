@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-use ethtool;
 use futures::stream::TryStreamExt;
-use tokio;
 
 // Once we find a way to load netsimdev kernel module in CI, we can convert this
 // to a test
@@ -24,7 +22,7 @@ async fn get_feature(iface_name: Option<&str>) {
     while let Some(msg) = feature_handle.try_next().await.unwrap() {
         msgs.push(msg);
     }
-    assert!(msgs.len() > 0);
+    assert!(!msgs.is_empty());
     for msg in msgs {
         println!("{:?}", msg);
     }

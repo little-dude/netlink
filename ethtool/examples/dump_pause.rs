@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-use env_logger;
-use ethtool;
 use futures::stream::TryStreamExt;
-use tokio;
 
 // Once we find a way to load netsimdev kernel module in CI, we can convert this
 // to a test
@@ -26,6 +23,6 @@ async fn get_pause(iface_name: Option<&str>) {
     while let Some(msg) = pause_handle.try_next().await.unwrap() {
         msgs.push(msg);
     }
-    assert!(msgs.len() > 0);
+    assert!(!msgs.is_empty());
     println!("{:?}", msgs);
 }
