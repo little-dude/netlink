@@ -1,7 +1,7 @@
 [package]
 authors = ["Flier Lu <flier.lu@gmail.com>", "Corentin Henry <corentinhenry@gmail.com>"]
 name = "netlink-packet-sock-diag"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2018"
 
 homepage = "https://github.com/little-dude/netlink"

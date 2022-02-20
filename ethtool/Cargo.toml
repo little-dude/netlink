@@ -1,6 +1,6 @@
 [package]
 name = "ethtool"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Gris Ge <fge@redhat.com>"]
 license = "MIT"
 edition = "2018"

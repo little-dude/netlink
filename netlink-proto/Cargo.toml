@@ -1,7 +1,7 @@
 [package]
 authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 name = "netlink-proto"
-version = "0.9.1"
+version = "0.9.2"
 edition = "2018"
 
 homepage = "https://github.com/little-dude/netlink"
@@ -27,7 +27,7 @@ smol_socket = ["netlink-sys/smol_socket"]
 [dev-dependencies]
 env_logger = "0.8.2"
 tokio = { version = "1.0.1", default-features = false, features = ["macros", "rt-multi-thread"] }
-netlink-packet-route = "0.10"
+netlink-packet-route = "0.11"
 netlink-packet-audit = "0.4"
 async-std = {version = "1.9.0", features = ["attributes"]}
 
