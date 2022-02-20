@@ -22,7 +22,7 @@ async fn dump_link_modes() {
     while let Some(msg) = link_modes_handle.try_next().await.unwrap() {
         msgs.push(msg);
     }
-    assert!(msgs.len() >= 1);
+    assert!(!msgs.is_empty());
     let ethtool_msg = &msgs[0].payload;
     println!("ethtool_msg {:?}", &ethtool_msg);
 

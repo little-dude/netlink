@@ -114,7 +114,7 @@ impl Emitable for SocketId {
 
         let mut address_buf: [u8; 16] = [0; 16];
         match self.source_address {
-            IpAddr::V4(ip) => (&mut address_buf[0..4]).copy_from_slice(&ip.octets()[..]),
+            IpAddr::V4(ip) => address_buf[0..4].copy_from_slice(&ip.octets()[..]),
             IpAddr::V6(ip) => address_buf.copy_from_slice(&ip.octets()[..]),
         }
 
@@ -124,7 +124,7 @@ impl Emitable for SocketId {
 
         address_buf = [0; 16];
         match self.destination_address {
-            IpAddr::V4(ip) => (&mut address_buf[0..4]).copy_from_slice(&ip.octets()[..]),
+            IpAddr::V4(ip) => address_buf[0..4].copy_from_slice(&ip.octets()[..]),
             IpAddr::V6(ip) => address_buf.copy_from_slice(&ip.octets()[..]),
         }
 

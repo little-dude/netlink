@@ -185,27 +185,33 @@ fn _remove_test_tclass_from_dummy() {
             "1:1",
         ])
         .status()
-        .expect(&format!(
-            "failed to remove tclass from dummy interface {}",
-            TEST_DUMMY_NIC
-        ));
+        .unwrap_or_else(|_| {
+            panic!(
+                "failed to remove tclass from dummy interface {}",
+                TEST_DUMMY_NIC
+            )
+        });
     Command::new("tc")
         .args(&["qdisc", "del", "dev", TEST_DUMMY_NIC, "root"])
         .status()
-        .expect(&format!(
-            "failed to remove qdisc from dummy interface {}",
-            TEST_DUMMY_NIC
-        ));
+        .unwrap_or_else(|_| {
+            panic!(
+                "failed to remove qdisc from dummy interface {}",
+                TEST_DUMMY_NIC
+            )
+        });
 }
 
 fn _remove_test_filter_from_dummy() {
     Command::new("tc")
         .args(&["filter", "del", "dev", TEST_DUMMY_NIC])
         .status()
-        .expect(&format!(
-            "failed to remove filter from dummy interface {}",
-            TEST_DUMMY_NIC
-        ));
+        .unwrap_or_else(|_| {
+            panic!(
+                "failed to remove filter from dummy interface {}",
+                TEST_DUMMY_NIC
+            )
+        });
 }
 
 async fn _get_filters(ifindex: i32) -> Vec<TcMessage> {

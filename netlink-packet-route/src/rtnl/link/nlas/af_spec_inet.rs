@@ -138,7 +138,7 @@ impl nlas::Nla for AfSpecInet {
                 | Ieee802154(ref bytes)
                 | Caif(ref bytes)
                 | Alg(ref bytes)
-                => (&mut buffer[..bytes.len()]).copy_from_slice(bytes.as_slice()),
+                => buffer[..bytes.len()].copy_from_slice(bytes.as_slice()),
             Inet6(ref nlas) => nlas.as_slice().emit(buffer),
             Inet(ref nlas) => nlas.as_slice().emit(buffer),
             Other(ref nla)  => nla.emit_value(buffer),

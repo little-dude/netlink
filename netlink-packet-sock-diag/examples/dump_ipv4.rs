@@ -22,7 +22,7 @@ fn main() {
         },
         payload: SockDiagMessage::InetRequest(InetRequest {
             family: AF_INET,
-            protocol: IPPROTO_TCP.into(),
+            protocol: IPPROTO_TCP,
             extensions: ExtensionFlags::empty(),
             states: StateFlags::all(),
             socket_id: SocketId::new_v4(),

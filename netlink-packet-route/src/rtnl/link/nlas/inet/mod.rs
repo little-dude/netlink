@@ -32,7 +32,7 @@ impl Nla for Inet {
     fn emit_value(&self, buffer: &mut [u8]) {
         use self::Inet::*;
         match *self {
-            Unspec(ref bytes) => (&mut buffer[..bytes.len()]).copy_from_slice(bytes.as_slice()),
+            Unspec(ref bytes) => buffer[..bytes.len()].copy_from_slice(bytes.as_slice()),
             DevConf(ref dev_conf) => buffer[..dev_conf.len()].copy_from_slice(dev_conf.as_slice()),
             Other(ref nla) => nla.emit_value(buffer),
         }

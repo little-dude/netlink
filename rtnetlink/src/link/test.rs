@@ -51,7 +51,7 @@ async fn _create_wg() -> Result<LinkHandle, Error> {
 async fn _get_wg(handle: &mut LinkHandle) -> Result<LinkMessage, Error> {
     let mut links = handle.get().match_name(IFACE_NAME.to_owned()).execute();
     let msg = links.try_next().await?;
-    msg.ok_or_else(|| Error::RequestFailed)
+    msg.ok_or(Error::RequestFailed)
 }
 
 async fn _del_wg(handle: &mut LinkHandle, index: u32) -> Result<(), Error> {

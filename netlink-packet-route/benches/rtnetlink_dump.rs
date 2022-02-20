@@ -17,7 +17,7 @@ fn bench(c: &mut Criterion) {
         b.iter(|| {
             for (i, buf) in packets.iter().enumerate() {
                 NetlinkMessage::<RtnlMessage>::deserialize(&buf[16..])
-                    .expect(&format!("message {} failed", i));
+                    .unwrap_or_else(|_| panic!("message {} failed", i));
             }
         })
     });

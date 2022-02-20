@@ -17,5 +17,5 @@ fn main() -> Result<(), String> {
         TokioSocket::new(NETLINK_AUDIT).unwrap();
     };
     rt.handle().block_on(future);
-    return Ok(());
+    Ok(())
 }

@@ -29,15 +29,13 @@ async fn main() -> Result<(), ()> {
 
     match action.as_str() {
         "add" => {
-            if let Err(e) = add_property_alt_ifnames(link_name, &alt_ifnames, handle.clone()).await
-            {
+            if let Err(e) = add_property_alt_ifnames(link_name, alt_ifnames, handle.clone()).await {
                 eprintln!("{}", e);
             }
         }
 
         "del" => {
-            if let Err(e) = del_property_alt_ifnames(link_name, &alt_ifnames, handle.clone()).await
-            {
+            if let Err(e) = del_property_alt_ifnames(link_name, alt_ifnames, handle.clone()).await {
                 eprintln!("{}", e);
             }
         }
@@ -112,7 +110,7 @@ async fn get_link(link_name: &str, handle: Handle) -> Result<LinkMessage, Error>
     match links.try_next().await? {
         Some(msg) => Ok(msg),
         _ => {
-            eprintln!("Interface {} not found", link_name.to_string());
+            eprintln!("Interface {} not found", link_name);
             Err(Error::RequestFailed)
         }
     }
