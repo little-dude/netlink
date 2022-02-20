@@ -606,7 +606,7 @@ impl Nla for InfoVxlan {
             Group6(_) => IFLA_VXLAN_GROUP6,
             Link(_) => IFLA_VXLAN_LINK,
             Local(_) => IFLA_VXLAN_LOCAL,
-            Local6(_) => IFLA_VXLAN_LOCAL,
+            Local6(_) => IFLA_VXLAN_LOCAL6,
             Tos(_) => IFLA_VXLAN_TOS,
             Ttl(_) => IFLA_VXLAN_TTL,
             Label(_) => IFLA_VXLAN_LABEL,
