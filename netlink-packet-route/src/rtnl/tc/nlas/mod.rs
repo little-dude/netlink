@@ -9,10 +9,24 @@ pub use self::stats_queue::*;
 mod stats_basic;
 pub use self::stats_basic::*;
 
+mod options;
+pub use self::options::*;
+
+mod qdisc;
+pub use self::qdisc::*;
+
+mod filter;
+pub use self::filter::*;
+
+mod action;
+pub use self::action::*;
+
+#[cfg(test)]
+mod test;
+
 use crate::{
     constants::*,
-    nlas::{self, DefaultNla, NlaBuffer, NlasIterator},
-    parsers::{parse_string, parse_u8},
+    nlas::{self, DefaultNla, NlaBuffer},
     traits::{Emitable, Parseable},
     DecodeError,
 };
@@ -23,9 +37,9 @@ pub enum Nla {
     Unspec(Vec<u8>),
     /// Name of queueing discipline
     Kind(String),
-    /// Qdisc-specific options follow
-    Options(Vec<u8>),
-    /// Qdisc statistics
+    /// Options follow
+    Options(Vec<TcOpt>),
+    /// Statistics
     Stats(Stats),
     /// Module-specific statistics
     XStats(Vec<u8>),
@@ -45,20 +59,15 @@ impl nlas::Nla for Nla {
         use self::Nla::*;
         match *self {
             // Vec<u8>
-            Unspec(ref bytes)
-                | Options(ref bytes)
-                | XStats(ref bytes)
-                | Rate(ref bytes)
-                | Fcnt(ref bytes)
-                | Stab(ref bytes)
-                | Chain(ref bytes) => bytes.len(),
+            Unspec(ref bytes) | XStats(ref bytes) | Rate(ref bytes) | Fcnt(ref bytes)
+            | Stab(ref bytes) | Chain(ref bytes) => bytes.len(),
             HwOffload(_) => 1,
             Stats2(ref thing) => thing.as_slice().buffer_len(),
             Stats(_) => STATS_LEN,
             Kind(ref string) => string.as_bytes().len() + 1,
-
+            Options(ref opt) => opt.as_slice().buffer_len(),
             // Defaults
-            Other(ref attr)  => attr.value_len(),
+            Other(ref attr) => attr.value_len(),
         }
     }
 
@@ -68,7 +77,6 @@ impl nlas::Nla for Nla {
         match *self {
             // Vec<u8>
             Unspec(ref bytes)
-                | Options(ref bytes)
                 | XStats(ref bytes)
                 | Rate(ref bytes)
                 | Fcnt(ref bytes)
@@ -80,9 +88,10 @@ impl nlas::Nla for Nla {
             Stats(ref stats) => stats.emit(buffer),
 
             Kind(ref string) => {
-                buffer.copy_from_slice(string.as_bytes());
+                buffer[..string.as_bytes().len()].copy_from_slice(string.as_bytes());
                 buffer[string.as_bytes().len()] = 0;
             }
+            Options(ref opt) => opt.as_slice().emit(buffer),
 
             // Default
             Other(ref attr) => attr.emit_value(buffer),
@@ -105,32 +114,6 @@ impl nlas::Nla for Nla {
             HwOffload(_) => TCA_HW_OFFLOAD,
             Other(ref nla) => nla.kind(),
         }
-    }
-}
-
-impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for Nla {
-    fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
-        let payload = buf.value();
-        Ok(match buf.kind() {
-            TCA_UNSPEC => Self::Unspec(payload.to_vec()),
-            TCA_KIND => Self::Kind(parse_string(payload)?),
-            TCA_OPTIONS => Self::Options(payload.to_vec()),
-            TCA_STATS => Self::Stats(Stats::parse(&StatsBuffer::new_checked(payload)?)?),
-            TCA_XSTATS => Self::XStats(payload.to_vec()),
-            TCA_RATE => Self::Rate(payload.to_vec()),
-            TCA_FCNT => Self::Fcnt(payload.to_vec()),
-            TCA_STATS2 => {
-                let mut nlas = vec![];
-                for nla in NlasIterator::new(payload) {
-                    nlas.push(Stats2::parse(&(nla?))?);
-                }
-                Self::Stats2(nlas)
-            }
-            TCA_STAB => Self::Stab(payload.to_vec()),
-            TCA_CHAIN => Self::Chain(payload.to_vec()),
-            TCA_HW_OFFLOAD => Self::HwOffload(parse_u8(payload)?),
-            _ => Self::Other(DefaultNla::parse(buf)?),
-        })
     }
 }
 
