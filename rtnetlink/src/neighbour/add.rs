@@ -18,6 +18,7 @@ pub struct NeighbourAddRequest {
     handle: Handle,
     message: NeighbourMessage,
     replace: bool,
+    append: bool,
 }
 
 impl NeighbourAddRequest {
@@ -42,6 +43,7 @@ impl NeighbourAddRequest {
             handle,
             message,
             replace: false,
+            append: false,
         }
     }
 
@@ -59,6 +61,7 @@ impl NeighbourAddRequest {
             handle,
             message,
             replace: false,
+            append: false,
         }
     }
 
@@ -128,17 +131,31 @@ impl NeighbourAddRequest {
         }
     }
 
+    /// Append to the end of the neighbours list (equivalent to `bridge fdb append`).
+    pub fn replace(self) -> Self {
+        Self {
+            replace: true,
+            ..self
+        }
+    }
+
     /// Execute the request.
     pub async fn execute(self) -> Result<(), Error> {
         let NeighbourAddRequest {
             mut handle,
             message,
             replace,
+            append,
         } = self;
 
         let mut req = NetlinkMessage::from(RtnlMessage::NewNeighbour(message));
-        let replace = if replace { NLM_F_REPLACE } else { NLM_F_EXCL };
-        req.header.flags = NLM_F_REQUEST | NLM_F_ACK | replace | NLM_F_CREATE;
+        let mut flag = if replace { NLM_F_REPLACE } else { NLM_F_EXCL };
+
+        if append {
+            flag = NLM_F_APPEND;
+        }
+
+        req.header.flags = NLM_F_REQUEST | NLM_F_ACK | flag | NLM_F_CREATE;
 
         let mut response = handle.request(req)?;
         while let Some(message) = response.next().await {
