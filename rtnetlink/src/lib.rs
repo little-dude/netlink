@@ -44,7 +44,6 @@ pub mod proto {
         Connection,
         ConnectionHandle,
         Error,
-        ErrorKind,
     };
 }
 pub use netlink_proto::sys;
