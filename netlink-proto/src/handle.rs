@@ -7,11 +7,7 @@ use futures::{
 use netlink_packet_core::NetlinkMessage;
 use std::fmt::Debug;
 
-use crate::{
-    errors::{Error, ErrorKind},
-    sys::SocketAddr,
-    Request,
-};
+use crate::{errors::Error, sys::SocketAddr, Request};
 
 /// A handle to pass requests to a [`Connection`](struct.Connection.html).
 #[derive(Clone, Debug)]
@@ -50,7 +46,7 @@ where
             if e.is_full() {
                 panic!("internal error: unbounded channel full?!");
             } else if e.is_disconnected() {
-                Error::from(ErrorKind::ConnectionClosed)
+                Error::ConnectionClosed
             } else {
                 panic!("unknown error: {:?}", e);
             }
@@ -67,6 +63,6 @@ where
         let request = Request::from((message, destination, tx));
         debug!("handle: forwarding new request to connection");
         UnboundedSender::unbounded_send(&self.requests_tx, request)
-            .map_err(|_| ErrorKind::ConnectionClosed.into())
+            .map_err(|_| Error::ConnectionClosed)
     }
 }

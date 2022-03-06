@@ -18,6 +18,7 @@ futures = "0.3"
 tokio = { version = "1.0", default-features = false, features = ["io-util"] }
 netlink-packet-core = "0.4"
 netlink-sys = { default-features = false, version = "0.8" }
+thiserror = "1.0.30"
 
 [features]
 default = ["tokio_socket"]

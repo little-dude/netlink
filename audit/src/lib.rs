@@ -8,7 +8,7 @@ pub use crate::errors::*;
 
 pub use netlink_packet_audit as packet;
 pub mod proto {
-    pub use netlink_proto::{Connection, ConnectionHandle, Error, ErrorKind};
+    pub use netlink_proto::{Connection, ConnectionHandle, Error};
 }
 pub use netlink_proto::sys;
 
