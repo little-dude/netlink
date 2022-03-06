@@ -6,13 +6,18 @@ use futures::{
     FutureExt,
 };
 
-use netlink_packet_route::{constants::*, NetlinkMessage, RouteMessage, RtnlMessage};
-
-use crate::{try_rtnl, Error, Handle};
+use crate::{
+    flags::GetFlags,
+    packet::{constants::*, NetlinkMessage, RouteMessage, RtnlMessage},
+    try_rtnl,
+    Error,
+    Handle,
+};
 
 pub struct RouteGetRequest {
     handle: Handle,
     message: RouteMessage,
+    flags: GetFlags,
 }
 
 /// Internet Protocol (IP) version.
@@ -54,21 +59,37 @@ impl RouteGetRequest {
         message.header.table = RT_TABLE_UNSPEC;
         message.header.protocol = RTPROT_UNSPEC;
 
-        RouteGetRequest { handle, message }
+        RouteGetRequest {
+            handle,
+            message,
+            flags: GetFlags::new() | GetFlags::DUMP,
+        }
     }
 
     pub fn message_mut(&mut self) -> &mut RouteMessage {
         &mut self.message
     }
 
+    /// Set the netlink header flags.
+    ///
+    /// # Warning
+    ///
+    /// Altering the request's flags may render the request
+    /// ineffective. Only set the flags if you know what you're doing.
+    pub fn set_flags(mut self, flags: GetFlags) -> Self {
+        self.flags = flags;
+        self
+    }
+
     pub fn execute(self) -> impl TryStream<Ok = RouteMessage, Error = Error> {
         let RouteGetRequest {
             mut handle,
             message,
+            flags,
         } = self;
 
         let mut req = NetlinkMessage::from(RtnlMessage::GetRoute(message));
-        req.header.flags = NLM_F_REQUEST | NLM_F_DUMP;
+        req.header.flags = flags.bits();
 
         match handle.request(req) {
             Ok(response) => {

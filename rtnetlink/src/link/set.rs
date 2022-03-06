@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 use crate::{
+    flags::NewFlags,
     packet::{
         nlas::link::Nla,
         LinkMessage,
@@ -9,10 +10,6 @@ use crate::{
         IFF_NOARP,
         IFF_PROMISC,
         IFF_UP,
-        NLM_F_ACK,
-        NLM_F_CREATE,
-        NLM_F_EXCL,
-        NLM_F_REQUEST,
     },
     try_nl,
     Error,
@@ -24,13 +21,19 @@ use std::os::unix::io::RawFd;
 pub struct LinkSetRequest {
     handle: Handle,
     message: LinkMessage,
+    flags: NewFlags,
 }
 
 impl LinkSetRequest {
     pub(crate) fn new(handle: Handle, index: u32) -> Self {
         let mut message = LinkMessage::default();
         message.header.index = index;
-        LinkSetRequest { handle, message }
+        let flags = NewFlags::new() | NewFlags::EXCL;
+        LinkSetRequest {
+            handle,
+            message,
+            flags,
+        }
     }
 
     /// Execute the request
@@ -38,9 +41,10 @@ impl LinkSetRequest {
         let LinkSetRequest {
             mut handle,
             message,
+            flags,
         } = self;
         let mut req = NetlinkMessage::from(RtnlMessage::SetLink(message));
-        req.header.flags = NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE;
+        req.header.flags = flags.bits();
 
         let mut response = handle.request(req)?;
         while let Some(message) = response.next().await {
@@ -52,6 +56,17 @@ impl LinkSetRequest {
     /// Return a mutable reference to the request
     pub fn message_mut(&mut self) -> &mut LinkMessage {
         &mut self.message
+    }
+
+    /// Set the netlink header flags.
+    ///
+    /// # Warning
+    ///
+    /// Altering the request's flags may render the request
+    /// ineffective. Only set the flags if you know what you're doing.
+    pub fn set_flags(mut self, flags: NewFlags) -> Self {
+        self.flags = flags;
+        self
     }
 
     /// Attach the link to a bridge (its _master_). This is equivalent to `ip link set LINK master

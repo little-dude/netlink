@@ -7,7 +7,8 @@ use futures::{
 };
 
 use crate::{
-    packet::{constants::*, nlas::link::Nla, LinkMessage, NetlinkMessage, RtnlMessage},
+    flags::GetFlags,
+    packet::{nlas::link::Nla, LinkMessage, NetlinkMessage, RtnlMessage},
     try_rtnl,
     Error,
     Handle,
@@ -16,13 +17,7 @@ use crate::{
 pub struct LinkGetRequest {
     handle: Handle,
     message: LinkMessage,
-    // There are two ways to retrieve links: we can either dump them
-    // all and filter the result, or if we already know the index or
-    // the name of the link we're looking for, we can just retrieve
-    // that one. If `dump` is `true`, all the links are fetched.
-    // Otherwise, only the link that match the given index or name
-    // is fetched.
-    dump: bool,
+    flags: GetFlags,
 }
 
 impl LinkGetRequest {
@@ -30,7 +25,7 @@ impl LinkGetRequest {
         LinkGetRequest {
             handle,
             message: LinkMessage::default(),
-            dump: true,
+            flags: GetFlags::new() | GetFlags::DUMP,
         }
     }
 
@@ -46,16 +41,11 @@ impl LinkGetRequest {
         let LinkGetRequest {
             mut handle,
             message,
-            dump,
+            flags,
         } = self;
 
         let mut req = NetlinkMessage::from(RtnlMessage::GetLink(message));
-
-        if dump {
-            req.header.flags = NLM_F_REQUEST | NLM_F_DUMP;
-        } else {
-            req.header.flags = NLM_F_REQUEST;
-        }
+        req.header.flags = flags.bits();
 
         match handle.request(req) {
             Ok(response) => {
@@ -72,7 +62,7 @@ impl LinkGetRequest {
 
     /// Lookup a link by index
     pub fn match_index(mut self, index: u32) -> Self {
-        self.dump = false;
+        self.flags.remove(GetFlags::DUMP);
         self.message.header.index = index;
         self
     }
@@ -82,8 +72,19 @@ impl LinkGetRequest {
     /// This function requires support from your kernel (>= 2.6.33). If yours is
     /// older, consider filtering the resulting stream of links.
     pub fn match_name(mut self, name: String) -> Self {
-        self.dump = false;
+        self.flags.remove(GetFlags::DUMP);
         self.message.nlas.push(Nla::IfName(name));
+        self
+    }
+
+    /// Set the netlink header flags.
+    ///
+    /// # Warning
+    ///
+    /// Altering the request's flags may render the request
+    /// ineffective. Only set the flags if you know what you're doing.
+    pub fn set_flags(mut self, flags: GetFlags) -> Self {
+        self.flags = flags;
         self
     }
 }

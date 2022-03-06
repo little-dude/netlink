@@ -3,17 +3,13 @@
 use futures::stream::StreamExt;
 
 use crate::{
+    flags::NewFlags,
     packet::{
         nlas::link::{Info, InfoData, InfoKind, InfoMacVlan, InfoVlan, InfoVxlan, Nla, VethInfo},
         LinkMessage,
         NetlinkMessage,
         RtnlMessage,
         IFF_UP,
-        NLM_F_ACK,
-        NLM_F_CREATE,
-        NLM_F_EXCL,
-        NLM_F_REPLACE,
-        NLM_F_REQUEST,
     },
     try_nl,
     Error,
@@ -247,7 +243,7 @@ impl VxlanAddRequest {
 pub struct LinkAddRequest {
     handle: Handle,
     message: LinkMessage,
-    replace: bool,
+    flags: NewFlags,
 }
 
 impl LinkAddRequest {
@@ -255,7 +251,7 @@ impl LinkAddRequest {
         LinkAddRequest {
             handle,
             message: LinkMessage::default(),
-            replace: false,
+            flags: NewFlags::new(),
         }
     }
 
@@ -264,11 +260,10 @@ impl LinkAddRequest {
         let LinkAddRequest {
             mut handle,
             message,
-            replace,
+            flags,
         } = self;
         let mut req = NetlinkMessage::from(RtnlMessage::NewLink(message));
-        let replace = if replace { NLM_F_REPLACE } else { NLM_F_EXCL };
-        req.header.flags = NLM_F_REQUEST | NLM_F_ACK | replace | NLM_F_CREATE;
+        req.header.flags = flags.bits();
 
         let mut response = handle.request(req)?;
         while let Some(message) = response.next().await {
@@ -302,6 +297,17 @@ impl LinkAddRequest {
     /// }
     pub fn message_mut(&mut self) -> &mut LinkMessage {
         &mut self.message
+    }
+
+    /// Set the netlink header flags.
+    ///
+    /// # Warning
+    ///
+    /// Altering the request's flags may render the request
+    /// ineffective. Only set the flags if you know what you're doing.
+    pub fn set_flags(mut self, flags: NewFlags) -> Self {
+        self.flags = flags;
+        self
     }
 
     /// Create a dummy link.
@@ -374,14 +380,6 @@ impl LinkAddRequest {
         self.name(name.clone())
             .link_info(InfoKind::Bridge, None)
             .append_nla(Nla::IfName(name))
-    }
-
-    /// Replace existing matching link.
-    pub fn replace(self) -> Self {
-        Self {
-            replace: true,
-            ..self
-        }
     }
 
     fn up(mut self) -> Self {
