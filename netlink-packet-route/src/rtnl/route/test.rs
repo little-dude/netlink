@@ -82,19 +82,23 @@ mod test_rich_nlas {
                     flags: NextHopFlags::empty(),
                     hops: 0,
                     interface_id: 0,
-                    gateway: Some("fc00::1".parse().unwrap()),
+                    nlas: vec![Nla::Gateway(
+                        "fc00::1".parse::<Ipv6Addr>().unwrap().octets().to_vec(),
+                    )],
                 },
                 NextHop {
                     flags: NextHopFlags::empty(),
                     hops: 0,
                     interface_id: 0,
-                    gateway: Some("fc01::1".parse().unwrap()),
+                    nlas: vec![Nla::Gateway(
+                        "fc01::1".parse::<Ipv6Addr>().unwrap().octets().to_vec(),
+                    )],
                 },
                 NextHop {
                     flags: NextHopFlags::empty(),
                     hops: 0,
                     interface_id: 2,
-                    gateway: None,
+                    nlas: vec![],
                 },
             ]),
         ];
