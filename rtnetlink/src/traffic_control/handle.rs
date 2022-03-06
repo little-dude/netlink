@@ -46,7 +46,7 @@ impl QDiscHandle {
     /// ( equivalent to `tc qdisc replace dev STRING`)
     pub fn replace(&mut self, index: i32) -> QDiscNewRequest {
         let msg = TcMessage::with_index(index);
-        QDiscNewRequest::new(self.0.clone(), msg.into(), NLM_F_CREATE | NLM_F_REPLACE)
+        QDiscNewRequest::new(self.0.clone(), msg, NLM_F_CREATE | NLM_F_REPLACE)
     }
 
     /// Performs a replace where the node must exist already.
