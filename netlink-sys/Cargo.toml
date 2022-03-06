@@ -29,7 +29,7 @@ features = ["net"]
 
 [dependencies.mio]
 optional = true
-version = "0.7"
+version = "0.8"
 features = ["os-poll", "os-ext"]
 
 [dependencies.async-io]
