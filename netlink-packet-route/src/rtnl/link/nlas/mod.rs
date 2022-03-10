@@ -9,6 +9,9 @@ pub use self::inet6::*;
 mod af_spec_inet;
 pub use self::af_spec_inet::*;
 
+mod af_spec_bridge;
+pub use self::af_spec_bridge::*;
+
 mod link_infos;
 pub use self::link_infos::*;
 
@@ -142,8 +145,8 @@ pub enum Nla {
     Map(Vec<u8>),
     // AF_SPEC (the type of af_spec depends on the interface family of the message)
     AfSpecInet(Vec<AfSpecInet>),
-    // AfSpecBridge(Vec<AfSpecBridgeNla>),
-    AfSpecBridge(Vec<u8>),
+    AfSpecBridge(Vec<AfSpecBridge>),
+    //AfSpecBridge(Vec<u8>),
     AfSpecUnknown(Vec<u8>),
     Other(DefaultNla),
 }
@@ -177,7 +180,6 @@ impl nlas::Nla for Nla {
                 | Broadcast(ref bytes)
                 | PermAddress(ref bytes)
                 | AfSpecUnknown(ref bytes)
-                | AfSpecBridge(ref bytes)
                 | Map(ref bytes)
                 | ProtoDownReason(ref bytes)
                 => bytes.len(),
@@ -223,7 +225,7 @@ impl nlas::Nla for Nla {
             Info(ref nlas) => nlas.as_slice().buffer_len(),
             PropList(ref nlas) => nlas.as_slice().buffer_len(),
             AfSpecInet(ref nlas) => nlas.as_slice().buffer_len(),
-            // AfSpecBridge(ref nlas) => nlas.as_slice().buffer_len(),
+            AfSpecBridge(ref nlas) => nlas.as_slice().buffer_len(),
             Other(ref attr)  => attr.value_len(),
         }
     }
@@ -258,7 +260,6 @@ impl nlas::Nla for Nla {
                 | Broadcast(ref bytes)
                 | PermAddress(ref bytes)
                 | AfSpecUnknown(ref bytes)
-                | AfSpecBridge(ref bytes)
                 | Stats(ref bytes)
                 | Stats64(ref bytes)
                 | Map(ref bytes)
@@ -309,7 +310,7 @@ impl nlas::Nla for Nla {
             Info(ref nlas) => nlas.as_slice().emit(buffer),
             PropList(ref nlas) => nlas.as_slice().emit(buffer),
             AfSpecInet(ref nlas) => nlas.as_slice().emit(buffer),
-            // AfSpecBridge(ref nlas) => nlas.as_slice().emit(buffer),
+            AfSpecBridge(ref nlas) => nlas.as_slice().emit(buffer),
             // default nlas
             Other(ref attr) => attr.emit_value(buffer),
         }
@@ -500,7 +501,15 @@ impl<'a, T: AsRef<[u8]> + ?Sized> ParseableParametrized<NlaBuffer<&'a T>, u16> f
                     }
                     AfSpecInet(nlas)
                 }
-                AF_BRIDGE => AfSpecBridge(payload.to_vec()),
+                AF_BRIDGE => {
+                    let mut nlas = vec![];
+                    let err = "invalid IFLA_AF_BRIDGE value";
+                    for nla in NlasIterator::new(payload) {
+                        let nla = nla.context(err)?;
+                        nlas.push(af_spec_bridge::AfSpecBridge::parse(&nla).context(err)?);
+                    }
+                    AfSpecBridge(nlas)
+                }
                 _ => AfSpecUnknown(payload.to_vec()),
             },
             IFLA_LINKINFO => {
