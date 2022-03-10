@@ -395,11 +395,11 @@ pub const IFLA_INFO_XSTATS: u16 = 3;
 pub const IFLA_INFO_SLAVE_KIND: u16 = 4;
 pub const IFLA_INFO_SLAVE_DATA: u16 = 5;
 // Bridge flags
-pub const IFLA_BRIDGE_FLAGS: u16 = 47;
+pub const IFLA_BRIDGE_FLAGS: u16 = 0;
 pub const BRIDGE_FLAGS_MASTER: u16 = 1; /* Bridge command to/from master */
 pub const BRIDGE_FLAGS_SELF: u16 = 2; /* Bridge command to/from lowerdev */
 
-pub const IFLA_BRIDGE_VLAN_INFO: u16 = 48;
+pub const IFLA_BRIDGE_VLAN_INFO: u16 = 2;
 pub const BRIDGE_VLAN_INFO_MASTER: u16 = 1;
 pub const BRIDGE_VLAN_INFO_PVID: u16 = 4;
 pub const BRIDGE_VLAN_INFO_UNTAGGED: u16 = 8;
