@@ -395,16 +395,16 @@ pub const IFLA_INFO_XSTATS: u16 = 3;
 pub const IFLA_INFO_SLAVE_KIND: u16 = 4;
 pub const IFLA_INFO_SLAVE_DATA: u16 = 5;
 // Bridge flags
-pub const IFLA_BRIDGE_FLAGS: u16 = 47;
-pub const BRIDGE_FLAGS_MASTER: u16 = 1; /* Bridge command to/from master */
-pub const BRIDGE_FLAGS_SELF: u16 = 2; /* Bridge command to/from lowerdev */
-
-pub const IFLA_BRIDGE_VLAN_INFO: u16 = 48;
-pub const BRIDGE_VLAN_INFO_MASTER: u16 = 1;
-pub const BRIDGE_VLAN_INFO_PVID: u16 = 4;
-pub const BRIDGE_VLAN_INFO_UNTAGGED: u16 = 8;
-pub const BRIDGE_VLAN_INFO_RANGE_BEGIN: u16 = 16;
-pub const BRIDGE_VLAN_INFO_RANGE_END: u16 = 32;
+// pub const IFLA_BRIDGE_FLAGS: u16 = 0;
+// pub const BRIDGE_FLAGS_MASTER: u16 = 1; /* Bridge command to/from master */
+// pub const BRIDGE_FLAGS_SELF: u16 = 2; /* Bridge command to/from lowerdev */
+//
+// pub const IFLA_BRIDGE_VLAN_INFO: u16 = 2;
+// pub const BRIDGE_VLAN_INFO_MASTER: u16 = 1;
+// pub const BRIDGE_VLAN_INFO_PVID: u16 = 4;
+// pub const BRIDGE_VLAN_INFO_UNTAGGED: u16 = 8;
+// pub const BRIDGE_VLAN_INFO_RANGE_BEGIN: u16 = 16;
+// pub const BRIDGE_VLAN_INFO_RANGE_END: u16 = 32;
 
 pub const IFLA_BR_UNSPEC: u16 = 0;
 pub const IFLA_BR_FORWARD_DELAY: u16 = 1;
@@ -453,6 +453,7 @@ pub const IFLA_BR_MCAST_IGMP_VERSION: u16 = 43;
 pub const IFLA_BR_MCAST_MLD_VERSION: u16 = 44;
 pub const IFLA_BR_VLAN_STATS_PER_PORT: u16 = 45;
 pub const IFLA_BR_MULTI_BOOLOPT: u16 = 46;
+// pub const IFLA_BR_MCAST_QUERIER_STATE: u16 = 47;
 pub const IFLA_MACVLAN_UNSPEC: u16 = 0;
 pub const IFLA_MACVLAN_MODE: u16 = 1;
 pub const IFLA_MACVLAN_FLAGS: u16 = 2;

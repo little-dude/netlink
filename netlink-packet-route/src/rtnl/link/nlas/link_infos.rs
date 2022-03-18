@@ -805,7 +805,6 @@ pub enum InfoBridge {
     // FIXME: what type is this? putting Vec<u8> for now but it might
     // be a boolean actually
     FdbFlush(Vec<u8>),
-    Flags(u16),
     Pad(Vec<u8>),
     HelloTimer(u64),
     TcnTimer(u64),
@@ -835,7 +834,6 @@ pub enum InfoBridge {
     RootPort(u16),
     VlanDefaultPvid(u16),
     VlanFiltering(u8),
-    VlanInfo(u16),
     TopologyChange(u8),
     TopologyChangeDetected(u8),
     MulticastRouter(u8),
@@ -886,12 +884,10 @@ impl Nla for InfoBridge {
                 | RootPathCost(_)
                 => 4,
             Priority(_)
-                | VlanInfo(_)
                 | VlanProtocol(_)
                 | GroupFwdMask(_)
                 | RootPort(_)
                 | VlanDefaultPvid(_)
-                | Flags(_)
                 => 2,
 
             RootId(_)
@@ -926,8 +922,6 @@ impl Nla for InfoBridge {
     fn emit_value(&self, buffer: &mut [u8]) {
         use self::InfoBridge::*;
         match self {
-            Flags(value) => NativeEndian::write_u16(buffer, *value),
-            VlanInfo(value) => NativeEndian::write_u16(buffer, *value),
             Unspec(ref bytes)
                 | FdbFlush(ref bytes)
                 | Pad(ref bytes)
@@ -1004,7 +998,6 @@ impl Nla for InfoBridge {
             Unspec(_) => IFLA_BR_UNSPEC,
             GroupAddr(_) => IFLA_BR_GROUP_ADDR,
             FdbFlush(_) => IFLA_BR_FDB_FLUSH,
-            Flags(_) => IFLA_BRIDGE_FLAGS,
             Pad(_) => IFLA_BR_PAD,
             HelloTimer(_) => IFLA_BR_HELLO_TIMER,
             TcnTimer(_) => IFLA_BR_TCN_TIMER,
@@ -1034,7 +1027,6 @@ impl Nla for InfoBridge {
             RootPort(_) => IFLA_BR_ROOT_PORT,
             VlanDefaultPvid(_) => IFLA_BR_VLAN_DEFAULT_PVID,
             VlanFiltering(_) => IFLA_BR_VLAN_FILTERING,
-            VlanInfo(_) => IFLA_BRIDGE_VLAN_INFO,
             TopologyChange(_) => IFLA_BR_TOPOLOGY_CHANGE,
             TopologyChangeDetected(_) => IFLA_BR_TOPOLOGY_CHANGE_DETECTED,
             MulticastRouter(_) => IFLA_BR_MCAST_ROUTER,
@@ -1061,44 +1053,6 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoBridge {
         let payload = buf.value();
         Ok(match buf.kind() {
             IFLA_BR_UNSPEC => Unspec(payload.to_vec()),
-            IFLA_BR_FDB_FLUSH => FdbFlush(payload.to_vec()),
-            IFLA_BR_PAD => Pad(payload.to_vec()),
-            IFLA_BR_HELLO_TIMER => {
-                HelloTimer(parse_u64(payload).context("invalid IFLA_BR_HELLO_TIMER value")?)
-            }
-            IFLA_BRIDGE_VLAN_INFO => {
-                VlanInfo(parse_u16(payload).context("invalid IFLA_BRIDGE_VLAN_INFO value")?)
-            }
-            IFLA_BR_TCN_TIMER => {
-                TcnTimer(parse_u64(payload).context("invalid IFLA_BR_TCN_TIMER value")?)
-            }
-            IFLA_BRIDGE_FLAGS => {
-                Flags(parse_u16(payload).context("invalid IFLA_BRIDGE_FLAGS value")?)
-            }
-            IFLA_BR_TOPOLOGY_CHANGE_TIMER => TopologyChangeTimer(
-                parse_u64(payload).context("invalid IFLA_BR_TOPOLOGY_CHANGE_TIMER value")?,
-            ),
-            IFLA_BR_GC_TIMER => {
-                GcTimer(parse_u64(payload).context("invalid IFLA_BR_GC_TIMER value")?)
-            }
-            IFLA_BR_MCAST_LAST_MEMBER_INTVL => MulticastLastMemberInterval(
-                parse_u64(payload).context("invalid IFLA_BR_MCAST_LAST_MEMBER_INTVL value")?,
-            ),
-            IFLA_BR_MCAST_MEMBERSHIP_INTVL => MulticastMembershipInterval(
-                parse_u64(payload).context("invalid IFLA_BR_MCAST_MEMBERSHIP_INTVL value")?,
-            ),
-            IFLA_BR_MCAST_QUERIER_INTVL => MulticastQuerierInterval(
-                parse_u64(payload).context("invalid IFLA_BR_MCAST_QUERIER_INTVL value")?,
-            ),
-            IFLA_BR_MCAST_QUERY_INTVL => MulticastQueryInterval(
-                parse_u64(payload).context("invalid IFLA_BR_MCAST_QUERY_INTVL value")?,
-            ),
-            IFLA_BR_MCAST_QUERY_RESPONSE_INTVL => MulticastQueryResponseInterval(
-                parse_u64(payload).context("invalid IFLA_BR_MCAST_QUERY_RESPONSE_INTVL value")?,
-            ),
-            IFLA_BR_MCAST_STARTUP_QUERY_INTVL => MulticastStartupQueryInterval(
-                parse_u64(payload).context("invalid IFLA_BR_MCAST_STARTUP_QUERY_INTVL value")?,
-            ),
             IFLA_BR_FORWARD_DELAY => {
                 ForwardDelay(parse_u32(payload).context("invalid IFLA_BR_FORWARD_DELAY value")?)
             }
@@ -1112,23 +1066,11 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoBridge {
             IFLA_BR_STP_STATE => {
                 StpState(parse_u32(payload).context("invalid IFLA_BR_STP_STATE value")?)
             }
-            IFLA_BR_MCAST_HASH_ELASTICITY => MulticastHashElasticity(
-                parse_u32(payload).context("invalid IFLA_BR_MCAST_HASH_ELASTICITY value")?,
-            ),
-            IFLA_BR_MCAST_HASH_MAX => MulticastHashMax(
-                parse_u32(payload).context("invalid IFLA_BR_MCAST_HASH_MAX value")?,
-            ),
-            IFLA_BR_MCAST_LAST_MEMBER_CNT => MulticastLastMemberCount(
-                parse_u32(payload).context("invalid IFLA_BR_MCAST_LAST_MEMBER_CNT value")?,
-            ),
-            IFLA_BR_MCAST_STARTUP_QUERY_CNT => MulticastStartupQueryCount(
-                parse_u32(payload).context("invalid IFLA_BR_MCAST_STARTUP_QUERY_CNT value")?,
-            ),
-            IFLA_BR_ROOT_PATH_COST => {
-                RootPathCost(parse_u32(payload).context("invalid IFLA_BR_ROOT_PATH_COST value")?)
-            }
             IFLA_BR_PRIORITY => {
                 Priority(parse_u16(payload).context("invalid IFLA_BR_PRIORITY value")?)
+            }
+            IFLA_BR_VLAN_FILTERING => {
+                VlanFiltering(parse_u8(payload).context("invalid IFLA_BR_VLAN_FILTERING value")?)
             }
             IFLA_BR_VLAN_PROTOCOL => {
                 VlanProtocol(parse_u16_be(payload).context("invalid IFLA_BR_VLAN_PROTOCOL value")?)
@@ -1151,17 +1093,11 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoBridge {
                     _ => unreachable!(),
                 }
             }
-            IFLA_BR_GROUP_ADDR => {
-                GroupAddr(parse_mac(payload).context("invalid IFLA_BR_GROUP_ADDR value")?)
-            }
             IFLA_BR_ROOT_PORT => {
                 RootPort(parse_u16(payload).context("invalid IFLA_BR_ROOT_PORT value")?)
             }
-            IFLA_BR_VLAN_DEFAULT_PVID => VlanDefaultPvid(
-                parse_u16(payload).context("invalid IFLA_BR_VLAN_DEFAULT_PVID value")?,
-            ),
-            IFLA_BR_VLAN_FILTERING => {
-                VlanFiltering(parse_u8(payload).context("invalid IFLA_BR_VLAN_FILTERING value")?)
+            IFLA_BR_ROOT_PATH_COST => {
+                RootPathCost(parse_u32(payload).context("invalid IFLA_BR_ROOT_PATH_COST value")?)
             }
             IFLA_BR_TOPOLOGY_CHANGE => {
                 TopologyChange(parse_u8(payload).context("invalid IFLA_BR_TOPOLOGY_CHANGE value")?)
@@ -1169,6 +1105,22 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoBridge {
             IFLA_BR_TOPOLOGY_CHANGE_DETECTED => TopologyChangeDetected(
                 parse_u8(payload).context("invalid IFLA_BR_TOPOLOGY_CHANGE_DETECTED value")?,
             ),
+            IFLA_BR_HELLO_TIMER => {
+                HelloTimer(parse_u64(payload).context("invalid IFLA_BR_HELLO_TIMER value")?)
+            }
+            IFLA_BR_TCN_TIMER => {
+                TcnTimer(parse_u64(payload).context("invalid IFLA_BR_TCN_TIMER value")?)
+            }
+            IFLA_BR_TOPOLOGY_CHANGE_TIMER => TopologyChangeTimer(
+                parse_u64(payload).context("invalid IFLA_BR_TOPOLOGY_CHANGE_TIMER value")?,
+            ),
+            IFLA_BR_GC_TIMER => {
+                GcTimer(parse_u64(payload).context("invalid IFLA_BR_GC_TIMER value")?)
+            }
+            IFLA_BR_GROUP_ADDR => {
+                GroupAddr(parse_mac(payload).context("invalid IFLA_BR_GROUP_ADDR value")?)
+            }
+            IFLA_BR_FDB_FLUSH => FdbFlush(payload.to_vec()),
             IFLA_BR_MCAST_ROUTER => {
                 MulticastRouter(parse_u8(payload).context("invalid IFLA_BR_MCAST_ROUTER value")?)
             }
@@ -1181,6 +1133,36 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoBridge {
             IFLA_BR_MCAST_QUERIER => {
                 MulticastQuerier(parse_u8(payload).context("invalid IFLA_BR_MCAST_QUERIER value")?)
             }
+            IFLA_BR_MCAST_HASH_ELASTICITY => MulticastHashElasticity(
+                parse_u32(payload).context("invalid IFLA_BR_MCAST_HASH_ELASTICITY value")?,
+            ),
+            IFLA_BR_MCAST_HASH_MAX => MulticastHashMax(
+                parse_u32(payload).context("invalid IFLA_BR_MCAST_HASH_MAX value")?,
+            ),
+            IFLA_BR_MCAST_LAST_MEMBER_CNT => MulticastLastMemberCount(
+                parse_u32(payload).context("invalid IFLA_BR_MCAST_LAST_MEMBER_CNT value")?,
+            ),
+            IFLA_BR_MCAST_STARTUP_QUERY_CNT => MulticastStartupQueryCount(
+                parse_u32(payload).context("invalid IFLA_BR_MCAST_STARTUP_QUERY_CNT value")?,
+            ),
+            IFLA_BR_MCAST_LAST_MEMBER_INTVL => MulticastLastMemberInterval(
+                parse_u64(payload).context("invalid IFLA_BR_MCAST_LAST_MEMBER_INTVL value")?,
+            ),
+            IFLA_BR_MCAST_MEMBERSHIP_INTVL => MulticastMembershipInterval(
+                parse_u64(payload).context("invalid IFLA_BR_MCAST_MEMBERSHIP_INTVL value")?,
+            ),
+            IFLA_BR_MCAST_QUERIER_INTVL => MulticastQuerierInterval(
+                parse_u64(payload).context("invalid IFLA_BR_MCAST_QUERIER_INTVL value")?,
+            ),
+            IFLA_BR_MCAST_QUERY_INTVL => MulticastQueryInterval(
+                parse_u64(payload).context("invalid IFLA_BR_MCAST_QUERY_INTVL value")?,
+            ),
+            IFLA_BR_MCAST_QUERY_RESPONSE_INTVL => MulticastQueryResponseInterval(
+                parse_u64(payload).context("invalid IFLA_BR_MCAST_QUERY_RESPONSE_INTVL value")?,
+            ),
+            IFLA_BR_MCAST_STARTUP_QUERY_INTVL => MulticastStartupQueryInterval(
+                parse_u64(payload).context("invalid IFLA_BR_MCAST_STARTUP_QUERY_INTVL value")?,
+            ),
             IFLA_BR_NF_CALL_IPTABLES => {
                 NfCallIpTables(parse_u8(payload).context("invalid IFLA_BR_NF_CALL_IPTABLES value")?)
             }
@@ -1190,6 +1172,10 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoBridge {
             IFLA_BR_NF_CALL_ARPTABLES => NfCallArpTables(
                 parse_u8(payload).context("invalid IFLA_BR_NF_CALL_ARPTABLES value")?,
             ),
+            IFLA_BR_VLAN_DEFAULT_PVID => VlanDefaultPvid(
+                parse_u16(payload).context("invalid IFLA_BR_VLAN_DEFAULT_PVID value")?,
+            ),
+            IFLA_BR_PAD => Pad(payload.to_vec()),
             IFLA_BR_VLAN_STATS_ENABLED => VlanStatsEnabled(
                 parse_u8(payload).context("invalid IFLA_BR_VLAN_STATS_ENABLED value")?,
             ),
