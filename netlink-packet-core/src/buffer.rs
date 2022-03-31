@@ -385,7 +385,7 @@ mod tests {
             packet.set_message_type(RTM_GETLINK);
             packet.set_sequence_number(1526271540);
             packet.set_port_number(0);
-            packet.set_flags((NLM_F_ROOT | NLM_F_REQUEST | NLM_F_MATCH));
+            packet.set_flags(NLM_F_ROOT | NLM_F_REQUEST | NLM_F_MATCH);
             packet
                 .payload_mut()
                 .copy_from_slice(&IP_LINK_SHOW_PKT[16..]);

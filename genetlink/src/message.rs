@@ -18,11 +18,7 @@
 //! (`netlink_proto` would drop messages if they fails to decode.)
 //! I think this can help developers debug their deserializing implementation.
 use netlink_packet_core::{
-    DecodeError,
-    NetlinkDeserializable,
-    NetlinkHeader,
-    NetlinkMessage,
-    NetlinkPayload,
+    DecodeError, NetlinkDeserializable, NetlinkHeader, NetlinkMessage, NetlinkPayload,
     NetlinkSerializable,
 };
 use netlink_packet_generic::{GenlBuffer, GenlFamily, GenlHeader, GenlMessage};
@@ -149,7 +145,7 @@ where
         NetlinkPayload::InnerMessage(genlmsg) => {
             NetlinkPayload::InnerMessage(RawGenlMessage::from_genlmsg(genlmsg))
         }
-        NetlinkPayload::Done => NetlinkPayload::Done,
+        NetlinkPayload::Done(payload) => NetlinkPayload::Done(payload),
         NetlinkPayload::Error(i) => NetlinkPayload::Error(i),
         NetlinkPayload::Ack(i) => NetlinkPayload::Ack(i),
         NetlinkPayload::Noop => NetlinkPayload::Noop,
@@ -170,7 +166,7 @@ where
         NetlinkPayload::InnerMessage(raw_genlmsg) => {
             NetlinkPayload::InnerMessage(raw_genlmsg.parse_into_genlmsg()?)
         }
-        NetlinkPayload::Done => NetlinkPayload::Done,
+        NetlinkPayload::Done(payload) => NetlinkPayload::Done(payload),
         NetlinkPayload::Error(i) => NetlinkPayload::Error(i),
         NetlinkPayload::Ack(i) => NetlinkPayload::Ack(i),
         NetlinkPayload::Noop => NetlinkPayload::Noop,

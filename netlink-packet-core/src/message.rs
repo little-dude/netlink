@@ -1,21 +1,12 @@
 // SPDX-License-Identifier: MIT
 
 use anyhow::Context;
-use std::fmt::Debug;
+use std::{fmt::Debug, slice};
 
 use crate::{
     payload::{NLMSG_DONE, NLMSG_ERROR, NLMSG_NOOP, NLMSG_OVERRUN},
-    AckMessage,
-    DecodeError,
-    Emitable,
-    ErrorBuffer,
-    ErrorMessage,
-    NetlinkBuffer,
-    NetlinkDeserializable,
-    NetlinkHeader,
-    NetlinkPayload,
-    NetlinkSerializable,
-    Parseable,
+    AckMessage, DecodeError, Emitable, ErrorBuffer, ErrorMessage, NetlinkBuffer,
+    NetlinkDeserializable, NetlinkHeader, NetlinkPayload, NetlinkSerializable, Parseable,
 };
 
 /// Represent a netlink message.
@@ -109,7 +100,13 @@ where
                 }
             }
             NLMSG_NOOP => Noop,
-            NLMSG_DONE => Done,
+            NLMSG_DONE => {
+                if bytes.is_empty() {
+                    Done(None)
+                } else {
+                    Done(Some(bytes.to_vec()))
+                }
+            }
             NLMSG_OVERRUN => Overrun(bytes.to_vec()),
             message_type => {
                 let inner_msg = I::deserialize(&header, bytes).context(format!(
@@ -131,7 +128,7 @@ where
         use self::NetlinkPayload::*;
 
         let payload_len = match self.payload {
-            Noop | Done => 0,
+            Noop | Done(_) => 0,
             Overrun(ref bytes) => bytes.len(),
             Error(ref msg) => msg.buffer_len(),
             Ack(ref msg) => msg.buffer_len(),
@@ -148,7 +145,7 @@ where
 
         let buffer = &mut buffer[self.header.buffer_len()..self.header.length as usize];
         match self.payload {
-            Noop | Done => {}
+            Noop | Done(_) => {}
             Overrun(ref bytes) => buffer.copy_from_slice(bytes),
             Error(ref msg) => msg.emit(buffer),
             Ack(ref msg) => msg.emit(buffer),

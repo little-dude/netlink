@@ -1,12 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 use netlink_packet_route::{
-    LinkMessage,
-    NetlinkHeader,
-    NetlinkMessage,
-    NetlinkPayload,
-    RtnlMessage,
-    NLM_F_DUMP,
+    LinkMessage, NetlinkHeader, NetlinkMessage, NetlinkPayload, RtnlMessage, NLM_F_DUMP,
     NLM_F_REQUEST,
 };
 use netlink_sys::{protocols::NETLINK_ROUTE, Socket, SocketAddr};
@@ -59,7 +54,7 @@ fn main() {
 
             println!("<<< {:?}", rx_packet);
 
-            if rx_packet.payload == NetlinkPayload::Done {
+            if matches!(rx_packet.payload, NetlinkPayload::Done(_)) {
                 println!("Done!");
                 return;
             }

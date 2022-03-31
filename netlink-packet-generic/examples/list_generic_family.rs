@@ -38,7 +38,7 @@ fn main() {
             let msg = <NetlinkMessage<GenlMessage<GenlCtrl>>>::deserialize(buf).unwrap();
 
             match msg.payload {
-                NetlinkPayload::Done => break 'outer,
+                NetlinkPayload::Done(_) => break 'outer,
                 NetlinkPayload::InnerMessage(genlmsg) => {
                     if GenlCtrlCmd::NewFamily == genlmsg.payload.cmd {
                         print_entry(genlmsg.payload.nlas);
