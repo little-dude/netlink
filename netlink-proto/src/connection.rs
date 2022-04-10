@@ -25,6 +25,7 @@ use crate::{
     codecs::{NetlinkCodec, NetlinkMessageCodec},
     framed::NetlinkFramed,
     sys::{AsyncSocket, SocketAddr},
+    OutgoingMessage,
     Protocol,
     Request,
     Response,
@@ -105,14 +106,17 @@ where
                 return;
             }
 
-            let (mut message, addr) = protocol.outgoing_messages.pop_front().unwrap();
-            message.finalize();
+            match protocol.outgoing_messages.pop_front().unwrap() {
+                OutgoingMessage::Single(mut message, addr) => {
+                    message.finalize();
 
-            trace!("sending outgoing message");
-            if let Err(e) = Pin::as_mut(&mut socket).start_send((message, addr)) {
-                error!("failed to send message: {:?}", e);
-                self.socket_closed = true;
-                return;
+                    trace!("sending outgoing message");
+                    if let Err(e) = Pin::as_mut(&mut socket).start_send((message, addr)) {
+                        error!("failed to send message: {:?}", e);
+                        self.socket_closed = true;
+                        return;
+                    }
+                }
             }
         }
 

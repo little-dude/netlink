@@ -44,6 +44,11 @@ struct PendingRequest<M> {
     metadata: M,
 }
 
+#[derive(Debug)]
+pub(crate) enum OutgoingMessage<T> {
+    Single(NetlinkMessage<T>, SocketAddr),
+}
+
 #[derive(Debug, Default)]
 pub(crate) struct Protocol<T, M> {
     /// Counter that is incremented for each message sent
@@ -60,7 +65,7 @@ pub(crate) struct Protocol<T, M> {
     pub incoming_requests: VecDeque<(NetlinkMessage<T>, SocketAddr)>,
 
     /// The messages to be sent out
-    pub outgoing_messages: VecDeque<(NetlinkMessage<T>, SocketAddr)>,
+    pub outgoing_messages: VecDeque<OutgoingMessage<T>>,
 }
 
 impl<T, M> Protocol<T, M>
@@ -140,7 +145,8 @@ where
         self.set_sequence_id(&mut message);
         let request_id = RequestId::new(self.sequence_id, destination.port_number());
         let flags = message.header.flags;
-        self.outgoing_messages.push_back((message, destination));
+        self.outgoing_messages
+            .push_back(OutgoingMessage::Single(message, destination));
 
         // If we expect a response, we store the request id so that we
         // can map the response to this specific request.

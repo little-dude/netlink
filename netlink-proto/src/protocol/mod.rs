@@ -4,5 +4,5 @@
 mod protocol;
 mod request;
 
-pub(crate) use protocol::{Protocol, Response};
+pub(crate) use protocol::{OutgoingMessage, Protocol, Response};
 pub(crate) use request::Request;
