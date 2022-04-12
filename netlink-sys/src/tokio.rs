@@ -77,7 +77,7 @@ impl AsyncSocket for TokioSocket {
         }
     }
 
-    fn poll_recv<B>(&mut self, cx: &mut Context<'_>, buf: &mut B) -> Poll<io::Result<()>>
+    fn poll_recv<B>(&mut self, cx: &mut Context<'_>, buf: &mut B, flags: i32) -> Poll<io::Result<usize>>
     where
         B: bytes::BufMut,
     {
@@ -88,8 +88,8 @@ impl AsyncSocket for TokioSocket {
             // readable, so we can just return Pending
             let mut guard = ready!(self.0.poll_read_ready(cx))?;
 
-            match guard.try_io(|inner| inner.get_ref().recv(buf, 0)) {
-                Ok(x) => return Poll::Ready(x.map(|_len| ())),
+            match guard.try_io(|inner| inner.get_ref().recv(buf, flags)) {
+                Ok(x) => return Poll::Ready(x.map(|len| len)),
                 Err(_would_block) => continue,
             }
         }
@@ -99,7 +99,8 @@ impl AsyncSocket for TokioSocket {
         &mut self,
         cx: &mut Context<'_>,
         buf: &mut B,
-    ) -> Poll<io::Result<SocketAddr>>
+        flags: i32
+    ) -> Poll<io::Result<(usize, SocketAddr)>>
     where
         B: bytes::BufMut,
     {
@@ -108,10 +109,10 @@ impl AsyncSocket for TokioSocket {
             let mut guard = ready!(self.0.poll_read_ready(cx))?;
             trace!("poll_recv_from socket is ready for reading");
 
-            match guard.try_io(|inner| inner.get_ref().recv_from(buf, 0)) {
+            match guard.try_io(|inner| inner.get_ref().recv_from(buf, flags)) {
                 Ok(x) => {
                     trace!("poll_recv_from {:?} bytes read", x);
-                    return Poll::Ready(x.map(|(_len, addr)| addr));
+                    return Poll::Ready(x.map(|(len, addr)| (len, addr)));
                 }
                 Err(_would_block) => {
                     trace!("poll_recv_from socket would block");

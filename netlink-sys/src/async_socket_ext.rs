@@ -32,19 +32,19 @@ pub trait AsyncSocketExt: AsyncSocket {
     }
 
     /// `async fn recv<B>(&mut self, buf: &mut [u8]) -> io::Result<()>`
-    fn recv<'a, 'b, B>(&'a mut self, buf: &'b mut B) -> PollRecv<'a, 'b, Self, B>
+    fn recv<'a, 'b, B>(&'a mut self, buf: &'b mut B, flags: i32) -> PollRecv<'a, 'b, Self, B>
     where
         B: bytes::BufMut,
     {
-        PollRecv { socket: self, buf }
+        PollRecv { socket: self, buf, flags }
     }
 
     /// `async fn recv<B>(&mut self, buf: &mut [u8]) -> io::Result<SocketAddr>`
-    fn recv_from<'a, 'b, B>(&'a mut self, buf: &'b mut B) -> PollRecvFrom<'a, 'b, Self, B>
+    fn recv_from<'a, 'b, B>(&'a mut self, buf: &'b mut B, flags: i32) -> PollRecvFrom<'a, 'b, Self, B>
     where
         B: bytes::BufMut,
     {
-        PollRecvFrom { socket: self, buf }
+        PollRecvFrom { socket: self, buf, flags }
     }
 
     /// `async fn recrecv_from_full(&mut self) -> io::Result<(Vec<u8>, SocketAddr)>`
@@ -93,6 +93,7 @@ where
 pub struct PollRecv<'a, 'b, S, B> {
     socket: &'a mut S,
     buf: &'b mut B,
+    flags: i32
 }
 
 impl<S, B> Future for PollRecv<'_, '_, S, B>
@@ -100,17 +101,18 @@ where
     S: AsyncSocket,
     B: bytes::BufMut,
 {
-    type Output = io::Result<()>;
+    type Output = io::Result<usize>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this: &mut Self = Pin::into_inner(self);
-        this.socket.poll_recv(cx, this.buf)
+        this.socket.poll_recv(cx, this.buf, this.flags)
     }
 }
 
 pub struct PollRecvFrom<'a, 'b, S, B> {
     socket: &'a mut S,
     buf: &'b mut B,
+    flags: i32
 }
 
 impl<S, B> Future for PollRecvFrom<'_, '_, S, B>
@@ -118,11 +120,11 @@ where
     S: AsyncSocket,
     B: bytes::BufMut,
 {
-    type Output = io::Result<SocketAddr>;
+    type Output = io::Result<(usize, SocketAddr)>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this: &mut Self = Pin::into_inner(self);
-        this.socket.poll_recv_from(cx, this.buf)
+        this.socket.poll_recv_from(cx, this.buf, this.flags)
     }
 }
 

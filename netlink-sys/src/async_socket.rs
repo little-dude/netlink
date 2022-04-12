@@ -32,7 +32,7 @@ pub trait AsyncSocket: Sized + Unpin {
     /// Polling wrapper for [`Socket::recv`]
     ///
     /// Passes 0 for flags, and ignores the returned length (the buffer will have advanced by the amount read).
-    fn poll_recv<B>(&mut self, cx: &mut Context<'_>, buf: &mut B) -> Poll<io::Result<()>>
+    fn poll_recv<B>(&mut self, cx: &mut Context<'_>, buf: &mut B, flags: i32) -> Poll<io::Result<usize>>
     where
         B: bytes::BufMut;
 
@@ -43,7 +43,8 @@ pub trait AsyncSocket: Sized + Unpin {
         &mut self,
         cx: &mut Context<'_>,
         buf: &mut B,
-    ) -> Poll<io::Result<SocketAddr>>
+        flags: i32
+    ) -> Poll<io::Result<(usize, SocketAddr)>>
     where
         B: bytes::BufMut;
 

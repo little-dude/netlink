@@ -92,25 +92,26 @@ impl AsyncSocket for SmolSocket {
         self.poll_write_with(cx, |this| this.0.get_mut().send_to(buf, addr, 0))
     }
 
-    fn poll_recv<B>(&mut self, cx: &mut Context<'_>, buf: &mut B) -> Poll<io::Result<()>>
+    fn poll_recv<B>(&mut self, cx: &mut Context<'_>, buf: &mut B, flags: i32) -> Poll<io::Result<usize>>
     where
         B: bytes::BufMut,
     {
-        self.poll_read_with(cx, |this| this.0.get_mut().recv(buf, 0).map(|_len| ()))
+        self.poll_read_with(cx, |this| this.0.get_mut().recv(buf, flags).map(|len| len))
     }
 
     fn poll_recv_from<B>(
         &mut self,
         cx: &mut Context<'_>,
         buf: &mut B,
-    ) -> Poll<io::Result<SocketAddr>>
+        flags: i32
+    ) -> Poll<io::Result<(usize, SocketAddr)>>
     where
         B: bytes::BufMut,
     {
         self.poll_read_with(cx, |this| {
-            let x = this.0.get_mut().recv_from(buf, 0);
+            let x = this.0.get_mut().recv_from(buf, flags);
             trace!("poll_recv_from: {:?}", x);
-            x.map(|(_len, addr)| addr)
+            x.map(|(len, addr)| (len, addr))
         })
     }
 

@@ -55,7 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut buf = bytes::BytesMut::with_capacity(1024 * 8);
     loop {
         buf.clear();
-        let _addr = socket.recv_from(&mut buf).await.unwrap();
+        let (_len, _addr) = socket.recv_from(&mut buf, 0).await.unwrap();
         // This dance with the NetlinkBuffer should not be
         // necessary. It is here to work around a netlink bug. See:
         // https://github.com/mozilla/libaudit-go/issues/24
