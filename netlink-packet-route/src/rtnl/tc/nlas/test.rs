@@ -88,6 +88,7 @@ use crate::{
     ];
 
 #[test]
+#[allow(clippy::unusual_byte_groupings)]
 fn tc_filter_u32_read() {
     let packet = TcMessageBuffer::new(&FILTER_U32_ACTION_PACKET);
     assert_eq!(packet.family(), 0);
@@ -240,13 +241,16 @@ fn tc_filter_u32_parse() {
 }
 
 #[test]
+#[allow(clippy::unusual_byte_groupings)]
 fn tc_filter_u32_emit() {
     // TcHeader
-    let mut header = TcHeader::default();
-    header.index = 3;
-    header.handle = 0x800_00_800;
-    header.parent = 0xffffffff;
-    header.info = 0xc000_0300;
+    let header = TcHeader {
+        index: 3,
+        handle: 0x800_00_800,
+        parent: 0xffffffff,
+        info: 0xc000_0300,
+        ..Default::default()
+    };
 
     // Tc Nlas
     let nlas = vec![

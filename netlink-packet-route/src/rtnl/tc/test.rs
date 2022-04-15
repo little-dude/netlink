@@ -135,11 +135,13 @@ fn tc_packet_nlas_read() {
 
 #[test]
 fn tc_qdisc_ingress_emit() {
-    let mut header = TcHeader::default();
-    header.index = 84;
-    header.handle = 0xffff0000;
-    header.parent = 0xfffffff1;
-    header.info = 1;
+    let header = TcHeader {
+        index: 84,
+        handle: 0xffff0000,
+        parent: 0xfffffff1,
+        info: 1,
+        ..Default::default()
+    };
 
     let nlas = vec![Nla::Kind(ingress::KIND.into()), Nla::Options(vec![])];
 
