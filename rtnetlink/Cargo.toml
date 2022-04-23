@@ -23,7 +23,7 @@ log = "0.4.8"
 thiserror = "1"
 netlink-packet-route = "0.11"
 netlink-proto = { default-features = false, version = "0.9" }
-nix = "0.22.0"
+nix = { version = "0.24.1" , default-features = false, features = ["fs", "mount", "sched", "signal"] }
 tokio = { version = "1.0.1", features = ["rt"], optional = true}
 async-global-executor = { version = "2.0.2", optional = true }
 
