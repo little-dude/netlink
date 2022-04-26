@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 
+use std::fmt;
 use std::mem::size_of;
 use byteorder::{ByteOrder, NativeEndian as ne};
 
@@ -146,7 +147,7 @@ impl Emitable for ConnectorRequest
         ne::write_u16(&mut buffer[16..18], self.msg.len);
         ne::write_u16(&mut buffer[18..20], self.msg.flags);
 
-        buffer[20..].iter_mut().zip(&self.data[..]).map(|(x, y)| *x = *y).count();
+        buffer[20..].copy_from_slice(&self.data);
     }
 }
 
@@ -334,6 +335,7 @@ type __kernel_pid_t = i32;
 /****************************/
 /* 	ForkProcEvent       	*/
 /****************************/
+#[derive(Debug)]
 pub struct ForkProcEvent
 {
     pub parent_pid:     __kernel_pid_t,
@@ -346,6 +348,7 @@ pub struct ForkProcEvent
 /****************************/
 /* 	ExecProcEvent       	*/
 /****************************/
+#[derive(Debug)]
 pub struct ExecProcEvent
 {
     pub process_pid:    __kernel_pid_t,
@@ -356,6 +359,7 @@ pub struct ExecProcEvent
 /****************************/
 /* 	UIDProcEvent          	*/
 /****************************/
+#[derive(Debug)]
 pub struct UIDProcEvent
 {
     pub process_pid:    __kernel_pid_t,
@@ -368,6 +372,7 @@ pub struct UIDProcEvent
 /****************************/
 /* 	GIDProcEvent          	*/
 /****************************/
+#[derive(Debug)]
 pub struct GIDProcEvent
 {
     pub process_pid:    __kernel_pid_t,
@@ -380,6 +385,7 @@ pub struct GIDProcEvent
 /****************************/
 /* SIDProcEvent          	*/
 /****************************/
+#[derive(Debug)]
 pub struct SIDProcEvent
 {
     pub process_tgid:   __kernel_pid_t,
@@ -390,6 +396,7 @@ pub struct SIDProcEvent
 /****************************/
 /* 	PtraceProcEvent       	*/
 /****************************/
+#[derive(Debug)]
 pub struct PtraceProcEvent
 {
     pub process_pid:    __kernel_pid_t,
@@ -409,10 +416,22 @@ pub struct CommProcEvent
     pub comm:           [u8; 16]
 }
 
+impl fmt::Debug for CommProcEvent {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let l = String::from_utf8_lossy(self.comm.as_ref());
+        f.debug_struct("CommProcEvent")
+            .field("process_pid", &(self.process_pid as i32))
+            .field("process_tgid", &(self.process_tgid as i32))
+            .field("comm", &l.trim_end_matches(|x| x == '\0'))
+            .finish()
+    }
+}
+
 
 /****************************/
 /* 	CoredumpProcEvent     	*/
 /****************************/
+#[derive(Debug)]
 pub struct CoredumpProcEvent
 {
     pub process_pid:    __kernel_pid_t,
@@ -425,6 +444,7 @@ pub struct CoredumpProcEvent
 /****************************/
 /* 	ExitProcEvent       	*/
 /****************************/
+#[derive(Debug)]
 pub struct ExitProcEvent
 {
     pub process_pid:    __kernel_pid_t,
@@ -481,7 +501,8 @@ impl<T: AsRef<[u8]>> ConnectorResponseBuffer<T> {
     fn cp_u8(&self, dest: &mut [u8], offset: usize) -> usize
     {
         let r = self.buffer.as_ref();
-        dest[..].iter_mut().zip(&r[offset..]).map(|(x, y)| *x = *y).count()
+        dest.copy_from_slice(&r[offset..]);
+        dest.len()
     }
 }
 
@@ -506,13 +527,8 @@ impl NetlinkDeserializable for ConnectorResponse {
 
     fn deserialize(header: &NetlinkHeader, payload: &[u8]) -> Result<Self, Self::Error> 
     {
-        match ConnectorResponseBuffer::new_checked(payload) {
-            Err(e) => Err(e),
-            Ok(buffer) => match ConnectorResponse::parse_with_param(&buffer, header.message_type) {
-                Err(e) => Err(e),
-                Ok(message) => Ok(message),
-            },
-        }
+        ConnectorResponseBuffer::new_checked(payload)
+            .and_then(|buffer| ConnectorResponse::parse_with_param(&buffer, header.message_type))
     }
 }
 

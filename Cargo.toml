@@ -2,6 +2,7 @@
 
 members = [
     "netlink-sys",
+    "netlink-packet-connector",
     "netlink-packet-core",
     "netlink-packet-utils",
     "netlink-packet-generic",
@@ -23,6 +24,7 @@ members = [
 # omit fuzz projects
 default-members = [
     "netlink-sys",
+    "netlink-packet-connector",
     "netlink-packet-core",
     "netlink-packet-utils",
     "netlink-packet-generic",
