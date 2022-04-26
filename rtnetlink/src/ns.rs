@@ -65,9 +65,7 @@ impl NetworkNamespace {
         match unsafe { fork() } {
             Ok(ForkResult::Parent { child, .. }) => NetworkNamespace::parent_process(child),
             Ok(ForkResult::Child) => {
-                let netns_path = NetworkNamespace::child_process(ns_name)?;
-                NetworkNamespace::unshare_processing(netns_path)?;
-                exit(0)
+                NetworkNamespace::child_process(ns_name);
             }
             Err(e) => {
                 let err_msg = format!("Fork failed: {}", e);
@@ -144,10 +142,30 @@ impl NetworkNamespace {
         }
     }
 
+    fn child_process(ns_name: String) -> ! {
+        let res = std::panic::catch_unwind(|| -> Result<(), Error> {
+            let netns_path = NetworkNamespace::child_process_create_ns(ns_name)?;
+            NetworkNamespace::unshare_processing(netns_path)?;
+            Ok(())
+        });
+        match res {
+            Err(_panic) => {
+                // panic should have already been printed by the handler
+                log::error!("child process crashed");
+                std::process::abort()
+            }
+            Ok(Err(fail)) => {
+                log::error!("child process failed: {}", fail);
+                exit(1)
+            }
+            Ok(Ok(())) => exit(0),
+        }
+    }
+
     /// This is the child process, it will actually create the namespace
     /// resources. It creates the folder and namespace file.
     /// Returns the namespace file path
-    pub fn child_process(ns_name: String) -> Result<String, Error> {
+    pub fn child_process_create_ns(ns_name: String) -> Result<String, Error> {
         log::trace!("child_process will create the namespace");
 
         let mut netns_path = String::new();
