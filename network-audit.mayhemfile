@@ -1,0 +1,5 @@
+project: netlink
+target: netlink_audit
+
+cmds:
+  - cmd: /netlink_audit

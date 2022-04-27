@@ -1,0 +1,5 @@
+project: netlink
+target: netlink_route
+
+cmds:
+  - cmd: /netlink_route
