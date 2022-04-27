@@ -4,7 +4,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  actions: write
+
 env:
+  # NOTE: Make sure the repository allows read/write access to the actions
+  # netlink's original repo does not have this enabled by default
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   ROUTEMAYHEM: network-route.mayhemfile
