@@ -294,7 +294,18 @@ pub const PROC_EVENT_EXIT:  u32 = 0x80000000;
 /****************************/
 #[allow(non_camel_case_types)]
 #[derive(Serialize, Deserialize, Debug)]
-pub enum ConnectorResponse {
+pub struct ConnectorResponse {
+    pub cpu:            u32,
+    pub timestamp_ns:   u64,
+    pub event:          KernelConnectorEvent
+}
+
+/***********************************/
+/* enum KernelConnectorEvent       */
+/***********************************/
+#[allow(non_camel_case_types)]
+#[derive(Serialize, Deserialize, Debug)]
+pub enum KernelConnectorEvent {
     none,
     fork(ForkProcEvent),
     exec(ExecProcEvent),
@@ -482,6 +493,15 @@ impl<T: AsRef<[u8]>> ConnectorResponseBuffer<T> {
     }
 
 
+    /****************************/
+    /* read_u64		        	*/
+    /****************************/
+    fn read_u64(&self, offset: usize) -> u64
+    {
+        let r = self.buffer.as_ref();
+        ne::read_u64(&r[offset..offset+8])
+    }
+
 
     /****************************/
     /* cp_u8 		        	*/
@@ -530,96 +550,100 @@ impl<'a, T: AsRef<[u8]> + ?Sized> ParseableParametrized<ConnectorResponseBuffer<
         let what = buf.read_u32(size_of::<cn_msg>());
         let offs = size_of::<cn_msg>() + 16;
 
-        let message = match what 
-        {
-            PROC_EVENT_NONE => ConnectorResponse::none,
-            PROC_EVENT_FORK => 
+        let message = ConnectorResponse {
+            cpu:  buf.read_u32(size_of::<cn_msg>() + 4),
+            timestamp_ns:  buf.read_u64(size_of::<cn_msg>() + 8),
+            event: match what 
             {
-                ConnectorResponse::fork(ForkProcEvent
+                PROC_EVENT_NONE => KernelConnectorEvent::none,
+                PROC_EVENT_FORK => 
                 {
-                    parent_pid: buf.read_i32(offs),
-                    parent_tgid: buf.read_i32(offs + 4),
-                    child_pid: buf.read_i32(offs + 8),
-                    child_tgid: buf.read_i32(offs + 12),
-                })
-            },
-            PROC_EVENT_EXEC =>
-            {
-                ConnectorResponse::exec(ExecProcEvent {
-                    process_pid: buf.read_i32(offs),
-                    process_tgid: buf.read_i32(offs + 4),
-                })
-            },
-            PROC_EVENT_UID =>
-            {
-                ConnectorResponse::uid(UIDProcEvent {
-                    process_pid: buf.read_i32(offs),
-                    process_tgid: buf.read_i32(offs + 4),
-                    ruid: buf.read_u32(offs + 8),
-                    rgid: buf.read_u32(offs + 12),
-                })
-            },
-            PROC_EVENT_GID =>
-            {
-                ConnectorResponse::gid(GIDProcEvent {
-                    process_pid: buf.read_i32(offs),
-                    process_tgid: buf.read_i32(offs + 4),
-                    euid: buf.read_u32(offs + 8),
-                    egid: buf.read_u32(offs + 12),
-                })
-            },
-            PROC_EVENT_SID =>
-            {
-                ConnectorResponse::sid(SIDProcEvent {
-                    process_pid: buf.read_i32(offs),
-                    process_tgid: buf.read_i32(offs + 4),
-                })
-            },
-            PROC_EVENT_PTRACE =>
-            {
-                ConnectorResponse::ptrace(PtraceProcEvent {
-                    process_pid: buf.read_i32(offs),
-                    process_tgid: buf.read_i32(offs + 4),
-                    tracer_pid: buf.read_i32(offs + 8),
-                    tracer_tgid: buf.read_i32(offs + 12),
-                })
-            },
-            PROC_EVENT_COMM =>
-            {
-                let mut x = CommProcEvent {
-                    process_pid: buf.read_i32(offs),
-                    process_tgid: buf.read_i32(offs + 4),
-                    comm: [0; 16]
-                };
+                    KernelConnectorEvent::fork(ForkProcEvent
+                    {
+                        parent_pid: buf.read_i32(offs),
+                        parent_tgid: buf.read_i32(offs + 4),
+                        child_pid: buf.read_i32(offs + 8),
+                        child_tgid: buf.read_i32(offs + 12),
+                    })
+                },
+                PROC_EVENT_EXEC =>
+                {
+                    KernelConnectorEvent::exec(ExecProcEvent {
+                        process_pid: buf.read_i32(offs),
+                        process_tgid: buf.read_i32(offs + 4),
+                    })
+                },
+                PROC_EVENT_UID =>
+                {
+                    KernelConnectorEvent::uid(UIDProcEvent {
+                        process_pid: buf.read_i32(offs),
+                        process_tgid: buf.read_i32(offs + 4),
+                        ruid: buf.read_u32(offs + 8),
+                        rgid: buf.read_u32(offs + 12),
+                    })
+                },
+                PROC_EVENT_GID =>
+                {
+                    KernelConnectorEvent::gid(GIDProcEvent {
+                        process_pid: buf.read_i32(offs),
+                        process_tgid: buf.read_i32(offs + 4),
+                        euid: buf.read_u32(offs + 8),
+                        egid: buf.read_u32(offs + 12),
+                    })
+                },
+                PROC_EVENT_SID =>
+                {
+                    KernelConnectorEvent::sid(SIDProcEvent {
+                        process_pid: buf.read_i32(offs),
+                        process_tgid: buf.read_i32(offs + 4),
+                    })
+                },
+                PROC_EVENT_PTRACE =>
+                {
+                    KernelConnectorEvent::ptrace(PtraceProcEvent {
+                        process_pid: buf.read_i32(offs),
+                        process_tgid: buf.read_i32(offs + 4),
+                        tracer_pid: buf.read_i32(offs + 8),
+                        tracer_tgid: buf.read_i32(offs + 12),
+                    })
+                },
+                PROC_EVENT_COMM =>
+                {
+                    let mut x = CommProcEvent {
+                        process_pid: buf.read_i32(offs),
+                        process_tgid: buf.read_i32(offs + 4),
+                        comm: [0; 16]
+                    };
 
-                buf.cp_u8(&mut x.comm, offs + 8);
-                ConnectorResponse::comm(x)
-            },
-            PROC_EVENT_COREDUMP =>
-            {
-                ConnectorResponse::coredump(CoredumpProcEvent{
-                    process_pid: buf.read_i32(offs),
-                    process_tgid: buf.read_i32(offs + 4),
-                    parent_pid: buf.read_i32(offs + 8),
-                    parent_tgid: buf.read_i32(offs + 12),
-                })
-            },
-            PROC_EVENT_EXIT =>
-            {
-                ConnectorResponse::exit(ExitProcEvent {
-                    process_pid: buf.read_i32(offs),
-                    process_tgid: buf.read_i32(offs + 4),
-                    exit_code:  buf.read_u32(offs + 8),
-                    exit_signal: buf.read_u32(offs + 12),
-                    parent_pid: buf.read_i32(offs + 16),
-                    parent_tgid: buf.read_i32(offs + 20),
-                })
-            },
-            i => {
-                let data = String::from_utf8(buf.inner().to_vec())
-                    .context("failed to parse audit event data as a valid string")?;
-                
-                ConnectorResponse::other((i, data))
+                    buf.cp_u8(&mut x.comm, offs + 8);
+                    KernelConnectorEvent::comm(x)
+                },
+                PROC_EVENT_COREDUMP =>
+                {
+                    KernelConnectorEvent::coredump(CoredumpProcEvent{
+                        process_pid: buf.read_i32(offs),
+                        process_tgid: buf.read_i32(offs + 4),
+                        parent_pid: buf.read_i32(offs + 8),
+                        parent_tgid: buf.read_i32(offs + 12),
+                    })
+                },
+                PROC_EVENT_EXIT =>
+                {
+                    KernelConnectorEvent::exit(ExitProcEvent {
+                        process_pid: buf.read_i32(offs),
+                        process_tgid: buf.read_i32(offs + 4),
+                        exit_code:  buf.read_u32(offs + 8),
+                        exit_signal: buf.read_u32(offs + 12),
+                        parent_pid: buf.read_i32(offs + 16),
+                        parent_tgid: buf.read_i32(offs + 20),
+                    })
+                },
+                i => {
+                    let data = String::from_utf8(buf.inner().to_vec())
+                        .context("failed to parse audit event data as a valid string")?;
+
+                        KernelConnectorEvent::other((i, data))
+                }
             }
         };
 
