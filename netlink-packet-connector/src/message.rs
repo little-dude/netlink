@@ -3,6 +3,7 @@
 use std::fmt;
 use std::mem::size_of;
 use byteorder::{ByteOrder, NativeEndian as ne};
+use serde::{Serialize, Deserialize};
 
 use crate::{
     //inet,
@@ -292,6 +293,7 @@ pub const PROC_EVENT_EXIT:  u32 = 0x80000000;
 /* enum ConnectorResponse   */
 /****************************/
 #[allow(non_camel_case_types)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum ConnectorResponse {
     none,
     fork(ForkProcEvent),
@@ -307,27 +309,6 @@ pub enum ConnectorResponse {
 }
 
 
-// impl ConnectorResponse
-// {
-//     pub fn message_type(&self) -> u16 {
-//         use self::ConnectorResponse::*;
-
-//         match self {
-//             none =>  PROC_EVENT_NONE,
-//             fork(_) =>  PROC_EVENT_FORK,
-//             exec(_) =>  PROC_EVENT_EXEC,
-//             uid(_) =>  PROC_EVENT_UID,
-//             gid(_) =>  PROC_EVENT_GID,
-//             sid(_) =>  PROC_EVENT_SID,
-//             ptrace(_) =>  PROC_EVENT_PTRACE,
-//             comm(_) =>  PROC_EVENT_COMM,
-//             coredump(_) =>  PROC_EVENT_COREDUMP,
-//             exit(_) =>  PROC_EVENT_EXIT,
-//             other((x, _)) => *x
-//         }
-//     }
-// }
-
 
 #[allow(non_camel_case_types)]
 type __kernel_pid_t = i32;
@@ -335,7 +316,7 @@ type __kernel_pid_t = i32;
 /****************************/
 /* 	ForkProcEvent       	*/
 /****************************/
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ForkProcEvent
 {
     pub parent_pid:     __kernel_pid_t,
@@ -348,7 +329,7 @@ pub struct ForkProcEvent
 /****************************/
 /* 	ExecProcEvent       	*/
 /****************************/
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ExecProcEvent
 {
     pub process_pid:    __kernel_pid_t,
@@ -359,7 +340,7 @@ pub struct ExecProcEvent
 /****************************/
 /* 	UIDProcEvent          	*/
 /****************************/
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct UIDProcEvent
 {
     pub process_pid:    __kernel_pid_t,
@@ -372,7 +353,7 @@ pub struct UIDProcEvent
 /****************************/
 /* 	GIDProcEvent          	*/
 /****************************/
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct GIDProcEvent
 {
     pub process_pid:    __kernel_pid_t,
@@ -385,7 +366,7 @@ pub struct GIDProcEvent
 /****************************/
 /* SIDProcEvent          	*/
 /****************************/
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SIDProcEvent
 {
     pub process_tgid:   __kernel_pid_t,
@@ -396,7 +377,7 @@ pub struct SIDProcEvent
 /****************************/
 /* 	PtraceProcEvent       	*/
 /****************************/
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct PtraceProcEvent
 {
     pub process_pid:    __kernel_pid_t,
@@ -409,6 +390,7 @@ pub struct PtraceProcEvent
 /****************************/
 /* CommProcEvent          	*/
 /****************************/
+#[derive(Serialize, Deserialize)]
 pub struct CommProcEvent
 {
     pub process_pid:    __kernel_pid_t,
@@ -416,6 +398,9 @@ pub struct CommProcEvent
     pub comm:           [u8; 16]
 }
 
+/********************************/
+/* fmt::Debug for CommProcEvent */
+/********************************/
 impl fmt::Debug for CommProcEvent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let l = String::from_utf8_lossy(self.comm.as_ref());
@@ -431,7 +416,7 @@ impl fmt::Debug for CommProcEvent {
 /****************************/
 /* 	CoredumpProcEvent     	*/
 /****************************/
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CoredumpProcEvent
 {
     pub process_pid:    __kernel_pid_t,
@@ -444,7 +429,7 @@ pub struct CoredumpProcEvent
 /****************************/
 /* 	ExitProcEvent       	*/
 /****************************/
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ExitProcEvent
 {
     pub process_pid:    __kernel_pid_t,
@@ -455,6 +440,9 @@ pub struct ExitProcEvent
     pub parent_tgid:    __kernel_pid_t,
 }
 
+/****************************/
+/* ConnectorResponseBuffer  */
+/****************************/
 pub struct ConnectorResponseBuffer<T> {
     buffer: T,
 }
