@@ -55,9 +55,8 @@ impl NetlinkMessageCodec for NetlinkCodec {
 
         loop {
             // If there's nothing to read, return Ok(None)
-            if src.as_ref().is_empty() {
+            if src.is_empty() {
                 trace!("buffer is empty");
-                src.clear();
                 return Ok(None);
             }
 
