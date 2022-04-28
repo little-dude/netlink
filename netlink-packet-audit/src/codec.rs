@@ -44,7 +44,7 @@ impl NetlinkMessageCodec for NetlinkAuditCodec {
 
             // This is a bit hacky because we don't want to keep `src`
             // borrowed, since we need to mutate it later.
-            let len_res = match NetlinkBuffer::new_checked(src.as_ref()) {
+            let len = match NetlinkBuffer::new_checked(src.as_ref()) {
                 Ok(buf) => {
                     if (src.as_ref().len() as isize - buf.length() as isize) <= 16 {
                         // The audit messages are sometimes truncated,
@@ -60,9 +60,9 @@ impl NetlinkMessageCodec for NetlinkAuditCodec {
                         //   https://github.com/linux-audit/audit-userspace/issues/78) which is not
                         //   taken into account in the buffer length.
                         warn!("found what looks like a truncated audit packet");
-                        Ok(src.as_ref().len())
+                        src.as_ref().len()
                     } else {
-                        Ok(buf.length() as usize)
+                        buf.length() as usize
                     }
                 }
                 Err(e) => {
@@ -72,18 +72,15 @@ impl NetlinkMessageCodec for NetlinkAuditCodec {
                     // cannot find the start of the next one (if
                     // any). The only solution is to clear the buffer
                     // and potentially lose some datagrams.
-                    error!("failed to decode datagram: {:?}: {:#x?}.", e, src.as_ref());
-                    Err(())
+                    error!(
+                        "failed to decode datagram, clearing buffer: {:?}: {:#x?}.",
+                        e,
+                        src.as_ref()
+                    );
+                    src.clear();
+                    return Ok(None);
                 }
             };
-
-            if len_res.is_err() {
-                error!("clearing the whole socket buffer. Datagrams may have been lost");
-                src.clear();
-                return Ok(None);
-            }
-
-            let len = len_res.unwrap();
 
             let bytes = {
                 let mut bytes = src.split_to(len);
