@@ -62,8 +62,8 @@ impl NetlinkMessageCodec for NetlinkCodec {
 
             // This is a bit hacky because we don't want to keep `src`
             // borrowed, since we need to mutate it later.
-            let len_res = match NetlinkBuffer::new_checked(src.as_ref()) {
-                Ok(buf) => Ok(buf.length() as usize),
+            let len = match NetlinkBuffer::new_checked(src.as_ref()) {
+                Ok(buf) => buf.length() as usize,
                 Err(e) => {
                     // We either received a truncated packet, or the
                     // packet if malformed (invalid length field). In
@@ -71,18 +71,15 @@ impl NetlinkMessageCodec for NetlinkCodec {
                     // cannot find the start of the next one (if
                     // any). The only solution is to clear the buffer
                     // and potentially lose some datagrams.
-                    error!("failed to decode datagram: {:?}: {:#x?}.", e, src.as_ref());
-                    Err(())
+                    error!(
+                        "failed to decode datagram, clearing buffer: {:?}: {:#x?}.",
+                        e,
+                        src.as_ref()
+                    );
+                    src.clear();
+                    return Ok(None);
                 }
             };
-
-            if len_res.is_err() {
-                error!("clearing the whole socket buffer. Datagrams may have been lost");
-                src.clear();
-                return Ok(None);
-            }
-
-            let len = len_res.unwrap();
 
             let bytes = src.split_to(len);
 
