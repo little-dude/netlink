@@ -109,7 +109,7 @@ where
                 }
             }
             NLMSG_NOOP => Noop,
-            //NLMSG_DONE => Done,
+            NLMSG_DONE => Done,
             NLMSG_OVERRUN => Overrun(bytes.to_vec()),
             message_type => {
                 let inner_msg = I::deserialize(&header, bytes).context(format!(
