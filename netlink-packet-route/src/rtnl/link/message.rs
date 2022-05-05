@@ -202,10 +202,12 @@ mod test {
 
     #[test]
     fn emit() {
-        let mut header = LinkHeader::default();
-        header.link_layer_type = ARPHRD_LOOPBACK;
-        header.index = 1;
-        header.flags = IFF_UP | IFF_LOOPBACK | IFF_RUNNING | IFF_LOWER_UP;
+        let header = LinkHeader {
+            link_layer_type: ARPHRD_LOOPBACK,
+            index: 1,
+            flags: IFF_UP | IFF_LOOPBACK | IFF_RUNNING | IFF_LOWER_UP,
+            ..Default::default()
+        };
 
         let nlas = vec![
             Nla::IfName("lo".into()),
