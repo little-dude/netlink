@@ -45,7 +45,7 @@ where
 {
     socket: NetlinkFramed<T, S, C>,
 
-    protocol: Protocol<T, UnboundedSender<NetlinkMessage<T>>>,
+    protocol: Protocol<T>,
 
     /// Channel used by the user to pass requests to the connection.
     requests_rx: Option<UnboundedReceiver<Request<T>>>,
@@ -217,14 +217,14 @@ where
             let Response {
                 message,
                 done,
-                metadata: tx,
+                response_tx: tx,
             } = response;
             if done {
                 use NetlinkPayload::*;
                 match &message.payload {
                     // Since `self.protocol` set the `done` flag here,
                     // we know it has already dropped the request and
-                    // its associated metadata, ie the UnboundedSender
+                    // its associated response_tx, the UnboundedSender
                     // used to forward messages back to the
                     // ConnectionHandle. By just continuing we're
                     // dropping the last instance of that sender,

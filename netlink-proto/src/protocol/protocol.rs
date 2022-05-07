@@ -5,6 +5,7 @@ use std::{
     fmt::Debug,
 };
 
+use futures::channel::mpsc::UnboundedSender;
 use netlink_packet_core::{
     constants::*,
     NetlinkDeserializable,
@@ -31,30 +32,30 @@ impl RequestId {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
-pub(crate) struct Response<T, M> {
+#[derive(Debug)]
+pub(crate) struct Response<T> {
     pub done: bool,
     pub message: NetlinkMessage<T>,
-    pub metadata: M,
+    pub response_tx: UnboundedSender<NetlinkMessage<T>>,
 }
 
 #[derive(Debug)]
-struct PendingRequest<M> {
+struct PendingRequest<T> {
     expecting_ack: bool,
-    metadata: M,
+    response_tx: UnboundedSender<NetlinkMessage<T>>,
 }
 
 #[derive(Debug, Default)]
-pub(crate) struct Protocol<T, M> {
+pub(crate) struct Protocol<T> {
     /// Counter that is incremented for each message sent
     sequence_id: u32,
 
     /// Requests for which we're awaiting a response. Metadata are
     /// associated with each request.
-    pending_requests: HashMap<RequestId, PendingRequest<M>>,
+    pending_requests: HashMap<RequestId, PendingRequest<T>>,
 
     /// Responses to pending requests
-    pub incoming_responses: VecDeque<Response<T, M>>,
+    pub incoming_responses: VecDeque<Response<T>>,
 
     /// Requests from remote peers
     pub incoming_requests: VecDeque<(NetlinkMessage<T>, SocketAddr)>,
@@ -63,10 +64,9 @@ pub(crate) struct Protocol<T, M> {
     pub outgoing_messages: VecDeque<(NetlinkMessage<T>, SocketAddr)>,
 }
 
-impl<T, M> Protocol<T, M>
+impl<T> Protocol<T>
 where
     T: Debug + NetlinkSerializable + NetlinkDeserializable,
-    M: Debug + Clone,
 {
     pub fn new() -> Self {
         Self {
@@ -89,8 +89,8 @@ where
     }
 
     fn handle_response(
-        incoming_responses: &mut VecDeque<Response<T, M>>,
-        entry: hash_map::OccupiedEntry<RequestId, PendingRequest<M>>,
+        incoming_responses: &mut VecDeque<Response<T>>,
+        entry: hash_map::OccupiedEntry<RequestId, PendingRequest<T>>,
         message: NetlinkMessage<T>,
     ) {
         let entry_key;
@@ -110,30 +110,30 @@ where
             _ => true,
         };
 
-        let metadata = if done {
+        let response_tx = if done {
             trace!("request {:?} fully processed", request_id);
             let (k, v) = entry.remove_entry();
             entry_key = k;
             request_id = &entry_key;
-            v.metadata
+            v.response_tx
         } else {
             trace!("more responses to request {:?} may come", request_id);
-            entry.get().metadata.clone()
+            entry.get().response_tx.clone()
         };
 
-        let response = Response::<T, M> {
+        let response = Response {
             done,
             message,
-            metadata,
+            response_tx,
         };
         incoming_responses.push_back(response);
         debug!("done handling response to request {:?}", request_id);
     }
 
-    pub fn request(&mut self, request: Request<T, M>) {
+    pub fn request(&mut self, request: Request<T>) {
         let Request {
             mut message,
-            metadata,
+            response_tx,
             destination,
         } = request;
 
@@ -158,7 +158,7 @@ where
                 request_id,
                 PendingRequest {
                     expecting_ack,
-                    metadata,
+                    response_tx,
                 },
             );
         }
