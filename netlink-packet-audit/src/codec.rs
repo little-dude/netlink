@@ -44,9 +44,10 @@ impl NetlinkMessageCodec for NetlinkAuditCodec {
 
             // This is a bit hacky because we don't want to keep `src`
             // borrowed, since we need to mutate it later.
-            let len = match NetlinkBuffer::new_checked(src.as_ref()) {
-                Ok(buf) => {
-                    if (src.as_ref().len() as isize - buf.length() as isize) <= 16 {
+            let src_len = src.len();
+            let len = match NetlinkBuffer::new_checked(src.as_mut()) {
+                Ok(mut buf) => {
+                    if (src_len as isize - buf.length() as isize) <= 16 {
                         // The audit messages are sometimes truncated,
                         // because the length specified in the header,
                         // does not take the header itself into
@@ -59,8 +60,24 @@ impl NetlinkMessageCodec for NetlinkAuditCodec {
                         // - some rule message have some padding for alignment (see
                         //   https://github.com/linux-audit/audit-userspace/issues/78) which is not
                         //   taken into account in the buffer length.
+                        //
+                        // How do we know that's the right length? Due to an implementation detail and to
+                        // the fact that netlink is a datagram protocol.
+                        //
+                        // - our implementation of Stream always calls the codec with at most 1 message in
+                        //   the buffer, so we know the extra bytes do not belong to another message.
+                        // - because netlink is a datagram protocol, we receive entire messages, so we know
+                        //   that if those extra bytes do not belong to another message, they belong to
+                        //   this one.
                         warn!("found what looks like a truncated audit packet");
-                        src.as_ref().len()
+                        // also write correct length to buffer so parsing does not fail:
+                        warn!(
+                            "setting packet length to {} instead of {}",
+                            src_len,
+                            buf.length()
+                        );
+                        buf.set_length(src_len as u32);
+                        src_len
                     } else {
                         buf.length() as usize
                     }
@@ -82,33 +99,7 @@ impl NetlinkMessageCodec for NetlinkAuditCodec {
                 }
             };
 
-            let bytes = {
-                let mut bytes = src.split_to(len);
-                {
-                    let mut buf = NetlinkBuffer::new(bytes.as_mut());
-                    // If the buffer contains more bytes than what the header says the length is, it
-                    // means we ran into a malformed packet (see comment above), and we just set the
-                    // "right" length ourself, so that parsing does not fail.
-                    //
-                    // How do we know that's the right length? Due to an implementation detail and to
-                    // the fact that netlink is a datagram protocol.
-                    //
-                    // - our implementation of Stream always calls the codec with at most 1 message in
-                    //   the buffer, so we know the extra bytes do not belong to another message.
-                    // - because netlink is a datagram protocol, we receive entire messages, so we know
-                    //   that if those extra bytes do not belong to another message, they belong to
-                    //   this one.
-                    if len != buf.length() as usize {
-                        warn!(
-                            "setting packet length to {} instead of {}",
-                            len,
-                            buf.length()
-                        );
-                        buf.set_length(len as u32);
-                    }
-                }
-                bytes
-            };
+            let bytes = src.split_to(len);
 
             let parsed = NetlinkMessage::<T>::deserialize(&bytes);
             match parsed {
