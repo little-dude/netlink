@@ -503,7 +503,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> ParseableParametrized<NlaBuffer<&'a T>, u16> f
                 }
                 AF_BRIDGE => {
                     let mut nlas = vec![];
-                    let err = "invalid IFLA_AF_BRIDGE value";
+                    let err = "invalid IFLA_AF_SPEC value for AF_BRIDGE";
                     for nla in NlasIterator::new(payload) {
                         let nla = nla.context(err)?;
                         nlas.push(af_spec_bridge::AfSpecBridge::parse(&nla).context(err)?);
