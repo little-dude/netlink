@@ -95,3 +95,9 @@ jobs:
         run: |
           cd ethtool
           cargo test
+
+      - name: test (mptcp-pm)
+        env:
+          # Needed root permission to modify MPTCP
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER: "sudo -E"
+        run: cargo test -p mptcp-pm
