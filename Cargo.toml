@@ -17,6 +17,7 @@ members = [
     "genetlink",
     "rtnetlink",
     "audit",
+    "mptcp-pm",
 ]
 
 # omit fuzz projects
@@ -35,6 +36,7 @@ default-members = [
     "genetlink",
     "rtnetlink",
     "audit",
+    "mptcp-pm",
 ]
 
 [patch.crates-io]
@@ -50,3 +52,4 @@ genetlink = { path = "genetlink" }
 rtnetlink = { path = "rtnetlink" }
 audit = { path = "audit" }
 ethtool = { path = "ethtool" }
+mptcp-pm = { path = "mptcp-pm" }
