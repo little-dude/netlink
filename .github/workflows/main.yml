@@ -23,78 +23,52 @@ jobs:
 
       - name: test (netlink-sys)
         run: |
-          cd netlink-sys
-          cargo test
-          cargo test --features tokio_socket
+          cargo test -p netlink-sys
+          cargo test -p netlink-sys --features tokio_socket
 
       - name: test (netlink-packet-audit)
-        run: |
-          cd netlink-packet-audit
-          cargo test
+        run: cargo test -p netlink-packet-audit
 
       - name: test (netlink-packet-core)
-        run: |
-          cd netlink-packet-core
-          cargo test
+        run: cargo test -p netlink-packet-core
 
       - name: test (netlink-packet-generic)
-        run: |
-          cd netlink-packet-generic
-          cargo test
+        run: cargo test -p netlink-packet-generic
 
       - name: test (netlink-packet-netfilter)
-        run: |
-          cd netlink-packet-netfilter
-          cargo test
+        run: cargo test -p netlink-packet-netfilter
 
       - name: test (netlink-packet-route)
         run: |
-          cd netlink-packet-route
-          cargo test
-          cargo test --features rich_nlas
+          cargo test -p netlink-packet-route
+          cargo test -p netlink-packet-route --features rich_nlas
 
       - name: test (netlink-packet-sock-diag)
-        run: |
-          cd netlink-packet-sock-diag
-          cargo test
+        run: cargo test -p netlink-packet-sock-diag
 
       - name: test (netlink-packet-utils)
-        run: |
-          cd netlink-packet-utils
-          cargo test
+        run: cargo test -p netlink-packet-utils
 
       - name: test (netlink-packet-wireguard)
-        run: |
-          cd netlink-packet-wireguard
-          cargo test
+        run: cargo test -p netlink-packet-wireguard
 
       - name: test (netlink-proto)
-        run: |
-          cd netlink-proto
-          cargo test
+        run: cargo test -p netlink-proto
 
       - name: test (rtnetlink)
         env:
           # Needed for the `link::test::create_get_delete_w` test to pass.
           CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER: "sudo -E"
-        run: |
-          cd rtnetlink
-          cargo test
+        run: cargo test -p rtnetlink
 
       - name: test (audit)
-        run: |
-          cd audit
-          cargo test
+        run: cargo test -p audit
 
       - name: test (genetlink)
-        run: |
-          cd genetlink
-          cargo test --features tokio_socket
+        run: cargo test -p genetlink --features tokio_socket
 
       - name: test (ethtool)
-        run: |
-          cd ethtool
-          cargo test
+        run: cargo test -p ethtool
 
       - name: test (mptcp-pm)
         env:
