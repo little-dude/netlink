@@ -921,6 +921,30 @@ pub const MACVLAN_MODE_SOURCE: u32 = 16;
 // pub const IPVLAN_MODE_L3S: int = 2;
 // pub const IPVLAN_MODE_MAX: int = 3;
 //
+// FROM https://elixir.bootlin.com/linux/v5.9.8/source/include/uapi/linux/if_tunnel.h#L58
+pub const IFLA_IPTUN_UNSPEC: u16 = 0;
+pub const IFLA_IPTUN_LINK: u16 = 1;
+pub const IFLA_IPTUN_LOCAL: u16 = 2;
+pub const IFLA_IPTUN_REMOTE: u16 = 3;
+pub const IFLA_IPTUN_TTL: u16 = 4;
+pub const IFLA_IPTUN_TOS: u16 = 5;
+pub const IFLA_IPTUN_ENCAP_LIMIT: u16 = 6;
+pub const IFLA_IPTUN_FLOWINFO: u16 = 7;
+pub const IFLA_IPTUN_FLAGS: u16 = 8;
+pub const IFLA_IPTUN_PROTO: u16 = 9;
+pub const IFLA_IPTUN_PMTUDISC: u16 = 10;
+pub const IFLA_IPTUN_6RD_PREFIX: u16 = 11;
+pub const IFLA_IPTUN_6RD_RELAY_PREFIX: u16 = 12;
+pub const IFLA_IPTUN_6RD_PREFIXLEN: u16 = 13;
+pub const IFLA_IPTUN_6RD_RELAY_PREFIXLEN: u16 = 14;
+pub const IFLA_IPTUN_ENCAP_TYPE: u16 = 15;
+pub const IFLA_IPTUN_ENCAP_FLAGS: u16 = 16;
+pub const IFLA_IPTUN_ENCAP_SPORT: u16 = 17;
+pub const IFLA_IPTUN_ENCAP_DPORT: u16 = 18;
+pub const IFLA_IPTUN_COLLECT_METADATA: u16 = 19;
+pub const IFLA_IPTUN_FWMARK: u16 = 20;
+pub const __IFLA_IPTUN_MAX: u16 = 21;
+//
 // FROM https://elixir.bootlin.com/linux/v5.9.8/source/include/uapi/linux/if_link.h#L531
 pub const IFLA_VXLAN_UNSPEC: u16 = 0;
 pub const IFLA_VXLAN_ID: u16 = 1;

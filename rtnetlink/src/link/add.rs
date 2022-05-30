@@ -4,7 +4,17 @@ use futures::stream::StreamExt;
 
 use crate::{
     packet::{
-        nlas::link::{Info, InfoData, InfoKind, InfoMacVlan, InfoVlan, InfoVxlan, Nla, VethInfo},
+        nlas::link::{
+            Info,
+            InfoData,
+            InfoIpTun,
+            InfoKind,
+            InfoMacVlan,
+            InfoVlan,
+            InfoVxlan,
+            Nla,
+            VethInfo,
+        },
         LinkMessage,
         NetlinkMessage,
         RtnlMessage,
@@ -239,6 +249,48 @@ impl VxlanAddRequest {
     }
 }
 
+/// A request to create a new ipip link.
+///  This is equivalent to `ip link add NAME ipip local LOCAL_IP remote REMOTE_IP ...` commands.
+/// It provides methods to customize the creation of the ipip interface
+/// It provides almost all parameters that are listed by `man ip link`.
+pub struct IpTunAddRequest {
+    request: LinkAddRequest,
+    info_data: Vec<InfoIpTun>,
+}
+
+impl IpTunAddRequest {
+    /// Execute the request.
+    pub async fn execute(self) -> Result<(), Error> {
+        let s = self
+            .request
+            .link_info(InfoKind::IpTun, Some(InfoData::IpTun(self.info_data)));
+        s.execute().await
+    }
+
+    /// Sets the interface up
+    /// This is equivalent to `ip link set up dev NAME`.
+    pub fn up(mut self) -> Self {
+        self.request = self.request.up();
+        self
+    }
+
+    /// Adds the `tos` attribute to the IP Tunnel
+    /// This is equivalent to `ip link add name NAME type ipip tos TOS`.
+    /// tos TOS - specifies the TOS value to use in outgoing packets.
+    pub fn tos(mut self, tos: u8) -> Self {
+        self.info_data.push(InfoIpTun::Tos(tos));
+        self
+    }
+
+    /// Adds the `ttl` attribute to the IP Tunnel
+    /// This is equivalent to `ip link add name NAME type ipip ttl TTL`.
+    /// ttl TTL - specifies the TTL value to use in outgoing packets.
+    pub fn ttl(mut self, ttl: u8) -> Self {
+        self.info_data.push(InfoIpTun::Ttl(ttl));
+        self
+    }
+}
+
 /// A request to create a new link. This is equivalent to the `ip link add` commands.
 ///
 /// A few methods for common actions (creating a veth pair, creating a vlan interface, etc.) are
@@ -365,6 +417,25 @@ impl LinkAddRequest {
         VxlanAddRequest {
             request: s,
             info_data: vec![InfoVxlan::Id(vni)],
+        }
+    }
+
+    /// Create an IP Tunnel
+    /// This is equivalent to `ip link add name NAME type ipip`,
+    /// it returns a IpTunAddRequest to further customize the IP Tunnel
+    /// interface creation.
+    pub fn ipip(
+        self,
+        name: String,
+        remote: std::net::Ipv4Addr,
+        local: std::net::Ipv4Addr,
+    ) -> IpTunAddRequest {
+        let name = self.name(name);
+        let remote = InfoIpTun::Remote(remote.octets().to_vec());
+        let local = InfoIpTun::Local(local.octets().to_vec());
+        IpTunAddRequest {
+            request: name,
+            info_data: vec![local, remote],
         }
     }
 
