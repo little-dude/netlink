@@ -25,6 +25,7 @@ use crate::{
     codecs::{NetlinkCodec, NetlinkMessageCodec},
     framed::NetlinkFramed,
     sys::{AsyncSocket, SocketAddr},
+    OutgoingMessage,
     Protocol,
     Request,
     Response,
@@ -93,7 +94,11 @@ where
 
         while !protocol.outgoing_messages.is_empty() {
             trace!("found outgoing message to send checking if socket is ready");
-            if let Poll::Ready(Err(e)) = Pin::as_mut(&mut socket).poll_ready(cx) {
+            if let Poll::Ready(Err(e)) = <NetlinkFramed<T, S, C> as Sink<(
+                NetlinkMessage<T>,
+                SocketAddr,
+            )>>::poll_ready(Pin::as_mut(&mut socket), cx)
+            {
                 // Sink errors are usually not recoverable. The socket
                 // probably shut down.
                 warn!("netlink socket shut down: {:?}", e);
@@ -101,14 +106,29 @@ where
                 return;
             }
 
-            let (mut message, addr) = protocol.outgoing_messages.pop_front().unwrap();
-            message.finalize();
+            match protocol.outgoing_messages.pop_front().unwrap() {
+                OutgoingMessage::Single(mut message, addr) => {
+                    message.finalize();
 
-            trace!("sending outgoing message");
-            if let Err(e) = Pin::as_mut(&mut socket).start_send((message, addr)) {
-                error!("failed to send message: {:?}", e);
-                self.socket_closed = true;
-                return;
+                    trace!("sending outgoing message");
+                    if let Err(e) = Pin::as_mut(&mut socket).start_send((message, addr)) {
+                        error!("failed to send message: {:?}", e);
+                        self.socket_closed = true;
+                        return;
+                    }
+                }
+                OutgoingMessage::Batch(mut messages, addr) => {
+                    for message in &mut messages {
+                        message.finalize();
+                    }
+
+                    trace!("sending outgoing message");
+                    if let Err(e) = Pin::as_mut(&mut socket).start_send((messages, addr)) {
+                        error!("failed to send message: {:?}", e);
+                        self.socket_closed = true;
+                        return;
+                    }
+                }
             }
         }
 
@@ -118,7 +138,11 @@ where
 
     pub fn poll_flush(&mut self, cx: &mut Context) {
         trace!("poll_flush called");
-        if let Poll::Ready(Err(e)) = Pin::new(&mut self.socket).poll_flush(cx) {
+        if let Poll::Ready(Err(e)) = <NetlinkFramed<T, S, C> as Sink<(
+            NetlinkMessage<T>,
+            SocketAddr,
+        )>>::poll_flush(Pin::new(&mut self.socket), cx)
+        {
             warn!("error flushing netlink socket: {:?}", e);
             self.socket_closed = true;
         }
