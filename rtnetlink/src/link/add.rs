@@ -1,10 +1,21 @@
 // SPDX-License-Identifier: MIT
 
 use futures::stream::StreamExt;
+use std::net::{Ipv4Addr, Ipv6Addr};
 
 use crate::{
     packet::{
-        nlas::link::{Info, InfoData, InfoKind, InfoMacVlan, InfoVlan, InfoVxlan, Nla, VethInfo},
+        nlas::link::{
+            Info,
+            InfoBond,
+            InfoData,
+            InfoKind,
+            InfoMacVlan,
+            InfoVlan,
+            InfoVxlan,
+            Nla,
+            VethInfo,
+        },
         LinkMessage,
         NetlinkMessage,
         RtnlMessage,
@@ -19,6 +30,249 @@ use crate::{
     Error,
     Handle,
 };
+
+pub struct BondAddRequest {
+    request: LinkAddRequest,
+    info_data: Vec<InfoBond>,
+}
+
+impl BondAddRequest {
+    /// Execute the request.
+    pub async fn execute(self) -> Result<(), Error> {
+        let s = self
+            .request
+            .link_info(InfoKind::Bond, Some(InfoData::Bond(self.info_data)));
+        s.execute().await
+    }
+
+    /// Sets the interface up
+    /// This is equivalent to `ip link set up dev NAME`.
+    pub fn up(mut self) -> Self {
+        self.request = self.request.up();
+        self
+    }
+
+    /// Adds the `mode` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond mode MODE`.
+    pub fn mode(mut self, mode: u8) -> Self {
+        self.info_data.push(InfoBond::Mode(mode));
+        self
+    }
+
+    /// Adds the `active_slave` attribute to the bond, where `active_slave`
+    /// is the ifindex of an interface attached to the bond.
+    /// This is equivalent to `ip link add name NAME type bond active_slave ACTIVE_SLAVE_NAME`.
+    pub fn active_slave(mut self, active_slave: u32) -> Self {
+        self.info_data.push(InfoBond::ActiveSlave(active_slave));
+        self
+    }
+
+    /// Adds the `miimon` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond miimon MIIMON`.
+    pub fn miimon(mut self, miimon: u32) -> Self {
+        self.info_data.push(InfoBond::MiiMon(miimon));
+        self
+    }
+
+    /// Adds the `updelay` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond updelay UPDELAY`.
+    pub fn updelay(mut self, updelay: u32) -> Self {
+        self.info_data.push(InfoBond::UpDelay(updelay));
+        self
+    }
+
+    /// Adds the `downdelay` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond downdelay DOWNDELAY`.
+    pub fn downdelay(mut self, downdelay: u32) -> Self {
+        self.info_data.push(InfoBond::DownDelay(downdelay));
+        self
+    }
+
+    /// Adds the `use_carrier` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond use_carrier USE_CARRIER`.
+    pub fn use_carrier(mut self, use_carrier: u8) -> Self {
+        self.info_data.push(InfoBond::UseCarrier(use_carrier));
+        self
+    }
+
+    /// Adds the `arp_interval` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond arp_interval ARP_INTERVAL`.
+    pub fn arp_interval(mut self, arp_interval: u32) -> Self {
+        self.info_data.push(InfoBond::ArpInterval(arp_interval));
+        self
+    }
+
+    /// Adds the `arp_validate` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond arp_validate ARP_VALIDATE`.
+    pub fn arp_validate(mut self, arp_validate: u32) -> Self {
+        self.info_data.push(InfoBond::ArpValidate(arp_validate));
+        self
+    }
+
+    /// Adds the `arp_all_targets` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond arp_all_targets ARP_ALL_TARGETS`
+    pub fn arp_all_targets(mut self, arp_all_targets: u32) -> Self {
+        self.info_data
+            .push(InfoBond::ArpAllTargets(arp_all_targets));
+        self
+    }
+
+    /// Adds the `primary` attribute to the bond, where `primary` is the ifindex
+    /// of an interface.
+    /// This is equivalent to `ip link add name NAME type bond primary PRIMARY_NAME`
+    pub fn primary(mut self, primary: u32) -> Self {
+        self.info_data.push(InfoBond::Primary(primary));
+        self
+    }
+
+    /// Adds the `primary_reselect` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond primary_reselect PRIMARY_RESELECT`.
+    pub fn primary_reselect(mut self, primary_reselect: u8) -> Self {
+        self.info_data
+            .push(InfoBond::PrimaryReselect(primary_reselect));
+        self
+    }
+
+    /// Adds the `fail_over_mac` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond fail_over_mac FAIL_OVER_MAC`.
+    pub fn fail_over_mac(mut self, fail_over_mac: u8) -> Self {
+        self.info_data.push(InfoBond::FailOverMac(fail_over_mac));
+        self
+    }
+
+    /// Adds the `xmit_hash_policy` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond xmit_hash_policy XMIT_HASH_POLICY`.
+    pub fn xmit_hash_policy(mut self, xmit_hash_policy: u8) -> Self {
+        self.info_data
+            .push(InfoBond::XmitHashPolicy(xmit_hash_policy));
+        self
+    }
+
+    /// Adds the `resend_igmp` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond resend_igmp RESEND_IGMP`.
+    pub fn resend_igmp(mut self, resend_igmp: u32) -> Self {
+        self.info_data.push(InfoBond::ResendIgmp(resend_igmp));
+        self
+    }
+
+    /// Adds the `num_peer_notif` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond num_peer_notif NUM_PEER_NOTIF`.
+    pub fn num_peer_notif(mut self, num_peer_notif: u8) -> Self {
+        self.info_data.push(InfoBond::NumPeerNotif(num_peer_notif));
+        self
+    }
+
+    /// Adds the `all_slaves_active` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond all_slaves_active ALL_SLAVES_ACTIVE`.
+    pub fn all_slaves_active(mut self, all_slaves_active: u8) -> Self {
+        self.info_data
+            .push(InfoBond::AllSlavesActive(all_slaves_active));
+        self
+    }
+
+    /// Adds the `min_links` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond min_links MIN_LINKS`.
+    pub fn min_links(mut self, min_links: u32) -> Self {
+        self.info_data.push(InfoBond::MinLinks(min_links));
+        self
+    }
+
+    /// Adds the `lp_interval` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond lp_interval LP_INTERVAL`.
+    pub fn lp_interval(mut self, lp_interval: u32) -> Self {
+        self.info_data.push(InfoBond::LpInterval(lp_interval));
+        self
+    }
+
+    /// Adds the `packets_per_slave` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond packets_per_slave PACKETS_PER_SLAVE`.
+    pub fn packets_per_slave(mut self, packets_per_slave: u32) -> Self {
+        self.info_data
+            .push(InfoBond::PacketsPerSlave(packets_per_slave));
+        self
+    }
+
+    /// Adds the `ad_lacp_rate` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond ad_lacp_rate AD_LACP_RATE`.
+    pub fn ad_lacp_rate(mut self, ad_lacp_rate: u8) -> Self {
+        self.info_data.push(InfoBond::AdLacpRate(ad_lacp_rate));
+        self
+    }
+
+    /// Adds the `ad_select` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond ad_select AD_SELECT`.
+    pub fn ad_select(mut self, ad_select: u8) -> Self {
+        self.info_data.push(InfoBond::AdSelect(ad_select));
+        self
+    }
+
+    /// Adds the `ad_actor_sys_prio` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond ad_actor_sys_prio AD_ACTOR_SYS_PRIO`.
+    pub fn ad_actor_sys_prio(mut self, ad_actor_sys_prio: u16) -> Self {
+        self.info_data
+            .push(InfoBond::AdActorSysPrio(ad_actor_sys_prio));
+        self
+    }
+
+    /// Adds the `ad_user_port_key` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond ad_user_port_key AD_USER_PORT_KEY`.
+    pub fn ad_user_port_key(mut self, ad_user_port_key: u16) -> Self {
+        self.info_data
+            .push(InfoBond::AdUserPortKey(ad_user_port_key));
+        self
+    }
+
+    /// Adds the `ad_actor_system` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond ad_actor_system AD_ACTOR_SYSTEM`.
+    pub fn ad_actor_system(mut self, ad_actor_system: [u8; 6]) -> Self {
+        self.info_data
+            .push(InfoBond::AdActorSystem(ad_actor_system));
+        self
+    }
+
+    /// Adds the `tlb_dynamic_lb` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond tlb_dynamic_lb TLB_DYNAMIC_LB`.
+    pub fn tlb_dynamic_lb(mut self, tlb_dynamic_lb: u8) -> Self {
+        self.info_data.push(InfoBond::TlbDynamicLb(tlb_dynamic_lb));
+        self
+    }
+
+    /// Adds the `peer_notif_delay` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond peer_notif_delay PEER_NOTIF_DELAY`.
+    pub fn peer_notif_delay(mut self, peer_notif_delay: u32) -> Self {
+        self.info_data
+            .push(InfoBond::PeerNotifDelay(peer_notif_delay));
+        self
+    }
+
+    /// Adds the `ad_lacp_active` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond ad_lacp_active AD_LACP_ACTIVE`.
+    pub fn ad_lacp_active(mut self, ad_lacp_active: u8) -> Self {
+        self.info_data.push(InfoBond::AdLacpActive(ad_lacp_active));
+        self
+    }
+
+    /// Adds the `missed_max` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond missed_max MISSED_MAX`.
+    pub fn missed_max(mut self, missed_max: u8) -> Self {
+        self.info_data.push(InfoBond::MissedMax(missed_max));
+        self
+    }
+
+    /// Adds the `arp_ip_target` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond arp_ip_target LIST`.
+    pub fn arp_ip_target(mut self, arp_ip_target: Vec<Ipv4Addr>) -> Self {
+        self.info_data.push(InfoBond::ArpIpTarget(arp_ip_target));
+        self
+    }
+
+    /// Adds the `ns_ip6_target` attribute to the bond
+    /// This is equivalent to `ip link add name NAME type bond ns_ip6_target LIST`.
+    pub fn ns_ip6_target(mut self, ns_ip6_target: Vec<Ipv6Addr>) -> Self {
+        self.info_data.push(InfoBond::NsIp6Target(ns_ip6_target));
+        self
+    }
+}
 
 /// A request to create a new vxlan link.
 ///  This is equivalent to `ip link add NAME vxlan id ID ...` commands.
@@ -365,6 +619,16 @@ impl LinkAddRequest {
         VxlanAddRequest {
             request: s,
             info_data: vec![InfoVxlan::Id(vni)],
+        }
+    }
+
+    /// Create a new bond.
+    /// This is equivalent to `ip link add link NAME type bond`.
+    pub fn bond(self, name: String) -> BondAddRequest {
+        let s = self.name(name);
+        BondAddRequest {
+            request: s,
+            info_data: vec![],
         }
     }
 
