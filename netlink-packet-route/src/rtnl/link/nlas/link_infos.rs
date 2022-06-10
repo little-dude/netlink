@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 
+use super::bond::InfoBond;
 use crate::{
     constants::*,
     nlas::{DefaultNla, Nla, NlaBuffer, NlasIterator},
@@ -9,6 +10,7 @@ use crate::{
     LinkMessage,
     LinkMessageBuffer,
 };
+
 use anyhow::Context;
 use byteorder::{BigEndian, ByteOrder, NativeEndian};
 
@@ -165,7 +167,17 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for VecInfo {
                                 }
                                 InfoData::Vxlan(v)
                             }
-                            InfoKind::Bond => InfoData::Bond(payload.to_vec()),
+                            InfoKind::Bond => {
+                                let mut v = Vec::new();
+                                let err =
+                                    "failed to parse IFLA_INFO_DATA (IFLA_INFO_KIND is 'bond')";
+                                for nla in NlasIterator::new(payload) {
+                                    let nla = &nla.context(err)?;
+                                    let parsed = InfoBond::parse(nla).context(err)?;
+                                    v.push(parsed);
+                                }
+                                InfoData::Bond(v)
+                            }
                             InfoKind::IpVlan => {
                                 let mut v = Vec::new();
                                 let err =
@@ -255,7 +267,7 @@ pub enum InfoData {
     Ifb(Vec<u8>),
     Veth(VethInfo),
     Vxlan(Vec<InfoVxlan>),
-    Bond(Vec<u8>),
+    Bond(Vec<InfoBond>),
     IpVlan(Vec<InfoIpVlan>),
     MacVlan(Vec<InfoMacVlan>),
     MacVtap(Vec<InfoMacVtap>),
@@ -278,6 +290,7 @@ impl Nla for InfoData {
     fn value_len(&self) -> usize {
         use self::InfoData::*;
         match self {
+            Bond(ref nlas) => nlas.as_slice().buffer_len(),
             Bridge(ref nlas) => nlas.as_slice().buffer_len(),
             Vlan(ref nlas) =>  nlas.as_slice().buffer_len(),
             Veth(ref msg) => msg.buffer_len(),
@@ -291,7 +304,6 @@ impl Nla for InfoData {
                 | Tun(ref bytes)
                 | Nlmon(ref bytes)
                 | Ifb(ref bytes)
-                | Bond(ref bytes)
                 | GreTap(ref bytes)
                 | GreTap6(ref bytes)
                 | IpTun(ref bytes)
@@ -310,6 +322,7 @@ impl Nla for InfoData {
     fn emit_value(&self, buffer: &mut [u8]) {
         use self::InfoData::*;
         match self {
+            Bond(ref nlas) => nlas.as_slice().emit(buffer),
             Bridge(ref nlas) => nlas.as_slice().emit(buffer),
             Vlan(ref nlas) => nlas.as_slice().emit(buffer),
             Veth(ref msg) => msg.emit(buffer),
@@ -323,7 +336,6 @@ impl Nla for InfoData {
                 | Tun(ref bytes)
                 | Nlmon(ref bytes)
                 | Ifb(ref bytes)
-                | Bond(ref bytes)
                 | GreTap(ref bytes)
                 | GreTap6(ref bytes)
                 | IpTun(ref bytes)
@@ -1596,7 +1608,13 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoMacVtap {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{nlas::link::Nla, traits::Emitable, LinkHeader, LinkMessage};
+    use crate::{
+        nlas::link::{bond::*, Nla},
+        traits::Emitable,
+        LinkHeader,
+        LinkMessage,
+    };
+    use std::net::{Ipv4Addr, Ipv6Addr};
 
     #[rustfmt::skip]
     static BRIDGE: [u8; 424] = [
@@ -1919,6 +1937,96 @@ mod tests {
                     Nla::TxQueueLen(0),
                 ],
             }))),
+        ];
+        assert_eq!(expected, parsed);
+    }
+
+    #[rustfmt::skip]
+    #[test]
+    fn parse_info_bond() {
+        let data = vec![
+            0x08, 0x00,                // length
+            0x01, 0x00,                // IFLA_INFO_KIND
+            0x62, 0x6f, 0x6e, 0x64,    // "bond"
+
+            0x80, 0x00,                // length
+            0x02, 0x00,                // IFLA_INFO_DATA
+                0x05, 0x00,            // length
+                0x01, 0x00,            // IFLA_BOND_MODE
+                0x04,                  // 4 (802.3ad)
+                0x00, 0x00, 0x00,      // padding
+
+                0x08, 0x00,             // length
+                0x03, 0x00,             // IFLA_BOND_MIIMON
+                0x32, 0x00, 0x00, 0x00, // 50
+
+                0x08, 0x00,             // length
+                0x04, 0x00,             // IFLA_BOND_UPDELAY
+                0x64, 0x00, 0x00, 0x00, // 100
+
+                0x08, 0x00,             // length
+                0x05, 0x00,             // IFLA_BOND_DOWNDELAY
+                0x64, 0x00, 0x00, 0x00, // 100
+
+                0x14, 0x00,             // length
+                0x08, 0x00,             // IFLA_BOND_ARP_IP_TARGET
+                    0x08, 0x00,              // length
+                    0x00, 0x00,              // entry #0
+                    0x01, 0x02, 0x03, 0x04,  // 1.2.3.4
+                    0x08, 0x00,              // length
+                    0x01, 0x00,              // entry #1
+                    0x09, 0x09, 0x09, 0x09,  // 9.9.9.9
+
+                0x18, 0x00,             // length
+                0x1f, 0x00,             // IFLA_BOND_NS_IP6_TARGET
+                    0x14, 0x00,              // length
+                    0x00, 0x00,              // entry #0
+                    0xfd, 0x01, 0x00, 0x00,  // fd01::1
+                    0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x01,
+
+                0x08, 0x00,             // length
+                0x1c, 0x00,             // IFLA_BOND_PEER_NOTIF_DELAY
+                0xc8, 0x00, 0x00, 0x00, // 200
+
+                0x08, 0x00,             // length
+                0x12, 0x00,             // IFLA_BOND_MIN_LINKS
+                0x03, 0x00, 0x00, 0x00, // 3
+
+                0x20, 0x00,             // length
+                0x17, 0x00,             // IFLA_BOND_AD_INFO
+                    0x06, 0x00,             // length
+                    0x01, 0x00,             // IFLA_BOND_AD_INFO_AGGREGATOR
+                    0x10, 0x00,             // 16
+                    0x00, 0x00,             // padding
+                    0x06, 0x00,             // length
+                    0x02, 0x00,             // IFLA_BOND_AD_INFO_NUM_PORTS
+                    0x02, 0x00,             // 2
+                    0x00, 0x00,             // padding
+                    0x0a, 0x00,             // length
+                    0x05, 0x00,             // IFLA_BOND_AD_INFO_PARTNER_MAC
+                    0x00, 0x11, 0x22,       // 00:11:22:33:44:55
+                    0x33, 0x44, 0x55,
+                    0x00, 0x00,             // padding
+        ];
+        let nla = NlaBuffer::new_checked(&data[..]).unwrap();
+        let parsed = VecInfo::parse(&nla).unwrap().0;
+        let expected = vec![
+            Info::Kind(InfoKind::Bond),
+            Info::Data(InfoData::Bond(vec![InfoBond::Mode(4),
+                                           InfoBond::MiiMon(50),
+                                           InfoBond::UpDelay(100),
+                                           InfoBond::DownDelay(100),
+                                           InfoBond::ArpIpTarget(vec!(Ipv4Addr::new(1, 2, 3, 4),
+                                                                      Ipv4Addr::new(9, 9, 9, 9))),
+                                           InfoBond::NsIp6Target(vec!(Ipv6Addr::new(0xfd01, 0, 0, 0, 0, 0, 0, 1))),
+                                           InfoBond::PeerNotifDelay(200),
+                                           InfoBond::MinLinks(3),
+                                           InfoBond::AdInfo(vec!(BondAdInfo::Aggregator(16),
+                                                                 BondAdInfo::NumPorts(2),
+                                                                 BondAdInfo::PartnerMac([0x00, 0x11, 0x22, 0x33, 0x44, 0x55]))),
+            ])),
         ];
         assert_eq!(expected, parsed);
     }

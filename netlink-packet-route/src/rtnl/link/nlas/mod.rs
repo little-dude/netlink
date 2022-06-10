@@ -15,6 +15,9 @@ pub use self::af_spec_bridge::*;
 mod link_infos;
 pub use self::link_infos::*;
 
+mod bond;
+pub use self::bond::*;
+
 mod prop_list;
 pub use self::prop_list::*;
 
