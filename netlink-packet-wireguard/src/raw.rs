@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use std::{
     convert::TryFrom,
     net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6},

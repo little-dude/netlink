@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use crate::{
     buffer::NetfilterBuffer,
     constants::{NFNL_SUBSYS_ULOG, NFULNL_MSG_CONFIG, NFULNL_MSG_PACKET},

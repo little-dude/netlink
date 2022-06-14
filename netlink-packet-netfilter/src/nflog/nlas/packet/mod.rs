@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 mod hw_addr;
 mod nla;
 mod packet_hdr;
