@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use anyhow::Context;
 use byteorder::{BigEndian, ByteOrder};
 use derive_more::{From, IsVariant};

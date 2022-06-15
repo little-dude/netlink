@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use crate::{
     constants::*,
     raw::{emit_ip, parse_ip, IPV4_LEN, IPV6_LEN},

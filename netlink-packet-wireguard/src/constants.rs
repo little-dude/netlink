@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pub const AF_INET: u16 = libc::AF_INET as u16;
 pub const AF_INET6: u16 = libc::AF_INET6 as u16;
 

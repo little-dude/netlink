@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 use futures::StreamExt;
 use genetlink::new_connection;
 use netlink_packet_core::{NetlinkMessage, NetlinkPayload, NLM_F_DUMP, NLM_F_REQUEST};
