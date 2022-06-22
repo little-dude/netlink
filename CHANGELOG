@@ -5,6 +5,44 @@
 ### New Features
 ### Bug fixes
 
+## [20220623] 2022-06-23
+### Versioning
+ * audit 0.6.0 -> 0.7.0
+ * genetlink 0.2.1 -> 0.2.2
+ * mptcp-pm NULL -> 0.1.0
+ * netlink-packet-generic 0.2.0 -> 0.3.1
+ * netlink-packet-audit 0.4.0 -> 0.4.1
+ * netlink-packet-route 0.11.0 -> 0.12.0
+ * netlink-proto 0.9.2 -> 0.9.3
+ * netlink-sys 0.8.2 -> 0.8.3
+ * rtnetlink 0.9.1 -> 0.10.0
+
+### Breaking Changes
+ * audit: removed `audit::proto::ErrorKind`. (3d799df)
+ * netlink-packet-route: changed from `AfSpecBridge::VlanInfo(Vec<u8>)` to
+   `AfSpecBridge::VlanInfo(BridgeVlanInfo)`. (f21ddb2)
+ * netlink-packet-route: changed from `Nla::AfSpecBridge(Vec<u8>)` to
+   `Nla::AfSpecBridge(Vec<AfSpecBridge>)`. (f21ddb2)
+ * netlink-packet-route: removed `InfoBridge::Flags` and `InfoBridge::VlanInfo`
+   as they should in `Nla::AfSpecBridge`. (b688737)
+ * netlink-packet-route: changed `NextHop.gateway` to
+   `NextHop.nlas`. (f6b3b9a)
+ * rtnetlink: Removed `rtnetlink::proto::ErrorKind`. (3d799df)
+
+### New Features
+ * New crate mptcp-pm for MPTCP path manager. (1903b39)
+ * netlink-packet-route: Add tc filter support. (2c41fb0)
+ * netlink-packet-route: Add tc qdisc support. (921a936)
+ * rtnetlink: Add tc filter support. (2c41fb0)
+ * rtnetlink: Add tc qdisc support. (921a936)
+
+### Bug fixes
+ * netlink-packet-audit: Simplfied codec error handling.
+   (33cc558, 0027b82, 9cdc870)
+ * netlink-packet-route: Fixed tc buffer error. (d2a5109)
+ * netlink-proto: fix netlink_proto::Error recursive problem. (3d799df)
+ * netlink-proto: Simplfied codec error handling. (0027b82, 9cdc870)
+
 ## [20220220] 2022-02-20
 
 ### Versioning

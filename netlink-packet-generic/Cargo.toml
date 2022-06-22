@@ -1,6 +1,6 @@
 [package]
 name = "netlink-packet-generic"
-version = "0.2.0"
+version = "0.3.1"
 authors = ["Leo <leo881003@gmail.com>"]
 edition = "2018"
 homepage = "https://github.com/little-dude/netlink"
@@ -18,4 +18,4 @@ netlink-packet-core = { version = "0.4.2", path = "../netlink-packet-core" }
 netlink-packet-utils = { version = "0.5.1", path = "../netlink-packet-utils" }
 
 [dev-dependencies]
-netlink-sys = { path = "../netlink-sys", version = "0.8.2" }
+netlink-sys = { path = "../netlink-sys", version = "0.8.3" }

@@ -21,4 +21,4 @@ libc = "0.2.77"
 derive_more = "0.99.16"
 
 [dev-dependencies]
-netlink-sys = { version = "0.8.2", path = "../netlink-sys" }
+netlink-sys = { version = "0.8.3", path = "../netlink-sys" }

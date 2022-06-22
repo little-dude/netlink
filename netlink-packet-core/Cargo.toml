@@ -18,4 +18,4 @@ libc = "0.2.66"
 netlink-packet-utils = { version = "0.5.1", path = "../netlink-packet-utils" }
 
 [dev-dependencies]
-netlink-packet-route = { version = "0.11.0", path = "../netlink-packet-route" }
+netlink-packet-route = { version = "0.12.0", path = "../netlink-packet-route" }
