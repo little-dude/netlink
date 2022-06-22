@@ -18,8 +18,8 @@ rich_nlas = []
 anyhow = "1.0.31"
 byteorder = "1.3.2"
 libc = "0.2.66"
-netlink-packet-core = "0.4"
-netlink-packet-utils = "0.5"
+netlink-packet-core = { version = "0.4.2", path = "../netlink-packet-core" }
+netlink-packet-utils = { version = "0.5.1", path = "../netlink-packet-utils" }
 bitflags = "1.2.1"
 
 [[example]]
@@ -29,7 +29,7 @@ name = "dump_packet_links"
 criterion = "0.3.0"
 pcap-file = "1.1.1"
 lazy_static = "1.4.0"
-netlink-sys = "0.8"
+netlink-sys = { version = "0.8.2", path = "../netlink-sys" }
 pretty_assertions = "0.7.2"
 
 [[bench]]

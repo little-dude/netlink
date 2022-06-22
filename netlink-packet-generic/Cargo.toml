@@ -14,8 +14,8 @@ description = "generic netlink packet types"
 anyhow = "1.0.39"
 libc = "0.2.86"
 byteorder = "1.4.2"
-netlink-packet-core = "0.4"
-netlink-packet-utils = "0.5"
+netlink-packet-core = { version = "0.4.2", path = "../netlink-packet-core" }
+netlink-packet-utils = { version = "0.5.1", path = "../netlink-packet-utils" }
 
 [dev-dependencies]
-netlink-sys = { path = "../netlink-sys", version = "0.8" }
+netlink-sys = { path = "../netlink-sys", version = "0.8.2" }

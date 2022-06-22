@@ -38,18 +38,3 @@ default-members = [
     "audit",
     "mptcp-pm",
 ]
-
-[patch.crates-io]
-netlink-sys = { path = "netlink-sys" }
-netlink-packet-core = { path = "netlink-packet-core" }
-netlink-packet-utils = { path = "netlink-packet-utils" }
-netlink-packet-generic = { path = "netlink-packet-generic" }
-netlink-packet-route = { path = "netlink-packet-route" }
-netlink-packet-audit = { path = "netlink-packet-audit" }
-netlink-packet-sock-diag = { path = "netlink-packet-sock-diag" }
-netlink-proto = { path = "netlink-proto" }
-genetlink = { path = "genetlink" }
-rtnetlink = { path = "rtnetlink" }
-audit = { path = "audit" }
-ethtool = { path = "ethtool" }
-mptcp-pm = { path = "mptcp-pm" }
