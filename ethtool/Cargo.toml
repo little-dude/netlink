@@ -24,13 +24,13 @@ anyhow = "1.0.44"
 async-std = { version = "1.9.0", optional = true}
 byteorder = "1.4.3"
 futures = "0.3.17"
-genetlink = { default-features = false, version = "0.2.1"}
 log = "0.4.14"
-netlink-packet-core = "0.4.0"
-netlink-packet-generic = "0.3.0"
-netlink-packet-utils = "0.5"
-netlink-proto = { default-features = false, version = "0.9.0" }
-netlink-sys = "0.8.0"
+genetlink = { default-features = false, version = "0.2.1", path = "../genetlink" }
+netlink-packet-core = { version = "0.4.2", path = "../netlink-packet-core" }
+netlink-packet-generic = { version = "0.2.0", path = "../netlink-packet-generic" }
+netlink-packet-utils = { version = "0.5.1", path = "../netlink-packet-utils" }
+netlink-proto = { default-features = false, version = "0.9.2", path = "../netlink-proto" }
+netlink-sys = { version = "0.8.2", path = "../netlink-sys" }
 thiserror = "1.0.29"
 tokio = { version = "1.0.1", features = ["rt"], optional = true}
 
