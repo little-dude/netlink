@@ -5,6 +5,25 @@
 ### New Features
 ### Bug fixes
 
+## [20220624] 2022-06-24
+### Versioning
+ * audit 0.7.0 -> 0.7.1
+ * ethtool 0.2.2 -> 0.2.3
+ * genetlink 0.2.2 -> 0.2.3
+ * mptcp-pm 0.1.0 -> 0.1.1
+ * netlink-packet-audit 0.4.1 -> 0.4.2
+ * netlink-packet-wireguard 0.2.1 -> 0.2.2
+ * rtnetlink 0.10.0 -> 0.10.1
+
+### Breaking Changes
+ * netlink-proto: removed `netlink-proto::ErrorKind`. (3d799df)
+
+### New Features
+ * N/A
+
+### Bug fixes
+ * N/A
+
 ## [20220623] 2022-06-23
 ### Versioning
  * audit 0.6.0 -> 0.7.0
