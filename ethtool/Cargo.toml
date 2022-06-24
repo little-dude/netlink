@@ -1,6 +1,6 @@
 [package]
 name = "ethtool"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Gris Ge <fge@redhat.com>"]
 license = "MIT"
 edition = "2018"
@@ -29,7 +29,7 @@ genetlink = { default-features = false, version = "0.2.1", path = "../genetlink"
 netlink-packet-core = { version = "0.4.2", path = "../netlink-packet-core" }
 netlink-packet-generic = { version = "0.3.1", path = "../netlink-packet-generic" }
 netlink-packet-utils = { version = "0.5.1", path = "../netlink-packet-utils" }
-netlink-proto = { default-features = false, version = "0.9.3", path = "../netlink-proto" }
+netlink-proto = { default-features = false, version = "0.10", path = "../netlink-proto" }
 netlink-sys = { version = "0.8.3", path = "../netlink-sys" }
 thiserror = "1.0.29"
 tokio = { version = "1.0.1", features = ["rt"], optional = true}

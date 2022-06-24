@@ -1,6 +1,6 @@
 [package]
 name = "genetlink"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Leo <leo881003@gmail.com>"]
 edition = "2018"
 homepage = "https://github.com/little-dude/netlink"
@@ -17,7 +17,7 @@ smol_socket = ["netlink-proto/smol_socket","async-std"]
 
 [dependencies]
 futures = "0.3.16"
-netlink-proto = { default-features = false, version = "0.9.3" , path = "../netlink-proto" }
+netlink-proto = { default-features = false, version = "0.10" , path = "../netlink-proto" }
 netlink-packet-generic = { version = "0.3.1", path = "../netlink-packet-generic" }
 netlink-packet-utils = { version = "0.5.1", path = "../netlink-packet-utils" }
 netlink-packet-core = { version = "0.4.2", path = "../netlink-packet-core" }
