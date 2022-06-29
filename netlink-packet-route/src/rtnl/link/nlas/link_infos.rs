@@ -201,7 +201,17 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for VecInfo {
                             }
                             InfoKind::GreTap => InfoData::GreTap(payload.to_vec()),
                             InfoKind::GreTap6 => InfoData::GreTap6(payload.to_vec()),
-                            InfoKind::IpTun => InfoData::IpTun(payload.to_vec()),
+                            InfoKind::IpTun => {
+                                let mut v = Vec::new();
+                                let err =
+                                    "failed to parse IFLA_INFO_DATA (IFLA_INFO_KIND is 'ipip')";
+                                for nla in NlasIterator::new(payload) {
+                                    let nla = &nla.context(err)?;
+                                    let parsed = InfoIpTun::parse(nla).context(err)?;
+                                    v.push(parsed);
+                                }
+                                InfoData::IpTun(v)
+                            }
                             InfoKind::SitTun => InfoData::SitTun(payload.to_vec()),
                             InfoKind::GreTun => InfoData::GreTun(payload.to_vec()),
                             InfoKind::GreTun6 => InfoData::GreTun6(payload.to_vec()),
@@ -261,7 +271,7 @@ pub enum InfoData {
     MacVtap(Vec<InfoMacVtap>),
     GreTap(Vec<u8>),
     GreTap6(Vec<u8>),
-    IpTun(Vec<u8>),
+    IpTun(Vec<InfoIpTun>),
     SitTun(Vec<u8>),
     GreTun(Vec<u8>),
     GreTun6(Vec<u8>),
@@ -287,6 +297,7 @@ impl Nla for InfoData {
             MacVtap(ref nlas) => nlas.as_slice().buffer_len(),
             Vrf(ref nlas) => nlas.as_slice().buffer_len(),
             Vxlan(ref nlas) => nlas.as_slice().buffer_len(),
+            IpTun(ref nlas) => nlas.as_slice().buffer_len(),
             Dummy(ref bytes)
                 | Tun(ref bytes)
                 | Nlmon(ref bytes)
@@ -294,7 +305,6 @@ impl Nla for InfoData {
                 | Bond(ref bytes)
                 | GreTap(ref bytes)
                 | GreTap6(ref bytes)
-                | IpTun(ref bytes)
                 | SitTun(ref bytes)
                 | GreTun(ref bytes)
                 | GreTun6(ref bytes)
@@ -319,6 +329,7 @@ impl Nla for InfoData {
             MacVtap(ref nlas) => nlas.as_slice().emit(buffer),
             Vrf(ref nlas) => nlas.as_slice().emit(buffer),
             Vxlan(ref nlas) => nlas.as_slice().emit(buffer),
+            IpTun(ref nlas) => nlas.as_slice().emit(buffer),
             Dummy(ref bytes)
                 | Tun(ref bytes)
                 | Nlmon(ref bytes)
@@ -326,7 +337,6 @@ impl Nla for InfoData {
                 | Bond(ref bytes)
                 | GreTap(ref bytes)
                 | GreTap6(ref bytes)
-                | IpTun(ref bytes)
                 | SitTun(ref bytes)
                 | GreTun(ref bytes)
                 | GreTun6(ref bytes)
@@ -709,6 +719,137 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoVxlan {
                 TtlInherit(parse_u8(payload).context("invalid IFLA_VXLAN_TTL_INHERIT value")?)
             }
             __IFLA_VXLAN_MAX => Unspec(payload.to_vec()),
+            _ => return Err(format!("unknown NLA type {}", buf.kind()).into()),
+        })
+    }
+}
+
+// https://elixir.bootlin.com/linux/v5.9.8/source/net/ipv4/ipip.c#L598
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum InfoIpTun {
+    Unspec(Vec<u8>),
+    Link(u32),
+    Local(Vec<u8>),
+    Remote(Vec<u8>),
+    Ttl(u8),
+    Tos(u8),
+    Proto(u8),
+    Pmtudisc(u8),
+    EncapType(u16),
+    EncapFlags(u16),
+    EncapSport(u16),
+    EncapDport(u16),
+    CollectMetadata(u8),
+    FwMark(u32),
+}
+
+impl Nla for InfoIpTun {
+    #[rustfmt::skip]
+    fn value_len(&self) -> usize {
+        use self::InfoIpTun::*;
+        match self {
+            Ttl(_)
+                | Tos(_)
+                | Proto(_)
+                | Pmtudisc(_)
+                | CollectMetadata(_)
+            => 1,
+            EncapType(_)
+                | EncapFlags(_)
+                | EncapSport(_)
+                | EncapDport(_)
+            => 2,
+            Link(_)
+                | FwMark(_)
+            => 4,
+            Local(ref bytes)
+                | Remote(ref bytes)
+                | Unspec(ref bytes)
+            => bytes.len(),
+        }
+    }
+
+    #[rustfmt::skip]
+    fn emit_value(&self, buffer: &mut [u8]) {
+        use self::InfoIpTun::*;
+        match self {
+            Unspec(ref bytes) => buffer.copy_from_slice(bytes),
+            Ttl(ref value)
+                | Tos(ref value)
+                | Proto(ref value)
+                | Pmtudisc(ref value)
+                | CollectMetadata(ref value)
+            =>  buffer[0] = *value,
+            EncapType(ref value)
+                | EncapFlags(ref value)
+                | EncapSport(ref value)
+                | EncapDport(ref value)
+            => NativeEndian::write_u16(buffer, *value),
+            Link(ref value)
+                | FwMark(ref value)
+            => NativeEndian::write_u32(buffer, *value),
+            Local(ref value)
+                | Remote(ref value)
+            => buffer.copy_from_slice(value.as_slice()),
+        }
+    }
+
+    fn kind(&self) -> u16 {
+        use self::InfoIpTun::*;
+
+        match self {
+            Unspec(_) => IFLA_IPTUN_UNSPEC,
+            Link(_) => IFLA_IPTUN_LINK,
+            Local(_) => IFLA_IPTUN_LOCAL,
+            Remote(_) => IFLA_IPTUN_REMOTE,
+            Ttl(_) => IFLA_IPTUN_TTL,
+            Tos(_) => IFLA_IPTUN_TOS,
+            Proto(_) => IFLA_IPTUN_PROTO,
+            Pmtudisc(_) => IFLA_IPTUN_PMTUDISC,
+            EncapType(_) => IFLA_IPTUN_ENCAP_TYPE,
+            EncapFlags(_) => IFLA_IPTUN_ENCAP_FLAGS,
+            EncapSport(_) => IFLA_IPTUN_ENCAP_SPORT,
+            EncapDport(_) => IFLA_IPTUN_ENCAP_DPORT,
+            CollectMetadata(_) => IFLA_IPTUN_COLLECT_METADATA,
+            FwMark(_) => IFLA_IPTUN_FWMARK,
+        }
+    }
+}
+
+impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for InfoIpTun {
+    fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
+        use self::InfoIpTun::*;
+        let payload = buf.value();
+        //println!("{} - {:?}", buf.kind(), payload);
+        Ok(match buf.kind() {
+            IFLA_IPTUN_UNSPEC => Unspec(payload.to_vec()),
+            IFLA_IPTUN_LINK => Link(parse_u32(payload).context("invalid IFLA_IPTUN_LINK value")?),
+            IFLA_IPTUN_LOCAL => Local(payload.to_vec()),
+            IFLA_IPTUN_REMOTE => Remote(payload.to_vec()),
+            IFLA_IPTUN_TTL => Ttl(parse_u8(payload).context("invalid IFLA_IPTUN_TTL value")?),
+            IFLA_IPTUN_TOS => Tos(parse_u8(payload).context("invalid IFLA_IPTUN_TOS value")?),
+            IFLA_IPTUN_PROTO => Proto(parse_u8(payload).context("invalid IFLA_IPTUN_PROTO value")?),
+            IFLA_IPTUN_PMTUDISC => {
+                Pmtudisc(parse_u8(payload).context("invalid IFLA_IPTUN_PMTUDISC value")?)
+            }
+            IFLA_IPTUN_ENCAP_TYPE => {
+                EncapType(parse_u16(payload).context("invalid IFLA_IPTUN_ENCAP_TYPE value")?)
+            }
+            IFLA_IPTUN_ENCAP_FLAGS => {
+                EncapFlags(parse_u16(payload).context("invalid IFLA_IPTUN_ENCAP_FLAGS value")?)
+            }
+            IFLA_IPTUN_ENCAP_SPORT => {
+                EncapSport(parse_u16_be(payload).context("invalid IFLA_IPTUN_ENCAP_SPORT value")?)
+            }
+            IFLA_IPTUN_ENCAP_DPORT => {
+                EncapDport(parse_u16_be(payload).context("invalid IFLA_IPTUN_ENCAP_DPORT value")?)
+            }
+            IFLA_IPTUN_COLLECT_METADATA => CollectMetadata(
+                parse_u8(payload).context("invalid IFLA_IPTUN_COLLECT_METADATA value")?,
+            ),
+            IFLA_IPTUN_FWMARK => {
+                FwMark(parse_u32(payload).context("invalid IFLA_IPTUN_FWMARK value")?)
+            }
             _ => return Err(format!("unknown NLA type {}", buf.kind()).into()),
         })
     }
