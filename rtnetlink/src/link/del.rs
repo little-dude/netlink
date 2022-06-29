@@ -3,15 +3,7 @@
 use futures::stream::StreamExt;
 
 use crate::{
-    packet::{
-        LinkMessage,
-        NetlinkMessage,
-        RtnlMessage,
-        NLM_F_ACK,
-        NLM_F_CREATE,
-        NLM_F_EXCL,
-        NLM_F_REQUEST,
-    },
+    packet::{LinkMessage, NetlinkMessage, RtnlMessage, NLM_F_ACK, NLM_F_REQUEST},
     try_nl,
     Error,
     Handle,
@@ -36,7 +28,7 @@ impl LinkDelRequest {
             message,
         } = self;
         let mut req = NetlinkMessage::from(RtnlMessage::DelLink(message));
-        req.header.flags = NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE;
+        req.header.flags = NLM_F_REQUEST | NLM_F_ACK;
 
         let mut response = handle.request(req)?;
         while let Some(message) = response.next().await {
