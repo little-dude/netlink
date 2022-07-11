@@ -7,21 +7,19 @@ use futures::{
 };
 use std::net::IpAddr;
 
-use netlink_packet_route::{
-    nlas::address::Nla,
-    AddressMessage,
-    NetlinkMessage,
-    RtnlMessage,
-    NLM_F_DUMP,
-    NLM_F_REQUEST,
+use crate::{
+    flags::GetFlags,
+    packet::{nlas::address::Nla, AddressMessage, NetlinkMessage, RtnlMessage},
+    try_rtnl,
+    Error,
+    Handle,
 };
-
-use crate::{try_rtnl, Error, Handle};
 
 pub struct AddressGetRequest {
     handle: Handle,
     message: AddressMessage,
     filter_builder: AddressFilterBuilder,
+    flags: GetFlags,
 }
 
 impl AddressGetRequest {
@@ -30,6 +28,7 @@ impl AddressGetRequest {
             handle,
             message: AddressMessage::default(),
             filter_builder: AddressFilterBuilder::new(),
+            flags: GetFlags::new() | GetFlags::DUMP,
         }
     }
 
@@ -37,15 +36,27 @@ impl AddressGetRequest {
         &mut self.message
     }
 
+    /// Set the netlink header flags.
+    ///
+    /// # Warning
+    ///
+    /// Altering the request's flags may render the request
+    /// ineffective. Only set the flags if you know what you're doing.
+    pub fn set_flags(mut self, flags: GetFlags) -> Self {
+        self.flags = flags;
+        self
+    }
+
     pub fn execute(self) -> impl TryStream<Ok = AddressMessage, Error = Error> {
         let AddressGetRequest {
             mut handle,
             message,
             filter_builder,
+            flags,
         } = self;
 
         let mut req = NetlinkMessage::from(RtnlMessage::GetAddress(message));
-        req.header.flags = NLM_F_REQUEST | NLM_F_DUMP;
+        req.header.flags = flags.bits();
 
         let filter = filter_builder.build();
         match handle.request(req) {

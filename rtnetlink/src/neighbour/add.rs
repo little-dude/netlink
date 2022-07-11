@@ -11,13 +11,13 @@ use netlink_packet_route::{
 
 use netlink_proto::packet::NetlinkMessage;
 
-use crate::{Error, Handle};
+use crate::{flags::NewFlags, Error, Handle};
 use std::net::IpAddr;
 
 pub struct NeighbourAddRequest {
     handle: Handle,
     message: NeighbourMessage,
-    replace: bool,
+    flags: NewFlags,
 }
 
 impl NeighbourAddRequest {
@@ -41,7 +41,7 @@ impl NeighbourAddRequest {
         NeighbourAddRequest {
             handle,
             message,
-            replace: false,
+            flags: NewFlags::new() | NewFlags::EXCL,
         }
     }
 
@@ -58,7 +58,7 @@ impl NeighbourAddRequest {
         NeighbourAddRequest {
             handle,
             message,
-            replace: false,
+            flags: NewFlags::new() | NewFlags::EXCL,
         }
     }
 
@@ -120,25 +120,16 @@ impl NeighbourAddRequest {
         self
     }
 
-    /// Replace existing matching neighbor.
-    pub fn replace(self) -> Self {
-        Self {
-            replace: true,
-            ..self
-        }
-    }
-
     /// Execute the request.
     pub async fn execute(self) -> Result<(), Error> {
         let NeighbourAddRequest {
             mut handle,
             message,
-            replace,
+            flags,
         } = self;
 
         let mut req = NetlinkMessage::from(RtnlMessage::NewNeighbour(message));
-        let replace = if replace { NLM_F_REPLACE } else { NLM_F_EXCL };
-        req.header.flags = NLM_F_REQUEST | NLM_F_ACK | replace | NLM_F_CREATE;
+        req.header.flags = flags.bits();
 
         let mut response = handle.request(req)?;
         while let Some(message) = response.next().await {
@@ -153,5 +144,16 @@ impl NeighbourAddRequest {
     /// Return a mutable reference to the request message.
     pub fn message_mut(&mut self) -> &mut NeighbourMessage {
         &mut self.message
+    }
+
+    /// Set the netlink header flags.
+    ///
+    /// # Warning
+    ///
+    /// Altering the request's flags may render the request
+    /// ineffective. Only set the flags if you know what you're doing.
+    pub fn set_flags(mut self, flags: NewFlags) -> Self {
+        self.flags = flags;
+        self
     }
 }

@@ -6,26 +6,34 @@ use futures::{
     FutureExt,
 };
 
-use netlink_packet_route::{
-    constants::*,
-    neighbour::NeighbourMessage,
-    NetlinkPayload,
-    RtnlMessage,
+use crate::{
+    flags::GetFlags,
+    packet::{
+        constants::*,
+        neighbour::NeighbourMessage,
+        NetlinkMessage,
+        NetlinkPayload,
+        RtnlMessage,
+    },
+    Error,
+    Handle,
+    IpVersion,
 };
-
-use netlink_proto::packet::NetlinkMessage;
-
-use crate::{Error, Handle, IpVersion};
 
 pub struct NeighbourGetRequest {
     handle: Handle,
     message: NeighbourMessage,
+    flags: GetFlags,
 }
 
 impl NeighbourGetRequest {
     pub(crate) fn new(handle: Handle) -> Self {
         let message = NeighbourMessage::default();
-        NeighbourGetRequest { handle, message }
+        NeighbourGetRequest {
+            handle,
+            message,
+            flags: GetFlags::new() | GetFlags::DUMP,
+        }
     }
 
     /// List neighbor proxies in the system (equivalent to: `ip neighbor show proxy`).
@@ -44,10 +52,11 @@ impl NeighbourGetRequest {
         let NeighbourGetRequest {
             mut handle,
             message,
+            flags,
         } = self;
 
         let mut req = NetlinkMessage::from(RtnlMessage::GetNeighbour(message));
-        req.header.flags = NLM_F_REQUEST | NLM_F_DUMP;
+        req.header.flags = flags.bits();
 
         match handle.request(req) {
             Ok(response) => Either::Left(response.map(move |msg| {
@@ -67,5 +76,16 @@ impl NeighbourGetRequest {
     /// Return a mutable reference to the request
     pub fn message_mut(&mut self) -> &mut NeighbourMessage {
         &mut self.message
+    }
+
+    /// Set the netlink header flags.
+    ///
+    /// # Warning
+    ///
+    /// Altering the request's flags may render the request
+    /// ineffective. Only set the flags if you know what you're doing.
+    pub fn set_flags(mut self, flags: GetFlags) -> Self {
+        self.flags = flags;
+        self
     }
 }

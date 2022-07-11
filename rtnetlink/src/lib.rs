@@ -48,4 +48,5 @@ pub mod proto {
 }
 pub use netlink_proto::sys;
 
+pub mod flags;
 mod macros;

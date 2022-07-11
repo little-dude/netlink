@@ -1,26 +1,25 @@
 // SPDX-License-Identifier: MIT
 
-use futures::stream::StreamExt;
 use std::{
     marker::PhantomData,
     net::{Ipv4Addr, Ipv6Addr},
 };
 
-use netlink_packet_route::{
-    constants::*,
-    nlas::rule::Nla,
-    NetlinkMessage,
-    RtnlMessage,
-    RuleMessage,
-};
+use futures::stream::StreamExt;
 
-use crate::{try_nl, Error, Handle};
+use crate::{
+    flags::NewFlags,
+    packet::{constants::*, nlas::rule::Nla, NetlinkMessage, RtnlMessage, RuleMessage},
+    try_nl,
+    Error,
+    Handle,
+};
 
 /// A request to create a new rule. This is equivalent to the `ip rule add` command.
 pub struct RuleAddRequest<T = ()> {
     handle: Handle,
     message: RuleMessage,
-    replace: bool,
+    flags: NewFlags,
     _phantom: PhantomData<T>,
 }
 
@@ -34,7 +33,7 @@ impl<T> RuleAddRequest<T> {
         RuleAddRequest {
             handle,
             message,
-            replace: false,
+            flags: NewFlags::new() | NewFlags::EXCL,
             _phantom: Default::default(),
         }
     }
@@ -77,7 +76,7 @@ impl<T> RuleAddRequest<T> {
         RuleAddRequest {
             handle: self.handle,
             message: self.message,
-            replace: false,
+            flags: self.flags,
             _phantom: Default::default(),
         }
     }
@@ -88,16 +87,8 @@ impl<T> RuleAddRequest<T> {
         RuleAddRequest {
             handle: self.handle,
             message: self.message,
-            replace: false,
+            flags: self.flags,
             _phantom: Default::default(),
-        }
-    }
-
-    /// Replace existing matching rule.
-    pub fn replace(self) -> Self {
-        Self {
-            replace: true,
-            ..self
         }
     }
 
@@ -106,12 +97,11 @@ impl<T> RuleAddRequest<T> {
         let RuleAddRequest {
             mut handle,
             message,
-            replace,
+            flags,
             ..
         } = self;
         let mut req = NetlinkMessage::from(RtnlMessage::NewRule(message));
-        let replace = if replace { NLM_F_REPLACE } else { NLM_F_EXCL };
-        req.header.flags = NLM_F_REQUEST | NLM_F_ACK | replace | NLM_F_CREATE;
+        req.header.flags = flags.bits();
 
         let mut response = handle.request(req)?;
         while let Some(message) = response.next().await {
@@ -123,6 +113,17 @@ impl<T> RuleAddRequest<T> {
 
     pub fn message_mut(&mut self) -> &mut RuleMessage {
         &mut self.message
+    }
+
+    /// Set the netlink header flags.
+    ///
+    /// # Warning
+    ///
+    /// Altering the request's flags may render the request
+    /// ineffective. Only set the flags if you know what you're doing.
+    pub fn set_flags(mut self, flags: NewFlags) -> Self {
+        self.flags = flags;
+        self
     }
 }
 
