@@ -6,16 +6,12 @@ use byteorder::{ByteOrder, NativeEndian as ne};
 use serde::{Serialize, Deserialize};
 
 use crate::{
-    //inet,
     traits::{Emitable, ParseableParametrized},
-    //unix,
     DecodeError,
     NetlinkDeserializable,
     NetlinkHeader,
     NetlinkPayload,
     NetlinkSerializable
-    //SockDiagBuffer,
-    //SOCK_DIAG_BY_FAMILY,
     
 };
 
@@ -648,5 +644,137 @@ impl<'a, T: AsRef<[u8]> + ?Sized> ParseableParametrized<ConnectorResponseBuffer<
         };
 
         Ok(message)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use netlink_sys::{
+        protocols::{NETLINK_CONNECTOR}, 
+        AsyncSocket, AsyncSocketExt, SocketAddr, TokioSocket
+    };
+    use netlink_packet_core::{NetlinkHeader, NetlinkMessage};
+    use std::{
+        error,
+        thread,
+        time::Duration,
+        io::ErrorKind::BrokenPipe
+    };
+    
+    /*
+        !!!!
+        The test never terminates since the kernel delivers
+        Done-messages having a payload, which is not correctly
+        handled in netlink-packet-core/src/message.rs::112
+        comment out "NLMSG_DONE => Done,"
+    */
+
+    #[tokio::test]
+    async fn lifecycle_test() -> Result<(), Box<dyn error::Error + Send + Sync>>
+    {
+        /*---------- lifecycle preparations: subscribe for kernel connector events ----------*/
+        let mut lifecycle_socket = TokioSocket::new(NETLINK_CONNECTOR)?;
+    
+        let a = SocketAddr::new(std::process::id(), 1);
+        lifecycle_socket.socket_mut().bind(&a)?;
+    
+        let mut packet = NetlinkMessage {
+            header: NetlinkHeader {
+                flags: 0, /*NLM_F_REQUEST | NLM_F_DUMP,*/
+                port_number: std::process::id(),
+                ..Default::default()
+            },
+            payload: ConnectorRequest::new(CN_IDX_PROC, CN_VAL_PROC, &PROC_CN_MCAST_LISTEN.to_ne_bytes()).into()
+        };
+        
+        packet.finalize();
+        
+        let mut buf = vec![0; packet.header.length as usize];
+        assert_eq!(buf.len(), packet.buffer_len());    
+        packet.serialize(&mut buf[..]);
+        /* send the request */
+        lifecycle_socket.send(&buf[..]).await?;
+    
+        /* 
+            prepare rx buffer
+            64kB are more than sufficient 
+            for the few events
+         */
+        let mut lc_rx_buffer = vec![0u8; 64 * 1024];
+        let mut fork_events = 0;
+        let mut exit_events = 0;
+
+        /* 
+            fork a thread and let it terminate
+            a fork and an exit event should be receieved
+        */
+        thread::spawn(|| {
+            thread::sleep(Duration::from_millis(10));
+        });
+
+        let res:  Result<(), Box<dyn error::Error + Send + Sync>> = 'outer: loop {
+            lc_rx_buffer.clear();
+            
+            match lifecycle_socket.recv(&mut lc_rx_buffer).await
+            {
+                Err(e) => break Err(Box::new(e)),
+                Ok(_) => {
+                    let mut offset = 0;
+                    
+                    while offset < lc_rx_buffer.len() {
+                        let bytes = &lc_rx_buffer[offset..];
+                        let rx_packet = <NetlinkMessage<ConnectorResponse>>::deserialize(bytes)?;
+
+                        //eprintln!("received {:?}", rx_packet.payload);
+                        
+                        match rx_packet.payload
+                        {
+                            NetlinkPayload::Noop | NetlinkPayload::Ack(_) => {}
+                            NetlinkPayload::InnerMessage(response) =>
+                            {
+                                //eprintln!("received {:?}", response.event);
+
+                                match &response.event
+                                {
+                                    KernelConnectorEvent::fork(fork) =>
+                                    {
+                                        eprintln!("forked {:?}", fork.child_pid);
+                                        fork_events += 1;
+    
+                                    },
+                                    KernelConnectorEvent::exit(ex) =>
+                                    {
+                                        eprintln!("{:?} exited", ex.process_pid);
+                                        exit_events += 1;
+                                    },
+                                    _ => ()
+                                }
+
+                                if fork_events > 0 && exit_events > 0
+                                {
+                                    //test scuccessfully passed
+                                    break 'outer Ok(());
+                                }
+                                
+                            }
+                            NetlinkPayload::Done => break,
+                            NetlinkPayload::Error(e) => break 'outer Err(Box::new(e.to_io())),
+                            NetlinkPayload::Overrun(_) => break 'outer Err(Box::new(std::io::Error::from(BrokenPipe))),
+                        }
+                        
+                        offset += rx_packet.header.length as usize;
+                        
+                        if rx_packet.header.length == 0
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+        };
+    
+        assert_eq!(res.is_ok(), true);
+        res
     }
 }
