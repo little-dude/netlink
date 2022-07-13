@@ -2,3 +2,6 @@
 
 mod message;
 mod nlas;
+
+#[cfg(test)]
+mod test;

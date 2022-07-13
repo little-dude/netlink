@@ -4,7 +4,6 @@
 //!
 //! This module provides the definition of the taskstats packet.
 
-//pub mod nlas;
 use crate::nlas::*;
 use anyhow::Context;
 use netlink_packet_generic::{GenlFamily, GenlHeader};
