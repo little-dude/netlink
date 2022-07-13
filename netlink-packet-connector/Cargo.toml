@@ -2,6 +2,10 @@
 name = "netlink-packet-connector"
 version = "0.1.0"
 edition = "2021"
+authors = ["Michael Hupfer <michael.hupfer@aox.de>"]
+license = "MIT"
+description = "Module for handling Linux kernel connector events"
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
