@@ -1,6 +1,6 @@
 [package]
 name = "rtnetlink"
-version = "0.10.1"
+version = "0.11.0"
 authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 edition = "2018"
 
@@ -21,7 +21,7 @@ smol_socket = ["netlink-proto/smol_socket", "async-global-executor"]
 futures = "0.3.11"
 log = "0.4.8"
 thiserror = "1"
-netlink-packet-route = { version = "0.12.0", path = "../netlink-packet-route" }
+netlink-packet-route = { version = "0.13.0", path = "../netlink-packet-route" }
 netlink-proto = { default-features = false, version = "0.10", path = "../netlink-proto" }
 nix = { version = "0.24.1" , default-features = false, features = ["fs", "mount", "sched", "signal"] }
 tokio = { version = "1.0.1", features = ["rt"], optional = true}
