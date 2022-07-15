@@ -9,7 +9,7 @@ edition = "2018"
 cargo-fuzz = true
 
 [dependencies]
-netlink-packet-route = { path = "../", version = "0.12.0" }
+netlink-packet-route = { path = "../", version = "0.13" }
 libfuzzer-sys = { git = "https://github.com/rust-fuzz/libfuzzer-sys.git" }
 
 [[bin]]

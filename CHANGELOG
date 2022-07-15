@@ -5,6 +5,21 @@
 ### New Features
 ### Bug fixes
 
+## [20220715] 2022-07-15
+### Versioning
+ * rtnetlink 0.10.1 -> 0.11.0
+ * netlink-packet-route 0.12.0 -> 0.13.0
+
+### Breaking Changes
+ * netlink-packet-route: `rtnl::link::nlas::InfoData::Bond` changed from
+   `Vec<u8>` to `Vec<InfoBond>`. (99b5765)
+
+### New Features
+ * Add support bond. (99b5765)
+
+### Bug fixes
+ * Fix the flag of link deletion. (9dccf92)
+
 ## [20220624] 2022-06-24
 ### Versioning
  * audit 0.7.0 -> 0.7.1
