@@ -8,18 +8,16 @@ use crate::nlas::*;
 use anyhow::Context;
 use netlink_packet_generic::{GenlFamily, GenlHeader};
 use netlink_packet_utils::{nla::NlasIterator, traits::*, DecodeError};
+use serde::{Deserialize, Serialize};
 use std::convert::{TryFrom, TryInto};
-use serde::{Serialize, Deserialize};
 
-/// Netlink attributes for this family
-
-/// Command code definition 
+/// Command code definition
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TaskStatsCmdCodes {
     /// user->kernel request/get-response
-	Get,
+    Get,
     /// kernel->user event
-	New,
+    New,
 }
 
 pub const TASKSTATS_CMD_GET: u8 = 1;
@@ -53,7 +51,6 @@ impl TryFrom<u8> for TaskStatsCmdCodes {
     }
 }
 
-
 /// Payload of taskstats
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TaskStatsCmd {
@@ -62,12 +59,12 @@ pub struct TaskStatsCmd {
     /// Netlink attributes in this message
     pub nlas: Vec<TaskStatsCmdAttrs>,
     /// family id is not fixed
-    pub family_id: u16
+    pub family_id: u16,
 }
 
 impl GenlFamily for TaskStatsCmd {
     fn family_name() -> &'static str {
-        "taskstats"
+        "TASKSTATS"
     }
 
     fn family_id(&self) -> u16 {
@@ -100,7 +97,7 @@ impl ParseableParametrized<[u8], GenlHeader> for TaskStatsCmd {
             nlas: parse_taskstats_cmd_nlas(buf)?,
             // the family is kind of dynamic, it
             // must be set after parsing
-            family_id: 0
+            family_id: 0,
         })
     }
 }
@@ -117,41 +114,41 @@ fn parse_taskstats_cmd_nlas(buf: &[u8]) -> Result<Vec<TaskStatsCmdAttrs>, Decode
 /*-------------------- Taskstats Events --------------------*/
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TaskStatsEvent{
+pub struct TaskStatsMessage {
     /// Command code of this message
     pub cmd: TaskStatsCmdCodes,
     /// timestamp
-    pub timestamp_ns:   u64,
+    pub timestamp_ns: u64,
     /// Netlink attributes in this message
-    pub nlas: Vec<TaskStatsEventAttrs>,
+    pub nlas: Vec<TaskStatsAttr>,
     // family id is not fixed
     // pub family_id: u16
 }
 
-impl ParseableParametrized<[u8], GenlHeader> for TaskStatsEvent {
+impl ParseableParametrized<[u8], GenlHeader> for TaskStatsMessage {
     fn parse_with_param(buf: &[u8], header: GenlHeader) -> Result<Self, DecodeError> {
-        Ok(TaskStatsEvent {
-            cmd: header.cmd.try_into().and_then(|c|{ 
+        Ok(TaskStatsMessage {
+            cmd: header.cmd.try_into().and_then(|c| {
                 //Ok(TaskStatsCmdCodes::New)
-                match c{
+                match c {
                     TaskStatsCmdCodes::New => Ok(c),
-                    x  => Err(DecodeError::from(format!(
-                        "Taskstat command must be 'new' not {:?}", x)))
+                    x => Err(DecodeError::from(format!(
+                        "Taskstat command must be 'new' not {:?}",
+                        x
+                    ))),
                 }
             })?,
-            timestamp_ns :
-            {
+            timestamp_ns: {
                 let mut time = libc::timespec {
                     tv_sec: 0,
                     tv_nsec: 0,
                 };
-            
-                if unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC_COARSE, &mut time) } == 0
-                {
+
+                if unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC_COARSE, &mut time) } == 0 {
                     (time.tv_sec * 1000000000 + time.tv_nsec) as u64
+                } else {
+                    0
                 }
-                else
-                    {0}        
             },
             nlas: parse_taskstats_event_nlas(buf)?,
             // the family is kind of dynamic, it

@@ -17,7 +17,7 @@ netlink-packet-core = { version = "0.4.2", path = "../netlink-packet-core" }
 netlink-packet-generic = { version = "0.3.1", path = "../netlink-packet-generic" }
 netlink-packet-utils = { version = "0.5.1", path = "../netlink-packet-utils" }
 serde = { version = "1.0", features = ["derive"] }
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1" }
 libc = "0.2.86"
 anyhow = "1.0.44"
 byteorder = "1.4.3"

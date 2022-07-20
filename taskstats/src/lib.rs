@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 
-mod message;
-mod nlas;
+pub mod message;
+pub mod nlas;
 
 #[cfg(test)]
 mod test;
