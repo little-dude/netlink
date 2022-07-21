@@ -71,6 +71,12 @@ impl<T> RuleAddRequest<T> {
         self
     }
 
+    /// Set the priority.
+    pub fn priority(mut self, priority: u32) -> Self {
+        self.message.nlas.push(Nla::Priority(priority));
+        self
+    }
+
     /// Build an IP v4 rule
     pub fn v4(mut self) -> RuleAddRequest<Ipv4Addr> {
         self.message.header.family = AF_INET as u8;
