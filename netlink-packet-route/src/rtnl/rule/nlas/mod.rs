@@ -126,7 +126,7 @@ impl nlas::Nla for Nla {
             | UidRange(ref bytes)
             | SourcePortRange(ref bytes)
             | DestinationPortRange(ref bytes) => buffer.copy_from_slice(bytes.as_slice()),
-            Iifname(ref s) | OifName(ref s) => buffer[..4].copy_from_slice(s.as_bytes()),
+            Iifname(ref s) | OifName(ref s) => buffer[..s.len()].copy_from_slice(s.as_bytes()),
 
             Priority(value)
             | FwMark(value)
