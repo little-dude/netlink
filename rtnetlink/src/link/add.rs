@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 use futures::stream::StreamExt;
+use netlink_packet_route::link::nlas::InfoMacVtap;
 use std::net::{Ipv4Addr, Ipv6Addr};
 
 use crate::{
@@ -605,6 +606,21 @@ impl LinkAddRequest {
             .link_info(
                 InfoKind::MacVlan,
                 Some(InfoData::MacVlan(vec![InfoMacVlan::Mode(mode)])),
+            )
+            .append_nla(Nla::Link(index))
+            .up()
+    }
+
+    /// Create macvtap on a link.
+    /// This is equivalent to `ip link add name NAME link LINK type macvtap mode MACVTAP_MODE`,
+    ///   but instead of specifying a link name (`LINK`), we specify a link index.
+    /// The MACVTAP_MODE is an integer consisting of flags from MACVTAP_MODE (netlink-packet-route/src/rtnl/constants.rs)
+    ///   being: _PRIVATE, _VEPA, _BRIDGE, _PASSTHRU, _SOURCE, which can be *combined*.
+    pub fn macvtap(self, name: String, index: u32, mode: u32) -> Self {
+        self.name(name)
+            .link_info(
+                InfoKind::MacVtap,
+                Some(InfoData::MacVtap(vec![InfoMacVtap::Mode(mode)])),
             )
             .append_nla(Nla::Link(index))
             .up()

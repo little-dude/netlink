@@ -1218,3 +1218,10 @@ pub const LWTUNNEL_ENCAP_RPL: u16 = 8;
 pub const MPLS_IPTUNNEL_UNSPEC: u16 = 0;
 pub const MPLS_IPTUNNEL_DST: u16 = 1;
 pub const MPLS_IPTUNNEL_TTL: u16 = 2;
+
+// Available MACVTAP MODES
+pub const MACVTAP_MODE_PRIVATE: u32 = 1;
+pub const MACVTAP_MODE_VEPA: u32 = 2;
+pub const MACVTAP_MODE_BRIDGE: u32 = 4;
+pub const MACVTAP_MODE_PASSTHRU: u32 = 8;
+pub const MACVTAP_MODE_SOURCE: u32 = 16;
