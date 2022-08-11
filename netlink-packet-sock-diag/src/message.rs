@@ -10,7 +10,6 @@ use crate::{
     NetlinkPayload,
     NetlinkSerializable,
     SockDiagBuffer,
-    SOCK_DESTROY,
     SOCK_DIAG_BY_FAMILY,
 };
 
@@ -91,44 +90,6 @@ impl NetlinkDeserializable for SockDiagMessage {
 
 impl From<SockDiagMessage> for NetlinkPayload<SockDiagMessage> {
     fn from(message: SockDiagMessage) -> Self {
-        NetlinkPayload::InnerMessage(message)
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct SockDiagDestroy(SockDiagMessage);
-
-impl SockDiagDestroy {
-    pub fn new(message: SockDiagMessage) -> SockDiagDestroy {
-        SockDiagDestroy(message)
-    }
-}
-
-impl NetlinkSerializable for SockDiagDestroy {
-    fn message_type(&self) -> u16 {
-        SOCK_DESTROY
-    }
-
-    fn buffer_len(&self) -> usize {
-        NetlinkSerializable::buffer_len(&self.0)
-    }
-
-    fn serialize(&self, buffer: &mut [u8]) {
-        self.0.serialize(buffer)
-    }
-}
-
-impl NetlinkDeserializable for SockDiagDestroy {
-    type Error = DecodeError;
-    fn deserialize(header: &NetlinkHeader, payload: &[u8]) -> Result<Self, Self::Error> {
-        Ok(SockDiagDestroy::new(SockDiagMessage::deserialize(
-            header, payload,
-        )?))
-    }
-}
-
-impl From<SockDiagDestroy> for NetlinkPayload<SockDiagDestroy> {
-    fn from(message: SockDiagDestroy) -> Self {
         NetlinkPayload::InnerMessage(message)
     }
 }
