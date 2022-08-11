@@ -116,7 +116,7 @@ impl nlas::Nla for Nla {
         }
     }
 
-    fn emit_value(&self, mut buffer: &mut [u8]) {
+    fn emit_value(&self, buffer: &mut [u8]) {
         use self::Nla::*;
         match self {
             Unspec(ref bytes)
