@@ -18,6 +18,9 @@ pub enum Error {
     #[error("Namespace error {0}")]
     NamespaceError(String),
 
+    #[error("tc init error {0}")]
+    TcInitError(String),
+
     #[error(
         "Received a link message (RTM_GETLINK, RTM_NEWLINK, RTM_SETLINK or RTMGETLINK) with an invalid hardware address attribute: {0:?}."
     )]

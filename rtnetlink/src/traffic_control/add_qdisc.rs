@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 
 use futures::stream::StreamExt;
+use netlink_packet_route::tc::Nla;
 
 use crate::{
     packet::{
-        tc::{constants::*, nlas},
+        tc::{constants::*, nlas, Htb::HtbGlob},
         NetlinkMessage,
         RtnlMessage,
         TcMessage,
@@ -78,6 +79,29 @@ impl QDiscNewRequest {
         self.message
             .nlas
             .push(nlas::Nla::Kind("ingress".to_string()));
+        self
+    }
+
+    pub fn htb(mut self) -> Self {
+        todo!()
+    }
+}
+
+struct HtbAddRequest {
+    request: QDiscNewRequest,
+    opt: HtbGlob,
+}
+
+impl HtbAddRequest {
+    pub async fn execute(self) -> Result<(), Error> {
+        let HtbAddRequest { mut request, opt } = self;
+
+        request.message.nlas.push(Nla::HtbOpt(opt));
+        request.execute().await
+    }
+
+    pub fn default(mut self, cls: u32) -> Self {
+        self.opt.defcls = cls;
         self
     }
 }

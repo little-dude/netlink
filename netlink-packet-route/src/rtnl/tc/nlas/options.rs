@@ -3,7 +3,7 @@ use anyhow::Context;
 
 use crate::{
     nlas::{self, DefaultNla, NlaBuffer},
-    tc::{ingress, u32},
+    tc::{bpf, ingress, u32},
     traits::{Parseable, ParseableParametrized},
     DecodeError,
 };
@@ -14,6 +14,7 @@ pub enum TcOpt {
     Ingress,
     // Filter specific options
     U32(u32::Nla),
+    Bpf(bpf::Nla),
     // Other options
     Other(DefaultNla),
 }
@@ -23,6 +24,7 @@ impl nlas::Nla for TcOpt {
         match self {
             Self::Ingress => 0,
             Self::U32(u) => u.value_len(),
+            Self::Bpf(u) => u.value_len(),
             Self::Other(o) => o.value_len(),
         }
     }
@@ -31,6 +33,7 @@ impl nlas::Nla for TcOpt {
         match self {
             Self::Ingress => unreachable!(),
             Self::U32(u) => u.emit_value(buffer),
+            Self::Bpf(u) => u.emit_value(buffer),
             Self::Other(o) => o.emit_value(buffer),
         }
     }
@@ -39,6 +42,7 @@ impl nlas::Nla for TcOpt {
         match self {
             Self::Ingress => unreachable!(),
             Self::U32(u) => u.kind(),
+            Self::Bpf(u) => u.kind(),
             Self::Other(o) => o.kind(),
         }
     }

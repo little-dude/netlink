@@ -26,6 +26,7 @@ netlink-proto = { default-features = false, version = "0.10", path = "../netlink
 nix = { version = "0.24.1" , default-features = false, features = ["fs", "mount", "sched", "signal"] }
 tokio = { version = "1.0.1", features = ["rt"], optional = true}
 async-global-executor = { version = "2.0.2", optional = true }
+lazy_static = "1.4.0"
 
 [dev-dependencies]
 env_logger = "0.8.2"

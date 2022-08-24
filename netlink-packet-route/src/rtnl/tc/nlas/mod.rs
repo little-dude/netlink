@@ -1,7 +1,12 @@
 // SPDX-License-Identifier: MIT
 
 mod stats;
+use std::mem::size_of;
+
+use byteorder::{ByteOrder, NativeEndian};
+
 pub use self::stats::*;
+use self::{class::TcHtb::TcHtbOpt, Htb::HtbGlob};
 
 mod stats_queue;
 pub use self::stats_queue::*;
@@ -20,6 +25,9 @@ pub use self::filter::*;
 
 mod action;
 pub use self::action::*;
+
+mod class;
+pub use self::class::*;
 
 #[cfg(test)]
 mod test;
@@ -50,6 +58,12 @@ pub enum Nla {
     Stab(Vec<u8>),
     Chain(Vec<u8>),
     HwOffload(u8),
+    HtbOpt(HtbGlob),
+    TcRate(u64),
+    TcCeil(u64),
+    TcHtbOpt1(TcHtbOpt),
+    TcHtbRtab([u32; 256]),
+    TcHtbCtab([u32; 256]),
     Other(DefaultNla),
 }
 
@@ -66,8 +80,13 @@ impl nlas::Nla for Nla {
             Stats(_) => STATS_LEN,
             Kind(ref string) => string.as_bytes().len() + 1,
             Options(ref opt) => opt.as_slice().buffer_len(),
+            HtbOpt(_) => return size_of::<HtbGlob>(),
             // Defaults
             Other(ref attr) => attr.value_len(),
+            TcHtbOpt1(ref opt) => opt.rate.buffer_len() + opt.ceil.buffer_len() + 4 * 5,
+            TcHtbRtab(_) => 1024,
+            TcHtbCtab(_) => 1024,
+            TcRate(_) | TcCeil(_) => 8,
         }
     }
 
@@ -92,9 +111,20 @@ impl nlas::Nla for Nla {
                 buffer[string.as_bytes().len()] = 0;
             }
             Options(ref opt) => opt.as_slice().emit(buffer),
+            HtbOpt(ref opt) => {
+                NativeEndian::write_u32(buffer, opt.version);
+                NativeEndian::write_u32(buffer, opt.rate2quatum);
+                NativeEndian::write_u32(buffer, opt.defcls);
+                NativeEndian::write_u32(buffer, opt.debug);
+                NativeEndian::write_u32(buffer, opt.direct_pkts);
+            },
 
             // Default
             Other(ref attr) => attr.emit_value(buffer),
+            TcHtbOpt1(_) => todo!(),
+            TcHtbRtab(_) => todo!(),
+            TcHtbCtab(_) => todo!(),
+            TcRate(n) | TcCeil(n) => NativeEndian::write_u64(buffer, n),
         }
     }
 
@@ -112,7 +142,13 @@ impl nlas::Nla for Nla {
             Stab(_) => TCA_STAB,
             Chain(_) => TCA_CHAIN,
             HwOffload(_) => TCA_HW_OFFLOAD,
+            HtbOpt(_) => TCA_HTB_INIT,
+            TcHtbOpt1(_) => TCA_HTB_PARMS,
             Other(ref nla) => nla.kind(),
+            TcHtbRtab(_) => TCA_HTB_RTAB,
+            TcHtbCtab(_) => TCA_HTB_CTAB,
+            TcRate(_) => TCA_HTB_RATE64,
+            TcCeil(_) => TCA_HTB_CEIL64,
         }
     }
 }

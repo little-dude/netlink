@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 use super::{
+    add_class::TrafficClassNewRequest,
     QDiscDelRequest,
     QDiscGetRequest,
     QDiscNewRequest,
@@ -77,6 +78,10 @@ impl TrafficClassHandle {
     /// `tc class show dev <interface_name>`)
     pub fn get(&mut self) -> TrafficClassGetRequest {
         TrafficClassGetRequest::new(self.handle.clone(), self.ifindex)
+    }
+
+    pub fn add(&mut self) -> TrafficClassNewRequest {
+        TrafficClassNewRequest::new(self.handle.clone(), self.ifindex)
     }
 }
 

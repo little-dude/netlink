@@ -15,5 +15,7 @@ pub use self::del_qdisc::*;
 mod add_filter;
 pub use self::add_filter::*;
 
+mod add_class;
+
 #[cfg(test)]
 mod test;
