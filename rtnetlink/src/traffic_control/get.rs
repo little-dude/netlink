@@ -13,8 +13,6 @@ use crate::{
     Handle,
 };
 
-use super::add_class::HtbTrafficClassNewRequest;
-
 pub struct QDiscGetRequest {
     handle: Handle,
     message: TcMessage,

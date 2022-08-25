@@ -5,7 +5,7 @@ use netlink_packet_route::tc::Nla;
 
 use crate::{
     packet::{
-        tc::{constants::*, nlas, Htb::HtbGlob},
+        tc::{constants::*, htb::HtbGlob, nlas},
         NetlinkMessage,
         RtnlMessage,
         TcMessage,
@@ -82,12 +82,15 @@ impl QDiscNewRequest {
         self
     }
 
-    pub fn htb(mut self) -> Self {
-        todo!()
+    pub fn htb(self) -> HtbAddRequest {
+        HtbAddRequest {
+            request: self,
+            opt: HtbGlob::new(),
+        }
     }
 }
 
-struct HtbAddRequest {
+pub struct HtbAddRequest {
     request: QDiscNewRequest,
     opt: HtbGlob,
 }

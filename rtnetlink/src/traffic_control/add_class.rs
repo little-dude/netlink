@@ -1,18 +1,25 @@
 use std::fs::File;
 
 use crate::{
-    constants::{ATM_CELL_PAYLOAD, ATM_CELL_SIZE, TC_LINKLAYER_MASK, TIME_UNITS_PER_SEC, SC_CLK_TCK},
+    constants::{
+        ATM_CELL_PAYLOAD,
+        ATM_CELL_SIZE,
+        SC_CLK_TCK,
+        TC_LINKLAYER_MASK,
+        TIME_UNITS_PER_SEC,
+    },
     packet::{NetlinkMessage, RtnlMessage, TcMessage, NLM_F_ACK},
     try_nl,
     Error,
     Handle,
 };
 use futures::stream::StreamExt;
-use lazy_static::lazy_static;
+use lazy_static::{__Deref, lazy_static};
 use netlink_packet_route::tc::{
     constants::TC_H_UNSPEC,
+    tc_htb::{LinkLayer, TcCore, TcHtbOpt, TcRateSpec},
     Nla,
-    TcHtb::{LinkLayer, TcCore, TcHtbOpt, TcRateSpec},
+    TcOpt,
 };
 use nix::libc::sysconf;
 
@@ -30,10 +37,15 @@ lazy_static! {
         loop {
             match (slice.next(), iter.next()) {
                 (Some(s), Some(i)) => {
-                    todo!();
+                    *i = i32::from_str_radix(s, 16)
+                        .map_err(|e| Error::TcInitError(e.to_string()))?;
                 }
                 (None, None) => break Ok(()),
-                _ => break Err(Error::TcInitError("".to_string())),
+                _ => {
+                    break Err(Error::TcInitError(
+                        " unrecognized input from /proc/net/psched".to_string(),
+                    ))
+                }
             }
         }?;
         let [t2us, us2t, clock_res] = arr;
@@ -49,7 +61,7 @@ lazy_static! {
 
 impl TC_STATIC {
     fn time2tick(time: u32) -> Result<u32, Error> {
-        let tc_core = TC_STATIC.clone()?;
+        let tc_core = TC_STATIC.deref().clone()?;
         Ok((time as f64 * tc_core.tick_in_usec) as u32)
     }
 
@@ -60,7 +72,7 @@ impl TC_STATIC {
     }
 
     fn get_hz() -> Result<u32, Error> {
-        let tc_core = TC_STATIC.clone()?;
+        let tc_core = TC_STATIC.deref().clone()?;
         Ok(tc_core.hz as u32)
     }
 
@@ -80,7 +92,7 @@ impl TC_STATIC {
         }
 
         match linklayer {
-            LINKLAYER_ATM => Self::tc_align_to_atm(*sz),
+            LinkLayer::LinklayerAtm => Self::tc_align_to_atm(*sz),
             _ => {
                 /* No size adjustments on Ethernet */
                 *sz
@@ -210,45 +222,61 @@ impl HtbTrafficClassNewRequest {
         let mpu = 0;
         let overhead = 0;
         let hz = TC_STATIC::get_hz()? as u64;
+        let linklayer = LinkLayer::LinklayerEthernet;
+        let mut cell_log = -1;
+        let mut buffer;
+        let mut cbuffer;
+        let mut rtab = [0; 256];
+        let mut ctab = [0; 256];
 
         if ceil == 0 {
             ceil = rate;
         }
 
+        buffer = (rate / hz) as u32 + mtu;
+        cbuffer = (ceil / hz) as u32 + mtu;
+
         let mut r = TcRateSpec::new();
         let mut c = TcRateSpec::new();
 
-        let mut rtab = [0; 256];
-        let mut ctab = [0; 256];
-        let mut cell_log = -1;
-        let linklayer = LinkLayer::LinklayerEthernet;
+        r.mpu = mpu;
+        c.mpu = mpu;
+        r.overhead = overhead;
+        c.overhead = overhead;
+
         TC_STATIC::tc_calc_rtable(&mut r, &mut rtab, &mut cell_log, &mut mtu, linklayer)?;
+        buffer = TC_STATIC::calc_xmittime(rate, buffer)?;
+
         TC_STATIC::tc_calc_rtable(&mut c, &mut ctab, &mut cell_log, &mut mtu, linklayer)?;
+        cbuffer = TC_STATIC::calc_xmittime(ceil, cbuffer)?;
+
         let opt = TcHtbOpt {
             rate: r,
             ceil: c,
-            buffer: TC_STATIC::calc_xmittime(rate, (rate / hz) as u32 + mtu)?,
-            cbuffer: TC_STATIC::calc_xmittime(ceil, (ceil / hz) as u32 + mtu)?,
+            buffer,
+            cbuffer,
             quantum: 0,
-            level: todo!(),
+            level: 0,
             prio: 0,
         };
 
         let nlas = &mut request.message.nlas;
-        nlas.push(Nla::TcRate(rate));
-        nlas.push(Nla::TcCeil(ceil));
-        nlas.push(Nla::TcHtbOpt1(opt));
-        nlas.push(Nla::TcHtbRtab(rtab));
-        nlas.push(Nla::TcHtbCtab(ctab));
+        let mut opts = vec![];
+        opts.push(TcOpt::TcRate(rate));
+        opts.push(TcOpt::TcCeil(ceil));
+        opts.push(TcOpt::TcHtbOpt1(opt));
+        opts.push(TcOpt::TcHtbRtab(rtab));
+        opts.push(TcOpt::TcHtbCtab(ctab));
+        nlas.push(Nla::Options(opts));
         request.execute().await
     }
 
-    fn rate(mut self, rate: u64) -> Self {
+    pub fn rate(mut self, rate: u64) -> Self {
         self.rate = rate;
         self
     }
 
-    fn ceil(mut self, ceil: u64) -> Self {
+    pub fn ceil(mut self, ceil: u64) -> Self {
         self.ceil = ceil;
         self
     }
