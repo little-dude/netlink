@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 
 use futures::stream::StreamExt;
-use netlink_packet_route::{tc::{Nla, TcOpt}};
-use netlink_proto::packet::{NLM_F_EXCL, NLM_F_CREATE};
+use netlink_packet_route::tc::{Nla, TcOpt};
+use netlink_proto::packet::{NLM_F_CREATE, NLM_F_EXCL};
 
 use crate::{
     packet::{
@@ -120,7 +120,7 @@ mod test {
     use std::{fs::File, os::unix::io::AsRawFd, path::Path};
 
     use futures::stream::TryStreamExt;
-    use nix::{sched::{setns, CloneFlags}};
+    use nix::sched::{setns, CloneFlags};
     use tokio::runtime::Runtime;
 
     use super::*;
@@ -247,7 +247,7 @@ mod test {
             .root()
             .handle(0x8001, 0)
             .htb()
-            .default(30)
+            .default(0x30)
             .execute()
             .await
             .unwrap();
@@ -277,10 +277,11 @@ mod test {
         }
     }
 
-
     #[test]
     fn test_new_ingress_qdisc() {
-        Runtime::new().unwrap().block_on(test_async_new_ingress_qdisc());
+        Runtime::new()
+            .unwrap()
+            .block_on(test_async_new_ingress_qdisc());
     }
 
     #[test]

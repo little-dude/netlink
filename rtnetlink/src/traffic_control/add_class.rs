@@ -15,12 +15,16 @@ use crate::{
 };
 use futures::stream::StreamExt;
 use lazy_static::{__Deref, lazy_static};
-use netlink_packet_route::tc::{
-    constants::TC_H_UNSPEC,
-    tc_htb::{LinkLayer, TcCore, TcHtbOpt, TcRateSpec},
-    Nla,
-    TcOpt,
+use netlink_packet_route::{
+    tc::{
+        constants::{TC_H_MAJ_MASK, TC_H_MIN_MASK},
+        tc_htb::{LinkLayer, TcCore, TcHtbOpt, TcRateSpec},
+        Nla,
+        TcOpt,
+    },
+    TC_H_MAKE,
 };
+use netlink_proto::packet::{NLM_F_CREATE, NLM_F_EXCL};
 use nix::libc::sysconf;
 
 lazy_static! {
@@ -40,10 +44,10 @@ lazy_static! {
                     *i = i32::from_str_radix(s, 16)
                         .map_err(|e| Error::TcInitError(e.to_string()))?;
                 }
-                (None, None) => break Ok(()),
+                (_, None) => break Ok(()),
                 _ => {
                     break Err(Error::TcInitError(
-                        " unrecognized input from /proc/net/psched".to_string(),
+                        "unrecognized input from /proc/net/psched".to_string(),
                     ))
                 }
             }
@@ -60,14 +64,19 @@ lazy_static! {
 }
 
 impl TC_STATIC {
+    #![allow(arithmetic_overflow)]
     fn time2tick(time: u32) -> Result<u32, Error> {
         let tc_core = TC_STATIC.deref().clone()?;
-        Ok((time as f64 * tc_core.tick_in_usec) as u32)
+        let r;
+        unsafe {
+            r = (time as f64 * tc_core.tick_in_usec).to_int_unchecked::<u32>();
+        }
+        Ok(r)
     }
 
     fn calc_xmittime(rate: u64, size: u32) -> Result<u32, Error> {
         Ok(Self::time2tick(
-            TIME_UNITS_PER_SEC * (size as f64 / rate as f64) as u32,
+            (TIME_UNITS_PER_SEC as f64 * (size as f64 / rate as f64)) as u32,
         )?)
     }
 
@@ -169,15 +178,15 @@ impl TrafficClassNewRequest {
         Ok(())
     }
 
-    pub fn parent(mut self, parent: u32) -> Self {
-        assert_eq!(self.message.header.parent, TC_H_UNSPEC);
-        self.message.header.parent = parent;
+    pub fn parent(mut self, maj: u16, min: u16) -> Self {
+        // assert_eq!(self.message.header.parent, TC_H_UNSPEC);
+        self.message.header.parent = TC_H_MAKE!((maj as u32) << 16, min as u32);
         self
     }
 
-    pub fn class_id(mut self, class_id: u32) -> Self {
-        assert_eq!(self.message.header.index, 0);
-        self.message.header.handle = class_id;
+    pub fn class_id(mut self, maj: u16, min: u16) -> Self {
+        // assert_eq!(self.message.header.index, 0);
+        self.message.header.handle = TC_H_MAKE!((maj as u32) << 16, min as u32);
         self
     }
 
@@ -239,6 +248,16 @@ impl HtbTrafficClassNewRequest {
         let mut r = TcRateSpec::new();
         let mut c = TcRateSpec::new();
 
+        r.rate = if rate >= (1 << 32) {
+            !0u32
+        } else {
+            rate as u32
+        };
+        c.rate = if ceil >= (1 << 32) {
+            !0u32
+        } else {
+            ceil as u32
+        };
         r.mpu = mpu;
         c.mpu = mpu;
         r.overhead = overhead;
@@ -261,6 +280,7 @@ impl HtbTrafficClassNewRequest {
         };
 
         let nlas = &mut request.message.nlas;
+        nlas.push(Nla::Kind("htb".to_string()));
         let mut opts = vec![];
         opts.push(TcOpt::TcRate(rate));
         opts.push(TcOpt::TcCeil(ceil));
@@ -268,20 +288,155 @@ impl HtbTrafficClassNewRequest {
         opts.push(TcOpt::TcHtbRtab(rtab));
         opts.push(TcOpt::TcHtbCtab(ctab));
         nlas.push(Nla::Options(opts));
+
+        request.flags |= NLM_F_EXCL | NLM_F_CREATE;
         request.execute().await
     }
 
     pub fn rate(mut self, rate: u64) -> Self {
-        self.rate = rate;
+        self.rate = rate / 8;
         self
     }
 
     pub fn ceil(mut self, ceil: u64) -> Self {
-        self.ceil = ceil;
+        self.ceil = ceil / 8;
         self
     }
 }
 
 fn sysconf_safe(name: i32) -> i64 {
     unsafe { sysconf(name) }
+}
+
+#[cfg(test)]
+mod test {
+    use std::{fs::File, os::unix::io::AsRawFd, path::Path};
+
+    use futures::stream::TryStreamExt;
+    use netlink_packet_route::{tc::constants::TC_H_ROOT, AF_UNSPEC};
+    use nix::sched::{setns, CloneFlags};
+    use tokio::runtime::Runtime;
+
+    use super::*;
+    use crate::{new_connection, packet::LinkMessage, NetworkNamespace, NETNS_PATH, SELF_NS_PATH};
+
+    const TEST_NS: &str = "netlink_test_qdisc_ns";
+    const TEST_DUMMY: &str = "test_dummy";
+
+    struct Netns {
+        path: String,
+        _cur: File,
+        last: File,
+    }
+
+    impl Netns {
+        async fn new(path: &str) -> Self {
+            // record current ns
+            let last = File::open(Path::new(SELF_NS_PATH)).unwrap();
+
+            // create new ns
+            NetworkNamespace::add(path.to_string()).await.unwrap();
+
+            // entry new ns
+            let ns_path = Path::new(NETNS_PATH);
+            let file = File::open(ns_path.join(path)).unwrap();
+            setns(file.as_raw_fd(), CloneFlags::CLONE_NEWNET).unwrap();
+
+            Self {
+                path: path.to_string(),
+                _cur: file,
+                last,
+            }
+        }
+    }
+    impl Drop for Netns {
+        fn drop(&mut self) {
+            // println!("exit ns: {}", self.path);
+            // setns(self.last.as_raw_fd(), CloneFlags::CLONE_NEWNET).unwrap();
+
+            // let ns_path = Path::new(NETNS_PATH).join(&self.path);
+            // nix::mount::umount2(&ns_path, nix::mount::MntFlags::MNT_DETACH).unwrap();
+            // nix::unistd::unlink(&ns_path).unwrap();
+            // // _cur File will be closed auto
+            // // Since there is no async drop, NetworkNamespace::del cannot be called
+            // // here. Dummy interface will be deleted automatically after netns is
+            // // deleted.
+        }
+    }
+
+    async fn setup_env() -> (Handle, LinkMessage, Netns) {
+        let netns = Netns::new(TEST_NS).await;
+
+        // Notice: The Handle can only be created after the setns, so that the
+        // Handle is the connection within the new ns.
+        let (connection, handle, _) = new_connection().unwrap();
+        tokio::spawn(connection);
+        handle
+            .link()
+            .add()
+            .dummy(TEST_DUMMY.to_string())
+            .execute()
+            .await
+            .unwrap();
+        let mut links = handle
+            .link()
+            .get()
+            .match_name(TEST_DUMMY.to_string())
+            .execute();
+        let link = links.try_next().await.unwrap();
+        (handle, link.unwrap(), netns)
+    }
+
+    async fn test_async_new_htb_qdisc() {
+        let (handle, test_link, _netns) = setup_env().await;
+        handle
+            .qdisc()
+            .add(test_link.header.index as i32)
+            .root()
+            .handle(0x8001, 0)
+            .htb()
+            .default(0x30)
+            .execute()
+            .await
+            .unwrap();
+
+        handle
+            .traffic_class(test_link.header.index as i32)
+            .add()
+            .class_id(0x8001, 1)
+            .parent(0x8001, 0)
+            .htb()
+            .rate(20)
+            .ceil(20)
+            .execute()
+            .await
+            .unwrap();
+
+        let mut iter = handle
+            .traffic_class(test_link.header.index as i32)
+            .get()
+            .execute();
+
+        let mut found = false;
+        while let Some(nl_msg) = iter.try_next().await.unwrap() {
+            if nl_msg.header.index == test_link.header.index as i32
+                && nl_msg.header.handle == TC_H_MAKE!(0x8001 << 16, 1)
+            {
+                assert_eq!(nl_msg.header.family, AF_UNSPEC as u8);
+                assert_eq!(nl_msg.header.handle, TC_H_MAKE!(0x8001 << 16, 1));
+                assert_eq!(nl_msg.header.parent, TC_H_ROOT);
+                assert_eq!(nl_msg.header.info, 0);
+                found = true;
+                break;
+            }
+        }
+        if !found {
+            panic!("not found dev:{} class.", test_link.header.index);
+        }
+    }
+
+    #[test]
+    fn test_new_htb_qdisc() {
+        Runtime::new().unwrap().block_on(test_async_new_htb_qdisc());
+    }
 }
