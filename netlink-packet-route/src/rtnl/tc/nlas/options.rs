@@ -2,13 +2,14 @@ use std::mem::size_of;
 
 // SPDX-License-Identifier: MIT
 use crate::{
-    nlas::{self, DefaultNla, NlaBuffer},
+    nlas::{self, tc::htb::HtbGlobBuffer, DefaultNla, NlaBuffer},
     tc::{bpf, ingress, u32},
     traits::{Parseable, ParseableParametrized},
     utils::Emitable,
     DecodeError,
     TCA_HTB_CEIL64,
     TCA_HTB_CTAB,
+    TCA_HTB_INIT,
     TCA_HTB_PARMS,
     TCA_HTB_RATE64,
     TCA_HTB_RTAB,
@@ -17,7 +18,10 @@ use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
 use libc::{c_void, memcmp};
 
-use super::tc_htb::TcHtbOpt;
+use super::{
+    htb::{HtbGlob, HTB_GLOB_LEN},
+    tc_htb::TcHtbOpt,
+};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum TcOpt {
@@ -28,6 +32,7 @@ pub enum TcOpt {
     Bpf(bpf::Nla),
     TcRate(u64),
     TcCeil(u64),
+    HtbOpt(HtbGlob),
     TcHtbOpt1(TcHtbOpt),
     TcHtbRtab([u32; 256]),
     TcHtbCtab([u32; 256]),
@@ -42,6 +47,7 @@ impl nlas::Nla for TcOpt {
             Self::U32(u) => u.value_len(),
             Self::Bpf(u) => u.value_len(),
             Self::Other(o) => o.value_len(),
+            Self::HtbOpt(_) => HTB_GLOB_LEN,
             Self::TcHtbOpt1(ref opt) => opt.rate.buffer_len() + opt.ceil.buffer_len() + 4 * 5,
             Self::TcHtbRtab(_) => 1024,
             Self::TcHtbCtab(_) => 1024,
@@ -68,6 +74,14 @@ impl nlas::Nla for TcOpt {
             Self::TcHtbRtab(o) => emit_u32_slice(o, buffer),
             Self::TcHtbCtab(o) => emit_u32_slice(o, buffer),
             Self::TcRate(n) | Self::TcCeil(n) => NativeEndian::write_u64(buffer, *n),
+            Self::HtbOpt(ref opt) => {
+                let mut buf = HtbGlobBuffer::new(buffer);
+                buf.set_version(opt.version);
+                buf.set_rate2quatum(opt.rate2quatum);
+                buf.set_defcls(opt.defcls);
+                buf.set_debug(opt.debug);
+                buf.set_direct_pkts(opt.direct_pkts);
+            }
         }
     }
 
@@ -81,6 +95,7 @@ impl nlas::Nla for TcOpt {
             Self::TcHtbCtab(_) => TCA_HTB_CTAB,
             Self::TcRate(_) => TCA_HTB_RATE64,
             Self::TcCeil(_) => TCA_HTB_CEIL64,
+            Self::HtbOpt(_) => TCA_HTB_INIT,
             Self::Other(o) => o.kind(),
         }
     }

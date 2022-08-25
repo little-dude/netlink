@@ -2,9 +2,6 @@
 
 mod stats;
 
-use qdisc::htb::{HtbGlobBuffer, HTB_GLOB_LEN};
-
-use self::htb::HtbGlob;
 pub use self::stats::*;
 
 mod stats_queue;
@@ -57,7 +54,6 @@ pub enum Nla {
     Stab(Vec<u8>),
     Chain(Vec<u8>),
     HwOffload(u8),
-    HtbOpt(HtbGlob),
     Other(DefaultNla),
 }
 
@@ -74,7 +70,6 @@ impl nlas::Nla for Nla {
             Stats(_) => STATS_LEN,
             Kind(ref string) => string.as_bytes().len() + 1,
             Options(ref opt) => opt.as_slice().buffer_len(),
-            HtbOpt(_) => HTB_GLOB_LEN,
             // Defaults
             Other(ref attr) => attr.value_len(),
         }
@@ -101,15 +96,6 @@ impl nlas::Nla for Nla {
                 buffer[string.as_bytes().len()] = 0;
             }
             Options(ref opt) => opt.as_slice().emit(buffer),
-            HtbOpt(ref opt) => {
-                let mut buf = HtbGlobBuffer::new(buffer);
-                buf.set_version(opt.version);
-                buf.set_rate2quatum(opt.rate2quatum);
-                buf.set_defcls(opt.defcls);
-                buf.set_debug(opt.debug);
-                buf.set_direct_pkts(opt.direct_pkts);
-            },
-
             // Default
             Other(ref attr) => attr.emit_value(buffer),
         }
@@ -129,7 +115,6 @@ impl nlas::Nla for Nla {
             Stab(_) => TCA_STAB,
             Chain(_) => TCA_CHAIN,
             HwOffload(_) => TCA_HW_OFFLOAD,
-            HtbOpt(_) => TCA_HTB_INIT,
             Other(ref nla) => nla.kind(),
         }
     }
