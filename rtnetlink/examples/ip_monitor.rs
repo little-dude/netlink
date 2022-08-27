@@ -8,6 +8,16 @@ use rtnetlink::{
     sys::{AsyncSocket, SocketAddr},
 };
 
+fn nl_mgrp(group: u32) -> u32 {
+    if group > 31 {
+        panic!("use NETLINK_ADD_MEMBERSHIP for this group");
+    }
+    if group == 0 {
+        0
+    } else {
+        1 << (group - 1)
+    }
+}
 #[tokio::main]
 async fn main() -> Result<(), String> {
     // conn - `Connection` that has a netlink socket which is a `Future` that polls the socket
@@ -19,21 +29,21 @@ async fn main() -> Result<(), String> {
     let (mut conn, mut _handle, mut messages) = new_connection().map_err(|e| format!("{}", e))?;
 
     // These flags specify what kinds of broadcast messages we want to listen for.
-    let groups = RTNLGRP_LINK
-        | RTNLGRP_IPV4_IFADDR
-        | RTNLGRP_IPV6_IFADDR
-        | RTNLGRP_IPV4_ROUTE
-        | RTNLGRP_IPV6_ROUTE
-        | RTNLGRP_MPLS_ROUTE
-        | RTNLGRP_IPV4_MROUTE
-        | RTNLGRP_IPV6_MROUTE
-        | RTNLGRP_NEIGH
-        | RTNLGRP_IPV4_NETCONF
-        | RTNLGRP_IPV6_NETCONF
-        | RTNLGRP_IPV4_RULE
-        | RTNLGRP_IPV6_RULE
-        | RTNLGRP_NSID
-        | RTNLGRP_MPLS_NETCONF;
+    let groups = nl_mgrp(RTNLGRP_LINK)
+        | nl_mgrp(RTNLGRP_IPV4_IFADDR)
+        | nl_mgrp(RTNLGRP_IPV6_IFADDR)
+        | nl_mgrp(RTNLGRP_IPV4_ROUTE)
+        | nl_mgrp(RTNLGRP_IPV6_ROUTE)
+        | nl_mgrp(RTNLGRP_MPLS_ROUTE)
+        | nl_mgrp(RTNLGRP_IPV4_MROUTE)
+        | nl_mgrp(RTNLGRP_IPV6_MROUTE)
+        | nl_mgrp(RTNLGRP_NEIGH)
+        | nl_mgrp(RTNLGRP_IPV4_NETCONF)
+        | nl_mgrp(RTNLGRP_IPV6_NETCONF)
+        | nl_mgrp(RTNLGRP_IPV4_RULE)
+        | nl_mgrp(RTNLGRP_IPV6_RULE)
+        | nl_mgrp(RTNLGRP_NSID)
+        | nl_mgrp(RTNLGRP_MPLS_NETCONF);
 
     let addr = SocketAddr::new(0, groups);
     conn.socket_mut()
