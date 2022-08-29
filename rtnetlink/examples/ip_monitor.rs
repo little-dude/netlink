@@ -8,9 +8,9 @@ use rtnetlink::{
     sys::{AsyncSocket, SocketAddr},
 };
 
-fn nl_mgrp(group: u32) -> u32 {
+const fn nl_mgrp(group: u32) -> u32 {
     if group > 31 {
-        panic!("use NETLINK_ADD_MEMBERSHIP for this group");
+        panic!("use netlink_sys::Socket::add_membership() for this group");
     }
     if group == 0 {
         0
