@@ -7,6 +7,8 @@ pub mod ingress {
 pub mod htb {
     use crate::DecodeError;
 
+    pub const KIND: &str = "htb";
+
     #[derive(Debug, PartialEq, Eq, Clone)]
     pub struct HtbGlob {
         pub version: u32,

@@ -110,7 +110,19 @@ where
         Ok(match kind.as_ref() {
             ingress::KIND => TcOpt::Ingress,
             u32::KIND => Self::U32(u32::Nla::parse(buf).context("failed to parse u32 nlas")?),
-            _ => Self::Other(DefaultNla::parse(buf)?),
+            _ => match buf.kind() {
+                TCA_HTB_INIT => {
+                    let buf = HtbGlobBuffer::new(buf.value());
+                    Self::HtbOpt(HtbGlob {
+                        version: buf.version(),
+                        rate2quatum: buf.rate2quatum(),
+                        defcls: buf.defcls(),
+                        debug: buf.debug(),
+                        direct_pkts: buf.direct_pkts(),
+                    })
+                }
+                _ => Self::Other(DefaultNla::parse(buf)?),
+            },
         })
     }
 }

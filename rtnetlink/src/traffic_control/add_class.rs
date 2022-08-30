@@ -280,7 +280,7 @@ impl HtbTrafficClassNewRequest {
         };
 
         let nlas = &mut request.message.nlas;
-        nlas.push(Nla::Kind("htb".to_string()));
+        nlas.push(Nla::Kind(netlink_packet_route::tc::htb::KIND.to_string()));
         let mut opts = vec![];
         opts.push(TcOpt::TcRate(rate));
         opts.push(TcOpt::TcCeil(ceil));
@@ -351,16 +351,16 @@ mod test {
     }
     impl Drop for Netns {
         fn drop(&mut self) {
-            // println!("exit ns: {}", self.path);
-            // setns(self.last.as_raw_fd(), CloneFlags::CLONE_NEWNET).unwrap();
+            println!("exit ns: {}", self.path);
+            setns(self.last.as_raw_fd(), CloneFlags::CLONE_NEWNET).unwrap();
 
-            // let ns_path = Path::new(NETNS_PATH).join(&self.path);
-            // nix::mount::umount2(&ns_path, nix::mount::MntFlags::MNT_DETACH).unwrap();
-            // nix::unistd::unlink(&ns_path).unwrap();
-            // // _cur File will be closed auto
-            // // Since there is no async drop, NetworkNamespace::del cannot be called
-            // // here. Dummy interface will be deleted automatically after netns is
-            // // deleted.
+            let ns_path = Path::new(NETNS_PATH).join(&self.path);
+            nix::mount::umount2(&ns_path, nix::mount::MntFlags::MNT_DETACH).unwrap();
+            nix::unistd::unlink(&ns_path).unwrap();
+            // _cur File will be closed auto
+            // Since there is no async drop, NetworkNamespace::del cannot be called
+            // here. Dummy interface will be deleted automatically after netns is
+            // deleted.
         }
     }
 
