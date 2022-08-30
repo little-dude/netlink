@@ -19,7 +19,7 @@ use byteorder::{ByteOrder, NativeEndian};
 use libc::{c_void, memcmp};
 
 use super::{
-    htb::{HtbGlob, HTB_GLOB_LEN},
+    htb::{HtbGlob, HTB_GLOB_LEN, self},
     tc_htb::TcHtbOpt,
 };
 
@@ -110,7 +110,7 @@ where
         Ok(match kind.as_ref() {
             ingress::KIND => TcOpt::Ingress,
             u32::KIND => Self::U32(u32::Nla::parse(buf).context("failed to parse u32 nlas")?),
-            _ => match buf.kind() {
+            htb::KIND => match buf.kind() {
                 TCA_HTB_INIT => {
                     let buf = HtbGlobBuffer::new(buf.value());
                     Self::HtbOpt(HtbGlob {
@@ -123,6 +123,7 @@ where
                 }
                 _ => Self::Other(DefaultNla::parse(buf)?),
             },
+            _ => Self::Other(DefaultNla::parse(buf)?),
         })
     }
 }
