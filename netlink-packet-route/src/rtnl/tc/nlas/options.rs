@@ -19,8 +19,8 @@ use byteorder::{ByteOrder, NativeEndian};
 use libc::{c_void, memcmp};
 
 use super::{
-    htb::{HtbGlob, HTB_GLOB_LEN, self},
-    tc_htb::TcHtbOpt,
+    htb::{self, HtbGlob, HTB_GLOB_LEN},
+    tc_htb::{TcHtbOpt, TcHtbOptBuffer, TcRateSpec, TcRateSpecBuffer},
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -119,6 +119,34 @@ where
                         defcls: buf.defcls(),
                         debug: buf.debug(),
                         direct_pkts: buf.direct_pkts(),
+                    })
+                }
+                TCA_HTB_PARMS => {
+                    let buf = TcHtbOptBuffer::new(buf.value());
+                    let rate = TcRateSpecBuffer::new(buf.rate());
+                    let ceil = TcRateSpecBuffer::new(buf.ceil());
+                    Self::TcHtbOpt1(TcHtbOpt {
+                        rate: TcRateSpec {
+                            cell_log: rate.cell_log(),
+                            linklayer: rate.linklayer(),
+                            overhead: rate.overhead(),
+                            cell_align: rate.cell_align(),
+                            mpu: rate.mpu(),
+                            rate: rate.rate(),
+                        },
+                        ceil: TcRateSpec {
+                            cell_log: ceil.cell_log(),
+                            linklayer: ceil.linklayer(),
+                            overhead: ceil.overhead(),
+                            cell_align: ceil.cell_align(),
+                            mpu: ceil.mpu(),
+                            rate: ceil.rate(),
+                        },
+                        buffer: buf.buffer(),
+                        cbuffer: buf.cbuffer(),
+                        quantum: buf.quantum(),
+                        level: buf.level(),
+                        prio: buf.prio(),
                     })
                 },
                 TCA_HTB_RATE64 => Self::TcRate(NativeEndian::read_u64(buf.value())),
