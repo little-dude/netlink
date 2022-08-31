@@ -120,7 +120,9 @@ where
                         debug: buf.debug(),
                         direct_pkts: buf.direct_pkts(),
                     })
-                }
+                },
+                TCA_HTB_RATE64 => Self::TcRate(NativeEndian::read_u64(buf.value())),
+                TCA_HTB_CEIL64 => Self::TcCeil(NativeEndian::read_u64(buf.value())),
                 _ => Self::Other(DefaultNla::parse(buf)?),
             },
             _ => Self::Other(DefaultNla::parse(buf)?),
