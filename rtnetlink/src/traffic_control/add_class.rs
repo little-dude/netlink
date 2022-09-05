@@ -24,7 +24,7 @@ use netlink_packet_route::{
     },
     TC_H_MAKE,
 };
-use netlink_proto::packet::{NLM_F_CREATE, NLM_F_EXCL};
+use netlink_proto::packet::{NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST};
 use nix::libc::sysconf;
 
 lazy_static! {
@@ -150,13 +150,13 @@ pub struct TrafficClassNewRequest {
 }
 
 impl TrafficClassNewRequest {
-    pub(crate) fn new(handle: Handle, ifindex: i32) -> Self {
+    pub(crate) fn new(handle: Handle, ifindex: i32, flags: u16) -> Self {
         let mut message = TcMessage::default();
         message.header.index = ifindex;
         Self {
             handle,
             message,
-            flags: 1,
+            flags: NLM_F_REQUEST | flags,
         }
     }
 
@@ -289,7 +289,6 @@ impl HtbTrafficClassNewRequest {
         opts.push(TcOpt::TcHtbCtab(ctab));
         nlas.push(Nla::Options(opts));
 
-        request.flags |= NLM_F_EXCL | NLM_F_CREATE;
         request.execute().await
     }
 

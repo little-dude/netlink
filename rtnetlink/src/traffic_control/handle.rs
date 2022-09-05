@@ -81,7 +81,11 @@ impl TrafficClassHandle {
     }
 
     pub fn add(&mut self) -> TrafficClassNewRequest {
-        TrafficClassNewRequest::new(self.handle.clone(), self.ifindex)
+        TrafficClassNewRequest::new(self.handle.clone(), self.ifindex, NLM_F_EXCL | NLM_F_CREATE)
+    }
+
+    pub fn replace(&mut self) -> TrafficClassNewRequest {
+        TrafficClassNewRequest::new(self.handle.clone(), self.ifindex, NLM_F_CREATE)
     }
 }
 

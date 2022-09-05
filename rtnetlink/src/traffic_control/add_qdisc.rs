@@ -100,7 +100,6 @@ impl HtbAddRequest {
     pub async fn execute(self) -> Result<(), Error> {
         let HtbAddRequest { mut request, opt } = self;
 
-        request.flags |= NLM_F_EXCL | NLM_F_CREATE;
         let mut opts = vec![];
         opts.push(TcOpt::HtbOpt(opt));
 
