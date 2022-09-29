@@ -33,6 +33,7 @@ use std::process;
 
 use netlink_proto::{
     new_connection,
+    packet::NetlinkEvent,
     sys::{protocols::NETLINK_AUDIT, SocketAddr},
 };
 
@@ -50,11 +51,11 @@ async fn main() -> Result<(), String> {
     // - `handle` is a `Handle` to the `Connection`. We use it to send
     //   netlink messages and receive responses to these messages.
     //
-    // - `messages` is a channel receiver through which we receive
+    // - `events` is a channel receiver through which we receive
     //   messages that we have not sollicated, ie that are not
     //   response to a request we made. In this example, we'll receive
     //   the audit event through that channel.
-    let (conn, mut handle, mut messages) = new_connection(NETLINK_AUDIT)
+    let (conn, mut handle, mut events) = new_connection(NETLINK_AUDIT)
         .map_err(|e| format!("Failed to create a new netlink connection: {}", e))?;
 
     // Spawn the `Connection` so that it starts polling the netlink
@@ -91,13 +92,18 @@ async fn main() -> Result<(), String> {
         }
     });
 
-    // Finally, start receiving event through the `messages` channel.
+    // Finally, start receiving event through the `events` channel.
     println!("Starting to print audit events... press ^C to interrupt");
-    while let Some((message, _addr)) = messages.next().await {
-        if let NetlinkPayload::Error(err_message) = message.payload {
-            eprintln!("received an error message: {:?}", err_message);
-        } else {
-            println!("{:?}", message);
+    while let Some(event) = events.next().await {
+        match event {
+            NetlinkEvent::Message((message, _addr)) => {
+                if let NetlinkPayload::Error(err_message) = message.payload {
+                    eprintln!("received an error message: {:?}", err_message);
+                } else {
+                    println!("{:?}", message);
+                }
+            }
+            NetlinkEvent::Overrun => println!("Netlink socket overrun. Some messages were lost"),
         }
     }
 

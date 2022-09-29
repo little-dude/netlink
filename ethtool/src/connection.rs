@@ -4,7 +4,7 @@ use std::io;
 
 use futures::channel::mpsc::UnboundedReceiver;
 use genetlink::message::RawGenlMessage;
-use netlink_packet_core::NetlinkMessage;
+use netlink_packet_core::{NetlinkEvent, NetlinkMessage};
 use netlink_proto::Connection;
 use netlink_sys::{AsyncSocket, SocketAddr};
 
@@ -15,7 +15,7 @@ use crate::EthtoolHandle;
 pub fn new_connection() -> io::Result<(
     Connection<RawGenlMessage>,
     EthtoolHandle,
-    UnboundedReceiver<(NetlinkMessage<RawGenlMessage>, SocketAddr)>,
+    UnboundedReceiver<NetlinkEvent<(NetlinkMessage<RawGenlMessage>, SocketAddr)>>,
 )> {
     new_connection_with_socket()
 }
@@ -24,7 +24,7 @@ pub fn new_connection() -> io::Result<(
 pub fn new_connection_with_socket<S>() -> io::Result<(
     Connection<RawGenlMessage, S>,
     EthtoolHandle,
-    UnboundedReceiver<(NetlinkMessage<RawGenlMessage>, SocketAddr)>,
+    UnboundedReceiver<NetlinkEvent<(NetlinkMessage<RawGenlMessage>, SocketAddr)>>,
 )>
 where
     S: AsyncSocket,

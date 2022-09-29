@@ -16,7 +16,12 @@ use crate::{
     codecs::NetlinkMessageCodec,
     sys::{AsyncSocket, SocketAddr},
 };
-use netlink_packet_core::{NetlinkDeserializable, NetlinkMessage, NetlinkSerializable};
+use netlink_packet_core::{
+    NetlinkDeserializable,
+    NetlinkEvent,
+    NetlinkMessage,
+    NetlinkSerializable,
+};
 
 pub struct NetlinkFramed<T, S, C> {
     socket: S,
@@ -38,7 +43,7 @@ where
     S: AsyncSocket,
     C: NetlinkMessageCodec,
 {
-    type Item = (NetlinkMessage<T>, SocketAddr);
+    type Item = NetlinkEvent<(NetlinkMessage<T>, SocketAddr)>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let Self {
@@ -50,7 +55,9 @@ where
 
         loop {
             match C::decode::<T>(reader) {
-                Ok(Some(item)) => return Poll::Ready(Some((item, *in_addr))),
+                Ok(Some(item)) => {
+                    return Poll::Ready(Some(NetlinkEvent::Message((item, *in_addr))))
+                }
                 Ok(None) => {}
                 Err(e) => {
                     error!("unrecoverable error in decoder: {:?}", e);
@@ -63,6 +70,23 @@ where
 
             *in_addr = match ready!(socket.poll_recv_from(cx, reader)) {
                 Ok(addr) => addr,
+                // When receiving messages in multicast mode (i.e. we subscribed to
+                // notifications), the kernel will not wait for us to read datagrams before
+                // sending more. The receive buffer has a finite size, so once it is full (no
+                // more message can fit in), new messages will be dropped and recv calls will
+                // return `ENOBUFS`.
+                // This needs to be handled for applications to resynchronize with the contents
+                // of the kernel if necessary.
+                // We don't need to do anything special:
+                // - contents of the reader is still valid because we won't have partial messages
+                //   in there anyways (large enough buffer)
+                // - contents of the socket's internal buffer is still valid because the kernel
+                //   won't put partial data in it
+                Err(e) if e.raw_os_error() == Some(105) => {
+                    // ENOBUFS
+                    warn!("netlink socket buffer full");
+                    return Poll::Ready(Some(NetlinkEvent::Overrun));
+                }
                 Err(e) => {
                     error!("failed to read from netlink socket: {:?}", e);
                     return Poll::Ready(None);

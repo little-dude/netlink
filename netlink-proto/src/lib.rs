@@ -17,6 +17,7 @@
 //! use futures::stream::StreamExt;
 //! use netlink_packet_audit::{
 //!     AuditMessage,
+//!     NetlinkEvent,
 //!     NetlinkMessage,
 //!     NetlinkPayload,
 //!     StatusMessage,
@@ -44,11 +45,11 @@
 //!     // - `handle` is a `Handle` to the `Connection`. We use it to send
 //!     //   netlink messages and receive responses to these messages.
 //!     //
-//!     // - `messages` is a channel receiver through which we receive
+//!     // - `events` is a channel receiver through which we receive
 //!     //   messages that we have not solicited, ie that are not
 //!     //   response to a request we made. In this example, we'll receive
 //!     //   the audit event through that channel.
-//!     let (conn, mut handle, mut messages) = new_connection(NETLINK_AUDIT)
+//!     let (conn, mut handle, mut events) = new_connection(NETLINK_AUDIT)
 //!         .map_err(|e| format!("Failed to create a new netlink connection: {}", e))?;
 //!
 //!     // Spawn the `Connection` so that it starts polling the netlink
@@ -85,13 +86,23 @@
 //!         }
 //!     });
 //!
-//!     // Finally, start receiving event through the `messages` channel.
+//!     // Finally, start receiving event through the `events` channel.
 //!     println!("Starting to print audit events... press ^C to interrupt");
-//!     while let Some((message, _addr)) = messages.next().await {
-//!         if let NetlinkPayload::Error(err_message) = message.payload {
-//!             eprintln!("received an error message: {:?}", err_message);
-//!         } else {
-//!             println!("{:?}", message);
+//!     while let Some(event) = events.next().await {
+//!         match event {
+//!             NetlinkEvent::Message((message, _addr)) => {
+//!                 if let NetlinkPayload::Error(err_message) = message.payload {
+//!                     eprintln!("received an error message: {:?}", err_message);
+//!                 } else {
+//!                     println!("{:?}", message);
+//!                 }
+//!             }
+//!             // Netlink sockets have a finite receive buffer that can fill up if there are more
+//!             // messages sent by the kernel than we can read.
+//!             // In this case at least one message has been lost.
+//!             NetlinkEvent::Overrun => {
+//!                 println!("Netlink socket overrun. Some messages were lost")
+//!             }
 //!         }
 //!     }
 //!
@@ -227,7 +238,7 @@ pub fn new_connection<T>(
 ) -> io::Result<(
     Connection<T>,
     ConnectionHandle<T>,
-    UnboundedReceiver<(packet::NetlinkMessage<T>, sys::SocketAddr)>,
+    UnboundedReceiver<packet::NetlinkEvent<(packet::NetlinkMessage<T>, sys::SocketAddr)>>,
 )>
 where
     T: Debug + packet::NetlinkSerializable + packet::NetlinkDeserializable + Unpin,
@@ -242,7 +253,7 @@ pub fn new_connection_with_socket<T, S>(
 ) -> io::Result<(
     Connection<T, S>,
     ConnectionHandle<T>,
-    UnboundedReceiver<(packet::NetlinkMessage<T>, sys::SocketAddr)>,
+    UnboundedReceiver<packet::NetlinkEvent<(packet::NetlinkMessage<T>, sys::SocketAddr)>>,
 )>
 where
     T: Debug + packet::NetlinkSerializable + packet::NetlinkDeserializable + Unpin,
@@ -258,7 +269,7 @@ pub fn new_connection_with_codec<T, S, C>(
 ) -> io::Result<(
     Connection<T, S, C>,
     ConnectionHandle<T>,
-    UnboundedReceiver<(packet::NetlinkMessage<T>, sys::SocketAddr)>,
+    UnboundedReceiver<packet::NetlinkEvent<(packet::NetlinkMessage<T>, sys::SocketAddr)>>,
 )>
 where
     T: Debug + packet::NetlinkSerializable + packet::NetlinkDeserializable + Unpin,
@@ -266,7 +277,8 @@ where
     C: NetlinkMessageCodec,
 {
     let (requests_tx, requests_rx) = unbounded::<Request<T>>();
-    let (messages_tx, messages_rx) = unbounded::<(packet::NetlinkMessage<T>, sys::SocketAddr)>();
+    let (messages_tx, messages_rx) =
+        unbounded::<packet::NetlinkEvent<(packet::NetlinkMessage<T>, sys::SocketAddr)>>();
     Ok((
         Connection::new(requests_rx, messages_tx, protocol)?,
         ConnectionHandle::new(requests_tx),
