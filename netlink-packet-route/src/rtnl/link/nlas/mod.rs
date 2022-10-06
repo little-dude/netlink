@@ -18,6 +18,9 @@ pub use self::link_infos::*;
 mod bond;
 pub use self::bond::*;
 
+mod bridge;
+pub use self::bridge::*;
+
 mod prop_list;
 pub use self::prop_list::*;
 

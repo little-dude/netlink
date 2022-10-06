@@ -453,6 +453,8 @@ pub const IFLA_BR_MCAST_IGMP_VERSION: u16 = 43;
 pub const IFLA_BR_MCAST_MLD_VERSION: u16 = 44;
 pub const IFLA_BR_VLAN_STATS_PER_PORT: u16 = 45;
 pub const IFLA_BR_MULTI_BOOLOPT: u16 = 46;
+pub const IFLA_BR_MCAST_QUERIER_STATE: u16 = 47;
+
 pub const IFLA_MACVLAN_UNSPEC: u16 = 0;
 pub const IFLA_MACVLAN_MODE: u16 = 1;
 pub const IFLA_MACVLAN_FLAGS: u16 = 2;
