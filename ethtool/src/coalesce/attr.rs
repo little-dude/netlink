@@ -146,7 +146,7 @@ impl Nla for EthtoolCoalesceAttr {
             | Self::TxUsecsHigh(d)
             | Self::TxMaxFramesHigh(d)
             | Self::RateSampleInterval(d) => NativeEndian::write_u32(buffer, *d),
-            Self::UseAdaptiveRx(d) | Self::UseAdaptiveTx(d) => buffer[0] = if *d { 1 } else { 0 },
+            Self::UseAdaptiveRx(d) | Self::UseAdaptiveTx(d) => buffer[0] = *d as u8,
         }
     }
 }
