@@ -4,7 +4,7 @@ use anyhow::Context;
 use byteorder::{ByteOrder, NativeEndian};
 use netlink_packet_utils::{
     nla::{DefaultNla, Nla, NlaBuffer, NlasIterator, NLA_F_NESTED},
-    parsers::parse_u32,
+    parsers::{parse_u32, parse_u8},
     DecodeError,
     Emitable,
     Parseable,
@@ -21,6 +21,10 @@ const ETHTOOL_A_RINGS_RX: u16 = 6;
 const ETHTOOL_A_RINGS_RX_MINI: u16 = 7;
 const ETHTOOL_A_RINGS_RX_JUMBO: u16 = 8;
 const ETHTOOL_A_RINGS_TX: u16 = 9;
+const ETHTOOL_A_RINGS_RX_BUF_LEN: u16 = 10;
+const ETHTOOL_A_RINGS_TCP_DATA_SPLIT: u16 = 11;
+const ETHTOOL_A_RINGS_CQE_SIZE: u16 = 12;
+const ETHTOOL_A_RINGS_TX_PUSH: u16 = 13;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum EthtoolRingAttr {
@@ -33,6 +37,10 @@ pub enum EthtoolRingAttr {
     RxMini(u32),
     RxJumbo(u32),
     Tx(u32),
+    RxBufLen(u32),
+    TcpDataSplit(u8),
+    CqeSize(u32),
+    TxPush(bool),
     Other(DefaultNla),
 }
 
@@ -40,6 +48,8 @@ impl Nla for EthtoolRingAttr {
     fn value_len(&self) -> usize {
         match self {
             Self::Header(hdrs) => hdrs.as_slice().buffer_len(),
+            Self::TcpDataSplit(_) => 1,
+            Self::TxPush(_) => 1,
             Self::RxMax(_)
             | Self::RxMiniMax(_)
             | Self::RxJumboMax(_)
@@ -47,7 +57,9 @@ impl Nla for EthtoolRingAttr {
             | Self::Rx(_)
             | Self::RxMini(_)
             | Self::RxJumbo(_)
-            | Self::Tx(_) => 4,
+            | Self::Tx(_)
+            | Self::RxBufLen(_)
+            | Self::CqeSize(_) => 4,
             Self::Other(attr) => attr.value_len(),
         }
     }
@@ -63,6 +75,10 @@ impl Nla for EthtoolRingAttr {
             Self::RxMini(_) => ETHTOOL_A_RINGS_RX_MINI,
             Self::RxJumbo(_) => ETHTOOL_A_RINGS_RX_JUMBO,
             Self::Tx(_) => ETHTOOL_A_RINGS_TX,
+            Self::RxBufLen(_) => ETHTOOL_A_RINGS_RX_BUF_LEN,
+            Self::TcpDataSplit(_) => ETHTOOL_A_RINGS_TCP_DATA_SPLIT,
+            Self::CqeSize(_) => ETHTOOL_A_RINGS_CQE_SIZE,
+            Self::TxPush(_) => ETHTOOL_A_RINGS_TX_PUSH,
             Self::Other(attr) => attr.kind(),
         }
     }
@@ -77,7 +93,11 @@ impl Nla for EthtoolRingAttr {
             | Self::Rx(d)
             | Self::RxMini(d)
             | Self::RxJumbo(d)
+            | Self::RxBufLen(d)
+            | Self::CqeSize(d)
             | Self::Tx(d) => NativeEndian::write_u32(buffer, *d),
+            Self::TcpDataSplit(d) => buffer[0] = *d,
+            Self::TxPush(d) => buffer[0] = *d as u8,
             Self::Other(ref attr) => attr.emit(buffer),
         }
     }
@@ -122,7 +142,22 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for EthtoolRingAtt
             ETHTOOL_A_RINGS_TX => {
                 Self::Tx(parse_u32(payload).context("Invalid ETHTOOL_A_RINGS_TX value")?)
             }
-            _ => Self::Other(DefaultNla::parse(buf).context("invalid NLA (unknown kind)")?),
+            ETHTOOL_A_RINGS_RX_BUF_LEN => Self::RxBufLen(
+                parse_u32(payload).context("Invalid ETHTOOL_A_RINGS_RX_BUF_LEN value")?,
+            ),
+            ETHTOOL_A_RINGS_TCP_DATA_SPLIT => Self::TcpDataSplit(
+                parse_u8(payload).context("Invalid ETHTOOL_A_RINGS_TCP_DATA_SPLIT value")?,
+            ),
+            ETHTOOL_A_RINGS_CQE_SIZE => {
+                Self::CqeSize(parse_u32(payload).context("Invalid ETHTOOL_A_RINGS_CQE_SIZE value")?)
+            }
+            ETHTOOL_A_RINGS_TX_PUSH => Self::TxPush(
+                parse_u8(payload).context("Invalid ETHTOOL_A_RINGS_TX_PUSH value")? > 0,
+            ),
+            kind => Self::Other(
+                DefaultNla::parse(buf)
+                    .context(format!("invalid ethtool ring NLA kind {}", kind))?,
+            ),
         })
     }
 }
