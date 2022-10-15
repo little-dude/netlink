@@ -177,22 +177,19 @@ impl TrafficFilterNewRequest {
 #[cfg(test)]
 mod test {
     use std::{
-        ffi::{c_char, c_uint, c_ulonglong},
         fs::File,
-        mem::size_of,
         os::unix::io::AsRawFd,
         path::Path,
     };
 
     use futures::stream::TryStreamExt;
     use nix::{
-        libc::{syscall, self},
         sched::{setns, CloneFlags},
     };
     use tokio::runtime::Runtime;
 
     use super::*;
-    use crate::{new_connection, packet::LinkMessage, NetworkNamespace, NETNS_PATH, SELF_NS_PATH, Error};
+    use crate::{new_connection, packet::LinkMessage, NetworkNamespace, NETNS_PATH, SELF_NS_PATH};
 
     const TEST_NS: &str = "netlink_test_filter_ns";
     const TEST_VETH_1: &str = "test_veth_1";
@@ -347,58 +344,8 @@ mod test {
         }
     }
 
-    pub type __u32 = c_uint;
-    pub type __u64 = c_ulonglong;
-    #[repr(C)]
-    pub struct bpf_attr__bindgen_ty_4 {
-        pub prog_type: __u32,
-        pub insn_cnt: __u32,
-        pub insns: __u64,
-        pub license: __u64,
-        pub log_level: __u32,
-        pub log_size: __u32,
-        pub log_buf: __u64,
-        pub kern_version: __u32,
-    }
-    fn load_simple_bpf(prog_type: u32, ret: u64) {
-        let mut insns: [u64; 2] = [0x00000000000000b7 | (ret << 32), 0x0000000000000095];
-        let mut license = ['A', 'S', 'L', '2', '\x00'];
-        let mut log_buf: [u32; 2] = [0x00000000000000b7, 0x0000000000000095];
-        unsafe {
-            let mut attr = bpf_attr__bindgen_ty_4 {
-                prog_type: prog_type,
-                insn_cnt: insns.len() as u32,
-                insns: &mut insns as *mut u64 as __u64,
-                license: &mut license as *mut char as __u64,
-                log_level: 0,
-                log_size: 0,
-                log_buf: &mut log_buf as *mut u32 as __u64,
-                kern_version: 0,
-            };
-            let r = syscall(
-                libc::SYS_bpf,
-                5,
-                &mut attr as *mut bpf_attr__bindgen_ty_4,
-                size_of::<bpf_attr__bindgen_ty_4>(),
-            );
-            println!("r: {}", r);
-            if r != 0 {
-                println!("{}", std::io::Error::last_os_error())
-            }
-        }
-    }
-
-    fn test_bpf() {
-        load_simple_bpf(1, 1);
-    }
-
     #[test]
     fn test_new_filter() {
         Runtime::new().unwrap().block_on(test_async_new_filter());
-    }
-
-    #[test]
-    fn test_load_bpf() {
-        test_bpf()
     }
 }
