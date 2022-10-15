@@ -186,7 +186,7 @@ mod test {
 
     use futures::stream::TryStreamExt;
     use nix::{
-        libc::syscall,
+        libc::{syscall, self},
         sched::{setns, CloneFlags},
     };
     use tokio::runtime::Runtime;
@@ -360,13 +360,13 @@ mod test {
         pub log_buf: __u64,
         pub kern_version: __u32,
     }
-    fn load_simple_bpf(ret: u64) {
+    fn load_simple_bpf(prog_type: u32, ret: u64) {
         let mut insns: [u64; 2] = [0x00000000000000b7 | (ret << 32), 0x0000000000000095];
         let mut license = ['A', 'S', 'L', '2', '\x00'];
         let mut log_buf: [u32; 2] = [0x00000000000000b7, 0x0000000000000095];
         unsafe {
             let mut attr = bpf_attr__bindgen_ty_4 {
-                prog_type: 3,
+                prog_type: prog_type,
                 insn_cnt: insns.len() as u32,
                 insns: &mut insns as *mut u64 as __u64,
                 license: &mut license as *mut char as __u64,
@@ -376,21 +376,29 @@ mod test {
                 kern_version: 0,
             };
             let r = syscall(
-                321,
+                libc::SYS_bpf,
                 5,
                 &mut attr as *mut bpf_attr__bindgen_ty_4,
                 size_of::<bpf_attr__bindgen_ty_4>(),
             );
             println!("r: {}", r);
+            if r != 0 {
+                println!("{}", std::io::Error::last_os_error())
+            }
         }
     }
 
     fn test_bpf() {
-        load_simple_bpf(0);
+        load_simple_bpf(1, 1);
     }
 
     #[test]
     fn test_new_filter() {
         Runtime::new().unwrap().block_on(test_async_new_filter());
+    }
+
+    #[test]
+    fn test_load_bpf() {
+        test_bpf()
     }
 }

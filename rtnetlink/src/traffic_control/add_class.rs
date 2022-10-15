@@ -24,7 +24,7 @@ use netlink_packet_route::{
     },
     TC_H_MAKE,
 };
-use netlink_proto::packet::{NLM_F_CREATE, NLM_F_EXCL, NLM_F_REQUEST};
+use netlink_proto::packet::{NLM_F_REQUEST};
 use nix::libc::sysconf;
 
 lazy_static! {
@@ -284,7 +284,7 @@ impl HtbTrafficClassNewRequest {
         let mut opts = vec![];
         opts.push(TcOpt::TcRate(rate));
         opts.push(TcOpt::TcCeil(ceil));
-        opts.push(TcOpt::TcHtbOpt1(opt));
+        opts.push(TcOpt::TcHtbOpt(opt));
         opts.push(TcOpt::TcHtbRtab(rtab));
         opts.push(TcOpt::TcHtbCtab(ctab));
         nlas.push(Nla::Options(opts));

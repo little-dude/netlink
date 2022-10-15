@@ -2,7 +2,6 @@
 
 use futures::stream::StreamExt;
 use netlink_packet_route::tc::{Nla, TcOpt};
-use netlink_proto::packet::{NLM_F_CREATE, NLM_F_EXCL};
 
 use crate::{
     packet::{
