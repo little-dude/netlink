@@ -179,6 +179,12 @@ pub struct DefaultNla {
     value: Vec<u8>,
 }
 
+impl DefaultNla {
+    fn new(kind: u16, value: Vec<u8>) -> Self {
+        Self { kind, value }
+    }
+}
+
 impl Nla for DefaultNla {
     fn value_len(&self) -> usize {
         self.value.len()
