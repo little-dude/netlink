@@ -1,16 +1,12 @@
 // SPDX-License-Identifier: MIT
 
-use netlink_packet_utils::{
-    buffer,
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, traits::*, DecodeError};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct UserPolicyDefault {
     pub input: u8,
     pub forward: u8,
-    pub output: u8
+    pub output: u8,
 }
 
 pub const XFRM_USER_POLICY_DEFAULT_LEN: usize = 3;
@@ -26,7 +22,7 @@ impl<T: AsRef<[u8]>> Parseable<UserPolicyDefaultBuffer<T>> for UserPolicyDefault
         Ok(UserPolicyDefault {
             input: buf.input(),
             forward: buf.forward(),
-            output: buf.output()
+            output: buf.output(),
         })
     }
 }

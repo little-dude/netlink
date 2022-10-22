@@ -2,22 +2,14 @@
 
 use anyhow::Context;
 
-use crate::{
-    PolicyExpireMessageBuffer,
-    UserPolicyExpire,
-    UserPolicyExpireBuffer,
-    XfrmAttrs,
-};
+use crate::{PolicyExpireMessageBuffer, UserPolicyExpire, UserPolicyExpireBuffer, XfrmAttrs};
 
-use netlink_packet_utils::{
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{traits::*, DecodeError};
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct PolicyExpireMessage {
     pub expire: UserPolicyExpire,
-    pub nlas: Vec<XfrmAttrs>
+    pub nlas: Vec<XfrmAttrs>,
 }
 
 impl Emitable for PolicyExpireMessage {
@@ -39,7 +31,8 @@ impl<'a, T: AsRef<[u8]> + 'a> Parseable<PolicyExpireMessageBuffer<&'a T>> for Po
             .context("failed to parse monitor policy expire message info")?;
         Ok(PolicyExpireMessage {
             expire,
-            nlas: Vec::<XfrmAttrs>::parse(buf).context("failed to parse monitor policy expire message NLAs")?
+            nlas: Vec::<XfrmAttrs>::parse(buf)
+                .context("failed to parse monitor policy expire message NLAs")?,
         })
     }
 }

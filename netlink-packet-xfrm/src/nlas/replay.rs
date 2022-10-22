@@ -1,16 +1,12 @@
 // SPDX-License-Identifier: MIT
 
-use netlink_packet_utils::{
-    buffer,
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, traits::*, DecodeError};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct Replay {
     pub oseq: u32,
     pub seq: u32,
-    pub bitmap: u32
+    pub bitmap: u32,
 }
 
 pub const XFRM_REPLAY_LEN: usize = 12;
@@ -26,7 +22,7 @@ impl<T: AsRef<[u8]> + ?Sized> Parseable<ReplayBuffer<&T>> for Replay {
         Ok(Replay {
             oseq: buf.oseq(),
             seq: buf.seq(),
-            bitmap: buf.bitmap()
+            bitmap: buf.bitmap(),
         })
     }
 }

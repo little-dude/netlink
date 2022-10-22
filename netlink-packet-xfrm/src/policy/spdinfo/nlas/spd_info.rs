@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-use netlink_packet_utils::{
-    buffer,
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, traits::*, DecodeError};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct SpdInfo {
@@ -13,7 +9,7 @@ pub struct SpdInfo {
     pub fwdcnt: u32,
     pub inscnt: u32,
     pub outscnt: u32,
-    pub fwdscnt: u32
+    pub fwdscnt: u32,
 }
 
 pub const XFRM_SPD_INFO_LEN: usize = 24;
@@ -35,7 +31,7 @@ impl<T: AsRef<[u8]>> Parseable<SpdInfoBuffer<T>> for SpdInfo {
             fwdcnt: buf.fwdcnt(),
             inscnt: buf.inscnt(),
             outscnt: buf.outscnt(),
-            fwdscnt: buf.fwdscnt()
+            fwdscnt: buf.fwdscnt(),
         })
     }
 }
@@ -59,7 +55,7 @@ impl Emitable for SpdInfo {
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct SpdHInfo {
     pub spdhcnt: u32,
-    pub spdhmcnt: u32
+    pub spdhmcnt: u32,
 }
 
 pub const XFRM_SPD_HINFO_LEN: usize = 8;
@@ -73,7 +69,7 @@ impl<T: AsRef<[u8]>> Parseable<SpdHInfoBuffer<T>> for SpdHInfo {
     fn parse(buf: &SpdHInfoBuffer<T>) -> Result<Self, DecodeError> {
         Ok(SpdHInfo {
             spdhcnt: buf.spdhcnt(),
-            spdhmcnt: buf.spdhmcnt()
+            spdhmcnt: buf.spdhmcnt(),
         })
     }
 }
@@ -93,7 +89,7 @@ impl Emitable for SpdHInfo {
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct SpdHThresh {
     pub lbits: u8,
-    pub rbits: u8
+    pub rbits: u8,
 }
 
 pub const XFRM_SPD_HTHRESH_LEN: usize = 2;
@@ -107,7 +103,7 @@ impl<T: AsRef<[u8]>> Parseable<SpdHThreshBuffer<T>> for SpdHThresh {
     fn parse(buf: &SpdHThreshBuffer<T>) -> Result<Self, DecodeError> {
         Ok(SpdHThresh {
             lbits: buf.lbits(),
-            rbits: buf.rbits()
+            rbits: buf.rbits(),
         })
     }
 }

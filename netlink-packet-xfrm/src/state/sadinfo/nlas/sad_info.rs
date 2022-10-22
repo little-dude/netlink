@@ -1,15 +1,11 @@
 // SPDX-License-Identifier: MIT
 
-use netlink_packet_utils::{
-    buffer,
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, traits::*, DecodeError};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct SadHInfo {
     pub sadhcnt: u32,
-    pub sadhmcnt: u32
+    pub sadhmcnt: u32,
 }
 
 pub const XFRM_SAD_HINFO_LEN: usize = 8;
@@ -23,7 +19,7 @@ impl<T: AsRef<[u8]>> Parseable<SadHInfoBuffer<T>> for SadHInfo {
     fn parse(buf: &SadHInfoBuffer<T>) -> Result<Self, DecodeError> {
         Ok(SadHInfo {
             sadhcnt: buf.sadhcnt(),
-            sadhmcnt: buf.sadhmcnt()
+            sadhmcnt: buf.sadhmcnt(),
         })
     }
 }

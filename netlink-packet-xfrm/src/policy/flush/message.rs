@@ -2,15 +2,9 @@
 
 use anyhow::Context;
 
-use crate::{
-    policy::FlushMessageBuffer,
-    XfrmAttrs,
-};
+use crate::{policy::FlushMessageBuffer, XfrmAttrs};
 
-use netlink_packet_utils::{
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{traits::*, DecodeError};
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct FlushMessage {
@@ -23,16 +17,15 @@ impl Emitable for FlushMessage {
     }
 
     fn emit(&self, buffer: &mut [u8]) {
-        self.nlas
-            .as_slice()
-            .emit(&mut buffer[0..]);
+        self.nlas.as_slice().emit(&mut buffer[0..]);
     }
 }
 
 impl<'a, T: AsRef<[u8]> + 'a> Parseable<FlushMessageBuffer<&'a T>> for FlushMessage {
     fn parse(buf: &FlushMessageBuffer<&'a T>) -> Result<Self, DecodeError> {
         Ok(FlushMessage {
-            nlas: Vec::<XfrmAttrs>::parse(buf).context("failed to parse policy flush message NLAs")?,
+            nlas: Vec::<XfrmAttrs>::parse(buf)
+                .context("failed to parse policy flush message NLAs")?,
         })
     }
 }

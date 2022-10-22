@@ -69,10 +69,22 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for SpdInfoAttrs {
         let payload = buf.value();
         Ok(match buf.kind() {
             XFRMA_SPD_UNSPEC => Unspec(payload.to_vec()),
-            XFRMA_SPD_INFO => SpdInfo(spd_info::SpdInfo::parse(&SpdInfoBuffer::new(payload)).context("invalid XFRMA_SPD_INFO")?),
-            XFRMA_SPD_HINFO => SpdHInfo(spd_info::SpdHInfo::parse(&SpdHInfoBuffer::new(payload)).context("invalid XFRMA_SPD_HINFO")?),
-            XFRMA_SPD_IPV4_HTHRESH => SpdIpv4HThresh(spd_info::SpdHThresh::parse(&SpdHThreshBuffer::new(payload)).context("invalid XFRMA_SPD_IPV4_HTHRESH")?),
-            XFRMA_SPD_IPV6_HTHRESH => SpdIpv6HThresh(spd_info::SpdHThresh::parse(&SpdHThreshBuffer::new(payload)).context("invalid XFRMA_SPD_IPV6_HTHRESH")?),
+            XFRMA_SPD_INFO => SpdInfo(
+                spd_info::SpdInfo::parse(&SpdInfoBuffer::new(payload))
+                    .context("invalid XFRMA_SPD_INFO")?,
+            ),
+            XFRMA_SPD_HINFO => SpdHInfo(
+                spd_info::SpdHInfo::parse(&SpdHInfoBuffer::new(payload))
+                    .context("invalid XFRMA_SPD_HINFO")?,
+            ),
+            XFRMA_SPD_IPV4_HTHRESH => SpdIpv4HThresh(
+                spd_info::SpdHThresh::parse(&SpdHThreshBuffer::new(payload))
+                    .context("invalid XFRMA_SPD_IPV4_HTHRESH")?,
+            ),
+            XFRMA_SPD_IPV6_HTHRESH => SpdIpv6HThresh(
+                spd_info::SpdHThresh::parse(&SpdHThreshBuffer::new(payload))
+                    .context("invalid XFRMA_SPD_IPV6_HTHRESH")?,
+            ),
             kind => Other(DefaultNla::parse(buf).context(format!("unknown NLA type {}", kind))?),
         })
     }

@@ -4,17 +4,9 @@ use anyhow::Context;
 
 use core::ops::Range;
 
-use crate::{
-    Address,
-    AddressBuffer,
-    XFRM_ADDRESS_LEN,
-};
+use crate::{Address, AddressBuffer, XFRM_ADDRESS_LEN};
 
-use netlink_packet_utils::{
-    buffer,
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, traits::*, DecodeError};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct UserMigrate {
@@ -27,17 +19,17 @@ pub struct UserMigrate {
     pub reserved: u16,
     pub reqid: u32,
     pub old_family: u16,
-    pub new_family: u16
+    pub new_family: u16,
 }
 
-const OLD_DADDR_FIELD: Range<usize>  = 0..XFRM_ADDRESS_LEN;
-const OLD_SADDR_FIELD: Range<usize>  = OLD_DADDR_FIELD.end..(OLD_DADDR_FIELD.end + XFRM_ADDRESS_LEN);
-const NEW_DADDR_FIELD: Range<usize>  = OLD_SADDR_FIELD.end..(OLD_SADDR_FIELD.end + XFRM_ADDRESS_LEN);
-const NEW_SADDR_FIELD: Range<usize>  = NEW_DADDR_FIELD.end..(NEW_DADDR_FIELD.end + XFRM_ADDRESS_LEN);
-const PROTO_FIELD: usize             = NEW_SADDR_FIELD.end;
-const MODE_FIELD: usize              = PROTO_FIELD + 1;
-const RESERVED_FIELD: Range<usize>   = (MODE_FIELD + 1)..(MODE_FIELD + 1 + 2);
-const REQID_FIELD: Range<usize>      = RESERVED_FIELD.end..(RESERVED_FIELD.end + 4);
+const OLD_DADDR_FIELD: Range<usize> = 0..XFRM_ADDRESS_LEN;
+const OLD_SADDR_FIELD: Range<usize> = OLD_DADDR_FIELD.end..(OLD_DADDR_FIELD.end + XFRM_ADDRESS_LEN);
+const NEW_DADDR_FIELD: Range<usize> = OLD_SADDR_FIELD.end..(OLD_SADDR_FIELD.end + XFRM_ADDRESS_LEN);
+const NEW_SADDR_FIELD: Range<usize> = NEW_DADDR_FIELD.end..(NEW_DADDR_FIELD.end + XFRM_ADDRESS_LEN);
+const PROTO_FIELD: usize = NEW_SADDR_FIELD.end;
+const MODE_FIELD: usize = PROTO_FIELD + 1;
+const RESERVED_FIELD: Range<usize> = (MODE_FIELD + 1)..(MODE_FIELD + 1 + 2);
+const REQID_FIELD: Range<usize> = RESERVED_FIELD.end..(RESERVED_FIELD.end + 4);
 const OLD_FAMILY_FIELD: Range<usize> = REQID_FIELD.end..(REQID_FIELD.end + 2);
 const NEW_FAMILY_FIELD: Range<usize> = OLD_FAMILY_FIELD.end..(OLD_FAMILY_FIELD.end + 2);
 
@@ -76,7 +68,7 @@ impl<T: AsRef<[u8]> + ?Sized> Parseable<UserMigrateBuffer<&T>> for UserMigrate {
             reserved: buf.reserved(),
             reqid: buf.reqid(),
             old_family: buf.old_family(),
-            new_family: buf.new_family()
+            new_family: buf.new_family(),
         })
     }
 }

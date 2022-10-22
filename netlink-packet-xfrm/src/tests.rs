@@ -4,47 +4,21 @@ use std::net::{Ipv4Addr, Ipv6Addr};
 use std::str::FromStr;
 
 use crate::{
-    constants::*,
-    Address,
-    AsyncEventId,
-    EncapTmpl,
-    Id,
-    Lifetime,
-    LifetimeConfig,
-    Mark,
-    GetAsyncEventMessage,
-    MappingMessage,
-    MigrateMessage,
-    ReportMessage,
-    NetlinkHeader,
-    NetlinkMessage,
-    policy::FlushMessage,
-    policy::ModifyMessage,
-    SadInfoAttrs::*,
-    Selector,
-    SpdInfoAttrs::*,
-    UserKmAddress,
-    UserMapping,
-    UserMigrate,
-    UserPolicyId,
-    UserPolicyInfo,
-    UserPolicyType,
-    UserReport,
-    UserSaId,
-    UserTemplate,
-    XfrmAttrs,
-    XfrmAttrs::*,
-    XfrmMessage,
+    constants::*, policy::FlushMessage, policy::ModifyMessage, Address, AsyncEventId, EncapTmpl,
+    GetAsyncEventMessage, Id, Lifetime, LifetimeConfig, MappingMessage, Mark, MigrateMessage,
+    NetlinkHeader, NetlinkMessage, ReportMessage, SadInfoAttrs::*, Selector, SpdInfoAttrs::*,
+    UserKmAddress, UserMapping, UserMigrate, UserPolicyId, UserPolicyInfo, UserPolicyType,
+    UserReport, UserSaId, UserTemplate, XfrmAttrs, XfrmAttrs::*, XfrmMessage,
 };
 
 use netlink_packet_core::*;
 use netlink_proto::sys::protocols::NETLINK_XFRM;
 use netlink_sys::{Socket, SocketAddr};
 
-
 #[test]
 fn parse_xfrm_pol_1() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P1_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P1_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
 
     match deserialized_packet.into_parts().1 {
@@ -80,7 +54,8 @@ fn emit_xfrm_pol_1() {
 
 #[test]
 fn parse_xfrm_pol_2() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P2_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P2_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
 
     match deserialized_packet.into_parts().1 {
@@ -97,12 +72,10 @@ fn parse_xfrm_pol_2() {
 fn emit_xfrm_pol_2() {
     let mut buf = vec![0; P2_BYTES.len()];
     let flush_payload = FlushMessage {
-        nlas: vec![
-            XfrmAttrs::PolicyType(UserPolicyType {
-                ptype: XFRM_POLICY_TYPE_SUB,
-                ..Default::default()
-            }),
-        ],
+        nlas: vec![XfrmAttrs::PolicyType(UserPolicyType {
+            ptype: XFRM_POLICY_TYPE_SUB,
+            ..Default::default()
+        })],
     };
     let mut packet = NetlinkMessage {
         header: NetlinkHeader {
@@ -123,7 +96,8 @@ fn emit_xfrm_pol_2() {
 
 #[test]
 fn parse_xfrm_pol_3() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P3_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P3_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
 
     match deserialized_packet.into_parts().1 {
@@ -131,10 +105,19 @@ fn parse_xfrm_pol_3() {
             // Check some of the expected values, any errors in calculating
             // struct sizes, field offsets, value endian-ness, etc.
             // could show up here.
-            assert_eq!(xm.user_policy_info.selector.daddr.addr[0..4], [172, 16, 0, 0]);
-            assert_eq!(xm.user_policy_info.selector.daddr.to_ipv4(), Ipv4Addr::from_str("172.16.0.0").unwrap());
+            assert_eq!(
+                xm.user_policy_info.selector.daddr.addr[0..4],
+                [172, 16, 0, 0]
+            );
+            assert_eq!(
+                xm.user_policy_info.selector.daddr.to_ipv4(),
+                Ipv4Addr::from_str("172.16.0.0").unwrap()
+            );
             assert_eq!(xm.user_policy_info.selector.saddr.addr[0..4], [10, 0, 0, 0]);
-            assert_eq!(xm.user_policy_info.selector.saddr.to_ipv4(), Ipv4Addr::from_str("10.0.0.0").unwrap());
+            assert_eq!(
+                xm.user_policy_info.selector.saddr.to_ipv4(),
+                Ipv4Addr::from_str("10.0.0.0").unwrap()
+            );
             assert_eq!(xm.user_policy_info.selector.dport, 40003);
             assert_eq!(xm.user_policy_info.selector.dport_mask, 0xFFFF);
             assert_eq!(xm.user_policy_info.selector.sport, 20007);
@@ -146,10 +129,22 @@ fn parse_xfrm_pol_3() {
             assert_eq!(xm.user_policy_info.selector.ifindex, 2);
             assert_eq!(xm.user_policy_info.selector.user, 0);
 
-            assert_eq!(xm.user_policy_info.lifetime_cfg.soft_byte_limit, 0xFFFFFFFFFFFFFFFF);
-            assert_eq!(xm.user_policy_info.lifetime_cfg.hard_byte_limit, 0xFFFFFFFFFFFFFFFF);
-            assert_eq!(xm.user_policy_info.lifetime_cfg.soft_packet_limit, 0xFFFFFFFFFFFFFFFF);
-            assert_eq!(xm.user_policy_info.lifetime_cfg.hard_packet_limit, 0xFFFFFFFFFFFFFFFF);
+            assert_eq!(
+                xm.user_policy_info.lifetime_cfg.soft_byte_limit,
+                0xFFFFFFFFFFFFFFFF
+            );
+            assert_eq!(
+                xm.user_policy_info.lifetime_cfg.hard_byte_limit,
+                0xFFFFFFFFFFFFFFFF
+            );
+            assert_eq!(
+                xm.user_policy_info.lifetime_cfg.soft_packet_limit,
+                0xFFFFFFFFFFFFFFFF
+            );
+            assert_eq!(
+                xm.user_policy_info.lifetime_cfg.hard_packet_limit,
+                0xFFFFFFFFFFFFFFFF
+            );
             assert_eq!(xm.user_policy_info.lifetime_cfg.soft_add_expires_seconds, 0);
             assert_eq!(xm.user_policy_info.lifetime_cfg.hard_add_expires_seconds, 0);
             assert_eq!(xm.user_policy_info.lifetime_cfg.soft_use_expires_seconds, 0);
@@ -173,12 +168,18 @@ fn parse_xfrm_pol_3() {
                     PolicyType(up) => assert_eq!(up.ptype, XFRM_POLICY_TYPE_SUB),
                     Template(ut) => {
                         assert_eq!(ut[0].id.daddr.addr[0..4], [198, 51, 100, 20]);
-                        assert_eq!(ut[0].id.daddr.to_ipv4(), Ipv4Addr::from_str("198.51.100.20").unwrap());
+                        assert_eq!(
+                            ut[0].id.daddr.to_ipv4(),
+                            Ipv4Addr::from_str("198.51.100.20").unwrap()
+                        );
                         assert_eq!(ut[0].id.spi, 0);
                         assert_eq!(ut[0].id.proto, IPPROTO_ESP);
                         assert_eq!(ut[0].family, AF_INET);
                         assert_eq!(ut[0].saddr.addr[0..4], [192, 0, 2, 1]);
-                        assert_eq!(ut[0].saddr.to_ipv4(), Ipv4Addr::from_str("192.0.2.1").unwrap());
+                        assert_eq!(
+                            ut[0].saddr.to_ipv4(),
+                            Ipv4Addr::from_str("192.0.2.1").unwrap()
+                        );
                         assert_eq!(ut[0].reqid, 1);
                         assert_eq!(ut[0].mode, XFRM_MODE_TUNNEL);
                         assert_eq!(ut[0].share, XFRM_SHARE_ANY);
@@ -186,11 +187,11 @@ fn parse_xfrm_pol_3() {
                         assert_eq!(ut[0].aalgos, 0xFFFFFFFF);
                         assert_eq!(ut[0].ealgos, 0xFFFFFFFF);
                         assert_eq!(ut[0].calgos, 0xFFFFFFFF);
-                    },
+                    }
                     Mark(mark) => {
                         assert_eq!(mark.value, 8);
                         assert_eq!(mark.mask, 3);
-                    },
+                    }
                     IfId(ifid) => assert_eq!(*ifid, 5),
                     _ => {
                         panic!("unexpected XfrmAttr");
@@ -211,14 +212,14 @@ fn emit_xfrm_pol_3() {
     let upt = UserPolicyType {
         ptype: XFRM_POLICY_TYPE_SUB,
         reserved1: 0,
-        reserved2: 0
+        reserved2: 0,
     };
 
     let ut = UserTemplate {
         id: Id {
-                daddr: Address::from_ipv4(&Ipv4Addr::from_str("198.51.100.20").unwrap()),
-                spi: 0,
-                proto: IPPROTO_ESP
+            daddr: Address::from_ipv4(&Ipv4Addr::from_str("198.51.100.20").unwrap()),
+            spi: 0,
+            proto: IPPROTO_ESP,
         },
         family: AF_INET,
         saddr: Address::from_ipv4(&Ipv4Addr::from_str("192.0.2.1").unwrap()),
@@ -228,13 +229,10 @@ fn emit_xfrm_pol_3() {
         optional: 0,
         aalgos: 0xFFFFFFFF,
         ealgos: 0xFFFFFFFF,
-        calgos: 0xFFFFFFFF
+        calgos: 0xFFFFFFFF,
     };
 
-    let mark = Mark {
-        value: 8,
-        mask: 3
-    };
+    let mark = Mark { value: 8, mask: 3 };
 
     let modify_payload = ModifyMessage {
         user_policy_info: UserPolicyInfo {
@@ -282,7 +280,7 @@ fn emit_xfrm_pol_3() {
             XfrmAttrs::PolicyType(upt),
             XfrmAttrs::Template(vec![ut]),
             XfrmAttrs::Mark(mark),
-            XfrmAttrs::IfId(5)
+            XfrmAttrs::IfId(5),
         ],
     };
     let mut packet = NetlinkMessage {
@@ -303,7 +301,8 @@ fn emit_xfrm_pol_3() {
 
 #[test]
 fn parse_emit_xfrm_pol_4() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P4_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P4_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -322,13 +321,20 @@ fn parse_emit_xfrm_pol_4() {
 
 #[test]
 fn parse_xfrm_pol_5() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P5_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P5_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
 
     match deserialized_packet.into_parts().1 {
         NetlinkPayload::InnerMessage(XfrmMessage::AddPolicy(xm)) => {
-            assert_eq!(xm.user_policy_info.selector.daddr.to_ipv6(), Ipv6Addr::from_str("fe88::172.16.0.0").unwrap());
-            assert_eq!(xm.user_policy_info.selector.saddr.to_ipv6(), Ipv6Addr::from_str("fe88::10.0.0.0").unwrap());
+            assert_eq!(
+                xm.user_policy_info.selector.daddr.to_ipv6(),
+                Ipv6Addr::from_str("fe88::172.16.0.0").unwrap()
+            );
+            assert_eq!(
+                xm.user_policy_info.selector.saddr.to_ipv6(),
+                Ipv6Addr::from_str("fe88::10.0.0.0").unwrap()
+            );
             assert_eq!(xm.user_policy_info.selector.dport, 40003);
             assert_eq!(xm.user_policy_info.selector.dport_mask, 0xFFFF);
             assert_eq!(xm.user_policy_info.selector.sport, 20007);
@@ -340,10 +346,22 @@ fn parse_xfrm_pol_5() {
             assert_eq!(xm.user_policy_info.selector.ifindex, 2);
             assert_eq!(xm.user_policy_info.selector.user, 0);
 
-            assert_eq!(xm.user_policy_info.lifetime_cfg.soft_byte_limit, 0xFFFFFFFFFFFFFFFF);
-            assert_eq!(xm.user_policy_info.lifetime_cfg.hard_byte_limit, 0xFFFFFFFFFFFFFFFF);
-            assert_eq!(xm.user_policy_info.lifetime_cfg.soft_packet_limit, 0xFFFFFFFFFFFFFFFF);
-            assert_eq!(xm.user_policy_info.lifetime_cfg.hard_packet_limit, 0xFFFFFFFFFFFFFFFF);
+            assert_eq!(
+                xm.user_policy_info.lifetime_cfg.soft_byte_limit,
+                0xFFFFFFFFFFFFFFFF
+            );
+            assert_eq!(
+                xm.user_policy_info.lifetime_cfg.hard_byte_limit,
+                0xFFFFFFFFFFFFFFFF
+            );
+            assert_eq!(
+                xm.user_policy_info.lifetime_cfg.soft_packet_limit,
+                0xFFFFFFFFFFFFFFFF
+            );
+            assert_eq!(
+                xm.user_policy_info.lifetime_cfg.hard_packet_limit,
+                0xFFFFFFFFFFFFFFFF
+            );
             assert_eq!(xm.user_policy_info.lifetime_cfg.soft_add_expires_seconds, 0);
             assert_eq!(xm.user_policy_info.lifetime_cfg.hard_add_expires_seconds, 0);
             assert_eq!(xm.user_policy_info.lifetime_cfg.soft_use_expires_seconds, 0);
@@ -366,11 +384,17 @@ fn parse_xfrm_pol_5() {
                 match attr {
                     PolicyType(up) => assert_eq!(up.ptype, XFRM_POLICY_TYPE_SUB),
                     Template(ut) => {
-                        assert_eq!(ut[0].id.daddr.to_ipv6(), Ipv6Addr::from_str("fe68::198.51.100.20").unwrap());
+                        assert_eq!(
+                            ut[0].id.daddr.to_ipv6(),
+                            Ipv6Addr::from_str("fe68::198.51.100.20").unwrap()
+                        );
                         assert_eq!(ut[0].id.spi, 0);
                         assert_eq!(ut[0].id.proto, IPPROTO_ESP);
                         assert_eq!(ut[0].family, AF_INET6);
-                        assert_eq!(ut[0].saddr.to_ipv6(), Ipv6Addr::from_str("fe68::192.0.2.1").unwrap());
+                        assert_eq!(
+                            ut[0].saddr.to_ipv6(),
+                            Ipv6Addr::from_str("fe68::192.0.2.1").unwrap()
+                        );
                         assert_eq!(ut[0].reqid, 1);
                         assert_eq!(ut[0].mode, XFRM_MODE_TUNNEL);
                         assert_eq!(ut[0].share, XFRM_SHARE_ANY);
@@ -378,11 +402,11 @@ fn parse_xfrm_pol_5() {
                         assert_eq!(ut[0].aalgos, 0xFFFFFFFF);
                         assert_eq!(ut[0].ealgos, 0xFFFFFFFF);
                         assert_eq!(ut[0].calgos, 0xFFFFFFFF);
-                    },
+                    }
                     Mark(mark) => {
                         assert_eq!(mark.value, 8);
                         assert_eq!(mark.mask, 3);
-                    },
+                    }
                     IfId(ifid) => assert_eq!(*ifid, 5),
                     _ => {
                         panic!("unexpected XfrmAttr");
@@ -403,14 +427,14 @@ fn emit_xfrm_pol_5() {
     let upt = UserPolicyType {
         ptype: XFRM_POLICY_TYPE_SUB,
         reserved1: 0,
-        reserved2: 0
+        reserved2: 0,
     };
 
     let ut = UserTemplate {
         id: Id {
-                daddr: Address::from_ipv6(&Ipv6Addr::from_str("fe68::198.51.100.20").unwrap()),
-                spi: 0,
-                proto: IPPROTO_ESP
+            daddr: Address::from_ipv6(&Ipv6Addr::from_str("fe68::198.51.100.20").unwrap()),
+            spi: 0,
+            proto: IPPROTO_ESP,
         },
         family: AF_INET6,
         saddr: Address::from_ipv6(&Ipv6Addr::from_str("fe68::192.0.2.1").unwrap()),
@@ -420,13 +444,10 @@ fn emit_xfrm_pol_5() {
         optional: 0,
         aalgos: 0xFFFFFFFF,
         ealgos: 0xFFFFFFFF,
-        calgos: 0xFFFFFFFF
+        calgos: 0xFFFFFFFF,
     };
 
-    let mark = Mark {
-        value: 8,
-        mask: 3
-    };
+    let mark = Mark { value: 8, mask: 3 };
 
     let modify_payload = ModifyMessage {
         user_policy_info: UserPolicyInfo {
@@ -474,7 +495,7 @@ fn emit_xfrm_pol_5() {
             XfrmAttrs::PolicyType(upt),
             XfrmAttrs::Template(vec![ut]),
             XfrmAttrs::Mark(mark),
-            XfrmAttrs::IfId(5)
+            XfrmAttrs::IfId(5),
         ],
     };
     let mut packet = NetlinkMessage {
@@ -495,7 +516,8 @@ fn emit_xfrm_pol_5() {
 
 #[test]
 fn parse_emit_xfrm_pol_6() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P6_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P6_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -516,7 +538,8 @@ fn parse_emit_xfrm_pol_6() {
 
 #[test]
 fn parse_emit_xfrm_pol_7() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P7_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P7_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -537,7 +560,8 @@ fn parse_emit_xfrm_pol_7() {
 
 #[test]
 fn parse_emit_xfrm_pol_8() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P8_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P8_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -558,7 +582,8 @@ fn parse_emit_xfrm_pol_8() {
 
 #[test]
 fn parse_emit_xfrm_pol_9() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P9_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P9_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -579,7 +604,8 @@ fn parse_emit_xfrm_pol_9() {
 
 #[test]
 fn parse_emit_xfrm_pol_10() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P10_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P10_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -596,19 +622,19 @@ fn parse_emit_xfrm_pol_10() {
                     SpdInfo(si) => {
                         assert_eq!(si.incnt, 0);
                         assert_eq!(si.outcnt, 1);
-                    },
+                    }
                     SpdHInfo(si) => {
                         assert_eq!(si.spdhcnt, 7);
                         assert_eq!(si.spdhmcnt, 1048576);
-                    },
+                    }
                     SpdIpv4HThresh(si) => {
                         assert_eq!(si.lbits, 32);
                         assert_eq!(si.rbits, 32);
-                    },
+                    }
                     SpdIpv6HThresh(si) => {
                         assert_eq!(si.lbits, 128);
                         assert_eq!(si.rbits, 128);
-                    },
+                    }
                     _ => {
                         panic!("unexpected SpdInfoAttrs");
                     }
@@ -625,7 +651,8 @@ fn parse_emit_xfrm_pol_10() {
 
 #[test]
 fn parse_emit_xfrm_pol_11() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P11_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P11_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -646,10 +673,11 @@ fn parse_emit_xfrm_pol_11() {
 
 #[test]
 fn parse_emit_xfrm_pol_12() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P12_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P12_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; P12_BYTES.len()]; // the sample packet has one extra byte of padding that isn't parsed
-    //reserialize
+                                            //reserialize
     deserialized_packet.serialize(&mut buf[..]);
     assert_eq!(&buf[..], &P12_BYTES[..]);
 
@@ -667,7 +695,8 @@ fn parse_emit_xfrm_pol_12() {
 
 #[test]
 fn parse_emit_xfrm_pol_13() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P13_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P13_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -688,7 +717,8 @@ fn parse_emit_xfrm_pol_13() {
 
 #[test]
 fn parse_emit_xfrm_pol_14() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P14_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&P14_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -709,7 +739,8 @@ fn parse_emit_xfrm_pol_14() {
 
 #[test]
 fn parse_emit_xfrm_st_1() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&S1_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&S1_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -730,7 +761,8 @@ fn parse_emit_xfrm_st_1() {
 
 #[test]
 fn parse_emit_xfrm_st_2() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&S2_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&S2_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -751,7 +783,8 @@ fn parse_emit_xfrm_st_2() {
 
 #[test]
 fn parse_emit_xfrm_st_3() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&S3_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&S3_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -772,7 +805,8 @@ fn parse_emit_xfrm_st_3() {
 
 #[test]
 fn parse_emit_xfrm_st_4() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&S4_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&S4_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -793,7 +827,8 @@ fn parse_emit_xfrm_st_4() {
 
 #[test]
 fn parse_emit_xfrm_st_5() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&S5_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&S5_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -814,7 +849,8 @@ fn parse_emit_xfrm_st_5() {
 
 #[test]
 fn parse_emit_xfrm_st_6() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&S6_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&S6_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -835,7 +871,8 @@ fn parse_emit_xfrm_st_6() {
 
 #[test]
 fn parse_emit_xfrm_st_7() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&S7_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&S7_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -856,7 +893,8 @@ fn parse_emit_xfrm_st_7() {
 
 #[test]
 fn parse_emit_xfrm_st_8() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&S8_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&S8_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -874,7 +912,7 @@ fn parse_emit_xfrm_st_8() {
                         println!("{:?}", si);
                         assert_eq!(si.sadhcnt, 8);
                         assert_eq!(si.sadhmcnt, 1048576);
-                    },
+                    }
                     _ => {
                         panic!("unexpected SadInfoAttrs");
                     }
@@ -891,7 +929,8 @@ fn parse_emit_xfrm_st_8() {
 
 #[test]
 fn parse_emit_xfrm_st_9() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&S9_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&S9_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -912,7 +951,8 @@ fn parse_emit_xfrm_st_9() {
 
 #[test]
 fn parse_emit_xfrm_st_10() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&S10_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&S10_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -933,7 +973,8 @@ fn parse_emit_xfrm_st_10() {
 
 #[test]
 fn parse_emit_xfrm_mon_1() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&M1_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&M1_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -954,7 +995,8 @@ fn parse_emit_xfrm_mon_1() {
 
 #[test]
 fn parse_emit_xfrm_mon_2() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&M2_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&M2_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -975,7 +1017,8 @@ fn parse_emit_xfrm_mon_2() {
 
 #[test]
 fn parse_emit_xfrm_mon_3() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&M3_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&M3_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -1030,7 +1073,8 @@ fn emit_xfrm_mon_4() {
 
 #[test]
 fn parse_emit_xfrm_mon_4() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&M4_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&M4_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -1051,7 +1095,8 @@ fn parse_emit_xfrm_mon_4() {
 
 #[test]
 fn parse_emit_xfrm_mon_5() {
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&M5_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&M5_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     let mut buf = vec![0; deserialized_packet.buffer_len()];
     //reserialize
@@ -1092,11 +1137,9 @@ fn emit_parse_xfrm_mon_6() {
                 user: 0,
             },
         },
-        nlas: vec![
-            XfrmAttrs::CareOfAddr(
-                Address::from_ipv4(&Ipv4Addr::from_str("192.168.1.1").unwrap())
-                ),
-        ],
+        nlas: vec![XfrmAttrs::CareOfAddr(Address::from_ipv4(
+            &Ipv4Addr::from_str("192.168.1.1").unwrap(),
+        ))],
     };
 
     let mut packet = NetlinkMessage {
@@ -1112,7 +1155,8 @@ fn emit_parse_xfrm_mon_6() {
     println!("{:?}", packet);
     assert_eq!(&buf[..packet.buffer_len()], &M6_BYTES[..]);
 
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&M6_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&M6_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     assert_eq!(packet, deserialized_packet);
 
@@ -1136,7 +1180,7 @@ fn emit_parse_xfrm_mon_7() {
             new_saddr: Address::from_ipv4(&Ipv4Addr::from_str("192.168.2.1").unwrap()),
             old_sport: 40003,
             new_sport: 20007,
-        }
+        },
     };
 
     let mut packet = NetlinkMessage {
@@ -1152,7 +1196,8 @@ fn emit_parse_xfrm_mon_7() {
     println!("{:?}", packet);
     assert_eq!(&buf[..packet.buffer_len()], &M7_BYTES[..]);
 
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&M7_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&M7_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     assert_eq!(packet, deserialized_packet);
 
@@ -1186,13 +1231,13 @@ fn emit_parse_xfrm_mon_8() {
     println!("{:?}", packet);
     assert_eq!(&buf[..packet.buffer_len()], &M8_BYTES[..]);
 
-    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&M8_BYTES).expect("Failed to deserialize message");
+    let deserialized_packet = NetlinkMessage::<XfrmMessage>::deserialize(&M8_BYTES)
+        .expect("Failed to deserialize message");
     println!("{:?}", deserialized_packet);
     assert_eq!(packet, deserialized_packet);
 
     //netlink_send_recv(&buf[..packet.buffer_len()]);
 }
-
 
 // Copied from documentation, needs to be run with admin/root permissions
 fn netlink_send_recv(pkt: &[u8]) {

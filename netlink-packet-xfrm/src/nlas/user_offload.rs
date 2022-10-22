@@ -1,15 +1,11 @@
 // SPDX-License-Identifier: MIT
 
-use netlink_packet_utils::{
-    buffer,
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, traits::*, DecodeError};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct UserOffloadDev {
-    pub ifindex: i32,   /* "int" in iproute2 */
-    pub flags: u8
+    pub ifindex: i32, /* "int" in iproute2 */
+    pub flags: u8,
 }
 
 pub const XFRM_USER_OFFLOAD_DEV_LEN: usize = 8;
@@ -24,7 +20,7 @@ impl<T: AsRef<[u8]>> Parseable<UserOffloadDevBuffer<T>> for UserOffloadDev {
     fn parse(buf: &UserOffloadDevBuffer<T>) -> Result<Self, DecodeError> {
         Ok(UserOffloadDev {
             ifindex: buf.ifindex(),
-            flags: buf.flags()
+            flags: buf.flags(),
         })
     }
 }

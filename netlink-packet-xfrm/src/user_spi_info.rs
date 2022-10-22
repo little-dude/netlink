@@ -4,28 +4,20 @@ use anyhow::Context;
 
 use core::ops::Range;
 
-use crate::{
-    UserSaInfo,
-    UserSaInfoBuffer,
-    XFRM_USER_SA_INFO_LEN,
-};
+use crate::{UserSaInfo, UserSaInfoBuffer, XFRM_USER_SA_INFO_LEN};
 
-use netlink_packet_utils::{
-    buffer,
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, traits::*, DecodeError};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct UserSpiInfo {
     pub info: UserSaInfo,
     pub min: u32,
-    pub max: u32
+    pub max: u32,
 }
 
 const INFO_FIELD: Range<usize> = 0..XFRM_USER_SA_INFO_LEN;
-const MIN_FIELD: Range<usize>  = INFO_FIELD.end..(INFO_FIELD.end + 4);
-const MAX_FIELD: Range<usize>  = MIN_FIELD.end..(MIN_FIELD.end + 4);
+const MIN_FIELD: Range<usize> = INFO_FIELD.end..(INFO_FIELD.end + 4);
+const MAX_FIELD: Range<usize> = MIN_FIELD.end..(MIN_FIELD.end + 4);
 
 pub const XFRM_USER_SPI_INFO_LEN: usize = (MAX_FIELD.end + 7) & !7; // 232
 
@@ -42,7 +34,7 @@ impl<T: AsRef<[u8]> + ?Sized> Parseable<UserSpiInfoBuffer<&T>> for UserSpiInfo {
         Ok(UserSpiInfo {
             info,
             min: buf.min(),
-            max: buf.max()
+            max: buf.max(),
         })
     }
 }

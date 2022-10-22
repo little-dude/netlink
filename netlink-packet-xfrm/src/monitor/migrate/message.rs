@@ -2,22 +2,14 @@
 
 use anyhow::Context;
 
-use crate::{
-    MigrateMessageBuffer,
-    UserPolicyId,
-    UserPolicyIdBuffer,
-    XfrmAttrs,
-};
+use crate::{MigrateMessageBuffer, UserPolicyId, UserPolicyIdBuffer, XfrmAttrs};
 
-use netlink_packet_utils::{
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{traits::*, DecodeError};
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct MigrateMessage {
     pub user_policy_id: UserPolicyId,
-    pub nlas: Vec<XfrmAttrs>
+    pub nlas: Vec<XfrmAttrs>,
 }
 
 impl Emitable for MigrateMessage {
@@ -39,7 +31,8 @@ impl<'a, T: AsRef<[u8]> + 'a> Parseable<MigrateMessageBuffer<&'a T>> for Migrate
             .context("failed to parse migrate message user policy id")?;
         Ok(MigrateMessage {
             user_policy_id,
-            nlas: Vec::<XfrmAttrs>::parse(buf).context("failed to parse monitor migrate message NLAs")?
+            nlas: Vec::<XfrmAttrs>::parse(buf)
+                .context("failed to parse monitor migrate message NLAs")?,
         })
     }
 }

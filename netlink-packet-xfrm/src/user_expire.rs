@@ -4,26 +4,18 @@ use anyhow::Context;
 
 use core::ops::Range;
 
-use crate::{
-    UserSaInfo,
-    UserSaInfoBuffer,
-    XFRM_USER_SA_INFO_LEN,
-};
+use crate::{UserSaInfo, UserSaInfoBuffer, XFRM_USER_SA_INFO_LEN};
 
-use netlink_packet_utils::{
-    buffer,
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, traits::*, DecodeError};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct UserExpire {
     pub state: UserSaInfo,
-    pub hard: u8
+    pub hard: u8,
 }
 
 const STATE_FIELD: Range<usize> = 0..XFRM_USER_SA_INFO_LEN;
-const HARD_FIELD: usize         = STATE_FIELD.end;
+const HARD_FIELD: usize = STATE_FIELD.end;
 
 pub const XFRM_USER_EXPIRE_LEN: usize = (XFRM_USER_SA_INFO_LEN + 1 + 7) & !7; // 232
 
@@ -38,7 +30,7 @@ impl<T: AsRef<[u8]> + ?Sized> Parseable<UserExpireBuffer<&T>> for UserExpire {
             .context("failed to parse user sa info")?;
         Ok(UserExpire {
             state,
-            hard: buf.hard()
+            hard: buf.hard(),
         })
     }
 }

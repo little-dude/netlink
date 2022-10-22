@@ -2,10 +2,7 @@
 
 use crate::XFRM_USER_EXPIRE_LEN;
 
-use netlink_packet_utils::{
-    buffer,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, DecodeError};
 
 pub const MONITOR_EXPIRE_HEADER_LEN: usize = XFRM_USER_EXPIRE_LEN;
 

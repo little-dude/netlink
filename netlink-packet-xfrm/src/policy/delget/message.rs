@@ -2,22 +2,14 @@
 
 use anyhow::Context;
 
-use crate::{
-    policy::DelGetMessageBuffer,
-    UserPolicyId,
-    UserPolicyIdBuffer,
-    XfrmAttrs,
-};
+use crate::{policy::DelGetMessageBuffer, UserPolicyId, UserPolicyIdBuffer, XfrmAttrs};
 
-use netlink_packet_utils::{
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{traits::*, DecodeError};
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct DelGetMessage {
     pub user_policy_id: UserPolicyId,
-    pub nlas: Vec<XfrmAttrs>
+    pub nlas: Vec<XfrmAttrs>,
 }
 
 impl Emitable for DelGetMessage {
@@ -39,7 +31,8 @@ impl<'a, T: AsRef<[u8]> + 'a> Parseable<DelGetMessageBuffer<&'a T>> for DelGetMe
             .context("failed to parse policy delget message user policy id")?;
         Ok(DelGetMessage {
             user_policy_id,
-            nlas: Vec::<XfrmAttrs>::parse(buf).context("failed to parse policy delget message NLAs")?
+            nlas: Vec::<XfrmAttrs>::parse(buf)
+                .context("failed to parse policy delget message NLAs")?,
         })
     }
 }

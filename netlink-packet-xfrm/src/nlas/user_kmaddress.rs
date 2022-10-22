@@ -4,30 +4,22 @@ use anyhow::Context;
 
 use core::ops::Range;
 
-use crate::{
-    Address,
-    AddressBuffer,
-    XFRM_ADDRESS_LEN,
-};
+use crate::{Address, AddressBuffer, XFRM_ADDRESS_LEN};
 
-use netlink_packet_utils::{
-    buffer,
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, traits::*, DecodeError};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct UserKmAddress {
     pub local: Address,
     pub remote: Address,
     pub reserved: u32,
-    pub family: u16
+    pub family: u16,
 }
 
-const LOCAL_FIELD: Range<usize>    = 0..XFRM_ADDRESS_LEN;
-const REMOTE_FIELD: Range<usize>   = LOCAL_FIELD.end..(LOCAL_FIELD.end + XFRM_ADDRESS_LEN);
+const LOCAL_FIELD: Range<usize> = 0..XFRM_ADDRESS_LEN;
+const REMOTE_FIELD: Range<usize> = LOCAL_FIELD.end..(LOCAL_FIELD.end + XFRM_ADDRESS_LEN);
 const RESERVED_FIELD: Range<usize> = REMOTE_FIELD.end..(REMOTE_FIELD.end + 4);
-const FAMILY_FIELD: Range<usize>   = RESERVED_FIELD.end..(RESERVED_FIELD.end + 2);
+const FAMILY_FIELD: Range<usize> = RESERVED_FIELD.end..(RESERVED_FIELD.end + 2);
 
 pub const XFRM_USER_KMADDRESS_LEN: usize = (FAMILY_FIELD.end + 7) & !7; // 40
 
@@ -48,7 +40,7 @@ impl<T: AsRef<[u8]> + ?Sized> Parseable<UserKmAddressBuffer<&T>> for UserKmAddre
             local,
             remote,
             reserved: buf.reserved(),
-            family: buf.family()
+            family: buf.family(),
         })
     }
 }

@@ -1,16 +1,12 @@
 // SPDX-License-Identifier: MIT
 
-use netlink_packet_utils::{
-    buffer,
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, traits::*, DecodeError};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct UserPolicyType {
     pub ptype: u8,
     pub reserved1: u16,
-    pub reserved2: u8
+    pub reserved2: u8,
 }
 
 pub const XFRM_USER_POLICY_TYPE_LEN: usize = 6; /* includes 2 bytes of padding */

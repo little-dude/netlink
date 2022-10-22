@@ -4,17 +4,9 @@ use anyhow::Context;
 
 use core::ops::Range;
 
-use crate::{
-    Address,
-    AddressBuffer,
-    XFRM_ADDRESS_LEN,
-};
+use crate::{Address, AddressBuffer, XFRM_ADDRESS_LEN};
 
-use netlink_packet_utils::{
-    buffer,
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, traits::*, DecodeError};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct Selector {
@@ -29,21 +21,21 @@ pub struct Selector {
     pub prefixlen_s: u8,
     pub proto: u8,
     pub ifindex: i32, // "int" in iproute2
-    pub user: u32     // "__kernel_uid32_t" in iproute2
+    pub user: u32,    // "__kernel_uid32_t" in iproute2
 }
 
-const DADDR_FIELD: Range<usize>      = 0..XFRM_ADDRESS_LEN;
-const SADDR_FIELD: Range<usize>      = DADDR_FIELD.end..(DADDR_FIELD.end + XFRM_ADDRESS_LEN);
-const DPORT_FIELD: Range<usize>      = SADDR_FIELD.end..(SADDR_FIELD.end + 2);
+const DADDR_FIELD: Range<usize> = 0..XFRM_ADDRESS_LEN;
+const SADDR_FIELD: Range<usize> = DADDR_FIELD.end..(DADDR_FIELD.end + XFRM_ADDRESS_LEN);
+const DPORT_FIELD: Range<usize> = SADDR_FIELD.end..(SADDR_FIELD.end + 2);
 const DPORT_MASK_FIELD: Range<usize> = DPORT_FIELD.end..(DPORT_FIELD.end + 2);
-const SPORT_FIELD: Range<usize>      = DPORT_MASK_FIELD.end..(DPORT_MASK_FIELD.end + 2);
+const SPORT_FIELD: Range<usize> = DPORT_MASK_FIELD.end..(DPORT_MASK_FIELD.end + 2);
 const SPORT_MASK_FIELD: Range<usize> = SPORT_FIELD.end..(SPORT_FIELD.end + 2);
-const FAMILY_FIELD: Range<usize>     = SPORT_MASK_FIELD.end..(SPORT_MASK_FIELD.end + 2);
-const PREFIXLEN_D_FIELD: usize       = FAMILY_FIELD.end;
-const PREFIXLEN_S_FIELD: usize       = PREFIXLEN_D_FIELD + 1;
-const PROTO_FIELD: usize             = PREFIXLEN_S_FIELD + 1;
-const IFINDEX_FIELD: Range<usize>    = (PROTO_FIELD + 4)..(PROTO_FIELD + 4 + 4);
-const USER_FIELD: Range<usize>       = IFINDEX_FIELD.end..(IFINDEX_FIELD.end + 4);
+const FAMILY_FIELD: Range<usize> = SPORT_MASK_FIELD.end..(SPORT_MASK_FIELD.end + 2);
+const PREFIXLEN_D_FIELD: usize = FAMILY_FIELD.end;
+const PREFIXLEN_S_FIELD: usize = PREFIXLEN_D_FIELD + 1;
+const PROTO_FIELD: usize = PREFIXLEN_S_FIELD + 1;
+const IFINDEX_FIELD: Range<usize> = (PROTO_FIELD + 4)..(PROTO_FIELD + 4 + 4);
+const USER_FIELD: Range<usize> = IFINDEX_FIELD.end..(IFINDEX_FIELD.end + 4);
 
 pub const XFRM_SELECTOR_LEN: usize = USER_FIELD.end; //56
 
@@ -65,10 +57,10 @@ buffer!(SelectorBuffer(XFRM_SELECTOR_LEN) {
 
 impl<T: AsRef<[u8]> + ?Sized> Parseable<SelectorBuffer<&T>> for Selector {
     fn parse(buf: &SelectorBuffer<&T>) -> Result<Self, DecodeError> {
-        let daddr = Address::parse(&AddressBuffer::new(&buf.daddr()))
-            .context("failed to parse daddr")?;
-        let saddr = Address::parse(&AddressBuffer::new(&buf.saddr()))
-            .context("failed to parse saddr")?;
+        let daddr =
+            Address::parse(&AddressBuffer::new(&buf.daddr())).context("failed to parse daddr")?;
+        let saddr =
+            Address::parse(&AddressBuffer::new(&buf.saddr())).context("failed to parse saddr")?;
         Ok(Selector {
             daddr,
             saddr,
@@ -81,7 +73,7 @@ impl<T: AsRef<[u8]> + ?Sized> Parseable<SelectorBuffer<&T>> for Selector {
             prefixlen_s: buf.prefixlen_s(),
             proto: buf.proto(),
             ifindex: buf.ifindex(),
-            user: buf.user()
+            user: buf.user(),
         })
     }
 }

@@ -4,20 +4,9 @@ use anyhow::Context;
 
 use core::ops::Range;
 
-use crate::{
-    Address,
-    AddressBuffer,
-    Id,
-    IdBuffer,
-    XFRM_ID_LEN,
-    XFRM_ADDRESS_LEN,
-};
+use crate::{Address, AddressBuffer, Id, IdBuffer, XFRM_ADDRESS_LEN, XFRM_ID_LEN};
 
-use netlink_packet_utils::{
-    buffer,
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, traits::*, DecodeError};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct UserTemplate {
@@ -30,16 +19,16 @@ pub struct UserTemplate {
     pub optional: u8,
     pub aalgos: u32,
     pub ealgos: u32,
-    pub calgos: u32
+    pub calgos: u32,
 }
 
-const ID_FIELD: Range<usize>     = 0..XFRM_ID_LEN;
+const ID_FIELD: Range<usize> = 0..XFRM_ID_LEN;
 const FAMILY_FIELD: Range<usize> = ID_FIELD.end..(ID_FIELD.end + 2);
-const SADDR_FIELD: Range<usize>  = (FAMILY_FIELD.end + 2)..(FAMILY_FIELD.end + 2 + XFRM_ADDRESS_LEN);
-const REQID_FIELD: Range<usize>  = SADDR_FIELD.end..(SADDR_FIELD.end + 4);
-const MODE_FIELD: usize          = REQID_FIELD.end;
-const SHARE_FIELD: usize         = MODE_FIELD + 1;
-const OPTIONAL_FIELD: usize      = SHARE_FIELD + 1;
+const SADDR_FIELD: Range<usize> = (FAMILY_FIELD.end + 2)..(FAMILY_FIELD.end + 2 + XFRM_ADDRESS_LEN);
+const REQID_FIELD: Range<usize> = SADDR_FIELD.end..(SADDR_FIELD.end + 4);
+const MODE_FIELD: usize = REQID_FIELD.end;
+const SHARE_FIELD: usize = MODE_FIELD + 1;
+const OPTIONAL_FIELD: usize = SHARE_FIELD + 1;
 const AALGOS_FIELD: Range<usize> = (OPTIONAL_FIELD + 2)..(OPTIONAL_FIELD + 2 + 4);
 const EALGOS_FIELD: Range<usize> = AALGOS_FIELD.end..(AALGOS_FIELD.end + 4);
 const CALGOS_FIELD: Range<usize> = EALGOS_FIELD.end..(EALGOS_FIELD.end + 4);
@@ -80,8 +69,8 @@ impl Default for UserTemplate {
 
 impl<T: AsRef<[u8]> + ?Sized> Parseable<UserTemplateBuffer<&T>> for UserTemplate {
     fn parse(buf: &UserTemplateBuffer<&T>) -> Result<Self, DecodeError> {
-        let id = Id::parse(&IdBuffer::new(&buf.id()))
-            .context("failed to parse Id in UserTemplate")?;
+        let id =
+            Id::parse(&IdBuffer::new(&buf.id())).context("failed to parse Id in UserTemplate")?;
         let saddr = Address::parse(&AddressBuffer::new(&buf.saddr()))
             .context("failed to parse Address in UserTemplate")?;
         Ok(UserTemplate {
@@ -94,7 +83,7 @@ impl<T: AsRef<[u8]> + ?Sized> Parseable<UserTemplateBuffer<&T>> for UserTemplate
             optional: buf.optional(),
             aalgos: buf.aalgos(),
             ealgos: buf.ealgos(),
-            calgos: buf.calgos()
+            calgos: buf.calgos(),
         })
     }
 }

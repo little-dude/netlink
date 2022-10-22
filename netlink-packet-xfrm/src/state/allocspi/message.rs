@@ -2,22 +2,14 @@
 
 use anyhow::Context;
 
-use crate::{
-    AllocSpiMessageBuffer,
-    UserSpiInfo,
-    UserSpiInfoBuffer,
-    XfrmAttrs,
-};
+use crate::{AllocSpiMessageBuffer, UserSpiInfo, UserSpiInfoBuffer, XfrmAttrs};
 
-use netlink_packet_utils::{
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{traits::*, DecodeError};
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct AllocSpiMessage {
     pub spi_info: UserSpiInfo,
-    pub nlas: Vec<XfrmAttrs>
+    pub nlas: Vec<XfrmAttrs>,
 }
 
 impl Emitable for AllocSpiMessage {
@@ -39,7 +31,8 @@ impl<'a, T: AsRef<[u8]> + 'a> Parseable<AllocSpiMessageBuffer<&'a T>> for AllocS
             .context("failed to parse state allocspi message spi info")?;
         Ok(AllocSpiMessage {
             spi_info,
-            nlas: Vec::<XfrmAttrs>::parse(buf).context("failed to parse state delget message NLAs")?
+            nlas: Vec::<XfrmAttrs>::parse(buf)
+                .context("failed to parse state delget message NLAs")?,
         })
     }
 }

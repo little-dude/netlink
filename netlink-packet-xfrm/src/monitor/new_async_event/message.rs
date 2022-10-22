@@ -2,22 +2,14 @@
 
 use anyhow::Context;
 
-use crate::{
-    AsyncEventId,
-    AsyncEventIdBuffer,
-    NewAsyncEventMessageBuffer,
-    XfrmAttrs,
-};
+use crate::{AsyncEventId, AsyncEventIdBuffer, NewAsyncEventMessageBuffer, XfrmAttrs};
 
-use netlink_packet_utils::{
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{traits::*, DecodeError};
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct NewAsyncEventMessage {
     pub id: AsyncEventId,
-    pub nlas: Vec<XfrmAttrs>
+    pub nlas: Vec<XfrmAttrs>,
 }
 
 impl Emitable for NewAsyncEventMessage {
@@ -33,13 +25,16 @@ impl Emitable for NewAsyncEventMessage {
     }
 }
 
-impl<'a, T: AsRef<[u8]> + 'a> Parseable<NewAsyncEventMessageBuffer<&'a T>> for NewAsyncEventMessage {
+impl<'a, T: AsRef<[u8]> + 'a> Parseable<NewAsyncEventMessageBuffer<&'a T>>
+    for NewAsyncEventMessage
+{
     fn parse(buf: &NewAsyncEventMessageBuffer<&'a T>) -> Result<Self, DecodeError> {
         let id = AsyncEventId::parse(&AsyncEventIdBuffer::new(&buf.id()))
             .context("failed to parse monitor new async event id")?;
         Ok(NewAsyncEventMessage {
             id,
-            nlas: Vec::<XfrmAttrs>::parse(buf).context("failed to parse monitor new async event message NLAs")?
+            nlas: Vec::<XfrmAttrs>::parse(buf)
+                .context("failed to parse monitor new async event message NLAs")?,
         })
     }
 }

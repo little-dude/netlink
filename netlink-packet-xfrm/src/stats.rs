@@ -1,16 +1,12 @@
 // SPDX-License-Identifier: MIT
 
-use netlink_packet_utils::{
-    buffer,
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, traits::*, DecodeError};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct Stats {
     pub replay_window: u32,
     pub replay: u32,
-    pub integrity_failed: u32
+    pub integrity_failed: u32,
 }
 
 pub const XFRM_STATS_LEN: usize = 12;
@@ -26,7 +22,7 @@ impl<T: AsRef<[u8]>> Parseable<StatsBuffer<T>> for Stats {
         Ok(Stats {
             replay_window: buf.replay_window(),
             replay: buf.replay(),
-            integrity_failed: buf.integrity_failed()
+            integrity_failed: buf.integrity_failed(),
         })
     }
 }

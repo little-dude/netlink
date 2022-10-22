@@ -3,20 +3,14 @@
 use anyhow::Context;
 
 use crate::{
-    DefaultMessageBuffer,
-    POLICY_DEFAULT_HEADER_LEN,
-    UserPolicyDefault,
-    UserPolicyDefaultBuffer,
+    DefaultMessageBuffer, UserPolicyDefault, UserPolicyDefaultBuffer, POLICY_DEFAULT_HEADER_LEN,
 };
 
-use netlink_packet_utils::{
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{traits::*, DecodeError};
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct DefaultMessage {
-    pub user_policy: UserPolicyDefault
+    pub user_policy: UserPolicyDefault,
 }
 
 impl Emitable for DefaultMessage {
@@ -31,10 +25,9 @@ impl Emitable for DefaultMessage {
 
 impl<'a, T: AsRef<[u8]> + 'a> Parseable<DefaultMessageBuffer<&'a T>> for DefaultMessage {
     fn parse(buf: &DefaultMessageBuffer<&'a T>) -> Result<Self, DecodeError> {
-        let user_policy = UserPolicyDefault::parse(&UserPolicyDefaultBuffer::new(&buf.user_policy()))
-            .context("failed to parse policy default message user policy")?;
-        Ok(DefaultMessage {
-            user_policy
-        })
+        let user_policy =
+            UserPolicyDefault::parse(&UserPolicyDefaultBuffer::new(&buf.user_policy()))
+                .context("failed to parse policy default message user policy")?;
+        Ok(DefaultMessage { user_policy })
     }
 }

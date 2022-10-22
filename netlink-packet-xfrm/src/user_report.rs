@@ -4,22 +4,14 @@ use anyhow::Context;
 
 use core::ops::Range;
 
-use crate::{
-    Selector,
-    SelectorBuffer,
-    XFRM_SELECTOR_LEN,
-};
+use crate::{Selector, SelectorBuffer, XFRM_SELECTOR_LEN};
 
-use netlink_packet_utils::{
-    buffer,
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, traits::*, DecodeError};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct UserReport {
     pub proto: u8,
-    pub selector: Selector
+    pub selector: Selector,
 }
 
 const SELECTOR_FIELD: Range<usize> = 4..(4 + XFRM_SELECTOR_LEN);
@@ -38,7 +30,7 @@ impl<T: AsRef<[u8]> + ?Sized> Parseable<UserReportBuffer<&T>> for UserReport {
             .context("failed to parse selector")?;
         Ok(UserReport {
             proto: buf.proto(),
-            selector
+            selector,
         })
     }
 }

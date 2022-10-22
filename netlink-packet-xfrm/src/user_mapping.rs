@@ -5,19 +5,10 @@ use anyhow::Context;
 use core::ops::Range;
 
 use crate::{
-    Address,
-    AddressBuffer,
-    UserSaId,
-    UserSaIdBuffer,
-    XFRM_ADDRESS_LEN,
-    XFRM_USER_SA_ID_LEN,
+    Address, AddressBuffer, UserSaId, UserSaIdBuffer, XFRM_ADDRESS_LEN, XFRM_USER_SA_ID_LEN,
 };
 
-use netlink_packet_utils::{
-    buffer,
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, traits::*, DecodeError};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct UserMapping {
@@ -26,11 +17,11 @@ pub struct UserMapping {
     pub old_saddr: Address,
     pub new_saddr: Address,
     pub old_sport: u16, // big-endian
-    pub new_sport: u16  // big-endian
+    pub new_sport: u16, // big-endian
 }
 
-const ID_FIELD: Range<usize>        = 0..XFRM_USER_SA_ID_LEN;
-const REQID_FIELD: Range<usize>     = ID_FIELD.end..(ID_FIELD.end + 4);
+const ID_FIELD: Range<usize> = 0..XFRM_USER_SA_ID_LEN;
+const REQID_FIELD: Range<usize> = ID_FIELD.end..(ID_FIELD.end + 4);
 const OLD_SADDR_FIELD: Range<usize> = REQID_FIELD.end..(REQID_FIELD.end + XFRM_ADDRESS_LEN);
 const NEW_SADDR_FIELD: Range<usize> = OLD_SADDR_FIELD.end..(OLD_SADDR_FIELD.end + XFRM_ADDRESS_LEN);
 const OLD_SPORT_FIELD: Range<usize> = NEW_SADDR_FIELD.end..(NEW_SADDR_FIELD.end + 2);
@@ -61,7 +52,7 @@ impl<T: AsRef<[u8]> + ?Sized> Parseable<UserMappingBuffer<&T>> for UserMapping {
             old_saddr,
             new_saddr,
             old_sport: u16::from_be(buf.old_sport()),
-            new_sport: u16::from_be(buf.new_sport())
+            new_sport: u16::from_be(buf.new_sport()),
         })
     }
 }

@@ -4,28 +4,20 @@ use anyhow::Context;
 
 use core::ops::Range;
 
-use crate::{
-    Selector,
-    SelectorBuffer,
-    XFRM_SELECTOR_LEN,
-};
+use crate::{Selector, SelectorBuffer, XFRM_SELECTOR_LEN};
 
-use netlink_packet_utils::{
-    buffer,
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, traits::*, DecodeError};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct UserPolicyId {
     pub selector: Selector,
     pub index: u32,
-    pub direction: u8
+    pub direction: u8,
 }
 
 const SELECTOR_FIELD: Range<usize> = 0..XFRM_SELECTOR_LEN;
-const INDEX_FIELD: Range<usize>    = SELECTOR_FIELD.end..(SELECTOR_FIELD.end + 4);
-const DIRECTION_FIELD: usize       = INDEX_FIELD.end;
+const INDEX_FIELD: Range<usize> = SELECTOR_FIELD.end..(SELECTOR_FIELD.end + 4);
+const DIRECTION_FIELD: usize = INDEX_FIELD.end;
 
 pub const XFRM_USER_POLICY_ID_LEN: usize = (DIRECTION_FIELD + 7) & !7; // 64
 
@@ -42,7 +34,7 @@ impl<T: AsRef<[u8]> + ?Sized> Parseable<UserPolicyIdBuffer<&T>> for UserPolicyId
         Ok(UserPolicyId {
             selector,
             index: buf.index(),
-            direction: buf.direction()
+            direction: buf.direction(),
         })
     }
 }

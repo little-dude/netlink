@@ -2,11 +2,7 @@
 
 use std::net::{Ipv4Addr, Ipv6Addr};
 
-use netlink_packet_utils::{
-    buffer,
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, traits::*, DecodeError};
 
 pub const XFRM_ADDRESS_LEN: usize = 16;
 
@@ -14,7 +10,7 @@ pub const XFRM_ADDRESS_LEN: usize = 16;
 pub struct Address {
     // Xfrm netlink API simply uses a 16 byte buffer for both IPv4 & IPv6
     // addresses and unfortunately doesn't always pair it with a family type.
-    pub addr: [u8; XFRM_ADDRESS_LEN]
+    pub addr: [u8; XFRM_ADDRESS_LEN],
 }
 
 buffer!(AddressBuffer(XFRM_ADDRESS_LEN) {
@@ -25,9 +21,7 @@ impl<T: AsRef<[u8]> + ?Sized> Parseable<AddressBuffer<&T>> for Address {
     fn parse(buf: &AddressBuffer<&T>) -> Result<Self, DecodeError> {
         let mut addr_payload: [u8; XFRM_ADDRESS_LEN] = [0; XFRM_ADDRESS_LEN];
         addr_payload.clone_from_slice(&buf.addr());
-        Ok(Address {
-            addr: addr_payload
-        })
+        Ok(Address { addr: addr_payload })
     }
 }
 
@@ -57,14 +51,10 @@ impl Address {
         addr_bytes[1] = ip.octets()[1];
         addr_bytes[2] = ip.octets()[2];
         addr_bytes[3] = ip.octets()[3];
-        Address {
-            addr: addr_bytes
-        }
+        Address { addr: addr_bytes }
     }
 
     pub fn from_ipv6(ip: &Ipv6Addr) -> Address {
-        Address {
-            addr: ip.octets()
-        }
+        Address { addr: ip.octets() }
     }
 }

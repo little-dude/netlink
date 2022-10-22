@@ -2,10 +2,7 @@
 
 use crate::XFRM_ASYNC_EVENT_ID_LEN;
 
-use netlink_packet_utils::{
-    buffer,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, DecodeError};
 
 pub const MONITOR_GET_ASYNC_EVENT_HEADER_LEN: usize = XFRM_ASYNC_EVENT_ID_LEN;
 

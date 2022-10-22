@@ -4,30 +4,22 @@ use anyhow::Context;
 
 use core::ops::Range;
 
-use crate::{
-    Address,
-    AddressBuffer,
-    XFRM_ADDRESS_LEN,
-};
+use crate::{Address, AddressBuffer, XFRM_ADDRESS_LEN};
 
-use netlink_packet_utils::{
-    buffer,
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, traits::*, DecodeError};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct EncapTmpl {
     pub encap_type: u16,
     pub encap_sport: u16, // big-endian
     pub encap_dport: u16, // big-endian
-    pub encap_oa: Address
+    pub encap_oa: Address,
 }
 
-const TYPE_FIELD: Range<usize>  = 0..2;
+const TYPE_FIELD: Range<usize> = 0..2;
 const SPORT_FIELD: Range<usize> = TYPE_FIELD.end..(TYPE_FIELD.end + 2);
 const DPORT_FIELD: Range<usize> = SPORT_FIELD.end..(SPORT_FIELD.end + 2);
-const OA_FIELD: Range<usize>    = (DPORT_FIELD.end + 2)..(DPORT_FIELD.end + 2 + XFRM_ADDRESS_LEN);
+const OA_FIELD: Range<usize> = (DPORT_FIELD.end + 2)..(DPORT_FIELD.end + 2 + XFRM_ADDRESS_LEN);
 
 pub const XFRM_ENCAP_TMPL_LEN: usize = OA_FIELD.end; // 24
 
@@ -47,7 +39,7 @@ impl<T: AsRef<[u8]> + ?Sized> Parseable<EncapTmplBuffer<&T>> for EncapTmpl {
             encap_type: buf.encap_type(),
             encap_sport: u16::from_be(buf.encap_sport()),
             encap_dport: u16::from_be(buf.encap_dport()),
-            encap_oa
+            encap_oa,
         })
     }
 }

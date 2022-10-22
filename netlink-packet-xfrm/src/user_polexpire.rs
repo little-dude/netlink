@@ -4,26 +4,18 @@ use anyhow::Context;
 
 use core::ops::Range;
 
-use crate::{
-    UserPolicyInfo,
-    UserPolicyInfoBuffer,
-    XFRM_USER_POLICY_INFO_LEN,
-};
+use crate::{UserPolicyInfo, UserPolicyInfoBuffer, XFRM_USER_POLICY_INFO_LEN};
 
-use netlink_packet_utils::{
-    buffer,
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, traits::*, DecodeError};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct UserPolicyExpire {
     pub pol: UserPolicyInfo,
-    pub hard: u8
+    pub hard: u8,
 }
 
 const POL_FIELD: Range<usize> = 0..XFRM_USER_POLICY_INFO_LEN;
-const HARD_FIELD: usize       = POL_FIELD.end;
+const HARD_FIELD: usize = POL_FIELD.end;
 
 pub const XFRM_USER_POLICY_EXPIRE_LEN: usize = (XFRM_USER_POLICY_INFO_LEN + 1 + 7) & !7; // 176
 
@@ -38,7 +30,7 @@ impl<T: AsRef<[u8]> + ?Sized> Parseable<UserPolicyExpireBuffer<&T>> for UserPoli
             .context("failed to parse user policy info")?;
         Ok(UserPolicyExpire {
             pol,
-            hard: buf.hard()
+            hard: buf.hard(),
         })
     }
 }

@@ -2,22 +2,14 @@
 
 use anyhow::Context;
 
-use crate::{
-    ReportMessageBuffer,
-    UserReport,
-    UserReportBuffer,
-    XfrmAttrs,
-};
+use crate::{ReportMessageBuffer, UserReport, UserReportBuffer, XfrmAttrs};
 
-use netlink_packet_utils::{
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{traits::*, DecodeError};
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct ReportMessage {
     pub report: UserReport,
-    pub nlas: Vec<XfrmAttrs>
+    pub nlas: Vec<XfrmAttrs>,
 }
 
 impl Emitable for ReportMessage {
@@ -39,7 +31,8 @@ impl<'a, T: AsRef<[u8]> + 'a> Parseable<ReportMessageBuffer<&'a T>> for ReportMe
             .context("failed to parse monitor acquire message info")?;
         Ok(ReportMessage {
             report,
-            nlas: Vec::<XfrmAttrs>::parse(buf).context("failed to parse monitor report message NLAs")?
+            nlas: Vec::<XfrmAttrs>::parse(buf)
+                .context("failed to parse monitor report message NLAs")?,
         })
     }
 }

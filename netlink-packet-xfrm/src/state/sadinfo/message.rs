@@ -3,22 +3,16 @@
 use anyhow::Context;
 
 use crate::{
-    GetSadInfoMessageBuffer,
-    NewSadInfoMessageBuffer,
-    STATE_GET_SAD_INFO_HEADER_LEN,
+    GetSadInfoMessageBuffer, NewSadInfoMessageBuffer, SadInfoAttrs, STATE_GET_SAD_INFO_HEADER_LEN,
     STATE_NEW_SAD_INFO_HEADER_LEN,
-    SadInfoAttrs,
 };
 
-use netlink_packet_utils::{
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{traits::*, DecodeError};
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct NewSadInfoMessage {
     pub flags: u32,
-    pub nlas: Vec<SadInfoAttrs>
+    pub nlas: Vec<SadInfoAttrs>,
 }
 
 impl Emitable for NewSadInfoMessage {
@@ -29,9 +23,7 @@ impl Emitable for NewSadInfoMessage {
     fn emit(&self, buffer: &mut [u8]) {
         let mut buffer = NewSadInfoMessageBuffer::new(buffer);
         buffer.set_flags(self.flags);
-        self.nlas
-            .as_slice()
-            .emit(&mut buffer.attributes_mut());
+        self.nlas.as_slice().emit(&mut buffer.attributes_mut());
     }
 }
 
@@ -39,7 +31,8 @@ impl<'a, T: AsRef<[u8]> + 'a> Parseable<NewSadInfoMessageBuffer<&'a T>> for NewS
     fn parse(buf: &NewSadInfoMessageBuffer<&'a T>) -> Result<Self, DecodeError> {
         Ok(NewSadInfoMessage {
             flags: buf.flags(),
-            nlas: Vec::<SadInfoAttrs>::parse(buf).context("failed to parse state new SAD info message NLAs")?
+            nlas: Vec::<SadInfoAttrs>::parse(buf)
+                .context("failed to parse state new SAD info message NLAs")?,
         })
     }
 }
@@ -72,8 +65,6 @@ impl Emitable for GetSadInfoMessage {
 
 impl<T: AsRef<[u8]>> Parseable<GetSadInfoMessageBuffer<T>> for GetSadInfoMessage {
     fn parse(buf: &GetSadInfoMessageBuffer<T>) -> Result<Self, DecodeError> {
-        Ok(GetSadInfoMessage {
-            flags: buf.flags()
-        })
+        Ok(GetSadInfoMessage { flags: buf.flags() })
     }
 }

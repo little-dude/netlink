@@ -3,43 +3,21 @@
 use crate::{
     constants::*,
     monitor::{
-        AcquireMessage,
-        ExpireMessage,
-        GetAsyncEventMessage,
-        MappingMessage,
-        MigrateMessage,
-        NewAsyncEventMessage,
-        PolicyExpireMessage,
-        ReportMessage,
+        AcquireMessage, ExpireMessage, GetAsyncEventMessage, MappingMessage, MigrateMessage,
+        NewAsyncEventMessage, PolicyExpireMessage, ReportMessage,
     },
     policy::{
-        DefaultMessage,
-        DelGetMessage as PolicyDelGetMessage,
-        FlushMessage as PolicyFlushMessage,
-        GetSpdInfoMessage,
-        ModifyMessage as PolicyModifyMessage,
-        NewSpdInfoMessage,
+        DefaultMessage, DelGetMessage as PolicyDelGetMessage, FlushMessage as PolicyFlushMessage,
+        GetSpdInfoMessage, ModifyMessage as PolicyModifyMessage, NewSpdInfoMessage,
     },
     state::{
-        AllocSpiMessage,
-        DelGetMessage as StateDelGetMessage,
-        GetDumpMessage,
-        FlushMessage as StateFlushMessage,
-        GetSadInfoMessage,
-        ModifyMessage as StateModifyMessage,
-        NewSadInfoMessage,
+        AllocSpiMessage, DelGetMessage as StateDelGetMessage, FlushMessage as StateFlushMessage,
+        GetDumpMessage, GetSadInfoMessage, ModifyMessage as StateModifyMessage, NewSadInfoMessage,
     },
-    NetlinkDeserializable,
-    NetlinkHeader,
-    NetlinkPayload,
-    NetlinkSerializable,
-    XfrmBuffer,
+    NetlinkDeserializable, NetlinkHeader, NetlinkPayload, NetlinkSerializable, XfrmBuffer,
 };
 
-use netlink_packet_utils::{
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{traits::*, DecodeError};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum XfrmMessage {
@@ -177,7 +155,6 @@ impl Emitable for XfrmMessage {
         }
     }
 }
-
 
 impl NetlinkSerializable for XfrmMessage {
     fn message_type(&self) -> u16 {

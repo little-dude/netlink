@@ -2,11 +2,7 @@
 
 use byteorder::{ByteOrder, NativeEndian};
 
-use netlink_packet_utils::{
-    buffer,
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, traits::*, DecodeError};
 
 pub const XFRM_REPLAY_ESN_LEN: usize = 24;
 
@@ -18,7 +14,7 @@ pub struct ReplayEsn {
     pub oseq_hi: u32,
     pub seq_hi: u32,
     pub replay_window: u32,
-    pub bmp: Vec<u32>
+    pub bmp: Vec<u32>,
 }
 
 buffer!(ReplayEsnBuffer(XFRM_REPLAY_ESN_LEN) {
@@ -45,7 +41,7 @@ impl<T: AsRef<[u8]> + ?Sized> Parseable<ReplayEsnBuffer<&T>> for ReplayEsn {
             oseq_hi: buf.oseq_hi(),
             seq_hi: buf.seq_hi(),
             replay_window: buf.replay_window(),
-            bmp
+            bmp,
         })
     }
 }

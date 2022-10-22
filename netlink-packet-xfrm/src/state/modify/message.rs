@@ -2,22 +2,14 @@
 
 use anyhow::Context;
 
-use crate::{
-    state::ModifyMessageBuffer,
-    UserSaInfo,
-    UserSaInfoBuffer,
-    XfrmAttrs,
-};
+use crate::{state::ModifyMessageBuffer, UserSaInfo, UserSaInfoBuffer, XfrmAttrs};
 
-use netlink_packet_utils::{
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{traits::*, DecodeError};
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct ModifyMessage {
     pub user_sa_info: UserSaInfo,
-    pub nlas: Vec<XfrmAttrs>
+    pub nlas: Vec<XfrmAttrs>,
 }
 
 impl Emitable for ModifyMessage {
@@ -39,7 +31,8 @@ impl<'a, T: AsRef<[u8]> + 'a> Parseable<ModifyMessageBuffer<&'a T>> for ModifyMe
             .context("failed to parse state modify message user sa info")?;
         Ok(ModifyMessage {
             user_sa_info,
-            nlas: Vec::<XfrmAttrs>::parse(buf).context("failed to parse state modify message NLAs")?
+            nlas: Vec::<XfrmAttrs>::parse(buf)
+                .context("failed to parse state modify message NLAs")?,
         })
     }
 }

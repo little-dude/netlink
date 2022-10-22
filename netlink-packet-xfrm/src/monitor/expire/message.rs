@@ -2,20 +2,13 @@
 
 use anyhow::Context;
 
-use crate::{
-    ExpireMessageBuffer,
-    UserExpire,
-    UserExpireBuffer,
-};
+use crate::{ExpireMessageBuffer, UserExpire, UserExpireBuffer};
 
-use netlink_packet_utils::{
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{traits::*, DecodeError};
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct ExpireMessage {
-    pub expire: UserExpire
+    pub expire: UserExpire,
 }
 
 impl Emitable for ExpireMessage {
@@ -32,8 +25,6 @@ impl<'a, T: AsRef<[u8]> + 'a> Parseable<ExpireMessageBuffer<&'a T>> for ExpireMe
     fn parse(buf: &ExpireMessageBuffer<&'a T>) -> Result<Self, DecodeError> {
         let expire = UserExpire::parse(&UserExpireBuffer::new(&buf.expire()))
             .context("failed to parse monitor expire message info")?;
-        Ok(ExpireMessage {
-            expire
-        })
+        Ok(ExpireMessage { expire })
     }
 }

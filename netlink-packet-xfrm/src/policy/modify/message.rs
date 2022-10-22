@@ -2,22 +2,14 @@
 
 use anyhow::Context;
 
-use crate::{
-    policy::ModifyMessageBuffer,
-    UserPolicyInfo,
-    UserPolicyInfoBuffer,
-    XfrmAttrs,
-};
+use crate::{policy::ModifyMessageBuffer, UserPolicyInfo, UserPolicyInfoBuffer, XfrmAttrs};
 
-use netlink_packet_utils::{
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{traits::*, DecodeError};
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct ModifyMessage {
     pub user_policy_info: UserPolicyInfo,
-    pub nlas: Vec<XfrmAttrs>
+    pub nlas: Vec<XfrmAttrs>,
 }
 
 impl Emitable for ModifyMessage {
@@ -35,11 +27,13 @@ impl Emitable for ModifyMessage {
 
 impl<'a, T: AsRef<[u8]> + 'a> Parseable<ModifyMessageBuffer<&'a T>> for ModifyMessage {
     fn parse(buf: &ModifyMessageBuffer<&'a T>) -> Result<Self, DecodeError> {
-        let user_policy_info = UserPolicyInfo::parse(&UserPolicyInfoBuffer::new(&buf.user_policy_info()))
-            .context("failed to parse policy modify message user policy info")?;
+        let user_policy_info =
+            UserPolicyInfo::parse(&UserPolicyInfoBuffer::new(&buf.user_policy_info()))
+                .context("failed to parse policy modify message user policy info")?;
         Ok(ModifyMessage {
             user_policy_info,
-            nlas: Vec::<XfrmAttrs>::parse(buf).context("failed to parse policy modify message NLAs")?
+            nlas: Vec::<XfrmAttrs>::parse(buf)
+                .context("failed to parse policy modify message NLAs")?,
         })
     }
 }

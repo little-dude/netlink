@@ -65,7 +65,10 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for SadInfoAttrs {
         Ok(match buf.kind() {
             XFRMA_SAD_UNSPEC => Unspec(payload.to_vec()),
             XFRMA_SAD_CNT => SadCount(parse_u32(payload).context("invalid XFRMA_SAD_CNT value")?),
-            XFRMA_SAD_HINFO => SadHInfo(sad_info::SadHInfo::parse(&SadHInfoBuffer::new(payload)).context("invalid XFRMA_SAD_HINFO")?),
+            XFRMA_SAD_HINFO => SadHInfo(
+                sad_info::SadHInfo::parse(&SadHInfoBuffer::new(payload))
+                    .context("invalid XFRMA_SAD_HINFO")?,
+            ),
             kind => Other(DefaultNla::parse(buf).context(format!("unknown NLA type {}", kind))?),
         })
     }

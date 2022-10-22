@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-use netlink_packet_utils::{
-    buffer,
-    traits::*,
-    DecodeError,
-};
+use netlink_packet_utils::{buffer, traits::*, DecodeError};
 
 use crate::constants::*;
 
@@ -15,7 +11,7 @@ pub struct SecurityCtx {
     pub ctx_alg: u8,
     pub ctx_doi: u8,
     pub ctx_len: u16,
-    pub ctx_str: Vec<u8>
+    pub ctx_str: Vec<u8>,
 }
 
 pub const XFRM_SEC_CTX_HEADER_LEN: usize = 8;
@@ -50,7 +46,7 @@ impl<T: AsRef<[u8]> + ?Sized> Parseable<SecurityCtxBuffer<&T>> for SecurityCtx {
             ctx_alg: buf.ctx_alg(),
             ctx_doi: buf.ctx_doi(),
             ctx_len: buf.ctx_len(),
-            ctx_str: buf.ctx_str().to_vec()
+            ctx_str: buf.ctx_str().to_vec(),
         })
     }
 }
