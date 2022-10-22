@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 
+use crate::XFRM_INF;
+
 use netlink_packet_utils::{
     buffer,
     traits::*,
@@ -8,7 +10,7 @@ use netlink_packet_utils::{
 
 // Lifetime config
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct LifetimeConfig {
     pub soft_byte_limit: u64,
     pub hard_byte_limit: u64,
@@ -32,6 +34,21 @@ buffer!(LifetimeConfigBuffer(XFRM_LIFETIME_CONFIG_LEN) {
     soft_use_expires_seconds: (u64, 48..56),
     hard_use_expires_seconds: (u64, 56..64)
 });
+
+impl Default for LifetimeConfig {
+    fn default() -> Self {
+        LifetimeConfig {
+            soft_byte_limit: XFRM_INF,
+            hard_byte_limit: XFRM_INF,
+            soft_packet_limit: XFRM_INF,
+            hard_packet_limit: XFRM_INF,
+            soft_add_expires_seconds: 0,
+            hard_add_expires_seconds: 0,
+            soft_use_expires_seconds: 0,
+            hard_use_expires_seconds: 0
+        }
+    }
+}
 
 impl<T: AsRef<[u8]>> Parseable<LifetimeConfigBuffer<T>> for LifetimeConfig {
     fn parse(buf: &LifetimeConfigBuffer<T>) -> Result<Self, DecodeError> {

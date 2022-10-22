@@ -3,7 +3,7 @@
 use anyhow::Context;
 
 use crate::{
-    state::DelGetMessageBuffer,
+    state::{DelGetMessageBuffer, GetDumpMessageBuffer},
     UserSaId,
     UserSaIdBuffer,
     XfrmAttrs,
@@ -46,6 +46,42 @@ impl<'a, T: AsRef<[u8]> + 'a> Parseable<DelGetMessageBuffer<&'a T>> for DelGetMe
 
 impl<'a, T: AsRef<[u8]> + 'a> Parseable<DelGetMessageBuffer<&'a T>> for Vec<XfrmAttrs> {
     fn parse(buf: &DelGetMessageBuffer<&'a T>) -> Result<Self, DecodeError> {
+        let mut nlas = vec![];
+        for nla_buf in buf.nlas() {
+            nlas.push(XfrmAttrs::parse(&nla_buf?)?);
+        }
+        Ok(nlas)
+    }
+}
+
+
+#[derive(Debug, PartialEq, Eq, Clone, Default)]
+pub struct GetDumpMessage {
+    pub nlas: Vec<XfrmAttrs>
+}
+
+impl Emitable for GetDumpMessage {
+    fn buffer_len(&self) -> usize {
+        self.nlas.as_slice().buffer_len()
+    }
+
+    fn emit(&self, buffer: &mut [u8]) {
+        self.nlas
+            .as_slice()
+            .emit(&mut buffer[..]);
+    }
+}
+
+impl<'a, T: AsRef<[u8]> + 'a> Parseable<GetDumpMessageBuffer<&'a T>> for GetDumpMessage {
+    fn parse(buf: &GetDumpMessageBuffer<&'a T>) -> Result<Self, DecodeError> {
+        Ok(GetDumpMessage {
+            nlas: Vec::<XfrmAttrs>::parse(buf).context("failed to parse state delget message NLAs")?
+        })
+    }
+}
+
+impl<'a, T: AsRef<[u8]> + 'a> Parseable<GetDumpMessageBuffer<&'a T>> for Vec<XfrmAttrs> {
+    fn parse(buf: &GetDumpMessageBuffer<&'a T>) -> Result<Self, DecodeError> {
         let mut nlas = vec![];
         for nla_buf in buf.nlas() {
             nlas.push(XfrmAttrs::parse(&nla_buf?)?);

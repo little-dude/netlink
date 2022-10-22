@@ -96,7 +96,7 @@ pub enum XfrmAttrs {
     SaInfo(UserSaInfo),
     SecurityContext(SecurityCtx),
     SrcAddr(Address),
-    Template(UserTemplate),
+    Template(Vec<UserTemplate>),
     TfcPadding(u32),
     Unspec(Vec<u8>),
 
@@ -138,7 +138,7 @@ impl Nla for XfrmAttrs {
             SaInfo(ref v) => v.buffer_len(),
             SecurityContext(ref v) => v.buffer_len(),
             SrcAddr(ref v) => v.buffer_len(),
-            Template(ref v) => v.buffer_len(),
+            Template(ref v) => v.len() * XFRM_USER_TEMPLATE_LEN,
             TfcPadding(_) => size_of::<u32>(),
             Unspec(ref bytes) => bytes.len(),
 
@@ -180,7 +180,22 @@ impl Nla for XfrmAttrs {
             SaInfo(ref v) => v.emit(buffer),
             SecurityContext(ref v) => v.emit(buffer),
             SrcAddr(ref v) => v.emit(buffer),
-            Template(ref v) => v.emit(buffer),
+            Template(ref v) => {
+                let mut it_tmpl = v.iter();
+                let mut it_buf = buffer.chunks_exact_mut(XFRM_USER_TEMPLATE_LEN);
+
+                loop {
+                    if let Some(tmpl) = it_tmpl.next() {
+                        if let Some(buf) = it_buf.next() {
+                            tmpl.emit(buf);
+                        } else {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+            },
             TfcPadding(ref v) => NativeEndian::write_u32(buffer, *v),
             Unspec(ref bytes) => buffer.copy_from_slice(bytes.as_slice()),
 
@@ -265,7 +280,16 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>> for XfrmAttrs {
             XFRMA_SA => SaInfo(UserSaInfo::parse(&UserSaInfoBuffer::new(payload)).context("invalid XFRMA_SA")?),
             XFRMA_SEC_CTX => SecurityContext(SecurityCtx::parse(&SecurityCtxBuffer::new(payload)).context("invalid XFRMA_SEC_CTX")?),
             XFRMA_SRCADDR => SrcAddr(Address::parse(&AddressBuffer::new(payload)).context("invalid XFRMA_COADDR")?),
-            XFRMA_TMPL => Template(UserTemplate::parse(&UserTemplateBuffer::new(payload)).context("invalid XFRMA_TMPL")?),
+            XFRMA_TMPL => {
+                let mut tmpls: Vec<UserTemplate> = vec![];
+                let mut it = payload.chunks_exact(XFRM_USER_TEMPLATE_LEN);
+
+                while let Some(t) = it.next() {
+                    let tmpl = UserTemplate::parse(&UserTemplateBuffer::new(&t)).context("invalid XFRMA_TMPL")?;
+                    tmpls.push(tmpl);
+                }
+                Template(tmpls)
+            },
             XFRMA_TFCPAD => TfcPadding(parse_u32(payload).context("invalid XFRMA_TFCPAD")?),
             XFRMA_UNSPEC => Unspec(payload.to_vec()),
 

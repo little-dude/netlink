@@ -138,7 +138,7 @@ pub const IPPROTO_ESP: u8     = libc::IPPROTO_ESP as u8;     //  50
 pub const IPPROTO_AH: u8      = libc::IPPROTO_AH as u8;      //  51
 pub const IPPROTO_DSTOPTS: u8 = libc::IPPROTO_DSTOPTS as u8; //  60
 pub const IPPROTO_COMP: u8    = libc::IPPROTO_COMP as u8;    // 108
-pub const IPSEC_PROTO_ANY: u8 = libc::IPPROTO_DSTOPTS as u8; // 255
+pub const IPSEC_PROTO_ANY: u8 = 255 as u8;
 
 // ==========================================
 // XFRM Mode
@@ -243,3 +243,10 @@ pub const XFRM_INF: u64 = !0;
 // Replay window max bitmap length
 // ==========================================
 pub const XFRMA_REPLAY_ESN_MAX: usize = 4096;
+
+// ==========================================
+// XFRM State ESP encapsulation types
+// ==========================================
+pub const UDP_ENCAP_ESPINUDP_NON_IKE: u16 = 1;
+pub const UDP_ENCAP_ESPINUDP: u16         = 2;
+pub const TCP_ENCAP_ESPINTCP: u16         = 7;

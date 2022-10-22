@@ -19,7 +19,7 @@ use netlink_packet_utils::{
     DecodeError,
 };
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct UserTemplate {
     pub id: Id,
     pub family: u16,
@@ -60,6 +60,23 @@ buffer!(UserTemplateBuffer(XFRM_USER_TEMPLATE_LEN) {
     ealgos: (u32, EALGOS_FIELD),
     calgos: (u32, CALGOS_FIELD)
 });
+
+impl Default for UserTemplate {
+    fn default() -> Self {
+        UserTemplate {
+            id: Id::default(),
+            family: 0,
+            saddr: Address::default(),
+            reqid: 0,
+            mode: 0,
+            share: 0,
+            optional: 0,
+            aalgos: u32::MAX,
+            ealgos: u32::MAX,
+            calgos: u32::MAX,
+        }
+    }
+}
 
 impl<T: AsRef<[u8]> + ?Sized> Parseable<UserTemplateBuffer<&T>> for UserTemplate {
     fn parse(buf: &UserTemplateBuffer<&T>) -> Result<Self, DecodeError> {

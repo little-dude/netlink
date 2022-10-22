@@ -22,3 +22,17 @@ impl<'a, T: AsRef<[u8]> + ?Sized> DelGetMessageBuffer<&'a T> {
         NlasIterator::new(self.attributes())
     }
 }
+
+// For State dump request with AddressFilter (no header, just attrib)
+
+pub const STATE_GET_DUMP_HEADER_LEN: usize = 0;
+
+buffer!(GetDumpMessageBuffer(STATE_GET_DUMP_HEADER_LEN) {
+    attributes: (slice, STATE_GET_DUMP_HEADER_LEN..)
+});
+
+impl<'a, T: AsRef<[u8]> + ?Sized> GetDumpMessageBuffer<&'a T> {
+    pub fn nlas(&self) -> impl Iterator<Item = Result<NlaBuffer<&'a [u8]>, DecodeError>> {
+        NlasIterator::new(self.attributes())
+    }
+}
