@@ -19,6 +19,7 @@ members = [
     "rtnetlink",
     "audit",
     "mptcp-pm",
+    "xfrmnetlink",
 ]
 
 # omit fuzz projects
@@ -39,4 +40,5 @@ default-members = [
     "rtnetlink",
     "audit",
     "mptcp-pm",
+    "xfrmnetlink",
 ]
