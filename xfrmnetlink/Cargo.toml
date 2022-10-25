@@ -19,12 +19,10 @@ smol_socket = ["netlink-proto/smol_socket", "async-global-executor"]
 
 [dependencies]
 futures = "0.3.11"
-log = "0.4.8"
 thiserror = "1"
-netlink-packet-core = { path = "../netlink-packet-core" }
+netlink-packet-core = { version = "0.4.2", path = "../netlink-packet-core" }
 netlink-packet-xfrm = { version = "0.1.0", path = "../netlink-packet-xfrm" }
 netlink-proto = { default-features = false, version = "0.10", path = "../netlink-proto" }
-nix = { version = "0.24.1" , default-features = false, features = ["fs", "mount", "sched", "signal"] }
 tokio = { version = "1.0.1", features = ["rt"], optional = true}
 async-global-executor = { version = "2.0.2", optional = true }
 
