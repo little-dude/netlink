@@ -1,5 +1,7 @@
 [![Build Status](https://travis-ci.org/little-dude/netlink.svg?branch=master)](https://travis-ci.org/little-dude/netlink)
 
+# This repository has been deprecated. Subsequent development will take place [@rust-netlink](https://github.com/rust-netlink).
+
 # Netlink
 
 This project aims at providing building blocks for [netlink][man-netlink] (see `man 7 netlink`).
