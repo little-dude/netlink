@@ -12,12 +12,14 @@ members = [
     "netlink-packet-sock-diag",
     "netlink-packet-netfilter",
     "netlink-packet-wireguard",
+    "netlink-packet-xfrm",
     "netlink-proto",
     "ethtool",
     "genetlink",
     "rtnetlink",
     "audit",
     "mptcp-pm",
+    "xfrmnetlink",
 ]
 
 # omit fuzz projects
@@ -31,10 +33,12 @@ default-members = [
     "netlink-packet-sock-diag",
     "netlink-packet-netfilter",
     "netlink-packet-wireguard",
+    "netlink-packet-xfrm",
     "netlink-proto",
     "ethtool",
     "genetlink",
     "rtnetlink",
     "audit",
     "mptcp-pm",
+    "xfrmnetlink",
 ]
