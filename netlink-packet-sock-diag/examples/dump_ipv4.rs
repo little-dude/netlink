@@ -3,10 +3,7 @@
 use netlink_packet_sock_diag::{
     constants::*,
     inet::{ExtensionFlags, InetRequest, SocketId, StateFlags},
-    NetlinkHeader,
-    NetlinkMessage,
-    NetlinkPayload,
-    SockDiagMessage,
+    NetlinkHeader, NetlinkMessage, NetlinkPayload, SockDiagMessage,
 };
 use netlink_sys::{protocols::NETLINK_SOCK_DIAG, Socket, SocketAddr};
 
@@ -59,7 +56,7 @@ fn main() {
                 NetlinkPayload::InnerMessage(SockDiagMessage::InetResponse(response)) => {
                     println!("{:#?}", response);
                 }
-                NetlinkPayload::Done => {
+                NetlinkPayload::Done(_) => {
                     println!("Done!");
                     return;
                 }

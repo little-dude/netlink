@@ -9,25 +9,18 @@ use std::{
 
 use futures::{
     channel::mpsc::{UnboundedReceiver, UnboundedSender},
-    Future,
-    Sink,
-    Stream,
+    Future, Sink, Stream,
 };
 use log::{error, warn};
 use netlink_packet_core::{
-    NetlinkDeserializable,
-    NetlinkMessage,
-    NetlinkPayload,
-    NetlinkSerializable,
+    NetlinkDeserializable, NetlinkMessage, NetlinkPayload, NetlinkSerializable,
 };
 
 use crate::{
     codecs::{NetlinkCodec, NetlinkMessageCodec},
     framed::NetlinkFramed,
     sys::{AsyncSocket, SocketAddr},
-    Protocol,
-    Request,
-    Response,
+    Protocol, Request, Response,
 };
 
 #[cfg(feature = "tokio_socket")]
@@ -230,7 +223,7 @@ where
                     // dropping the last instance of that sender,
                     // hence closing the channel and signaling the
                     // handle that no more messages are expected.
-                    Noop | Done | Ack(_) => {
+                    Noop | Done(_) | Ack(_) => {
                         trace!("not forwarding Noop/Ack/Done message to the handle");
                         continue;
                     }

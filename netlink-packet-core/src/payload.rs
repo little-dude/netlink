@@ -17,7 +17,7 @@ pub const NLMSG_ALIGNTO: u16 = 4;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum NetlinkPayload<I> {
-    Done,
+    Done(Option<Vec<u8>>),
     Error(ErrorMessage),
     Ack(AckMessage),
     Noop,
@@ -31,7 +31,7 @@ where
 {
     pub fn message_type(&self) -> u16 {
         match self {
-            NetlinkPayload::Done => NLMSG_DONE,
+            NetlinkPayload::Done(_) => NLMSG_DONE,
             NetlinkPayload::Error(_) | NetlinkPayload::Ack(_) => NLMSG_ERROR,
             NetlinkPayload::Noop => NLMSG_NOOP,
             NetlinkPayload::Overrun(_) => NLMSG_OVERRUN,

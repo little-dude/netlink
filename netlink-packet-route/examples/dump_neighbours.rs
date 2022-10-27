@@ -3,13 +3,8 @@
 use std::{convert::TryFrom, net::IpAddr, string::ToString};
 
 use netlink_packet_route::{
-    constants::*,
-    nlas::neighbour::Nla,
-    NeighbourMessage,
-    NetlinkHeader,
-    NetlinkMessage,
-    NetlinkPayload,
-    RtnlMessage,
+    constants::*, nlas::neighbour::Nla, NeighbourMessage, NetlinkHeader, NetlinkMessage,
+    NetlinkPayload, RtnlMessage,
 };
 use netlink_sys::{protocols::NETLINK_ROUTE, Socket, SocketAddr};
 
@@ -48,7 +43,7 @@ fn main() {
             let msg: NetlinkMessage<RtnlMessage> = NetlinkMessage::deserialize(bytes).unwrap();
 
             match msg.payload {
-                NetlinkPayload::Done => break 'outer,
+                NetlinkPayload::Done(_) => break 'outer,
                 NetlinkPayload::InnerMessage(RtnlMessage::NewNeighbour(entry)) => {
                     let address_family = entry.header.family as u16;
                     if address_family == AF_INET || address_family == AF_INET6 {

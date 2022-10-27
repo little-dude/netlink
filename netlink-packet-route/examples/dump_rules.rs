@@ -1,12 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 use netlink_packet_route::{
-    constants::*,
-    NetlinkHeader,
-    NetlinkMessage,
-    NetlinkPayload,
-    RtnlMessage,
-    RuleMessage,
+    constants::*, NetlinkHeader, NetlinkMessage, NetlinkPayload, RtnlMessage, RuleMessage,
 };
 use netlink_sys::{protocols::NETLINK_ROUTE, Socket, SocketAddr};
 
@@ -49,7 +44,7 @@ fn main() {
             let rx_packet = <NetlinkMessage<RtnlMessage>>::deserialize(bytes).unwrap();
             println!("<<< {:?}", rx_packet);
 
-            if rx_packet.payload == NetlinkPayload::Done {
+            if matches!(rx_packet.payload, NetlinkPayload::Done(_)) {
                 println!("Done!");
                 return;
             }
