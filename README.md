@@ -31,7 +31,7 @@ This project aims at providing building blocks for [netlink][man-netlink] (see `
   [ethtool netlink protocol][ethtool-kernel-doc]
 
 
-## Altnernatives
+## Alternatives
 
 - https://github.com/jbaublitz/neli: the main alternative to these crates, as it is actively developed.
 - Other but less actively developed alternatives:
