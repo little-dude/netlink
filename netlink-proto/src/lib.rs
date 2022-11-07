@@ -175,9 +175,7 @@ mod framed;
 pub use crate::framed::*;
 
 mod protocol;
-pub(crate) use self::protocol::{Protocol, Response};
-pub(crate) type Request<T> =
-    self::protocol::Request<T, UnboundedSender<crate::packet::NetlinkMessage<T>>>;
+pub(crate) use self::protocol::{Protocol, Request, Response};
 
 mod connection;
 pub use crate::connection::*;
@@ -188,7 +186,7 @@ pub use crate::errors::*;
 mod handle;
 pub use crate::handle::*;
 
-use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
+use futures::channel::mpsc::{unbounded, UnboundedReceiver};
 use std::{fmt::Debug, io};
 
 pub use netlink_packet_core as packet;
