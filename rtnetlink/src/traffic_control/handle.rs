@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 
 use super::{
+    add_class::TrafficClassNewRequest,
+    del_filter::TrafficFilterDelRequest,
     QDiscDelRequest,
     QDiscGetRequest,
     QDiscNewRequest,
@@ -78,6 +80,14 @@ impl TrafficClassHandle {
     pub fn get(&mut self) -> TrafficClassGetRequest {
         TrafficClassGetRequest::new(self.handle.clone(), self.ifindex)
     }
+
+    pub fn add(&mut self) -> TrafficClassNewRequest {
+        TrafficClassNewRequest::new(self.handle.clone(), self.ifindex, NLM_F_EXCL | NLM_F_CREATE)
+    }
+
+    pub fn replace(&mut self) -> TrafficClassNewRequest {
+        TrafficClassNewRequest::new(self.handle.clone(), self.ifindex, NLM_F_CREATE)
+    }
 }
 
 pub struct TrafficFilterHandle {
@@ -100,6 +110,10 @@ impl TrafficFilterHandle {
     /// ( equivalent to `tc filter add dev STRING`)
     pub fn add(&mut self) -> TrafficFilterNewRequest {
         TrafficFilterNewRequest::new(self.handle.clone(), self.ifindex, NLM_F_EXCL | NLM_F_CREATE)
+    }
+
+    pub fn del(&mut self) -> TrafficFilterDelRequest {
+        TrafficFilterDelRequest::new(self.handle.clone(), TcMessage::with_index(self.ifindex))
     }
 
     /// Change the filter, the handle cannot be changed and neither can the parent.

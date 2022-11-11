@@ -36,6 +36,20 @@ pub const TCA_U32_FLAGS: u16 = 11;
 pub const TCA_U32_PAD: u16 = 12;
 pub const TCA_U32_MAX: u16 = TCA_U32_PAD;
 
+pub const TCA_BPF_UNSPEC: u16 = 0;
+pub const TCA_BPF_ACT: u16 = 1;
+pub const TCA_BPF_POLICE: u16 = 2;
+pub const TCA_BPF_CLASSID: u16 = 3;
+pub const TCA_BPF_OPS_LEN: u16 = 4;
+pub const TCA_BPF_OPS: u16 = 5;
+pub const TCA_BPF_FD: u16 = 6;
+pub const TCA_BPF_NAME: u16 = 7;
+pub const TCA_BPF_FLAGS: u16 = 8;
+pub const TCA_BPF_FLAGS_GEN: u16 = 9;
+pub const TCA_BPF_TAG: u16 = 10;
+pub const TCA_BPF_ID: u16 = 11;
+pub const TCA_BPF_MAX: u16 = TCA_BPF_ID;
+
 /// U32 Flags
 pub const TC_U32_TERMINAL: u8 = 1;
 pub const TC_U32_OFFSET: u8 = 2;

@@ -15,3 +15,9 @@ pub const RTMGRP_IPV6_IFINFO: u32 = 2048;
 pub const RTMGRP_DECNET_IFADDR: u32 = 4096;
 pub const RTMGRP_DECNET_ROUTE: u32 = 16_384;
 pub const RTMGRP_IPV6_PREFIX: u32 = 131_072;
+pub const TIME_UNITS_PER_SEC: u32 = 1000000;
+pub const ATM_CELL_SIZE: u32 = 53; /* ATM cell size incl. header */
+pub const ATM_CELL_PAYLOAD: u32 = 48; /* ATM payload size */
+pub const TC_LINKLAYER_MASK: u32 = 0x0F;
+
+pub const SC_CLK_TCK: i32 = 2;

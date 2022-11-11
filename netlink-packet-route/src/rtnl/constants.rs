@@ -330,6 +330,19 @@ pub const TCA_STATS_RATE_EST64: u16 = 5;
 pub const TCA_STATS_PAD: u16 = 6;
 pub const TCA_STATS_BASIC_HW: u16 = 7;
 
+// htb
+pub const TCA_HTB_UNSPEC: u16 = 0;
+pub const TCA_HTB_PARMS: u16 = 1;
+pub const TCA_HTB_INIT: u16 = 2;
+pub const TCA_HTB_CTAB: u16 = 3;
+pub const TCA_HTB_RTAB: u16 = 4;
+pub const TCA_HTB_DIRECT_QLEN: u16 = 5;
+pub const TCA_HTB_RATE64: u16 = 6;
+pub const TCA_HTB_CEIL64: u16 = 7;
+pub const TCA_HTB_PAD: u16 = 8;
+pub const TCA_HTB_OFFLOAD: u16 = 9;
+pub const __TCA_HTB_MAX: u16 = 10;
+
 pub const NDTA_UNSPEC: u16 = 0;
 pub const NDTA_NAME: u16 = 1;
 pub const NDTA_THRESH1: u16 = 2;

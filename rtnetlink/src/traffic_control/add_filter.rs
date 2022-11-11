@@ -132,6 +132,16 @@ impl TrafficFilterNewRequest {
         self
     }
 
+    pub fn bpf(mut self, data: Vec<tc::bpf::Nla>) -> Self {
+        self.message
+            .nlas
+            .push(tc::Nla::Kind(tc::bpf::KIND.to_string()));
+        self.message.nlas.push(tc::Nla::Options(
+            data.into_iter().map(tc::TcOpt::Bpf).collect(),
+        ));
+        self
+    }
+
     /// Use u32 to implement traffic redirect.
     /// Equivalent to
     /// `tc filter add [dev source] [parent ffff:] [protocol all] u32 match u8 0 0 action mirred egress redirect dev dest`
@@ -166,10 +176,16 @@ impl TrafficFilterNewRequest {
 
 #[cfg(test)]
 mod test {
-    use std::{fs::File, os::unix::io::AsRawFd, path::Path};
+    use std::{
+        fs::File,
+        os::unix::io::AsRawFd,
+        path::Path,
+    };
 
     use futures::stream::TryStreamExt;
-    use nix::sched::{setns, CloneFlags};
+    use nix::{
+        sched::{setns, CloneFlags},
+    };
     use tokio::runtime::Runtime;
 
     use super::*;
@@ -322,6 +338,7 @@ mod test {
                 break;
             }
         }
+
         if !found {
             panic!("not found :{} filter.", test1.header.index);
         }

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 mod stats;
+
 pub use self::stats::*;
 
 mod stats_queue;
@@ -20,6 +21,9 @@ pub use self::filter::*;
 
 mod action;
 pub use self::action::*;
+
+mod class;
+pub use self::class::*;
 
 #[cfg(test)]
 mod test;
@@ -92,7 +96,6 @@ impl nlas::Nla for Nla {
                 buffer[string.as_bytes().len()] = 0;
             }
             Options(ref opt) => opt.as_slice().emit(buffer),
-
             // Default
             Other(ref attr) => attr.emit_value(buffer),
         }

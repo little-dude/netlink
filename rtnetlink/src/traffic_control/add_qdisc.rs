@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 
 use futures::stream::StreamExt;
+use netlink_packet_route::tc::{Nla, TcOpt};
 
 use crate::{
     packet::{
-        tc::{constants::*, nlas},
+        tc::{constants::*, htb::HtbGlob, nlas},
         NetlinkMessage,
         RtnlMessage,
         TcMessage,
@@ -78,6 +79,36 @@ impl QDiscNewRequest {
         self.message
             .nlas
             .push(nlas::Nla::Kind("ingress".to_string()));
+        self
+    }
+
+    pub fn htb(self) -> HtbAddRequest {
+        HtbAddRequest {
+            request: self,
+            opt: HtbGlob::new(),
+        }
+    }
+}
+
+pub struct HtbAddRequest {
+    request: QDiscNewRequest,
+    opt: HtbGlob,
+}
+
+impl HtbAddRequest {
+    pub async fn execute(self) -> Result<(), Error> {
+        let HtbAddRequest { mut request, opt } = self;
+
+        let mut opts = vec![];
+        opts.push(TcOpt::HtbOpt(opt));
+
+        request.message.nlas.push(Nla::Kind("htb".to_string()));
+        request.message.nlas.push(Nla::Options(opts));
+        request.execute().await
+    }
+
+    pub fn default(mut self, cls: u32) -> Self {
+        self.opt.defcls = cls;
         self
     }
 }
@@ -170,7 +201,7 @@ mod test {
         (handle, link.unwrap(), netns)
     }
 
-    async fn test_async_new_qdisc() {
+    async fn test_async_new_ingress_qdisc() {
         let (handle, test_link, _netns) = setup_env().await;
         handle
             .qdisc()
@@ -206,8 +237,53 @@ mod test {
         }
     }
 
+    async fn test_async_new_htb_qdisc() {
+        let (handle, test_link, _netns) = setup_env().await;
+        handle
+            .qdisc()
+            .add(test_link.header.index as i32)
+            .root()
+            .handle(0x8001, 0)
+            .htb()
+            .default(0x30)
+            .execute()
+            .await
+            .unwrap();
+        let mut qdiscs_iter = handle
+            .qdisc()
+            .get()
+            .index(test_link.header.index as i32)
+            .execute();
+
+        let mut found = false;
+        while let Some(nl_msg) = qdiscs_iter.try_next().await.unwrap() {
+            if nl_msg.header.index == test_link.header.index as i32
+                && nl_msg.header.handle == TC_H_MAKE!(0x8001 << 16, 0)
+            {
+                assert_eq!(nl_msg.header.family, AF_UNSPEC as u8);
+                assert_eq!(nl_msg.header.handle, TC_H_MAKE!(0x8001 << 16, 0));
+                assert_eq!(nl_msg.header.parent, TC_H_ROOT);
+                assert_eq!(nl_msg.header.info, 2);
+                assert_eq!(nl_msg.nlas[0], Kind("htb".to_string()));
+                assert_eq!(nl_msg.nlas[2], HwOffload(0));
+                found = true;
+                break;
+            }
+        }
+        if !found {
+            panic!("not found dev:{} qdisc.", test_link.header.index);
+        }
+    }
+
     #[test]
-    fn test_new_qdisc() {
-        Runtime::new().unwrap().block_on(test_async_new_qdisc());
+    fn test_new_ingress_qdisc() {
+        Runtime::new()
+            .unwrap()
+            .block_on(test_async_new_ingress_qdisc());
+    }
+
+    #[test]
+    fn test_new_htb_qdisc() {
+        Runtime::new().unwrap().block_on(test_async_new_htb_qdisc());
     }
 }
