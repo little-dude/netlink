@@ -81,7 +81,7 @@ impl Socket {
         let res = unsafe {
             libc::socket(
                 libc::PF_NETLINK,
-                libc::SOCK_DGRAM | libc::SOCK_CLOEXEC,
+                libc::SOCK_RAW | libc::SOCK_CLOEXEC,
                 protocol as libc::c_int,
             )
         };
@@ -445,6 +445,18 @@ impl Socket {
     pub fn get_cap_ack(&self) -> Result<bool> {
         let res = getsockopt::<libc::c_int>(self.0, libc::SOL_NETLINK, libc::NETLINK_CAP_ACK)?;
         Ok(res == 1)
+    }
+
+    pub fn set_buf_size(&mut self, tx: i32, rx: i32) -> Result<()> {
+        setsockopt(self.0, libc::SOL_SOCKET, libc::SO_SNDBUF, tx as libc::c_int)?;
+        setsockopt(self.0, libc::SOL_SOCKET, libc::SO_RCVBUF, rx as libc::c_int)?;
+        Ok(())
+    }
+
+    pub fn get_buf_size(&self) -> Result<(i32, i32)> {
+        let tx = getsockopt::<libc::c_int>(self.0, libc::SOL_SOCKET, libc::SO_SNDBUF)?;
+        let rx = getsockopt::<libc::c_int>(self.0, libc::SOL_SOCKET, libc::SO_RCVBUF)?;
+        Ok((tx, rx))
     }
 }
 

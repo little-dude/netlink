@@ -8,6 +8,7 @@ use std::{
 use netlink_packet_core::{
     constants::*,
     NetlinkDeserializable,
+    NetlinkEvent,
     NetlinkMessage,
     NetlinkPayload,
     NetlinkSerializable,
@@ -57,7 +58,7 @@ pub(crate) struct Protocol<T, M> {
     pub incoming_responses: VecDeque<Response<T, M>>,
 
     /// Requests from remote peers
-    pub incoming_requests: VecDeque<(NetlinkMessage<T>, SocketAddr)>,
+    pub incoming_requests: VecDeque<NetlinkEvent<(NetlinkMessage<T>, SocketAddr)>>,
 
     /// The messages to be sent out
     pub outgoing_messages: VecDeque<(NetlinkMessage<T>, SocketAddr)>,
@@ -84,8 +85,13 @@ where
         if let hash_map::Entry::Occupied(entry) = self.pending_requests.entry(request_id) {
             Self::handle_response(&mut self.incoming_responses, entry, message);
         } else {
-            self.incoming_requests.push_back((message, source));
+            self.incoming_requests
+                .push_back(NetlinkEvent::Message((message, source)));
         }
+    }
+
+    pub fn handle_buffer_full(&mut self) {
+        self.incoming_requests.push_back(NetlinkEvent::Overrun);
     }
 
     fn handle_response(

@@ -8,6 +8,7 @@ pub use self::utils::{traits, DecodeError};
 pub use netlink_packet_core::{
     ErrorMessage,
     NetlinkBuffer,
+    NetlinkEvent,
     NetlinkHeader,
     NetlinkMessage,
     NetlinkPayload,

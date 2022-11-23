@@ -21,10 +21,12 @@ use futures::channel::mpsc::UnboundedReceiver;
 pub fn new_connection() -> io::Result<(
     proto::Connection<packet::AuditMessage, sys::TokioSocket, packet::NetlinkAuditCodec>,
     Handle,
-    UnboundedReceiver<(
-        packet::NetlinkMessage<packet::AuditMessage>,
-        sys::SocketAddr,
-    )>,
+    UnboundedReceiver<
+        packet::NetlinkEvent<(
+            packet::NetlinkMessage<packet::AuditMessage>,
+            sys::SocketAddr,
+        )>,
+    >,
 )> {
     new_connection_with_socket()
 }
@@ -33,10 +35,12 @@ pub fn new_connection() -> io::Result<(
 pub fn new_connection_with_socket<S>() -> io::Result<(
     proto::Connection<packet::AuditMessage, S, packet::NetlinkAuditCodec>,
     Handle,
-    UnboundedReceiver<(
-        packet::NetlinkMessage<packet::AuditMessage>,
-        sys::SocketAddr,
-    )>,
+    UnboundedReceiver<
+        packet::NetlinkEvent<(
+            packet::NetlinkMessage<packet::AuditMessage>,
+            sys::SocketAddr,
+        )>,
+    >,
 )>
 where
     S: sys::AsyncSocket,

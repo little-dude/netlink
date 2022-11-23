@@ -16,6 +16,7 @@ use futures::{
 use log::{error, warn};
 use netlink_packet_core::{
     NetlinkDeserializable,
+    NetlinkEvent,
     NetlinkMessage,
     NetlinkPayload,
     NetlinkSerializable,
@@ -52,7 +53,7 @@ where
 
     /// Channel used to transmit to the ConnectionHandle the unsolicited messages received from the
     /// socket (multicast messages for instance).
-    unsolicited_messages_tx: Option<UnboundedSender<(NetlinkMessage<T>, SocketAddr)>>,
+    unsolicited_messages_tx: Option<UnboundedSender<NetlinkEvent<(NetlinkMessage<T>, SocketAddr)>>>,
 
     socket_closed: bool,
 }
@@ -65,7 +66,7 @@ where
 {
     pub(crate) fn new(
         requests_rx: UnboundedReceiver<Request<T>>,
-        unsolicited_messages_tx: UnboundedSender<(NetlinkMessage<T>, SocketAddr)>,
+        unsolicited_messages_tx: UnboundedSender<NetlinkEvent<(NetlinkMessage<T>, SocketAddr)>>,
         protocol: isize,
     ) -> io::Result<Self> {
         let socket = S::new(protocol)?;
@@ -131,9 +132,13 @@ where
         loop {
             trace!("polling socket");
             match socket.as_mut().poll_next(cx) {
-                Poll::Ready(Some((message, addr))) => {
+                Poll::Ready(Some(NetlinkEvent::Message((message, addr)))) => {
                     trace!("read datagram from socket");
                     self.protocol.handle_message(message, addr);
+                }
+                Poll::Ready(Some(NetlinkEvent::Overrun)) => {
+                    warn!("netlink socket buffer full");
+                    self.protocol.handle_buffer_full();
                 }
                 Poll::Ready(None) => {
                     warn!("netlink socket stream shut down");
@@ -165,11 +170,13 @@ where
 
     pub fn forward_unsolicited_messages(&mut self) {
         if self.unsolicited_messages_tx.is_none() {
-            while let Some((message, source)) = self.protocol.incoming_requests.pop_front() {
-                warn!(
-                    "ignoring unsolicited message {:?} from {:?}",
-                    message, source
-                );
+            while let Some(event) = self.protocol.incoming_requests.pop_front() {
+                match event {
+                    NetlinkEvent::Message((message, source)) => {
+                        warn!("ignoring unsolicited message {message:?} from {source:?}")
+                    }
+                    NetlinkEvent::Overrun => warn!("ignoring unsolicited socket overrun"),
+                }
             }
             return;
         }
@@ -183,11 +190,11 @@ where
             ..
         } = self;
 
-        while let Some((message, source)) = protocol.incoming_requests.pop_front() {
+        while let Some(event) = protocol.incoming_requests.pop_front() {
             if unsolicited_messages_tx
                 .as_mut()
                 .unwrap()
-                .unbounded_send((message, source))
+                .unbounded_send(event)
                 .is_err()
             {
                 // The channel is unbounded so the only error that can
